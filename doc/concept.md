@@ -42,14 +42,19 @@ The exact calendar model, including weekly recurrence and date-specific exceptio
 
 ### Employees
 
-An employee record initially contains:
+An employee record contains:
 
 - Name
 - Email address
-- One department
-- Shift preference: morning only, evening only, or either
+- Weekly hours: 20 to 48, in steps of 4
+- Holidays: whole-day date ranges the employee is away. Hard blocks for
+  the planner. A manager or the employee maintains them.
 
-Detailed recurring availability and date-specific exceptions are deferred to a dedicated design session. The initial preference model is sufficient to make the employee list, employee editor, invitation flow, and first planning model concrete.
+Department and the old morning/evening/either preference were placeholders
+and are removed. Departments return as a configurable set in phase 3. The
+preference returns as a recurring weekday/daypart model with a hard and a
+soft level, specified in `features/employee-availability/` and built after
+phase 3.
 
 ## Planning Workflow
 
@@ -104,7 +109,7 @@ The schedule optimizer is a separate service from the start, not a deferred addi
 
 ## Deferred Decisions
 
-- Detailed availability model, including recurrence and date-specific exceptions.
+- Availability model — holidays are done (`features/employee-availability/`). The recurring weekday/daypart model is specified there and builds after phase 3. Date-specific shift exceptions and fairness weights are still open.
 - Calendar recurrence and exceptions for standard day schedules.
 - Employee assignment confirmation, swap, or self-scheduling workflows.
 - Exact token-link security, expiry, revocation, and recovery behavior.

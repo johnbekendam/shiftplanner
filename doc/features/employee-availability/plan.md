@@ -1,6 +1,6 @@
 # Employee Availability — Plan
 
-Status: in progress — 4/5
+Status: done — 5/5
 
 Spec: `spec.md`. Roadmap phase 4 (holiday half).
 
@@ -52,7 +52,7 @@ Spec: `spec.md`. Roadmap phase 4 (holiday half).
   `/personal/${token}/holidays`. Vitest: both tabs render, `HolidayList`
   gets the token endpoint, identity stays read-only. Front-end suite green.
 
-- [ ] 5. **Docs + checks.** Update `doc/roadmap.md` phase 4 row (holidays
+- [x] 5. **Docs + checks.** Update `doc/roadmap.md` phase 4 row (holidays
   shipped, recurring model specified in this feature) and `doc/concept.md`
   (employee record carries holidays; availability model partly resolved).
   Run Pint, `php artisan test`, `npm run test`, `npm run build` — all

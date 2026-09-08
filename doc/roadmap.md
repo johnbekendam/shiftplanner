@@ -13,7 +13,7 @@ starts, a `plan.md` (the steps and progress).
 | 1 | Employee admin prototype — manager employee list/editor, personal-page preview link | Done | `features/employee-admin/spec.md`, `features/employee-admin/plan.md` |
 | 2 | Auth hardening — manager Entra ID (OIDC), employee token hardening | Planned | grill first, then `features/auth-hardening/spec.md` |
 | 3 | Departments and standard day schedules — management UI, shift coverage requirements | Planned | grill first |
-| 4 | Availability and wishes — recurring availability, date-specific exceptions, fairness model | Planned | dedicated design session first |
+| 4 | Availability and wishes — recurring availability, date-specific exceptions, fairness model | In progress | Holidays shipped (`features/employee-availability/`). Recurring availability specified there, builds after phase 3. Fairness model still needs a design session. |
 | 5 | Scheduling engine — Python OR-Tools `/solve` service, JSON contract, `GeneratePlan` job, draft review and edit | Planned | depends on phases 3 and 4 |
 | 6 | Publish and employee schedule view — publish a plan, employees see own assignments only | Planned | — |
 
@@ -87,6 +87,18 @@ Dedicated design session before any code. Recurring availability,
 date-specific exceptions, and the fairness definitions (workload fairness,
 wish fairness) that become objective terms in the optimizer. Output: the
 data model and the shape of the `/solve` JSON contract.
+
+Done so far — `features/employee-availability/`:
+
+- Per-employee holidays. Whole-day date ranges, hard blocks, no approval.
+  A manager or the employee adds and removes them on a new Availability
+  tab.
+- The recurring "cannot work" model is specified in the same feature. One
+  table, `weekday` + `daypart` + `level` (`blocked` or `avoid`). It
+  replaces the old shift preference. It builds after phase 3 delivers
+  named shifts.
+
+Still open: the fairness definitions and objective-term weights.
 
 ## Phase 5 — Scheduling engine
 
