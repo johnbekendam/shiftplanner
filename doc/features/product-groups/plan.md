@@ -1,6 +1,6 @@
 # Product Groups — Plan
 
-Status: in progress — 2/6
+Status: in progress — 3/6
 
 Spec: `spec.md`. Roadmap phase 3.6. Mirrors competences (phase 3.5).
 
@@ -43,7 +43,7 @@ Spec: `spec.md`. Roadmap phase 3.6. Mirrors competences (phase 3.5).
   delete cascades; move up and down; move past an end is a no-op; bad
   direction rejected). Full PHP suite green.
 
-- [ ] 3. **Backend: employee preference links and toggle endpoints.**
+- [x] 3. **Backend: employee preference links and toggle endpoints.**
   `TogglesProductGroup` concern with an idempotent attach
   (`syncWithoutDetaching`) and detach. `EmployeeProductGroupController`
   (`update` attaches, `destroy` detaches) behind `auth`.
