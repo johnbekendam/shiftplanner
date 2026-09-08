@@ -1,6 +1,6 @@
 # Employee Availability — Recurring Grid Plan
 
-Status: in progress — 1/4
+Status: in progress — 2/4
 
 Spec: `spec.md`, Part 2. Follows `plan.md` (holidays, done).
 
@@ -23,7 +23,7 @@ Spec: `spec.md`, Part 2. Follows `plan.md` (holidays, done).
   route scoped to its token, `edit`/`show` payload shape. Full PHP suite
   green.
 
-- [ ] 2. **`AvailabilityGrid` component.** Add
+- [x] 2. **`AvailabilityGrid` component.** Add
   `resources/js/components/AvailabilityGrid.vue`. Props: `availability`
   (the array from the payload) and `endpoint` (base URL). Renders a
   3-by-7 grid: daypart rows, weekday columns, a header row, and a legend.
