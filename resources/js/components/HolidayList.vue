@@ -3,7 +3,7 @@ import { ref } from 'vue'
 import { router } from '@inertiajs/vue3'
 import LabeledInput from '@/components/LabeledInput.vue'
 import ButtonPrimary from '@/components/ui/ButtonPrimary.vue'
-import ButtonSecondary from '@/components/ui/ButtonSecondary.vue'
+import ButtonDanger from '@/components/ui/ButtonDanger.vue'
 import { DateInput, TextInput } from '@/components/ui/Input'
 import { useI18n } from '@/composables/useI18n'
 
@@ -63,9 +63,13 @@ function remove(holiday) {
                     <td class="py-2 text-(--color-table-row-text)">{{ holiday.end_date }}</td>
                     <td class="py-2 text-(--color-text-secondary)">{{ holiday.note }}</td>
                     <td class="py-2 text-right">
-                        <ButtonSecondary type="button" icon="minus-circle" @click="remove(holiday)">
-                            {{ __('availability.holidays.delete') }}
-                        </ButtonSecondary>
+                        <ButtonDanger
+                            type="button"
+                            icon="bin"
+                            class="px-2.5"
+                            :aria-label="__('availability.holidays.delete')"
+                            @click="remove(holiday)"
+                        />
                     </td>
                 </tr>
                 <tr v-if="!holidays.length">
