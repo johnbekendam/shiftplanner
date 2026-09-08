@@ -1,6 +1,6 @@
 # Account Management — Plan
 
-Status: in progress — 3/7
+Status: in progress — 4/7
 
 Spec: `spec.md`. Roadmap phase 3.7.
 
@@ -50,7 +50,7 @@ Spec: `spec.md`. Roadmap phase 3.7.
   request voids the old code; the sixth request in the window is
   throttled; an inactive account cannot verify. Full PHP suite green.
 
-- [ ] 4. **Login page: one screen with the code flow.** `Auth/Login.vue`
+- [x] 4. **Login page: one screen with the code flow.** `Auth/Login.vue`
   — keep email and an optional password (drop `required` on the password
   field), keep **Sign in**, add **Email me a code** which posts
   `/login/code` and then reveals a six-digit code field and a **Verify**
