@@ -95,9 +95,9 @@ function add() {
             <thead>
                 <tr class="border-b border-(--color-table-header-separator) text-left text-(--color-table-header-text)">
                     <th class="py-2 pr-3 font-medium">{{ __('competences.name') }}</th>
-                    <th class="w-10 py-2" />
-                    <th class="w-10 py-2" />
-                    <th class="w-12 py-2" />
+                    <th class="w-14 py-2" />
+                    <th class="w-14 py-2" />
+                    <th class="w-14 py-2" />
                 </tr>
             </thead>
             <tbody>
