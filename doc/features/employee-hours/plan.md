@@ -1,6 +1,6 @@
 # Employee Hours — Plan
 
-Status: in progress — 2/4
+Status: in progress — 3/4
 
 Spec: `spec.md`. Roadmap phase 1.
 
@@ -43,7 +43,7 @@ The backend change is one atomic slice.
   options, disables name/email when `readonlyIdentity`, binds
   `weekly_hours`. Front-end suite green.
 
-- [ ] 3. **Personal page view.** Rewrite `Personal/Show.vue` to use
+- [x] 3. **Personal page view.** Rewrite `Personal/Show.vue` to use
   `EmployeeFields` with `readonlyIdentity`, on `CenteredLayout`, with the
   `Card`, save button, and `form.recentlySuccessful` confirmation, posting
   to `personal.update`. Vitest if the page has testable logic. Front-end

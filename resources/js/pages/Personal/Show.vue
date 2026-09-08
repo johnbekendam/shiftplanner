@@ -1,10 +1,8 @@
 <script setup>
-import { computed } from 'vue'
 import { Head, useForm } from '@inertiajs/vue3'
 import CenteredLayout from '@/layouts/CenteredLayout.vue'
-import LabeledInput from '@/components/LabeledInput.vue'
+import EmployeeFields from '@/components/EmployeeFields.vue'
 import ButtonPrimary from '@/components/ui/ButtonPrimary.vue'
-import { SelectInput } from '@/components/ui/Input'
 import { useI18n } from '@/composables/useI18n'
 
 const __ = useI18n()
@@ -15,17 +13,15 @@ const props = defineProps({
 })
 
 const form = useForm({
-    shift_preference: props.employee.shift_preference,
+    name: props.employee.name,
+    email: props.employee.email,
+    weekly_hours: props.employee.weekly_hours,
 })
 
-const preferenceOptions = computed(() => ({
-    morning: __('personal.preference.morning'),
-    evening: __('personal.preference.evening'),
-    either: __('personal.preference.either'),
-}))
-
 function save() {
-    form.put(`/personal/${props.token}/preference`, { preserveScroll: true })
+    form
+        .transform((data) => ({ weekly_hours: data.weekly_hours }))
+        .put(`/personal/${props.token}`, { preserveScroll: true })
 }
 </script>
 
@@ -38,9 +34,7 @@ function save() {
         <form class="space-y-5" @submit.prevent="save">
             <p class="text-sm text-(--color-text-secondary)">{{ __('personal.intro') }}</p>
 
-            <LabeledInput :label="__('personal.field.preference')" :error="form.errors.shift_preference">
-                <SelectInput v-model="form.shift_preference" :options="preferenceOptions" class="w-full" />
-            </LabeledInput>
+            <EmployeeFields :form="form" readonly-identity />
 
             <div class="flex items-center justify-end gap-3">
                 <span v-if="form.recentlySuccessful" class="text-sm text-(--color-badge-success-text)">
