@@ -77,16 +77,16 @@ function remove(holiday) {
         </table>
 
         <form class="flex flex-wrap items-end gap-3" @submit.prevent="add">
-            <LabeledInput :label="__('availability.holidays.start')" :error="errors.start_date">
-                <DateInput v-model="draft.start_date" />
+            <LabeledInput class="w-40" :label="__('availability.holidays.start')" :error="errors.start_date">
+                <DateInput v-model="draft.start_date" class="w-full" />
             </LabeledInput>
-            <LabeledInput :label="__('availability.holidays.end')" :error="errors.end_date">
-                <DateInput v-model="draft.end_date" />
+            <LabeledInput class="w-40" :label="__('availability.holidays.end')" :error="errors.end_date">
+                <DateInput v-model="draft.end_date" class="w-full" />
             </LabeledInput>
-            <LabeledInput :label="__('availability.holidays.note')" :error="errors.note">
-                <TextInput v-model="draft.note" />
+            <LabeledInput class="min-w-[12rem] flex-1" :label="__('availability.holidays.note')" :error="errors.note">
+                <TextInput v-model="draft.note" class="w-full" />
             </LabeledInput>
-            <ButtonPrimary type="submit" icon="plus-circle" :disabled="busy">
+            <ButtonPrimary type="submit" icon="plus-circle" :disabled="busy" class="shrink-0">
                 {{ __('availability.holidays.add') }}
             </ButtonPrimary>
         </form>

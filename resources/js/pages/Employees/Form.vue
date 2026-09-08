@@ -44,7 +44,7 @@ function submit() {
     <AppLayout>
         <Head :title="isEdit ? __('employees.form.edit_title') : __('employees.form.create_title')" />
 
-        <Card class="max-w-lg">
+        <Card class="max-w-2xl">
             <template #header>
                 <Tabs v-model="tab" :tabs="tabs" />
             </template>
