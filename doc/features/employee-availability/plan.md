@@ -1,6 +1,6 @@
 # Employee Availability — Plan
 
-Status: in progress — 2/5
+Status: in progress — 3/5
 
 Spec: `spec.md`. Roadmap phase 4 (holiday half).
 
@@ -31,7 +31,7 @@ Spec: `spec.md`. Roadmap phase 4 (holiday half).
   button per tab, marks the active one with the active tokens, emits the
   value on click.
 
-- [ ] 3. **Manager editor: tabbed card + Availability.** Add
+- [x] 3. **Manager editor: tabbed card + Availability.** Add
   `resources/js/components/HolidayList.vue` — a table of holiday rows
   (start date, end date, note, delete) plus an add-row form using
   `DateInput` + `TextInput` and `ButtonPrimary`/`ButtonSecondary`. Props:

@@ -95,5 +95,17 @@
     "personal.intro": "Choose how many hours you want to work each week. Your manager uses this when planning.",
     "personal.action.save": "Save",
     "personal.saved": "Saved",
-    "personal.flash.saved": "Hours saved."
+    "personal.flash.saved": "Hours saved.",
+
+    "availability.tab.details": "Details",
+    "availability.tab.availability": "Availability",
+    "availability.holidays.start": "Start",
+    "availability.holidays.end": "End",
+    "availability.holidays.note": "Note",
+    "availability.holidays.empty": "No holidays yet.",
+    "availability.holidays.add": "Add",
+    "availability.holidays.delete": "Remove",
+    "availability.holidays.save_first": "Save the employee first, then add holidays.",
+    "availability.flash.holiday_added": "Holiday added.",
+    "availability.flash.holiday_removed": "Holiday removed."
 }
