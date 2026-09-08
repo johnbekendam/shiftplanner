@@ -14,7 +14,7 @@ class EmployeeController extends Controller
 
     public function index(Request $request)
     {
-        $search = $request->input('search', '');
+        $search = trim((string) $request->input('search', ''));
 
         $query = Employee::query()->orderBy('name');
 

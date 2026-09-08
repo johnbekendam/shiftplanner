@@ -94,6 +94,22 @@ describe("Employees/Index", () => {
         expect(router.get.mock.calls[0][1]).toEqual({ search: "ann" });
     });
 
+    it("drops the search param when the box is cleared", async () => {
+        const w = mountIndex();
+        const input = w.get('input[type="search"]');
+        await input.setValue("ann");
+        vi.advanceTimersByTime(300);
+        await input.setValue("");
+        vi.advanceTimersByTime(300);
+
+        expect(router.get).toHaveBeenCalledTimes(2);
+        expect(router.get.mock.calls[1]).toEqual([
+            "/employees",
+            {},
+            expect.objectContaining({ replace: true }),
+        ]);
+    });
+
     it("opens the employee details when a row is clicked", async () => {
         const w = mountIndex();
         await w.findAll("tbody tr")[1].trigger("click");

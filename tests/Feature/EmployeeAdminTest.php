@@ -46,6 +46,17 @@ class EmployeeAdminTest extends TestCase
             );
     }
 
+    public function test_index_handles_an_empty_or_blank_search(): void
+    {
+        $user = User::factory()->create();
+        Employee::factory()->count(2)->create();
+
+        foreach (['/employees', '/employees?search=', '/employees?search='.urlencode('   ')] as $url) {
+            $this->actingAs($user)->get($url)->assertOk()
+                ->assertInertia(fn ($page) => $page->has('employees.data', 2));
+        }
+    }
+
     public function test_create_employee_with_valid_data(): void
     {
         $user = User::factory()->create();

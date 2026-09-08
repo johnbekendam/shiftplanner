@@ -15,13 +15,14 @@ const props = defineProps({
     search: { type: String, default: '' },
 })
 
-const searchTerm = ref(props.search)
+const searchTerm = ref(props.search ?? '')
 
 let searchTimer = null
 watch(searchTerm, (value) => {
     clearTimeout(searchTimer)
+    const search = (value ?? '').trim()
     searchTimer = setTimeout(() => {
-        router.get('/employees', { search: value }, {
+        router.get('/employees', search === '' ? {} : { search }, {
             preserveState: true,
             preserveScroll: true,
             replace: true,
