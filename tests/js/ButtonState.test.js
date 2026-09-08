@@ -29,6 +29,7 @@ describe.each(variants)("Button %s state prop", (name, Comp) => {
         for (const opts of [
             { props: { state: "disabled" } },
             { attrs: { disabled: "" } },
+            { attrs: { disabled: true } },
         ]) {
             const c = cls(mount(Comp, { ...opts, slots: { default: "x" } }));
             expect(c).toContain(`bg-[var(--color-btn-${name}-disabled-bg)]`);
@@ -36,5 +37,12 @@ describe.each(variants)("Button %s state prop", (name, Comp) => {
             expect(c).toContain("cursor-not-allowed");
             expect(c).not.toContain(`bg-[var(--color-btn-${name}-bg)]`);
         }
+    });
+
+    it("disabled={false} stays enabled (bound :disabled with a falsy value)", () => {
+        const c = cls(mount(Comp, { attrs: { disabled: false }, slots: { default: "x" } }));
+        expect(c).toContain(`bg-[var(--color-btn-${name}-bg)]`);
+        expect(c).not.toContain(`bg-[var(--color-btn-${name}-disabled-bg)]`);
+        expect(c).not.toContain("cursor-not-allowed");
     });
 });

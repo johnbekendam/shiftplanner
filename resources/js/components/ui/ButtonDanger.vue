@@ -33,8 +33,13 @@ const HOVER =
 const DISABLED =
     'pointer-events-none cursor-not-allowed border-[var(--color-btn-danger-disabled-border)] bg-[var(--color-btn-danger-disabled-bg)] text-[var(--color-btn-danger-disabled-text)]'
 
+// A bound `:disabled="false"` still lands in $attrs as `false`; only treat a
+// present, truthy value (or the bare `disabled` attribute, which arrives as '')
+// as disabled.
+const isDisabled = computed(() => attrs.disabled !== undefined && attrs.disabled !== null && attrs.disabled !== false)
+
 const stateClasses = computed(() => {
-    const s = props.state === 'disabled' || attrs.disabled != null ? 'disabled' : props.state
+    const s = props.state === 'disabled' || isDisabled.value ? 'disabled' : props.state
     return s === 'disabled' ? DISABLED : s === 'hover' ? HOVER : NORMAL
 })
 </script>
