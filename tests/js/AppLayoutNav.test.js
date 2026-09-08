@@ -1,15 +1,18 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { mount } from "@vue/test-utils";
 
 const en = {
     "nav.employees": "Employees",
+    "nav.users": "Users",
     "nav.settings": "Settings",
     "nav.theme_builder": "Theme Builder",
 };
 
+const state = vi.hoisted(() => ({ user: null }));
+
 vi.mock("@inertiajs/vue3", () => ({
     router: { post: vi.fn() },
-    usePage: () => ({ props: { translations: en, auth: { user: null } }, url: "/employees" }),
+    usePage: () => ({ props: { translations: en, auth: { user: state.user } }, url: "/employees" }),
     Link: { name: "Link", props: ["href"], template: "<a :href='href'><slot /></a>" },
 }));
 
@@ -21,12 +24,24 @@ const stubs = {
     FlashMessage: true,
 };
 
-describe("AppLayout navigation", () => {
-    it("lists a Settings item linking to /settings", () => {
-        const w = mount(AppLayout, { global: { stubs } });
-        const settings = w.findAll("a").find((a) => a.text().includes("Settings"));
+const navHrefs = (w) => w.findAll("nav a").map((a) => a.attributes("href"));
 
-        expect(settings).toBeTruthy();
-        expect(settings.attributes("href")).toBe("/settings");
+beforeEach(() => {
+    state.user = null;
+});
+
+describe("AppLayout navigation", () => {
+    it("shows only Employees to a manager", () => {
+        state.user = { role: "manager" };
+        const hrefs = navHrefs(mount(AppLayout, { global: { stubs } }));
+
+        expect(hrefs).toEqual(["/employees"]);
+    });
+
+    it("shows Users, Settings and Theme Builder to an admin", () => {
+        state.user = { role: "admin" };
+        const hrefs = navHrefs(mount(AppLayout, { global: { stubs } }));
+
+        expect(hrefs).toEqual(["/employees", "/users", "/settings", "/theme-builder"]);
     });
 });

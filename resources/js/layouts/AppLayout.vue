@@ -32,11 +32,23 @@ onUnmounted(() => document.removeEventListener('click', handleOutsideClick))
 
 // A context/domain extension would add its own context-scoped section here,
 // following the same NavLink pattern.
-const navItems = computed(() => [
-    { label: __('nav.employees'), href: '/employees', icon: 'users' },
-    { label: __('nav.settings'), href: '/settings', icon: 'cog' },
-    { label: __('nav.theme_builder'), href: '/theme-builder', icon: 'swatch' },
-])
+const isAdmin = computed(() => user.value?.role === 'admin')
+
+const navItems = computed(() => {
+    const items = [
+        { label: __('nav.employees'), href: '/employees', icon: 'users' },
+    ]
+
+    if (isAdmin.value) {
+        items.push(
+            { label: __('nav.users'), href: '/users', icon: 'user-plus' },
+            { label: __('nav.settings'), href: '/settings', icon: 'cog' },
+            { label: __('nav.theme_builder'), href: '/theme-builder', icon: 'swatch' },
+        )
+    }
+
+    return items
+})
 
 function logout() {
     router.post('/logout')

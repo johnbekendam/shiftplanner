@@ -1,6 +1,6 @@
 # Account Management — Plan
 
-Status: in progress — 4/7
+Status: in progress — 5/7
 
 Spec: `spec.md`. Roadmap phase 3.7.
 
@@ -62,7 +62,7 @@ Spec: `spec.md`. Roadmap phase 3.7.
   the notice; **Verify** posts `{ email, code }` to
   `/login/code/verify`. Front-end suite and `npm run build` green.
 
-- [ ] 5. **Admin `/users` page.** `UserController` `index` / `create` /
+- [x] 5. **Admin `/users` page.** `UserController` `index` / `create` /
   `store` / `edit` / `update`, all behind `auth` + `admin`. `store`:
   `name`, `email` (unique on users), `role` (in `admin`,`manager`); the
   new row has a null password. `update`: same fields plus `is_active`;

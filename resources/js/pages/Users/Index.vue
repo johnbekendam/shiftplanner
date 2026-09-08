@@ -1,0 +1,68 @@
+<script setup>
+import { Head, Link, router } from '@inertiajs/vue3'
+import AppLayout from '@/layouts/AppLayout.vue'
+import Card from '@/components/ui/Card.vue'
+import ButtonPrimary from '@/components/ui/ButtonPrimary.vue'
+import { useI18n } from '@/composables/useI18n'
+
+const __ = useI18n()
+
+defineProps({
+    users: { type: Array, default: () => [] },
+})
+
+function openUser(user) {
+    router.visit(`/users/${user.id}/edit`)
+}
+</script>
+
+<template>
+    <AppLayout>
+        <Head :title="__('users.title')" />
+
+        <Card class="max-w-3xl">
+            <template #header>
+                <div class="flex items-center justify-between gap-3 px-6 py-3">
+                    <span class="text-base font-semibold">{{ __('users.title') }}</span>
+                    <Link href="/users/create">
+                        <ButtonPrimary type="button" icon="user-plus">{{ __('users.action.new') }}</ButtonPrimary>
+                    </Link>
+                </div>
+            </template>
+
+            <div class="p-6">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="border-b border-(--color-table-header-separator) text-left text-(--color-table-header-text)">
+                            <th class="py-2">{{ __('users.column.name') }}</th>
+                            <th class="py-2">{{ __('users.column.email') }}</th>
+                            <th class="py-2">{{ __('users.column.role') }}</th>
+                            <th class="py-2">{{ __('users.column.status') }}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr
+                            v-for="user in users"
+                            :key="user.id"
+                            data-testid="user-row"
+                            class="cursor-pointer border-b border-(--color-table-row-separator) hover:bg-(--color-table-row-hover-bg)"
+                            @click="openUser(user)"
+                        >
+                            <td class="py-2 text-(--color-table-row-text)">{{ user.name }}</td>
+                            <td class="py-2 text-(--color-table-row-text)">{{ user.email }}</td>
+                            <td class="py-2 text-(--color-table-row-text)">{{ __(`users.role.${user.role}`) }}</td>
+                            <td class="py-2 text-(--color-text-secondary)">
+                                {{ user.is_active ? __('users.status.active') : __('users.status.inactive') }}
+                            </td>
+                        </tr>
+                        <tr v-if="!users.length">
+                            <td colspan="4" class="py-8 text-center text-(--color-text-secondary)">
+                                {{ __('users.empty') }}
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </Card>
+    </AppLayout>
+</template>

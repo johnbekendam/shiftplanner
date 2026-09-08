@@ -17,6 +17,7 @@ use App\Http\Controllers\ProductGroupController;
 use App\Http\Controllers\RecurringAvailabilityController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\ThemeBuilderController;
+use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
 Route::redirect('/', '/employees');
@@ -53,6 +54,12 @@ Route::middleware('auth')->group(function () {
         Route::post('/mailbox/{message}/send', [MailboxController::class, 'send'])->name('mailbox.send');
         Route::post('/mailbox/bulk-delete', [MailboxController::class, 'bulkDelete'])->name('mailbox.bulk-delete');
         Route::delete('/mailbox/{message}', [MailboxController::class, 'destroy'])->name('mailbox.destroy');
+
+        Route::get('/users', [UserController::class, 'index'])->name('users.index');
+        Route::get('/users/create', [UserController::class, 'create'])->name('users.create');
+        Route::post('/users', [UserController::class, 'store'])->name('users.store');
+        Route::get('/users/{user}/edit', [UserController::class, 'edit'])->name('users.edit');
+        Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update');
     }); // end admin group
 
     Route::get('/employees', [EmployeeController::class, 'index'])->name('employees.index');
