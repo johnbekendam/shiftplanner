@@ -20,8 +20,8 @@ class MailboxTest extends TestCase
 
     public function test_index_only_shows_the_current_users_messages(): void
     {
-        $user = User::factory()->create();
-        $other = User::factory()->create();
+        $user = User::factory()->admin()->create();
+        $other = User::factory()->admin()->create();
 
         Message::factory()->for($user)->create(['subject' => 'Mine']);
         Message::factory()->for($other)->create(['subject' => 'Not mine']);
@@ -39,7 +39,7 @@ class MailboxTest extends TestCase
     public function test_compose_saves_a_draft_without_sending(): void
     {
         Queue::fake();
-        $user = User::factory()->create();
+        $user = User::factory()->admin()->create();
 
         $response = $this->actingAs($user)->post('/mailbox/compose', [
             'to' => 'a@example.com',
@@ -61,7 +61,7 @@ class MailboxTest extends TestCase
     public function test_compose_with_multiple_recipients_creates_one_message_per_recipient(): void
     {
         Queue::fake();
-        $user = User::factory()->create();
+        $user = User::factory()->admin()->create();
 
         $this->actingAs($user)->post('/mailbox/compose', [
             'to' => 'a@example.com, b@example.com',
@@ -77,7 +77,7 @@ class MailboxTest extends TestCase
 
     public function test_compose_rejects_invalid_email_address(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->admin()->create();
 
         $response = $this->actingAs($user)->post('/mailbox/compose', [
             'to' => 'not-an-email',
@@ -93,7 +93,7 @@ class MailboxTest extends TestCase
     public function test_compose_queue_mode_dispatches_send_job(): void
     {
         Queue::fake();
-        $user = User::factory()->create();
+        $user = User::factory()->admin()->create();
 
         $this->actingAs($user)->post('/mailbox/compose', [
             'to' => 'a@example.com',
@@ -108,7 +108,7 @@ class MailboxTest extends TestCase
 
     public function test_preview_renders_without_persisting(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->admin()->create();
 
         $response = $this->actingAs($user)->post('/mailbox/compose/preview', [
             'subject' => 'Hello',
@@ -125,7 +125,7 @@ class MailboxTest extends TestCase
     public function test_send_now_promotes_a_draft_to_outbox_and_dispatches(): void
     {
         Queue::fake();
-        $user = User::factory()->create();
+        $user = User::factory()->admin()->create();
         $message = Message::factory()->for($user)->create(['status' => 'draft']);
 
         $response = $this->actingAs($user)->post("/mailbox/{$message->id}/send");
@@ -137,7 +137,7 @@ class MailboxTest extends TestCase
 
     public function test_send_now_fails_for_a_non_draft_message(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->admin()->create();
         $message = Message::factory()->for($user)->sent()->create();
 
         $this->actingAs($user)->post("/mailbox/{$message->id}/send")->assertStatus(422);
@@ -145,8 +145,8 @@ class MailboxTest extends TestCase
 
     public function test_cannot_send_someone_elses_draft(): void
     {
-        $owner = User::factory()->create();
-        $intruder = User::factory()->create();
+        $owner = User::factory()->admin()->create();
+        $intruder = User::factory()->admin()->create();
         $message = Message::factory()->for($owner)->create(['status' => 'draft']);
 
         $this->actingAs($intruder)->post("/mailbox/{$message->id}/send")->assertStatus(403);
@@ -154,7 +154,7 @@ class MailboxTest extends TestCase
 
     public function test_user_can_delete_own_message(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->admin()->create();
         $message = Message::factory()->for($user)->create();
 
         $response = $this->actingAs($user)->delete("/mailbox/{$message->id}");
@@ -165,8 +165,8 @@ class MailboxTest extends TestCase
 
     public function test_cannot_delete_someone_elses_message(): void
     {
-        $owner = User::factory()->create();
-        $intruder = User::factory()->create();
+        $owner = User::factory()->admin()->create();
+        $intruder = User::factory()->admin()->create();
         $message = Message::factory()->for($owner)->create();
 
         $this->actingAs($intruder)->delete("/mailbox/{$message->id}")->assertStatus(403);
@@ -175,7 +175,7 @@ class MailboxTest extends TestCase
 
     public function test_bulk_delete_removes_only_the_given_ids(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->admin()->create();
         $a = Message::factory()->for($user)->create(['status' => 'draft']);
         $b = Message::factory()->for($user)->create(['status' => 'draft']);
         $c = Message::factory()->for($user)->create(['status' => 'draft']);
@@ -193,7 +193,7 @@ class MailboxTest extends TestCase
 
     public function test_bulk_delete_with_no_ids_deletes_everything_in_the_tab(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->admin()->create();
         Message::factory()->for($user)->count(3)->create(['status' => 'draft']);
         $outboxMessage = Message::factory()->for($user)->outbox()->create();
 
@@ -209,7 +209,7 @@ class MailboxTest extends TestCase
 
     public function test_bulk_delete_with_no_ids_and_a_search_term_only_deletes_matches(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->admin()->create();
         $match = Message::factory()->for($user)->create(['status' => 'draft', 'subject' => 'Findme']);
         $noMatch = Message::factory()->for($user)->create(['status' => 'draft', 'subject' => 'Other']);
 
@@ -226,8 +226,8 @@ class MailboxTest extends TestCase
 
     public function test_bulk_delete_only_affects_the_current_users_messages(): void
     {
-        $user = User::factory()->create();
-        $other = User::factory()->create();
+        $user = User::factory()->admin()->create();
+        $other = User::factory()->admin()->create();
         $theirs = Message::factory()->for($other)->create(['status' => 'draft']);
 
         $this->actingAs($user)->post('/mailbox/bulk-delete', [

@@ -12,9 +12,9 @@ class CompetenceConfigTest extends TestCase
 {
     use RefreshDatabase;
 
-    private function actingAsManager(): User
+    private function actingAsAdmin(): User
     {
-        $user = User::factory()->create();
+        $user = User::factory()->admin()->create();
         $this->actingAs($user);
 
         return $user;
@@ -37,7 +37,7 @@ class CompetenceConfigTest extends TestCase
 
     public function test_settings_lists_competences_in_position_order_with_holder_count(): void
     {
-        $this->actingAsManager();
+        $this->actingAsAdmin();
 
         $second = Competence::factory()->create(['name' => 'Cleanroom', 'position' => 2]);
         $first = Competence::factory()->create(['name' => 'Forklift', 'position' => 1]);
@@ -60,7 +60,7 @@ class CompetenceConfigTest extends TestCase
 
     public function test_manager_adds_a_competence_at_the_end(): void
     {
-        $this->actingAsManager();
+        $this->actingAsAdmin();
         Competence::factory()->create(['name' => 'Forklift', 'position' => 5]);
 
         $this->post('/settings/competences', ['name' => 'First aid'])->assertRedirect();
@@ -70,7 +70,7 @@ class CompetenceConfigTest extends TestCase
 
     public function test_the_first_competence_takes_position_one(): void
     {
-        $this->actingAsManager();
+        $this->actingAsAdmin();
 
         $this->post('/settings/competences', ['name' => 'First aid']);
 
@@ -79,7 +79,7 @@ class CompetenceConfigTest extends TestCase
 
     public function test_a_blank_name_is_rejected(): void
     {
-        $this->actingAsManager();
+        $this->actingAsAdmin();
 
         $this->post('/settings/competences', ['name' => ''])->assertSessionHasErrors('name');
         $this->assertSame(0, Competence::count());
@@ -87,7 +87,7 @@ class CompetenceConfigTest extends TestCase
 
     public function test_a_duplicate_name_is_rejected_regardless_of_case(): void
     {
-        $this->actingAsManager();
+        $this->actingAsAdmin();
         Competence::factory()->create(['name' => 'Forklift']);
 
         $this->post('/settings/competences', ['name' => 'FORKLIFT'])->assertSessionHasErrors('name');
@@ -98,7 +98,7 @@ class CompetenceConfigTest extends TestCase
 
     public function test_manager_renames_a_competence(): void
     {
-        $this->actingAsManager();
+        $this->actingAsAdmin();
         $competence = Competence::factory()->create(['name' => 'Forklift']);
 
         $this->put("/settings/competences/{$competence->id}", ['name' => 'Forklift licence'])
@@ -109,7 +109,7 @@ class CompetenceConfigTest extends TestCase
 
     public function test_renaming_to_another_competences_name_is_rejected(): void
     {
-        $this->actingAsManager();
+        $this->actingAsAdmin();
         Competence::factory()->create(['name' => 'Forklift']);
         $competence = Competence::factory()->create(['name' => 'Cleanroom']);
 
@@ -121,7 +121,7 @@ class CompetenceConfigTest extends TestCase
 
     public function test_renaming_a_competence_to_its_own_name_is_allowed(): void
     {
-        $this->actingAsManager();
+        $this->actingAsAdmin();
         $competence = Competence::factory()->create(['name' => 'Forklift']);
 
         $this->put("/settings/competences/{$competence->id}", ['name' => 'Forklift'])
@@ -132,7 +132,7 @@ class CompetenceConfigTest extends TestCase
 
     public function test_deleting_a_competence_removes_it_and_its_links(): void
     {
-        $this->actingAsManager();
+        $this->actingAsAdmin();
         $competence = Competence::factory()->create();
         $employee = Employee::factory()->create();
         $competence->employees()->attach($employee);
@@ -147,7 +147,7 @@ class CompetenceConfigTest extends TestCase
 
     public function test_move_down_swaps_with_the_next_row(): void
     {
-        $this->actingAsManager();
+        $this->actingAsAdmin();
         $a = Competence::factory()->create(['name' => 'A', 'position' => 1]);
         $b = Competence::factory()->create(['name' => 'B', 'position' => 2]);
 
@@ -159,7 +159,7 @@ class CompetenceConfigTest extends TestCase
 
     public function test_move_up_swaps_with_the_previous_row(): void
     {
-        $this->actingAsManager();
+        $this->actingAsAdmin();
         $a = Competence::factory()->create(['name' => 'A', 'position' => 1]);
         $b = Competence::factory()->create(['name' => 'B', 'position' => 2]);
 
@@ -171,7 +171,7 @@ class CompetenceConfigTest extends TestCase
 
     public function test_moving_past_an_end_changes_nothing(): void
     {
-        $this->actingAsManager();
+        $this->actingAsAdmin();
         $a = Competence::factory()->create(['name' => 'A', 'position' => 1]);
         $b = Competence::factory()->create(['name' => 'B', 'position' => 2]);
 
@@ -184,7 +184,7 @@ class CompetenceConfigTest extends TestCase
 
     public function test_an_unknown_move_direction_is_rejected(): void
     {
-        $this->actingAsManager();
+        $this->actingAsAdmin();
         $competence = Competence::factory()->create(['position' => 1]);
 
         $this->put("/settings/competences/{$competence->id}/move", ['direction' => 'sideways'])

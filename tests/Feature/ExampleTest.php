@@ -15,7 +15,7 @@ class ExampleTest extends TestCase
      */
     public function test_the_application_returns_a_successful_response(): void
     {
-        $response = $this->actingAs(User::factory()->create())->get('/theme-builder');
+        $response = $this->actingAs(User::factory()->admin()->create())->get('/theme-builder');
 
         $response->assertStatus(200);
     }

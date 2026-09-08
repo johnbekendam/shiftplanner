@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\AutoLoginSeedUser;
+use App\Http\Middleware\EnsureAdmin;
 use App\Http\Middleware\HandleInertiaRequests;
 use Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests;
 use Illuminate\Foundation\Application;
@@ -18,6 +19,8 @@ return Application::configure(basePath: dirname(__DIR__))
             HandleInertiaRequests::class,
             AutoLoginSeedUser::class,
         ]);
+
+        $middleware->alias(['admin' => EnsureAdmin::class]);
 
         // Route-level `auth` middleware is priority-sorted ahead of any
         // custom global middleware by default, which would run it before

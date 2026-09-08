@@ -12,7 +12,7 @@ class AutoLoginSeedUserTest extends TestCase
 
     private function seedUser(): User
     {
-        return User::factory()->create(['email' => 'admin@example.com']);
+        return User::factory()->admin()->create(['email' => 'admin@example.com']);
     }
 
     public function test_does_not_auto_login_when_flag_disabled(): void

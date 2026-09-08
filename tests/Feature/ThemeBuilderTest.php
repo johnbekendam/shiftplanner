@@ -25,7 +25,7 @@ class ThemeBuilderTest extends TestCase
 
     public function test_index_shares_flat_colors_and_categories(): void
     {
-        $response = $this->actingAs(User::factory()->create())->get('/theme-builder');
+        $response = $this->actingAs(User::factory()->admin()->create())->get('/theme-builder');
 
         $response->assertOk();
         $response->assertInertia(fn ($page) => $page
@@ -46,7 +46,7 @@ class ThemeBuilderTest extends TestCase
 
     public function test_save_persists_the_colors_map_and_brand_family(): void
     {
-        $this->actingAs(User::factory()->create());
+        $this->actingAs(User::factory()->admin()->create());
 
         $this->postJson('/theme-builder/save', [
             'colors' => ['header_bg' => ['light' => 'red-500', 'dark' => 'red-700']],
