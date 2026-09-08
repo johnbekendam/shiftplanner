@@ -3,6 +3,8 @@ import { mount } from "@vue/test-utils";
 
 const en = {
     "nav.employees": "Employees",
+    "nav.my_details": "My details",
+    "nav.account": "Account",
     "nav.users": "Users",
     "nav.settings": "Settings",
     "nav.theme_builder": "Theme Builder",
@@ -43,5 +45,12 @@ describe("AppLayout navigation", () => {
         const hrefs = navHrefs(mount(AppLayout, { global: { stubs } }));
 
         expect(hrefs).toEqual(["/employees", "/users", "/settings", "/theme-builder"]);
+    });
+
+    it("adds a My details link when the account is linked to an employee", () => {
+        state.user = { role: "manager", employee_id: 12 };
+        const hrefs = navHrefs(mount(AppLayout, { global: { stubs } }));
+
+        expect(hrefs).toEqual(["/employees", "/employees/12/edit"]);
     });
 });

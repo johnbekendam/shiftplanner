@@ -1,6 +1,6 @@
 # Account Management — Plan
 
-Status: in progress — 5/7
+Status: in progress — 6/7
 
 Spec: `spec.md`. Roadmap phase 3.7.
 
@@ -78,7 +78,7 @@ Spec: `spec.md`. Roadmap phase 3.7.
   edit; the sidebar shows **Users** for an admin and hides it for a
   manager. Full suites and `npm run build` green.
 
-- [ ] 6. **Account page `/account`.** `AccountController` `show` /
+- [x] 6. **Account page `/account`.** `AccountController` `show` /
   `updatePassword` / `linkEmployee`, behind `auth`. `updatePassword`:
   require `current_password` only when the user already has one; set the
   new password (min length rule); the model cast hashes it.

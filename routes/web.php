@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AccountController;
 use App\Http\Controllers\Auth\LoginCodeController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\CompetenceController;
@@ -61,6 +62,10 @@ Route::middleware('auth')->group(function () {
         Route::get('/users/{user}/edit', [UserController::class, 'edit'])->name('users.edit');
         Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update');
     }); // end admin group
+
+    Route::get('/account', [AccountController::class, 'show'])->name('account.show');
+    Route::put('/account/password', [AccountController::class, 'updatePassword'])->name('account.password');
+    Route::post('/account/employee', [AccountController::class, 'linkEmployee'])->name('account.employee');
 
     Route::get('/employees', [EmployeeController::class, 'index'])->name('employees.index');
     Route::get('/employees/create', [EmployeeController::class, 'create'])->name('employees.create');

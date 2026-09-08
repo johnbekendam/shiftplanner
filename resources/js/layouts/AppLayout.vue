@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { usePage, router } from '@inertiajs/vue3'
+import { usePage, router, Link } from '@inertiajs/vue3'
 import Layout from '@/layouts/Layout.vue'
 import AppLogo from '@/components/AppLogo.vue'
 import NavLink from '@/components/NavLink.vue'
@@ -38,6 +38,14 @@ const navItems = computed(() => {
     const items = [
         { label: __('nav.employees'), href: '/employees', icon: 'users' },
     ]
+
+    if (user.value?.employee_id) {
+        items.push({
+            label: __('nav.my_details'),
+            href: `/employees/${user.value.employee_id}/edit`,
+            icon: 'user',
+        })
+    }
 
     if (isAdmin.value) {
         items.push(
@@ -119,6 +127,13 @@ function isActive(href) {
                             v-if="userMenuOpen"
                             class="absolute right-0 mt-1 w-40 rounded-md border shadow-lg overflow-hidden bg-[var(--color-dropdown-panel-bg)] border-[var(--color-dropdown-panel-border)]"
                         >
+                            <Link
+                                href="/account"
+                                class="block w-full px-3 py-2 text-left text-sm text-[var(--color-dropdown-option-text)] hover:bg-[var(--color-dropdown-option-hover-bg)] hover:text-[var(--color-dropdown-option-hover-text)]"
+                                @click="userMenuOpen = false"
+                            >
+                                {{ __('nav.account') }}
+                            </Link>
                             <button
                                 class="w-full px-3 py-2 text-left text-sm text-[var(--color-dropdown-option-text)] hover:bg-[var(--color-dropdown-option-hover-bg)] hover:text-[var(--color-dropdown-option-hover-text)]"
                                 @click="logout"
