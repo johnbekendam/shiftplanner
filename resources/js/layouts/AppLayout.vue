@@ -34,6 +34,7 @@ onUnmounted(() => document.removeEventListener('click', handleOutsideClick))
 // following the same NavLink pattern.
 const navItems = computed(() => [
     { label: __('nav.employees'), href: '/employees', icon: 'users' },
+    { label: __('nav.settings'), href: '/settings', icon: 'cog' },
     { label: __('nav.theme_builder'), href: '/theme-builder', icon: 'swatch' },
 ])
 

@@ -1,6 +1,6 @@
 # Competences — Plan
 
-Status: in progress — 2/5
+Status: in progress — 3/5
 
 Spec: `spec.md`. Roadmap phase 3.5.
 
@@ -44,7 +44,7 @@ Spec: `spec.md`. Roadmap phase 3.5.
   competence is 404; the `edit` and `show` payloads carry `competences`
   and `competenceIds`. Full PHP suite green.
 
-- [ ] 3. **Frontend: Settings page and the Competences config list.**
+- [x] 3. **Frontend: Settings page and the Competences config list.**
   `resources/js/pages/Settings/Index.vue` — `AppLayout`, one `Card` whose
   header is `Tabs` (single tab `competences`), tab held in a `ref`.
   `resources/js/components/CompetenceList.vue` — props `competences`,
