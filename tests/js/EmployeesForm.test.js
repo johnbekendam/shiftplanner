@@ -7,6 +7,9 @@ const en = {
     "availability.tab.availability": "Availability",
     "availability.holidays.empty": "No holidays yet.",
     "availability.holidays.save_first": "Save the employee first, then add holidays.",
+    "competences.tab": "Competences",
+    "competences.save_first": "Save the employee first, then set competences.",
+    "competences.checklist_empty": "No competences have been set up yet.",
     "employees.field.name": "Name",
     "employees.field.email": "Email",
     "employees.field.weekly_hours": "Weekly hours",
@@ -30,6 +33,7 @@ vi.mock("@inertiajs/vue3", () => ({
 import Form from "@/pages/Employees/Form.vue";
 import HolidayList from "@/components/HolidayList.vue";
 import AvailabilityGrid from "@/components/AvailabilityGrid.vue";
+import CompetenceChecklist from "@/components/CompetenceChecklist.vue";
 
 const stubs = { AppLayout: { template: "<div><slot /></div>" } };
 
@@ -73,5 +77,40 @@ describe("Employees/Form", () => {
         expect(w.findComponent(HolidayList).exists()).toBe(false);
         expect(w.findComponent(AvailabilityGrid).exists()).toBe(false);
         expect(w.text()).toContain("Save the employee first");
+    });
+
+    it("shows a third Competences tab pointed at the employee endpoint", async () => {
+        const w = mount(Form, {
+            props: {
+                employee: { id: 3, name: "A", email: "a@b.c", weekly_hours: 24 },
+                holidays: [],
+                competences: [{ id: 1, name: "Forklift" }],
+                competenceIds: [1],
+            },
+            global: { stubs },
+        });
+
+        expect(w.text()).toContain("Competences");
+
+        const tab = w.findAll("button").find((b) => b.text() === "Competences");
+        await tab.trigger("click");
+        await w.vm.$nextTick();
+
+        const checklist = w.findComponent(CompetenceChecklist);
+        expect(checklist.props("endpoint")).toBe("/employees/3/competences");
+        expect(checklist.props("competences")).toHaveLength(1);
+        expect(checklist.props("selectedIds")).toEqual([1]);
+    });
+
+    it("on create, the Competences tab asks the employee to be saved first", () => {
+        const w = mount(Form, {
+            props: { employee: null, holidays: [] },
+            global: { stubs },
+        });
+
+        expect(w.findComponent(CompetenceChecklist).exists()).toBe(false);
+        expect(w.get('[data-testid="panel-competences"]').text()).toContain(
+            "Save the employee first, then set competences.",
+        );
     });
 });

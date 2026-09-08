@@ -15,6 +15,8 @@ const en = {
     "availability.tab.details": "Details",
     "availability.tab.availability": "Availability",
     "availability.holidays.empty": "No holidays yet.",
+    "competences.tab": "Competences",
+    "competences.checklist_empty": "No competences have been set up yet.",
 };
 
 const { router } = vi.hoisted(() => ({ router: { post: vi.fn(), delete: vi.fn() } }));
@@ -51,14 +53,16 @@ import Show from "@/pages/Personal/Show.vue";
 import EmployeeFields from "@/components/EmployeeFields.vue";
 import HolidayList from "@/components/HolidayList.vue";
 import AvailabilityGrid from "@/components/AvailabilityGrid.vue";
+import CompetenceChecklist from "@/components/CompetenceChecklist.vue";
 import SelectInput from "@/components/ui/Input/Select.vue";
 
-const mountShow = (holidays = []) =>
+const mountShow = (holidays = [], extra = {}) =>
     mount(Show, {
         props: {
             token: "tok-1",
             employee: { name: "Jordan Lee", email: "jordan@example.com", weekly_hours: 24 },
             holidays,
+            ...extra,
         },
         global: {
             stubs: {
@@ -117,6 +121,15 @@ describe("Personal/Show", () => {
     it("points the availability grid at the token endpoint", () => {
         const w = mountShow();
         expect(w.findComponent(AvailabilityGrid).props("endpoint")).toBe("/personal/tok-1/availability");
+    });
+
+    it("has a third Competences tab pointed at the token endpoint", () => {
+        const w = mountShow([], { competences: [{ id: 1, name: "Forklift" }], competenceIds: [1] });
+        expect(w.text()).toContain("Competences");
+
+        const checklist = w.findComponent(CompetenceChecklist);
+        expect(checklist.props("endpoint")).toBe("/personal/tok-1/competences");
+        expect(checklist.props("selectedIds")).toEqual([1]);
     });
 
     it("reveals the holiday list when the Availability tab is clicked", async () => {

@@ -7,6 +7,7 @@ import Tabs from '@/components/ui/Tabs.vue'
 import EmployeeFields from '@/components/EmployeeFields.vue'
 import AvailabilityGrid from '@/components/AvailabilityGrid.vue'
 import HolidayList from '@/components/HolidayList.vue'
+import CompetenceChecklist from '@/components/CompetenceChecklist.vue'
 import ButtonPrimary from '@/components/ui/ButtonPrimary.vue'
 import { useI18n } from '@/composables/useI18n'
 
@@ -17,6 +18,8 @@ const props = defineProps({
     employee: { type: Object, required: true },
     holidays: { type: Array, default: () => [] },
     availability: { type: Array, default: () => [] },
+    competences: { type: Array, default: () => [] },
+    competenceIds: { type: Array, default: () => [] },
 })
 
 const form = useForm({
@@ -29,6 +32,7 @@ const tab = ref('details')
 const tabs = computed(() => [
     { value: 'details', label: __('availability.tab.details') },
     { value: 'availability', label: __('availability.tab.availability') },
+    { value: 'competences', label: __('competences.tab') },
 ])
 
 function save() {
@@ -84,6 +88,14 @@ function save() {
                 </h3>
                 <HolidayList :holidays="holidays" :endpoint="`/personal/${token}/holidays`" />
             </section>
+        </div>
+
+        <div v-show="tab === 'competences'" data-testid="panel-competences">
+            <CompetenceChecklist
+                :competences="competences"
+                :selected-ids="competenceIds"
+                :endpoint="`/personal/${token}/competences`"
+            />
         </div>
     </CenteredLayout>
 </template>

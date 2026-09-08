@@ -1,6 +1,6 @@
 # Competences — Plan
 
-Status: in progress — 3/5
+Status: in progress — 4/5
 
 Spec: `spec.md`. Roadmap phase 3.5.
 
@@ -68,7 +68,7 @@ Spec: `spec.md`. Roadmap phase 3.5.
   renders the tab and mounts `CompetenceList` on the endpoint;
   `AppLayout` nav lists `Settings`. Front-end suite green.
 
-- [ ] 4. **Frontend: the Competences tab on both employee surfaces.**
+- [x] 4. **Frontend: the Competences tab on both employee surfaces.**
   `resources/js/components/CompetenceChecklist.vue` — props `competences`,
   `selectedIds`, `endpoint`. Renders a `CheckboxInput` per competence in
   the given order, checked when the id is in `selectedIds`. A toggle to

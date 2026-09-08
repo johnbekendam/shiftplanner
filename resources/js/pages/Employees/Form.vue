@@ -8,6 +8,7 @@ import Tabs from '@/components/ui/Tabs.vue'
 import EmployeeFields from '@/components/EmployeeFields.vue'
 import AvailabilityGrid from '@/components/AvailabilityGrid.vue'
 import HolidayList from '@/components/HolidayList.vue'
+import CompetenceChecklist from '@/components/CompetenceChecklist.vue'
 import ButtonPrimary from '@/components/ui/ButtonPrimary.vue'
 import ButtonSecondary from '@/components/ui/ButtonSecondary.vue'
 import { useI18n } from '@/composables/useI18n'
@@ -18,6 +19,8 @@ const props = defineProps({
     employee: { type: Object, default: null },
     holidays: { type: Array, default: () => [] },
     availability: { type: Array, default: () => [] },
+    competences: { type: Array, default: () => [] },
+    competenceIds: { type: Array, default: () => [] },
 })
 
 const isEdit = computed(() => props.employee !== null)
@@ -32,6 +35,7 @@ const tab = ref('details')
 const tabs = computed(() => [
     { value: 'details', label: __('availability.tab.details') },
     { value: 'availability', label: __('availability.tab.availability') },
+    { value: 'competences', label: __('competences.tab') },
 ])
 
 function submit() {
@@ -90,6 +94,18 @@ function submit() {
                 </template>
                 <p v-else class="text-sm text-(--color-text-secondary)">
                     {{ __('availability.holidays.save_first') }}
+                </p>
+            </div>
+
+            <div v-show="tab === 'competences'" data-testid="panel-competences" class="p-6">
+                <CompetenceChecklist
+                    v-if="isEdit"
+                    :competences="competences"
+                    :selected-ids="competenceIds"
+                    :endpoint="`/employees/${employee.id}/competences`"
+                />
+                <p v-else class="text-sm text-(--color-text-secondary)">
+                    {{ __('competences.save_first') }}
                 </p>
             </div>
         </Card>
