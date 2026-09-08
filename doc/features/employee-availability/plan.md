@@ -1,6 +1,6 @@
 # Employee Availability — Plan
 
-Status: in progress — 1/5
+Status: in progress — 2/5
 
 Spec: `spec.md`. Roadmap phase 4 (holiday half).
 
@@ -24,7 +24,7 @@ Spec: `spec.md`. Roadmap phase 4 (holiday half).
   payload; personal add + delete + scoped-to-token; deleting another
   employee's holiday by wrong route 404s. Full PHP suite green.
 
-- [ ] 2. **`Tabs` component.** `resources/js/components/ui/Tabs.vue` — a
+- [x] 2. **`Tabs` component.** `resources/js/components/ui/Tabs.vue` — a
   tab bar for a `Card` header. Props: `tabs` (array of `{ value, label }`),
   `modelValue`. Emits `update:modelValue`. Uses `--color-tab-*` tokens
   (active/inactive/hover bg, text, border, separator). Vitest: renders one
