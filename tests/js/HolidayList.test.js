@@ -38,8 +38,7 @@ beforeEach(() => {
 describe("HolidayList", () => {
     it("renders a row per holiday", () => {
         const w = mountList();
-        const bodyRows = w.findAll("tbody tr");
-        expect(bodyRows).toHaveLength(2);
+        expect(w.findAll('[data-testid="holiday-row"]')).toHaveLength(2);
         expect(w.text()).toContain("2026-06-01");
         expect(w.text()).toContain("Early");
     });
@@ -49,7 +48,16 @@ describe("HolidayList", () => {
         expect(w.text()).toContain("No holidays.");
     });
 
-    it("posts a new holiday to the endpoint", async () => {
+    it("keeps the add inputs as a row inside the same table", () => {
+        const w = mountList();
+        const addRow = w.get('[data-testid="holiday-add-row"]');
+
+        expect(addRow.element.tagName).toBe("TR");
+        expect(addRow.findAllComponents(DateInput)).toHaveLength(2);
+        expect(w.findAll("table")).toHaveLength(1);
+    });
+
+    it("posts a new holiday to the endpoint and stays on the page", async () => {
         const w = mountList({ holidays: [] });
         const dates = w.findAllComponents(DateInput);
         dates[0].vm.$emit("update:modelValue", "2026-07-01");
@@ -62,16 +70,16 @@ describe("HolidayList", () => {
         const [url, payload, opts] = router.post.mock.calls[0];
         expect(url).toBe("/employees/7/holidays");
         expect(payload).toMatchObject({ start_date: "2026-07-01", end_date: "2026-07-14" });
-        expect(opts).toMatchObject({ preserveScroll: true });
+        expect(opts).toMatchObject({ preserveScroll: true, preserveState: true });
     });
 
-    it("deletes a row through the endpoint and its id", async () => {
+    it("deletes a row through the endpoint and stays on the page", async () => {
         const w = mountList();
-        await w.findAll("tbody tr")[0].get("button").trigger("click");
+        await w.findAll('[data-testid="holiday-row"]')[0].get("button").trigger("click");
 
         expect(router.delete).toHaveBeenCalledTimes(1);
         const [url, opts] = router.delete.mock.calls[0];
         expect(url).toBe("/employees/7/holidays/1");
-        expect(opts).toMatchObject({ preserveScroll: true });
+        expect(opts).toMatchObject({ preserveScroll: true, preserveState: true });
     });
 });
