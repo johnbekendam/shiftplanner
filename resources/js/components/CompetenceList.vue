@@ -95,7 +95,9 @@ function add() {
             <thead>
                 <tr class="border-b border-(--color-table-header-separator) text-left text-(--color-table-header-text)">
                     <th class="py-2 pr-3 font-medium">{{ __('competences.name') }}</th>
-                    <th class="w-28 py-2" />
+                    <th class="w-10 py-2" />
+                    <th class="w-10 py-2" />
+                    <th class="w-12 py-2" />
                 </tr>
             </thead>
             <tbody>
@@ -115,37 +117,39 @@ function add() {
                             {{ errors[competence.id] }}
                         </p>
                     </td>
-                    <td class="py-2 align-top">
-                        <div class="flex items-center justify-end gap-1">
-                            <ButtonSecondary
-                                v-if="index > 0"
-                                type="button"
-                                icon="chevron-up"
-                                class="px-2"
-                                :aria-label="__('competences.move_up')"
-                                @click="move(competence, 'up')"
-                            />
-                            <ButtonSecondary
-                                v-if="index < competences.length - 1"
-                                type="button"
-                                icon="chevron-down"
-                                class="px-2"
-                                :aria-label="__('competences.move_down')"
-                                @click="move(competence, 'down')"
-                            />
-                            <ButtonDanger
-                                type="button"
-                                icon="bin"
-                                class="px-2"
-                                :aria-label="__('competences.delete')"
-                                @click="remove(competence)"
-                            />
-                        </div>
+                    <td class="px-1 py-2 align-top">
+                        <ButtonSecondary
+                            v-if="index > 0"
+                            type="button"
+                            icon="chevron-up"
+                            class="w-full px-0"
+                            :aria-label="__('competences.move_up')"
+                            @click="move(competence, 'up')"
+                        />
+                    </td>
+                    <td class="px-1 py-2 align-top">
+                        <ButtonSecondary
+                            v-if="index < competences.length - 1"
+                            type="button"
+                            icon="chevron-down"
+                            class="w-full px-0"
+                            :aria-label="__('competences.move_down')"
+                            @click="move(competence, 'down')"
+                        />
+                    </td>
+                    <td class="px-1 py-2 align-top">
+                        <ButtonDanger
+                            type="button"
+                            icon="bin"
+                            class="w-full px-0"
+                            :aria-label="__('competences.delete')"
+                            @click="remove(competence)"
+                        />
                     </td>
                 </tr>
 
                 <tr v-if="!competences.length">
-                    <td colspan="2" class="py-6 text-center text-(--color-text-secondary)">
+                    <td colspan="4" class="py-6 text-center text-(--color-text-secondary)">
                         {{ __('competences.list_empty') }}
                     </td>
                 </tr>
@@ -161,7 +165,7 @@ function add() {
                             {{ addError }}
                         </p>
                     </td>
-                    <td class="py-2 text-right align-top">
+                    <td colspan="3" class="px-1 py-2 text-right align-top">
                         <ButtonPrimary
                             type="submit"
                             icon="plus-circle"
