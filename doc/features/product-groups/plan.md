@@ -1,6 +1,6 @@
 # Product Groups — Plan
 
-Status: in progress — 5/6
+Status: done — 6/6
 
 Spec: `spec.md`. Roadmap phase 3.6. Mirrors competences (phase 3.5).
 
@@ -89,7 +89,7 @@ Spec: `spec.md`. Roadmap phase 3.6. Mirrors competences (phase 3.5).
   endpoints, and the create-page save-first message. `npm run test` and
   `npm run build` green.
 
-- [ ] 6. **Docs and full checks.** `doc/roadmap.md` — add the phase 3.6
+- [x] 6. **Docs and full checks.** `doc/roadmap.md` — add the phase 3.6
   `Product groups` row and section. `doc/concept.md` — a Product Groups
   entry under Core Data and a preferred-product-groups note on the
   employee record. Set this `plan.md` header to `6/6`. Run Pint,

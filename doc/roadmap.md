@@ -14,6 +14,7 @@ starts, a `plan.md` (the steps and progress).
 | 2 | Auth hardening — manager Entra ID (OIDC), employee token hardening | Planned | grill first, then `features/auth-hardening/spec.md` |
 | 3 | Departments and standard day schedules — management UI, shift coverage requirements | Planned | grill first |
 | 3.5 | Competences — config list on a Settings page, per-employee checkmarks | Done | `features/competences/spec.md`, `features/competences/plan.md`. Planning use is out of scope. |
+| 3.6 | Product groups — config list on the Settings page, per-employee preferences | Done | `features/product-groups/spec.md`, `features/product-groups/plan.md`. Planning use is out of scope. |
 | 4 | Availability and wishes — recurring availability, date-specific exceptions, fairness model | In progress | Holidays and the recurring availability grid shipped (`features/employee-availability/`). Fairness model still needs a design session. |
 | 5 | Scheduling engine — Python OR-Tools `/solve` service, JSON contract, `GeneratePlan` job, draft review and edit | Planned | depends on phases 3 and 4 |
 | 6 | Publish and employee schedule view — publish a plan, employees see own assignments only | Planned | — |
@@ -99,6 +100,25 @@ the holiday and availability pattern.
 
 Planning use — a work centre that requires a competence — is out of
 scope. Only the data and the two UIs ship here.
+
+## Phase 3.6 — Product groups
+
+Built after competences. See `features/product-groups/`.
+
+Mirrors competences. The Settings card gets a second tab, Product groups,
+with the same add, rename, reorder, and confirm-then-cascade delete. A
+product group has a name only; `employee_product_group` is the pivot.
+
+Each employee has a set of preferred product groups. A row means "this
+employee prefers this group" — no rank. The manager and the employee
+both toggle them, write on click.
+
+The employee editor and personal page Competences tab is renamed
+Profile. It now holds two sections split by a separator: Competences,
+then Preferred product groups. The two competences Vue components became
+the shared `OrderedNameList` and `TagChecklist`, used by both features.
+
+Planning use is out of scope. Only the data and the UI ship here.
 
 ## Phase 4 — Availability and wishes
 

@@ -48,6 +48,12 @@ employee holds a subset, checked by a manager or the employee. A later
 phase lets a work centre require a competence, so only employees who hold
 it can be planned there.
 
+### Product Groups
+
+A configurable list of product families, maintained on the Settings page.
+Each employee has a set of preferred product groups, set by a manager or
+the employee. A later phase uses the preference as a planning wish.
+
 ### Employees
 
 An employee record contains:
@@ -63,6 +69,9 @@ An employee record contains:
 - Competences: the skills the employee holds, checked from the
   configurable competence list. A manager or the employee maintains them.
   Planning use comes later.
+- Preferred product groups: the product families the employee would
+  rather work on, checked from the configurable product group list. A
+  manager or the employee maintains them. Planning use comes later.
 
 Department and the old morning/evening/either preference were
 placeholders and are removed. Departments return as a configurable set in
