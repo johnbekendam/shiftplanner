@@ -1,6 +1,6 @@
 # Competences — Plan
 
-Status: in progress — 1/5
+Status: in progress — 2/5
 
 Spec: `spec.md`. Roadmap phase 3.5.
 
@@ -26,7 +26,7 @@ Spec: `spec.md`. Roadmap phase 3.5.
   and down swap two rows; `move` past the first or last row changes
   nothing. Full PHP suite green.
 
-- [ ] 2. **Backend: employee competence links and toggle endpoints.**
+- [x] 2. **Backend: employee competence links and toggle endpoints.**
   (The `competence_employee` migration, `Employee::competences()`, and
   `Competence::employees()` already landed in step 1 for `holder_count`.)
   Concern `TogglesCompetence` with an

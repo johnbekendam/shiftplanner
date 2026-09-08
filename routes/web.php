@@ -2,9 +2,11 @@
 
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\CompetenceController;
+use App\Http\Controllers\EmployeeCompetenceController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\EmployeeHolidayController;
 use App\Http\Controllers\MailboxController;
+use App\Http\Controllers\PersonalCompetenceController;
 use App\Http\Controllers\PersonalHolidayController;
 use App\Http\Controllers\PersonalPageController;
 use App\Http\Controllers\PersonalRecurringAvailabilityController;
@@ -51,6 +53,8 @@ Route::middleware('auth')->group(function () {
     Route::put('/employees/{employee}/availability/{weekday}/{daypart}', [RecurringAvailabilityController::class, 'update'])
         ->where(['weekday' => '[1-7]', 'daypart' => 'morning|afternoon|evening'])
         ->name('employees.availability.update');
+    Route::put('/employees/{employee}/competences/{competence}', [EmployeeCompetenceController::class, 'update'])->name('employees.competences.update');
+    Route::delete('/employees/{employee}/competences/{competence}', [EmployeeCompetenceController::class, 'destroy'])->name('employees.competences.destroy');
 });
 
 // Employee personal page — token-only, no auth. Prototype preview links.
@@ -62,3 +66,5 @@ Route::delete('/personal/{token}/holidays/{holiday}', [PersonalHolidayController
 Route::put('/personal/{token}/availability/{weekday}/{daypart}', [PersonalRecurringAvailabilityController::class, 'update'])
     ->where(['weekday' => '[1-7]', 'daypart' => 'morning|afternoon|evening'])
     ->name('personal.availability.update');
+Route::put('/personal/{token}/competences/{competence}', [PersonalCompetenceController::class, 'update'])->name('personal.competences.update');
+Route::delete('/personal/{token}/competences/{competence}', [PersonalCompetenceController::class, 'destroy'])->name('personal.competences.destroy');
