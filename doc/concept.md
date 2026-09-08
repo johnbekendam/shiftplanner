@@ -126,8 +126,25 @@ The schedule optimizer is a separate service from the start, not a deferred addi
 
 ## Authentication
 
-- Managers authenticate through the template's `AuthServiceContract` seam. The prototype uses local session login. Real use adds `EntraAuthService`: direct Microsoft Entra ID (OIDC) against Prodrive's tenant.
-- Employees never hold accounts. Each employee record is reached through a per-employee token link, resolved by a dedicated employee guard. The prototype uses opaque non-secure preview tokens with synthetic data only. Real use replaces them with hashed, cryptographically random, expiring, revocable tokens and negative security tests.
+- Accounts have a role, `admin` or `manager`. An admin maintains
+  everything, including accounts on `/users`. A manager maintains
+  employees for now. At least one active admin must exist. The seed user
+  is the first admin.
+- Sign-in is one screen: email with an optional password, or a six-digit
+  code emailed on request (10-minute, single-use; the response never says
+  whether the email is an account). A new account has no password and
+  signs in with a code until it sets one on the `/account` page.
+- This is the interim scheme. Managers still authenticate through the
+  `AuthServiceContract` seam for the password path, so real use can add
+  `EntraAuthService`: direct Microsoft Entra ID (OIDC) against Prodrive's
+  tenant. The code path is local-only and outside the seam.
+- A manager can add itself as an employee from `/account`, linking its
+  account to one employee record so the same person is also schedulable.
+- Employees never hold accounts. Each employee record is reached through a
+  per-employee token link, resolved by a dedicated employee guard. The
+  prototype uses opaque non-secure preview tokens with synthetic data
+  only. Real use replaces them with hashed, cryptographically random,
+  expiring, revocable tokens and negative security tests.
 
 ## Deferred Decisions
 

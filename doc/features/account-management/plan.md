@@ -1,6 +1,6 @@
 # Account Management — Plan
 
-Status: in progress — 6/7
+Status: done — 7/7
 
 Spec: `spec.md`. Roadmap phase 3.7.
 
@@ -99,7 +99,7 @@ Spec: `spec.md`. Roadmap phase 3.7.
   user; the sidebar shows **My details** when linked. Full suites and
   `npm run build` green.
 
-- [ ] 7. **Docs and full checks.** `doc/roadmap.md` — a **Phase 3.7 —
+- [x] 7. **Docs and full checks.** `doc/roadmap.md` — a **Phase 3.7 —
   Account management** row and section; note phase 2 still owns
   PostgreSQL, Entra ID, and employee token hardening. `doc/concept.md` —
   rewrite the Authentication section for the interim local accounts

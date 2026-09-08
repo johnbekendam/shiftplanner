@@ -15,6 +15,7 @@ starts, a `plan.md` (the steps and progress).
 | 3 | Departments and standard day schedules — management UI, shift coverage requirements | Planned | grill first |
 | 3.5 | Competences — config list on a Settings page, per-employee checkmarks | Done | `features/competences/spec.md`, `features/competences/plan.md`. Planning use is out of scope. |
 | 3.6 | Product groups — config list on the Settings page, per-employee preferences | Done | `features/product-groups/spec.md`, `features/product-groups/plan.md`. Planning use is out of scope. |
+| 3.7 | Account management (interim auth) — admin/manager roles, password or email code, admin `/users`, account page | Done | `features/account-management/`. Entra ID, the PostgreSQL switch, and employee token hardening stay in phase 2. |
 | 4 | Availability and wishes — recurring availability, date-specific exceptions, fairness model | In progress | Holidays and the recurring availability grid shipped (`features/employee-availability/`). Fairness model still needs a design session. |
 | 5 | Scheduling engine — Python OR-Tools `/solve` service, JSON contract, `GeneratePlan` job, draft review and edit | Planned | depends on phases 3 and 4 |
 | 6 | Publish and employee schedule view — publish a plan, employees see own assignments only | Planned | — |
@@ -119,6 +120,30 @@ then Preferred product groups. The two competences Vue components became
 the shared `OrderedNameList` and `TagChecklist`, used by both features.
 
 Planning use is out of scope. Only the data and the UI ship here.
+
+## Phase 3.7 — Account management (interim auth)
+
+Built ahead of phase 2. See `features/account-management/`. Interim: the
+`AuthServiceContract` seam still describes the password path so an Entra
+`EntraAuthService` can replace it later.
+
+`users.role` is `admin` or `manager`; the seed user is `admin`. An
+`admin` middleware gates `/settings`, `/theme-builder`, `/mailbox`, and
+`/users`. A manager reaches `/employees` only for now.
+
+Login is one screen: email, an optional password, and "Email me a code".
+The code path issues a six-digit code (hashed, 10-minute TTL, single use,
+previous code voided), mailed synchronously, silent for an unknown or
+inactive email; five wrong entries burn it. `users.password` is nullable.
+
+An admin manages accounts on `/users` (create with no password, edit,
+deactivate; the last active admin is protected). Every signed-in user has
+an `/account` page to set a password. A manager can add itself as an
+employee there (`users.employee_id`), which then shows a "My details"
+shortcut. Employees still reach only their personal page, by token link.
+
+The PostgreSQL switch, Entra ID / OIDC, and employee token hardening stay
+in phase 2.
 
 ## Phase 4 — Availability and wishes
 
