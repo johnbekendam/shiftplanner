@@ -1,6 +1,6 @@
 # Product Groups — Plan
 
-Status: in progress — 3/6
+Status: in progress — 4/6
 
 Spec: `spec.md`. Roadmap phase 3.6. Mirrors competences (phase 3.5).
 
@@ -60,7 +60,7 @@ Spec: `spec.md`. Roadmap phase 3.6. Mirrors competences (phase 3.5).
   unknown group 404; employee toggle by token; bad token 404; `edit` and
   `show` payloads carry both keys). Full PHP suite green.
 
-- [ ] 4. **Frontend: the Settings Product groups tab.** `Settings/Index.vue`
+- [x] 4. **Frontend: the Settings Product groups tab.** `Settings/Index.vue`
   gains a second tab `product_groups` after `competences`, rendering
   `OrderedNameList` with `i18nPrefix="product_groups"` and
   `endpoint="/settings/product-groups"`; it takes a `productGroups` prop.

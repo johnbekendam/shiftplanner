@@ -11,11 +11,13 @@ const __ = useI18n()
 
 defineProps({
     competences: { type: Array, default: () => [] },
+    productGroups: { type: Array, default: () => [] },
 })
 
 const tab = ref('competences')
 const tabs = computed(() => [
     { value: 'competences', label: __('settings.tab.competences') },
+    { value: 'product_groups', label: __('settings.tab.product_groups') },
 ])
 </script>
 
@@ -33,6 +35,14 @@ const tabs = computed(() => [
                     :items="competences"
                     endpoint="/settings/competences"
                     i18n-prefix="competences"
+                />
+            </div>
+
+            <div v-show="tab === 'product_groups'" data-testid="panel-product-groups" class="p-6">
+                <OrderedNameList
+                    :items="productGroups"
+                    endpoint="/settings/product-groups"
+                    i18n-prefix="product_groups"
                 />
             </div>
         </Card>
