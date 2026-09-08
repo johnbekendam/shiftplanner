@@ -10,7 +10,8 @@ class EmployeeFactory extends Factory
     public function definition(): array
     {
         return [
-            'name' => fake()->name(),
+            // Plain "First Last" — no titles, prefixes, or suffixes.
+            'name' => fake()->firstName().' '.fake()->lastName(),
             'email' => fake()->unique()->safeEmail(),
             'weekly_hours' => fake()->randomElement(Employee::WEEKLY_HOURS_OPTIONS),
         ];
