@@ -1,6 +1,6 @@
 # Employee Availability — Recurring Grid Plan
 
-Status: in progress — 3/4
+Status: done — 4/4
 
 Spec: `spec.md`, Part 2. Follows `plan.md` (holidays, done).
 
@@ -45,7 +45,7 @@ Spec: `spec.md`, Part 2. Follows `plan.md` (holidays, done).
   `/personal/${token}/availability`. Vitest: both pages mount the grid
   with the right endpoint. Front-end suite green.
 
-- [ ] 4. **Docs + checks.** Update `plan.md` deferred note, `plan.md`'s
+- [x] 4. **Docs + checks.** Update `plan.md` deferred note, `plan.md`'s
   parent references, `doc/roadmap.md` phase 4 row, and `doc/concept.md`
   (the employee record carries a recurring availability grid). Run Pint,
   `php artisan test`, `npm run test`, `npm run build` — all green.

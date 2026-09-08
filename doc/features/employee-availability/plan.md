@@ -60,6 +60,6 @@ Spec: `spec.md`. Roadmap phase 4 (holiday half).
 
 ## Not done / deferred
 
-- All recurring-availability code (spec Part 2 is design only).
+- Recurring availability grid — built in `plan-recurring.md`.
 - Manual browser pass — AGENTS.md leaves UI verification to the user.
 - Everything under the spec's "Non-goals".

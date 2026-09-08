@@ -49,12 +49,14 @@ An employee record contains:
 - Weekly hours: 20 to 48, in steps of 4
 - Holidays: whole-day date ranges the employee is away. Hard blocks for
   the planner. A manager or the employee maintains them.
+- Recurring availability grid: three dayparts by seven weekdays. Each
+  cell is available, not preferred (soft), or unavailable (hard). A
+  manager or the employee maintains it.
 
-Department and the old morning/evening/either preference were placeholders
-and are removed. Departments return as a configurable set in phase 3. The
-preference returns as a recurring weekday/daypart model with a hard and a
-soft level, specified in `features/employee-availability/` and built after
-phase 3.
+Department and the old morning/evening/either preference were
+placeholders and are removed. Departments return as a configurable set in
+phase 3. The recurring grid replaces the preference. Its dayparts map to
+named shifts in phase 3.
 
 ## Planning Workflow
 
@@ -109,7 +111,7 @@ The schedule optimizer is a separate service from the start, not a deferred addi
 
 ## Deferred Decisions
 
-- Availability model — holidays are done (`features/employee-availability/`). The recurring weekday/daypart model is specified there and builds after phase 3. Date-specific shift exceptions and fairness weights are still open.
+- Availability model — holidays and the recurring weekday/daypart grid are done (`features/employee-availability/`). Date-specific shift exceptions and fairness weights are still open.
 - Calendar recurrence and exceptions for standard day schedules.
 - Employee assignment confirmation, swap, or self-scheduling workflows.
 - Exact token-link security, expiry, revocation, and recovery behavior.
