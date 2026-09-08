@@ -4,7 +4,7 @@ import { Head } from '@inertiajs/vue3'
 import AppLayout from '@/layouts/AppLayout.vue'
 import Card from '@/components/ui/Card.vue'
 import Tabs from '@/components/ui/Tabs.vue'
-import CompetenceList from '@/components/CompetenceList.vue'
+import OrderedNameList from '@/components/OrderedNameList.vue'
 import { useI18n } from '@/composables/useI18n'
 
 const __ = useI18n()
@@ -29,7 +29,11 @@ const tabs = computed(() => [
             </template>
 
             <div v-show="tab === 'competences'" data-testid="panel-competences" class="p-6">
-                <CompetenceList :competences="competences" endpoint="/settings/competences" />
+                <OrderedNameList
+                    :items="competences"
+                    endpoint="/settings/competences"
+                    i18n-prefix="competences"
+                />
             </div>
         </Card>
     </AppLayout>

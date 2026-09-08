@@ -33,7 +33,7 @@ vi.mock("@inertiajs/vue3", () => ({
 import Form from "@/pages/Employees/Form.vue";
 import HolidayList from "@/components/HolidayList.vue";
 import AvailabilityGrid from "@/components/AvailabilityGrid.vue";
-import CompetenceChecklist from "@/components/CompetenceChecklist.vue";
+import TagChecklist from "@/components/TagChecklist.vue";
 
 const stubs = { AppLayout: { template: "<div><slot /></div>" } };
 
@@ -96,9 +96,9 @@ describe("Employees/Form", () => {
         await tab.trigger("click");
         await w.vm.$nextTick();
 
-        const checklist = w.findComponent(CompetenceChecklist);
+        const checklist = w.findComponent(TagChecklist);
         expect(checklist.props("endpoint")).toBe("/employees/3/competences");
-        expect(checklist.props("competences")).toHaveLength(1);
+        expect(checklist.props("items")).toHaveLength(1);
         expect(checklist.props("selectedIds")).toEqual([1]);
     });
 
@@ -108,7 +108,7 @@ describe("Employees/Form", () => {
             global: { stubs },
         });
 
-        expect(w.findComponent(CompetenceChecklist).exists()).toBe(false);
+        expect(w.findComponent(TagChecklist).exists()).toBe(false);
         expect(w.get('[data-testid="panel-competences"]').text()).toContain(
             "Save the employee first, then set competences.",
         );

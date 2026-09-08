@@ -1,5 +1,5 @@
 <script setup>
-import { reactive, ref, watch } from 'vue'
+import { reactive, ref, watch, computed } from 'vue'
 import { router } from '@inertiajs/vue3'
 import ButtonPrimary from '@/components/ui/ButtonPrimary.vue'
 import ButtonSecondary from '@/components/ui/ButtonSecondary.vue'
@@ -10,10 +10,16 @@ import { useI18n } from '@/composables/useI18n'
 const __ = useI18n()
 
 const props = defineProps({
-    competences: { type: Array, default: () => [] },
-    // Base URL for the competence resource, e.g. /settings/competences.
+    // Rows of { id, name, holder_count }.
+    items: { type: Array, default: () => [] },
+    // Base URL for the resource, e.g. /settings/competences.
     endpoint: { type: String, required: true },
+    // i18n key namespace: `${i18nPrefix}.name`, `.add`, `.add_placeholder`,
+    // `.move_up`, `.move_down`, `.delete`, `.delete_confirm`, `.list_empty`.
+    i18nPrefix: { type: String, required: true },
 })
+
+const t = computed(() => (key, replace) => __(`${props.i18nPrefix}.${key}`, replace))
 
 // Each write keeps this component (and the open tab) mounted across the
 // redirect, the same as the holiday and availability lists.
@@ -27,44 +33,43 @@ const renaming = new Set()
 
 function sync(list) {
     for (const key of Object.keys(names)) delete names[key]
-    for (const competence of list) names[competence.id] = competence.name
+    for (const item of list) names[item.id] = item.name
 }
-sync(props.competences)
-watch(() => props.competences, sync)
+sync(props.items)
+watch(() => props.items, sync)
 
 watch(names, () => {
-    for (const competence of props.competences) {
-        const next = (names[competence.id] ?? '').trim()
-        if (next === '' || next === competence.name || renaming.has(competence.id)) continue
-        rename(competence, next)
+    for (const item of props.items) {
+        const next = (names[item.id] ?? '').trim()
+        if (next === '' || next === item.name || renaming.has(item.id)) continue
+        rename(item, next)
     }
 })
 
-function rename(competence, next) {
-    renaming.add(competence.id)
-    router.put(`${props.endpoint}/${competence.id}`, { name: next }, {
+function rename(item, next) {
+    renaming.add(item.id)
+    router.put(`${props.endpoint}/${item.id}`, { name: next }, {
         ...stay,
         onSuccess: () => {
-            delete errors[competence.id]
+            delete errors[item.id]
         },
         onError: (e) => {
-            errors[competence.id] = e.name
+            errors[item.id] = e.name
         },
         onFinish: () => {
-            renaming.delete(competence.id)
+            renaming.delete(item.id)
         },
     })
 }
 
-function move(competence, direction) {
-    router.put(`${props.endpoint}/${competence.id}/move`, { direction }, stay)
+function move(item, direction) {
+    router.put(`${props.endpoint}/${item.id}/move`, { direction }, stay)
 }
 
-function remove(competence) {
-    const message = __('competences.delete_confirm', { count: competence.holder_count })
-    if (!window.confirm(message)) return
+function remove(item) {
+    if (!window.confirm(t.value('delete_confirm', { count: item.holder_count }))) return
 
-    router.delete(`${props.endpoint}/${competence.id}`, stay)
+    router.delete(`${props.endpoint}/${item.id}`, stay)
 }
 
 const draft = ref('')
@@ -94,7 +99,7 @@ function add() {
         <table class="w-full table-fixed text-sm">
             <thead>
                 <tr class="border-b border-(--color-table-header-separator) text-left text-(--color-table-header-text)">
-                    <th class="py-2 pr-3 font-medium">{{ __('competences.name') }}</th>
+                    <th class="py-2 pr-3 font-medium">{{ t('name') }}</th>
                     <th class="w-14 py-2" />
                     <th class="w-14 py-2" />
                     <th class="w-14 py-2" />
@@ -102,19 +107,19 @@ function add() {
             </thead>
             <tbody>
                 <tr
-                    v-for="(competence, index) in competences"
-                    :key="competence.id"
-                    data-testid="competence-row"
+                    v-for="(item, index) in items"
+                    :key="item.id"
+                    data-testid="ordered-name-row"
                     class="border-b border-(--color-table-row-separator)"
                 >
                     <td class="py-2 pr-3 align-top">
                         <TextInput
-                            v-model="names[competence.id]"
+                            v-model="names[item.id]"
                             class="w-full"
-                            :data-testid="`competence-name-${competence.id}`"
+                            :data-testid="`ordered-name-input-${item.id}`"
                         />
-                        <p v-if="errors[competence.id]" class="mt-1 text-xs text-[var(--color-badge-error-text)]">
-                            {{ errors[competence.id] }}
+                        <p v-if="errors[item.id]" class="mt-1 text-xs text-[var(--color-badge-error-text)]">
+                            {{ errors[item.id] }}
                         </p>
                     </td>
                     <td class="px-1 py-2 align-top">
@@ -123,18 +128,18 @@ function add() {
                             type="button"
                             icon="chevron-up"
                             class="w-full px-0"
-                            :aria-label="__('competences.move_up')"
-                            @click="move(competence, 'up')"
+                            :aria-label="t('move_up')"
+                            @click="move(item, 'up')"
                         />
                     </td>
                     <td class="px-1 py-2 align-top">
                         <ButtonSecondary
-                            v-if="index < competences.length - 1"
+                            v-if="index < items.length - 1"
                             type="button"
                             icon="chevron-down"
                             class="w-full px-0"
-                            :aria-label="__('competences.move_down')"
-                            @click="move(competence, 'down')"
+                            :aria-label="t('move_down')"
+                            @click="move(item, 'down')"
                         />
                     </td>
                     <td class="px-1 py-2 align-top">
@@ -142,24 +147,24 @@ function add() {
                             type="button"
                             icon="bin"
                             class="w-full px-0"
-                            :aria-label="__('competences.delete')"
-                            @click="remove(competence)"
+                            :aria-label="t('delete')"
+                            @click="remove(item)"
                         />
                     </td>
                 </tr>
 
-                <tr v-if="!competences.length">
+                <tr v-if="!items.length">
                     <td colspan="4" class="py-6 text-center text-(--color-text-secondary)">
-                        {{ __('competences.list_empty') }}
+                        {{ t('list_empty') }}
                     </td>
                 </tr>
 
-                <tr data-testid="competence-add-row" class="border-t border-(--color-table-row-separator)">
+                <tr data-testid="ordered-name-add-row" class="border-t border-(--color-table-row-separator)">
                     <td class="py-2 pr-3 align-top">
                         <TextInput
                             v-model="draft"
                             class="w-full"
-                            :placeholder="__('competences.add_placeholder')"
+                            :placeholder="t('add_placeholder')"
                         />
                         <p v-if="addError" class="mt-1 text-xs text-[var(--color-badge-error-text)]">
                             {{ addError }}
@@ -171,7 +176,7 @@ function add() {
                             icon="plus-circle"
                             class="px-2.5"
                             :disabled="busy"
-                            :aria-label="__('competences.add')"
+                            :aria-label="t('add')"
                         />
                     </td>
                 </tr>

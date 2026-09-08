@@ -20,7 +20,7 @@ vi.mock("@inertiajs/vue3", () => ({
 }));
 
 import Settings from "@/pages/Settings/Index.vue";
-import CompetenceList from "@/components/CompetenceList.vue";
+import OrderedNameList from "@/components/OrderedNameList.vue";
 
 const stubs = { AppLayout: { template: "<div><slot /></div>" } };
 
@@ -34,8 +34,9 @@ describe("Settings/Index", () => {
 
     it("mounts the competence list against the settings endpoint", () => {
         const list = mountPage([{ id: 1, name: "Forklift", position: 1, holder_count: 0 }])
-            .findComponent(CompetenceList);
+            .findComponent(OrderedNameList);
         expect(list.props("endpoint")).toBe("/settings/competences");
-        expect(list.props("competences")).toHaveLength(1);
+        expect(list.props("i18nPrefix")).toBe("competences");
+        expect(list.props("items")).toHaveLength(1);
     });
 });

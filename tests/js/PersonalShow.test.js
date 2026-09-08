@@ -53,7 +53,7 @@ import Show from "@/pages/Personal/Show.vue";
 import EmployeeFields from "@/components/EmployeeFields.vue";
 import HolidayList from "@/components/HolidayList.vue";
 import AvailabilityGrid from "@/components/AvailabilityGrid.vue";
-import CompetenceChecklist from "@/components/CompetenceChecklist.vue";
+import TagChecklist from "@/components/TagChecklist.vue";
 import SelectInput from "@/components/ui/Input/Select.vue";
 
 const mountShow = (holidays = [], extra = {}) =>
@@ -127,7 +127,7 @@ describe("Personal/Show", () => {
         const w = mountShow([], { competences: [{ id: 1, name: "Forklift" }], competenceIds: [1] });
         expect(w.text()).toContain("Competences");
 
-        const checklist = w.findComponent(CompetenceChecklist);
+        const checklist = w.findComponent(TagChecklist);
         expect(checklist.props("endpoint")).toBe("/personal/tok-1/competences");
         expect(checklist.props("selectedIds")).toEqual([1]);
     });

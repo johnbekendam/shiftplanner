@@ -7,7 +7,7 @@ import Tabs from '@/components/ui/Tabs.vue'
 import EmployeeFields from '@/components/EmployeeFields.vue'
 import AvailabilityGrid from '@/components/AvailabilityGrid.vue'
 import HolidayList from '@/components/HolidayList.vue'
-import CompetenceChecklist from '@/components/CompetenceChecklist.vue'
+import TagChecklist from '@/components/TagChecklist.vue'
 import ButtonPrimary from '@/components/ui/ButtonPrimary.vue'
 import { useI18n } from '@/composables/useI18n'
 
@@ -91,10 +91,11 @@ function save() {
         </div>
 
         <div v-show="tab === 'competences'" data-testid="panel-competences">
-            <CompetenceChecklist
-                :competences="competences"
+            <TagChecklist
+                :items="competences"
                 :selected-ids="competenceIds"
                 :endpoint="`/personal/${token}/competences`"
+                empty-key="competences.checklist_empty"
             />
         </div>
     </CenteredLayout>

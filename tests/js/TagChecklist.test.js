@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { mount } from "@vue/test-utils";
 
 const en = {
-    "competences.checklist_empty": "No competences have been set up yet.",
+    "tags.empty": "No tags have been set up yet.",
 };
 
 const { router } = vi.hoisted(() => ({ router: { put: vi.fn(), delete: vi.fn() } }));
@@ -12,21 +12,22 @@ vi.mock("@inertiajs/vue3", () => ({
     usePage: () => ({ props: { translations: en } }),
 }));
 
-import CompetenceChecklist from "@/components/CompetenceChecklist.vue";
+import TagChecklist from "@/components/TagChecklist.vue";
 import { CheckboxInput } from "@/components/ui/Input";
 
-const competences = [
+const items = [
     { id: 1, name: "Forklift" },
     { id: 2, name: "Cleanroom" },
     { id: 3, name: "First aid" },
 ];
 
 const mountList = (props = {}) =>
-    mount(CompetenceChecklist, {
+    mount(TagChecklist, {
         props: {
-            competences,
+            items,
             selectedIds: [2],
             endpoint: "/employees/7/competences",
+            emptyKey: "tags.empty",
             ...props,
         },
     });
@@ -36,15 +37,15 @@ beforeEach(() => {
     router.delete.mockReset();
 });
 
-describe("CompetenceChecklist", () => {
-    it("renders a checkbox per competence with its name", () => {
+describe("TagChecklist", () => {
+    it("renders a checkbox per item with its name", () => {
         const w = mountList();
         expect(w.findAllComponents(CheckboxInput)).toHaveLength(3);
         expect(w.text()).toContain("Forklift");
         expect(w.text()).toContain("First aid");
     });
 
-    it("checks the competences the employee holds", () => {
+    it("checks the items the employee has selected", () => {
         const w = mountList();
         const boxes = w.findAllComponents(CheckboxInput);
         expect(boxes[0].props("modelValue")).toBe(false);
@@ -52,12 +53,12 @@ describe("CompetenceChecklist", () => {
         expect(boxes[2].props("modelValue")).toBe(false);
     });
 
-    it("shows an empty state when no competences exist", () => {
-        const w = mountList({ competences: [], selectedIds: [] });
-        expect(w.text()).toContain("No competences have been set up yet.");
+    it("shows the empty message for its emptyKey when there are no items", () => {
+        const w = mountList({ items: [], selectedIds: [] });
+        expect(w.text()).toContain("No tags have been set up yet.");
     });
 
-    it("attaches a competence with a PUT when it is checked on", async () => {
+    it("attaches with a PUT when an item is checked on", async () => {
         const w = mountList();
         w.findAllComponents(CheckboxInput)[0].vm.$emit("update:modelValue", true);
         await w.vm.$nextTick();
@@ -70,7 +71,7 @@ describe("CompetenceChecklist", () => {
         expect(router.delete).not.toHaveBeenCalled();
     });
 
-    it("detaches a competence with a DELETE when it is checked off", async () => {
+    it("detaches with a DELETE when an item is checked off", async () => {
         const w = mountList();
         w.findAllComponents(CheckboxInput)[1].vm.$emit("update:modelValue", false);
         await w.vm.$nextTick();

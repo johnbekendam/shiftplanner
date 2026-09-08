@@ -8,7 +8,7 @@ import Tabs from '@/components/ui/Tabs.vue'
 import EmployeeFields from '@/components/EmployeeFields.vue'
 import AvailabilityGrid from '@/components/AvailabilityGrid.vue'
 import HolidayList from '@/components/HolidayList.vue'
-import CompetenceChecklist from '@/components/CompetenceChecklist.vue'
+import TagChecklist from '@/components/TagChecklist.vue'
 import ButtonPrimary from '@/components/ui/ButtonPrimary.vue'
 import ButtonSecondary from '@/components/ui/ButtonSecondary.vue'
 import { useI18n } from '@/composables/useI18n'
@@ -98,11 +98,12 @@ function submit() {
             </div>
 
             <div v-show="tab === 'competences'" data-testid="panel-competences" class="p-6">
-                <CompetenceChecklist
+                <TagChecklist
                     v-if="isEdit"
-                    :competences="competences"
+                    :items="competences"
                     :selected-ids="competenceIds"
                     :endpoint="`/employees/${employee.id}/competences`"
+                    empty-key="competences.checklist_empty"
                 />
                 <p v-else class="text-sm text-(--color-text-secondary)">
                     {{ __('competences.save_first') }}
