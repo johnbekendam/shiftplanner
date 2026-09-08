@@ -65,8 +65,7 @@ async function copyPersonalLink(employee) {
                         <tr class="border-b border-(--color-table-header-separator) text-left text-(--color-table-header-text)">
                             <th class="py-2">{{ __('employees.column.name') }}</th>
                             <th class="py-2">{{ __('employees.column.email') }}</th>
-                            <th class="py-2">{{ __('employees.column.department') }}</th>
-                            <th class="py-2">{{ __('employees.column.preference') }}</th>
+                            <th class="py-2">{{ __('employees.column.weekly_hours') }}</th>
                             <th class="py-2">{{ __('employees.column.link') }}</th>
                             <th class="py-2 text-right">{{ __('employees.column.actions') }}</th>
                         </tr>
@@ -79,9 +78,8 @@ async function copyPersonalLink(employee) {
                         >
                             <td class="py-2 text-(--color-table-row-text)">{{ employee.name }}</td>
                             <td class="py-2 text-(--color-table-row-text)">{{ employee.email }}</td>
-                            <td class="py-2 text-(--color-table-row-text)">{{ employee.department }}</td>
-                            <td class="py-2 text-(--color-text-secondary)">
-                                {{ __(`employees.preference.${employee.shift_preference}`) }}
+                            <td class="py-2 text-(--color-table-row-text)">
+                                {{ __('employees.hours_option', { count: employee.weekly_hours }) }}
                             </td>
                             <td class="py-2 text-(--color-text-secondary)">
                                 {{ employee.has_personal_link ? __('employees.link.active') : __('employees.link.none') }}
@@ -100,7 +98,7 @@ async function copyPersonalLink(employee) {
                             </td>
                         </tr>
                         <tr v-if="!employees.data.length">
-                            <td colspan="6" class="py-8 text-center text-(--color-text-secondary)">
+                            <td colspan="5" class="py-8 text-center text-(--color-text-secondary)">
                                 {{ __('employees.empty') }}
                             </td>
                         </tr>

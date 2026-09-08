@@ -1,6 +1,6 @@
 # Employee Hours — Plan
 
-Status: in progress — 1/4
+Status: in progress — 2/4
 
 Spec: `spec.md`. Roadmap phase 1.
 
@@ -27,15 +27,21 @@ The backend change is one atomic slice.
   `PersonalPageTest` for the new field, out-of-set rejection, and the new
   `show` payload. Full PHP suite green.
 
-- [ ] 2. **Shared field component + manager form + list.** Add
+- [x] 2. **Shared field component + manager form + list + i18n.** Add
   `resources/js/components/EmployeeFields.vue` (name, email, weekly-hours
-  select; `readonlyIdentity` prop → name/email `disabled`; `errors` prop).
-  Options built from the eight values, labels via `employees.hours_option`.
-  Rewrite `Employees/Form.vue` to use it (editable identity, `weekly_hours`
-  default 20 on create, no department/preference). Update
-  `Employees/Index.vue` columns (department + preference → weekly hours).
-  Vitest: `EmployeeFields` renders eight options, disables name/email when
-  `readonlyIdentity`, binds `weekly_hours`. Front-end suite green.
+  select; `readonlyIdentity` prop → name/email `disabled`; reads
+  `form.errors`). Options built from the eight values, labels via
+  `employees.hours_option`. Rewrite `Employees/Form.vue` to use it
+  (editable identity, `weekly_hours` default 20 on create, no
+  department/preference). Update `Employees/Index.vue` columns
+  (department + preference → weekly hours). `en.json`: drop
+  `employees.column.department`, `employees.column.preference`,
+  `employees.preference.*`, `employees.field.department*`,
+  `employees.field.preference`; add `employees.column.weekly_hours`,
+  `employees.field.weekly_hours`, `employees.hours_option`; retarget the
+  `personal.*` strings at hours. Vitest: `EmployeeFields` renders eight
+  options, disables name/email when `readonlyIdentity`, binds
+  `weekly_hours`. Front-end suite green.
 
 - [ ] 3. **Personal page view.** Rewrite `Personal/Show.vue` to use
   `EmployeeFields` with `readonlyIdentity`, on `CenteredLayout`, with the
@@ -43,12 +49,9 @@ The backend change is one atomic slice.
   to `personal.update`. Vitest if the page has testable logic. Front-end
   suite green.
 
-- [ ] 4. **i18n cleanup + checks.** In `en.json`: remove
-  `employees.field.department*`, `employees.field.preference`,
-  `employees.preference.*`, `personal.preference*`; add
-  `employees.field.weekly_hours` and `employees.hours_option`
-  (`":count hours"`). Run Pint, `php artisan test`, `npm run test`,
-  `npm run build` — all green.
+- [ ] 4. **Final checks.** Confirm no department/preference key, string,
+  or reference is left anywhere. Run Pint, `php artisan test`,
+  `npm run test`, `npm run build` — all green.
 
 ## Not done / deferred
 
