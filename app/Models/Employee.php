@@ -39,6 +39,11 @@ class Employee extends Model
         return $this->hasOne(EmployeePersonalLink::class);
     }
 
+    public function user(): HasOne
+    {
+        return $this->hasOne(User::class);
+    }
+
     public function holidays(): HasMany
     {
         return $this->hasMany(EmployeeHoliday::class)->orderBy('start_date');

@@ -23,6 +23,7 @@ class DatabaseSeeder extends Seeder
                 [
                     'name' => $seedUser['name'],
                     'password' => $seedUser['password'],
+                    'role' => User::ROLE_ADMIN,
                 ],
             );
         }
