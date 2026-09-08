@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
@@ -40,6 +41,11 @@ class Employee extends Model
     public function recurringAvailabilities(): HasMany
     {
         return $this->hasMany(RecurringAvailability::class);
+    }
+
+    public function competences(): BelongsToMany
+    {
+        return $this->belongsToMany(Competence::class);
     }
 
     public function scopeSearch($query, string $search)

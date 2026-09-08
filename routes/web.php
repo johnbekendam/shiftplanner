@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\CompetenceController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\EmployeeHolidayController;
 use App\Http\Controllers\MailboxController;
@@ -8,6 +9,7 @@ use App\Http\Controllers\PersonalHolidayController;
 use App\Http\Controllers\PersonalPageController;
 use App\Http\Controllers\PersonalRecurringAvailabilityController;
 use App\Http\Controllers\RecurringAvailabilityController;
+use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\ThemeBuilderController;
 use Illuminate\Support\Facades\Route;
 
@@ -24,6 +26,12 @@ Route::middleware('auth')->group(function () {
     Route::delete('/theme-builder/save', [ThemeBuilderController::class, 'reset'])->name('theme-builder.reset');
     Route::post('/theme-builder/logo', [ThemeBuilderController::class, 'uploadLogo'])->name('theme-builder.logo.upload');
     Route::delete('/theme-builder/logo', [ThemeBuilderController::class, 'deleteLogo'])->name('theme-builder.logo.delete');
+
+    Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
+    Route::post('/settings/competences', [CompetenceController::class, 'store'])->name('settings.competences.store');
+    Route::put('/settings/competences/{competence}/move', [CompetenceController::class, 'move'])->name('settings.competences.move');
+    Route::put('/settings/competences/{competence}', [CompetenceController::class, 'update'])->name('settings.competences.update');
+    Route::delete('/settings/competences/{competence}', [CompetenceController::class, 'destroy'])->name('settings.competences.destroy');
 
     Route::get('/mailbox', [MailboxController::class, 'index'])->name('mailbox.index');
     Route::post('/mailbox/compose', [MailboxController::class, 'store'])->name('mailbox.compose');
