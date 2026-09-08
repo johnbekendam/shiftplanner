@@ -21,10 +21,12 @@ const page = usePage()
         <!-- Page: centered form card -->
         <div class="flex flex-col items-center justify-center min-h-full py-12 px-4">
             <Card class="w-full max-w-md">
-                <template v-if="$slots.title" #header>
-                    <div class="px-10 py-4 text-base font-semibold">
-                        <slot name="title" />
-                    </div>
+                <template v-if="$slots.header || $slots.title" #header>
+                    <slot name="header">
+                        <div class="px-10 py-4 text-base font-semibold">
+                            <slot name="title" />
+                        </div>
+                    </slot>
                 </template>
 
                 <div class="px-10 pt-8 pb-6">

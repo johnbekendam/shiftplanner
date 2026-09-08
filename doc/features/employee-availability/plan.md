@@ -1,6 +1,6 @@
 # Employee Availability — Plan
 
-Status: in progress — 3/5
+Status: in progress — 4/5
 
 Spec: `spec.md`. Roadmap phase 4 (holiday half).
 
@@ -45,7 +45,7 @@ Spec: `spec.md`. Roadmap phase 4 (holiday half).
   endpoint, deletes a row; `Employees/Form` shows both tabs and switches.
   Front-end suite green.
 
-- [ ] 4. **Personal page: tabbed card + Availability.** Rewrite
+- [x] 4. **Personal page: tabbed card + Availability.** Rewrite
   `Personal/Show.vue`: same `Card` + `Tabs` (Details, Availability).
   Details tab keeps `EmployeeFields` with `readonly-identity` and the hours
   save. Availability tab renders `HolidayList` pointed at

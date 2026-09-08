@@ -1,7 +1,10 @@
 <script setup>
+import { computed, ref } from 'vue'
 import { Head, useForm } from '@inertiajs/vue3'
 import CenteredLayout from '@/layouts/CenteredLayout.vue'
+import Tabs from '@/components/ui/Tabs.vue'
 import EmployeeFields from '@/components/EmployeeFields.vue'
+import HolidayList from '@/components/HolidayList.vue'
 import ButtonPrimary from '@/components/ui/ButtonPrimary.vue'
 import { useI18n } from '@/composables/useI18n'
 
@@ -10,6 +13,7 @@ const __ = useI18n()
 const props = defineProps({
     token: { type: String, required: true },
     employee: { type: Object, required: true },
+    holidays: { type: Array, default: () => [] },
 })
 
 const form = useForm({
@@ -17,6 +21,12 @@ const form = useForm({
     email: props.employee.email,
     weekly_hours: props.employee.weekly_hours,
 })
+
+const tab = ref('details')
+const tabs = computed(() => [
+    { value: 'details', label: __('availability.tab.details') },
+    { value: 'availability', label: __('availability.tab.availability') },
+])
 
 function save() {
     form
@@ -29,21 +39,34 @@ function save() {
     <CenteredLayout>
         <Head :title="__('personal.title')" />
 
-        <template #title>{{ __('personal.greeting', { name: employee.name }) }}</template>
+        <template #header>
+            <Tabs v-model="tab" :tabs="tabs" />
+        </template>
 
-        <form class="space-y-5" @submit.prevent="save">
-            <p class="text-sm text-(--color-text-secondary)">{{ __('personal.intro') }}</p>
-
-            <EmployeeFields :form="form" readonly-identity />
-
-            <div class="flex items-center justify-end gap-3">
-                <span v-if="form.recentlySuccessful" class="text-sm text-(--color-badge-success-text)">
-                    {{ __('personal.saved') }}
-                </span>
-                <ButtonPrimary type="submit" :disabled="form.processing">
-                    {{ __('personal.action.save') }}
-                </ButtonPrimary>
+        <div v-show="tab === 'details'" data-testid="panel-details" class="space-y-5">
+            <div class="space-y-1">
+                <p class="text-sm font-medium text-(--color-text-primary)">
+                    {{ __('personal.greeting', { name: employee.name }) }}
+                </p>
+                <p class="text-sm text-(--color-text-secondary)">{{ __('personal.intro') }}</p>
             </div>
-        </form>
+
+            <form class="space-y-5" @submit.prevent="save">
+                <EmployeeFields :form="form" readonly-identity />
+
+                <div class="flex items-center justify-end gap-3">
+                    <span v-if="form.recentlySuccessful" class="text-sm text-(--color-badge-success-text)">
+                        {{ __('personal.saved') }}
+                    </span>
+                    <ButtonPrimary type="submit" :disabled="form.processing">
+                        {{ __('personal.action.save') }}
+                    </ButtonPrimary>
+                </div>
+            </form>
+        </div>
+
+        <div v-show="tab === 'availability'" data-testid="panel-availability">
+            <HolidayList :holidays="holidays" :endpoint="`/personal/${token}/holidays`" />
+        </div>
     </CenteredLayout>
 </template>

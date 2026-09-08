@@ -12,7 +12,12 @@ const en = {
     "personal.intro": "Choose how many hours you want to work each week.",
     "personal.action.save": "Save",
     "personal.saved": "Saved",
+    "availability.tab.details": "Details",
+    "availability.tab.availability": "Availability",
+    "availability.holidays.empty": "No holidays yet.",
 };
+
+const { router } = vi.hoisted(() => ({ router: { post: vi.fn(), delete: vi.fn() } }));
 
 const form = reactive({
     name: "",
@@ -33,6 +38,7 @@ const form = reactive({
 });
 
 vi.mock("@inertiajs/vue3", () => ({
+    router,
     Head: { name: "Head", render: () => null },
     usePage: () => ({ props: { translations: en, appName: "ShiftPlanner", logoUrl: null } }),
     useForm: (initial) => {
@@ -43,18 +49,26 @@ vi.mock("@inertiajs/vue3", () => ({
 
 import Show from "@/pages/Personal/Show.vue";
 import EmployeeFields from "@/components/EmployeeFields.vue";
+import HolidayList from "@/components/HolidayList.vue";
 import SelectInput from "@/components/ui/Input/Select.vue";
 
-const mountShow = () =>
+const mountShow = (holidays = []) =>
     mount(Show, {
         props: {
             token: "tok-1",
             employee: { name: "Jordan Lee", email: "jordan@example.com", weekly_hours: 24 },
+            holidays,
         },
         global: {
-            stubs: { CenteredLayout: { template: "<div><slot name='title' /><slot /></div>" } },
+            stubs: {
+                CenteredLayout: {
+                    template: "<div><slot name='header' /><slot /></div>",
+                },
+            },
         },
     });
+
+const hidden = (w, sel) => (w.get(sel).attributes("style") ?? "").includes("display: none");
 
 describe("Personal/Show", () => {
     it("greets the employee by name", () => {
@@ -65,7 +79,7 @@ describe("Personal/Show", () => {
         const w = mountShow();
         expect(w.findComponent(EmployeeFields).props("readonlyIdentity")).toBe(true);
 
-        const inputs = w.findAll("input");
+        const inputs = w.get('[data-testid="panel-details"]').findAll("input");
         expect(inputs).toHaveLength(2);
         expect(inputs.every((i) => i.attributes("disabled") !== undefined)).toBe(true);
     });
@@ -84,5 +98,28 @@ describe("Personal/Show", () => {
 
         expect(form.lastPut.url).toBe("/personal/tok-1");
         expect(form.lastPut.data).toEqual({ weekly_hours: 40 });
+    });
+
+    it("has Details and Availability tabs, Details first", () => {
+        const w = mountShow();
+        expect(w.text()).toContain("Details");
+        expect(w.text()).toContain("Availability");
+        expect(hidden(w, '[data-testid="panel-details"]')).toBe(false);
+        expect(hidden(w, '[data-testid="panel-availability"]')).toBe(true);
+    });
+
+    it("points the holiday list at the token endpoint", () => {
+        const w = mountShow();
+        expect(w.findComponent(HolidayList).props("endpoint")).toBe("/personal/tok-1/holidays");
+    });
+
+    it("reveals the holiday list when the Availability tab is clicked", async () => {
+        const w = mountShow();
+        const tab = w.findAll("button").find((b) => b.text() === "Availability");
+        await tab.trigger("click");
+        await w.vm.$nextTick();
+
+        expect(hidden(w, '[data-testid="panel-availability"]')).toBe(false);
+        expect(hidden(w, '[data-testid="panel-details"]')).toBe(true);
     });
 });
