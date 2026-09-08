@@ -1,0 +1,172 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Models\Employee;
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
+
+class EmployeeAdminTest extends TestCase
+{
+    use RefreshDatabase;
+
+    public function test_guest_is_redirected_to_login(): void
+    {
+        $this->get('/employees')->assertRedirect('/login');
+    }
+
+    public function test_index_lists_employees_with_weekly_hours_and_link_status(): void
+    {
+        $user = User::factory()->create();
+        $withLink = Employee::factory()->create(['name' => 'Aaron Able', 'weekly_hours' => 32]);
+        $withLink->personalLink()->create(['token' => 'tok-aaron']);
+        Employee::factory()->create(['name' => 'Zoe Zeal']);
+
+        $this->actingAs($user)->get('/employees')->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Employees/Index')
+                ->has('employees.data', 2)
+                ->where('employees.data.0.name', 'Aaron Able')
+                ->where('employees.data.0.weekly_hours', 32)
+                ->where('employees.data.0.has_personal_link', true)
+                ->where('employees.data.1.has_personal_link', false)
+                ->missing('employees.data.0.department')
+                ->missing('employees.data.0.shift_preference')
+            );
+    }
+
+    public function test_index_search_filters_by_name_or_email(): void
+    {
+        $user = User::factory()->create();
+        Employee::factory()->create(['name' => 'Findme Person', 'email' => 'a@example.com']);
+        Employee::factory()->create(['name' => 'Other Person', 'email' => 'b@example.com']);
+
+        $this->actingAs($user)->get('/employees?search=findme')->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->has('employees.data', 1)
+                ->where('employees.data.0.name', 'Findme Person')
+            );
+    }
+
+    public function test_create_employee_with_valid_data(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->post('/employees', [
+            'name' => 'New Hire',
+            'email' => 'new.hire@example.com',
+            'weekly_hours' => 32,
+        ]);
+
+        $response->assertRedirect('/employees');
+        $this->assertDatabaseHas('employees', [
+            'email' => 'new.hire@example.com',
+            'weekly_hours' => 32,
+        ]);
+    }
+
+    public function test_create_employee_validation_errors(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->post('/employees', [
+            'name' => '',
+            'email' => 'not-an-email',
+            'weekly_hours' => null,
+        ]);
+
+        $response->assertSessionHasErrors(['name', 'email', 'weekly_hours']);
+        $this->assertSame(0, Employee::count());
+    }
+
+    public function test_create_rejects_weekly_hours_outside_the_allowed_set(): void
+    {
+        $user = User::factory()->create();
+
+        foreach ([18, 22, 52, 40.5, 'many'] as $bad) {
+            $this->actingAs($user)->post('/employees', [
+                'name' => 'Bad Hours',
+                'email' => 'bad.hours@example.com',
+                'weekly_hours' => $bad,
+            ])->assertSessionHasErrors('weekly_hours');
+        }
+
+        $this->assertSame(0, Employee::count());
+    }
+
+    public function test_email_must_be_unique_across_employees(): void
+    {
+        $user = User::factory()->create();
+        Employee::factory()->create(['email' => 'taken@example.com']);
+
+        $this->actingAs($user)->post('/employees', [
+            'name' => 'Dup',
+            'email' => 'taken@example.com',
+            'weekly_hours' => 20,
+        ])->assertSessionHasErrors('email');
+    }
+
+    public function test_edit_and_update_employee(): void
+    {
+        $user = User::factory()->create();
+        $employee = Employee::factory()->create(['name' => 'Old Name', 'weekly_hours' => 20]);
+
+        $this->actingAs($user)->get("/employees/{$employee->id}/edit")->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Employees/Form')
+                ->where('employee.id', $employee->id)
+                ->where('employee.weekly_hours', 20)
+            );
+
+        $response = $this->actingAs($user)->put("/employees/{$employee->id}", [
+            'name' => 'New Name',
+            'email' => $employee->email,
+            'weekly_hours' => 40,
+        ]);
+
+        $response->assertRedirect('/employees');
+        $this->assertDatabaseHas('employees', [
+            'id' => $employee->id,
+            'name' => 'New Name',
+            'weekly_hours' => 40,
+        ]);
+    }
+
+    public function test_update_keeps_own_email_without_unique_conflict(): void
+    {
+        $user = User::factory()->create();
+        $employee = Employee::factory()->create(['email' => 'mine@example.com']);
+
+        $this->actingAs($user)->put("/employees/{$employee->id}", [
+            'name' => $employee->name,
+            'email' => 'mine@example.com',
+            'weekly_hours' => 24,
+        ])->assertRedirect('/employees');
+    }
+
+    public function test_personal_page_action_returns_a_link_url(): void
+    {
+        $user = User::factory()->create();
+        $employee = Employee::factory()->create();
+
+        $response = $this->actingAs($user)->getJson("/employees/{$employee->id}/personal-page");
+
+        $response->assertOk();
+        $url = $response->json('url');
+        $this->assertStringContainsString('/personal/', $url);
+        $this->assertDatabaseHas('employee_personal_links', ['employee_id' => $employee->id]);
+    }
+
+    public function test_personal_page_action_is_idempotent(): void
+    {
+        $user = User::factory()->create();
+        $employee = Employee::factory()->create();
+
+        $first = $this->actingAs($user)->getJson("/employees/{$employee->id}/personal-page")->json('url');
+        $second = $this->actingAs($user)->getJson("/employees/{$employee->id}/personal-page")->json('url');
+
+        $this->assertSame($first, $second);
+        $this->assertSame(1, $employee->personalLink()->count());
+    }
+}

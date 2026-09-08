@@ -1,0 +1,44 @@
+# ShiftPlanner container stack.
+#
+# Not used for local dev — dev runs on the host against SQLite
+# (`php artisan serve` / `composer run dev`). Roadmap phase 2 brings the
+# `postgres` service below into use. The `app` and `scheduler` services
+# are stubs: `app` gets a real PHP-FPM + nginx image when the deployment
+# story is built, `scheduler` becomes the Python OR-Tools service in
+# roadmap phase 5.
+
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: ${DB_DATABASE:-shiftplanner}
+      POSTGRES_USER: ${DB_USERNAME:-shiftplanner}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-shiftplanner}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-shiftplanner}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # app:
+  #   build: ./docker/app          # PHP-FPM + nginx, built in a later phase
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #   env_file: .env
+  #   ports:
+  #     - "8000:80"
+
+  # scheduler:                     # roadmap phase 5 — Python OR-Tools CP-SAT
+  #   build: ./scheduler
+  #   environment:
+  #     SOLVE_SHARED_SECRET: ${SOLVE_SHARED_SECRET}
+  #   expose:
+  #     - "8080"
+
+volumes:
+  postgres-data:

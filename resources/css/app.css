@@ -1,0 +1,327 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+@plugin "@tailwindcss/forms" {
+  strategy: class;
+}
+
+/* Force all palette color vars to be generated (required for runtime color pickers) */
+@source inline("bg-{slate,gray,zinc,neutral,stone,red,orange,amber,yellow,lime,green,emerald,teal,cyan,sky,blue,indigo,violet,purple,fuchsia,pink,rose}-{50,100,200,300,400,500,600,700,800,900,950}");
+
+/* Class-based dark mode (toggled on <html class="dark">) */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* The layout covers the whole screen; html is only briefly visible on load. */
+html {
+  background-color: var(--color-zinc-100);
+}
+html.dark {
+  background-color: var(--color-zinc-950);
+}
+
+/* ── Semantic color tokens (light-mode defaults) ─────────────────────────── */
+:root {
+  /* Chrome */
+  --color-header-bg: var(--color-brand-800);
+  --color-header-text: var(--color-brand-200);
+  /* Logo merged into header — not independently editable. */
+  --color-logo-bg: var(--color-header-bg);
+  --color-logo-text: var(--color-header-text);
+  --color-sidebar-bg: var(--color-zinc-50);
+  --color-sidebar-text: var(--color-zinc-400);
+  --color-content-bg: var(--color-white);
+  --color-content-text: var(--color-zinc-700);
+  --color-page-bg: transparent;
+
+  /* Navigation */
+  --color-menu-item-text: var(--color-zinc-700);
+  --color-menu-item-border: transparent;
+  --color-menu-item-hover-bg: var(--color-zinc-100);
+  --color-menu-item-hover-text: var(--color-brand-600);
+  --color-menu-item-selected-bg: var(--color-zinc-100);
+  --color-menu-item-selected-text: var(--color-brand-600);
+  --color-menu-item-bg: transparent;
+  --color-menu-item-hover-border: transparent;
+  --color-menu-item-selected-border: transparent;
+  --color-menu-item-disabled-bg: transparent;
+  --color-menu-item-disabled-text: var(--color-zinc-300);
+  --color-menu-item-disabled-border: transparent;
+
+  /* Surfaces */
+  --color-surface-bg: var(--color-white);
+  --color-surface-secondary-bg: var(--color-zinc-50);
+  --color-surface-border: var(--color-zinc-200);
+
+  /* Typography */
+  --color-text-primary: var(--color-zinc-700);
+  --color-text-heading: var(--color-zinc-700);
+  --color-text-link: var(--color-brand-600);
+  --color-text-link-hover: var(--color-brand-500);
+  /* text_secondary merged into text_muted; text_body follows text_primary */
+  --color-text-secondary: var(--color-text-muted);
+  --color-text-body: var(--color-text-primary);
+  --color-surface-text: var(--color-text-primary);
+  --color-surface-secondary-text: var(--color-text-secondary);
+
+  /* Branding ramp — a token value of `brand-600` resolves through here.
+     ThemeTokens::renderCss() re-points these to the chosen family. */
+  --color-brand-50: var(--color-sky-50);
+  --color-brand-100: var(--color-sky-100);
+  --color-brand-200: var(--color-sky-200);
+  --color-brand-300: var(--color-sky-300);
+  --color-brand-400: var(--color-sky-400);
+  --color-brand-500: var(--color-sky-500);
+  --color-brand-600: var(--color-sky-600);
+  --color-brand-700: var(--color-sky-700);
+  --color-brand-800: var(--color-sky-800);
+  --color-brand-900: var(--color-sky-900);
+  --color-brand-950: var(--color-sky-950);
+
+  /* Brand accent — checkbox/radio/toggle/slider fill + email accent.
+     Pagination has its own --color-pagination-active-* tokens. */
+  --color-brand-bg: var(--color-indigo-600);
+  --color-brand-text: var(--color-white);
+
+  /* Buttons — variant x state x slot */
+  --color-btn-primary-bg: var(--color-brand-600);
+  --color-btn-primary-text: var(--color-white);
+  --color-btn-primary-border: transparent;
+  --color-btn-primary-hover-bg: var(--color-brand-500);
+  --color-btn-primary-hover-text: var(--color-white);
+  --color-btn-primary-hover-border: transparent;
+  --color-btn-primary-disabled-bg: var(--color-zinc-100);
+  --color-btn-primary-disabled-text: var(--color-zinc-400);
+  --color-btn-primary-disabled-border: transparent;
+
+  --color-btn-secondary-bg: var(--color-white);
+  --color-btn-secondary-text: var(--color-zinc-950);
+  --color-btn-secondary-border: var(--color-zinc-300);
+  --color-btn-secondary-hover-bg: var(--color-zinc-50);
+  --color-btn-secondary-hover-text: var(--color-zinc-950);
+  --color-btn-secondary-hover-border: var(--color-zinc-300);
+  --color-btn-secondary-disabled-bg: var(--color-zinc-100);
+  --color-btn-secondary-disabled-text: var(--color-zinc-400);
+  --color-btn-secondary-disabled-border: transparent;
+
+  --color-btn-danger-bg: var(--color-red-600);
+  --color-btn-danger-text: var(--color-white);
+  --color-btn-danger-border: transparent;
+  --color-btn-danger-hover-bg: var(--color-red-500);
+  --color-btn-danger-hover-text: var(--color-white);
+  --color-btn-danger-hover-border: transparent;
+  --color-btn-danger-disabled-bg: var(--color-zinc-100);
+  --color-btn-danger-disabled-text: var(--color-zinc-400);
+  --color-btn-danger-disabled-border: transparent;
+
+  /* Cards (derived from surface) */
+  --color-card-body-bg: var(--color-surface-bg);
+  --color-card-body-text: var(--color-surface-text);
+  --color-card-body-border: var(--color-surface-border);
+  --color-card-header-bg: var(--color-surface-secondary-bg);
+  --color-card-header-text: var(--color-surface-secondary-text);
+  --color-card-header-border: var(--color-surface-border);
+  --color-card-footer-bg: var(--color-surface-secondary-bg);
+  --color-card-footer-text: var(--color-surface-secondary-text);
+
+  /* Chrome border & overlay */
+  --color-separator-horizontal: transparent;
+  --color-separator-vertical: transparent;
+  --color-overlay: color-mix(in srgb, black 40%, transparent);
+
+  /* Typography — muted */
+  --color-text-muted: var(--color-zinc-400);
+
+  /* Cards — extra derived tokens */
+  --color-card-border: var(--color-surface-border);
+  --color-card-footer-border: var(--color-surface-border);
+
+  /* Inputs */
+  --color-input-bg: var(--color-white);
+  --color-input-border: var(--color-zinc-300);
+  --color-input-text: var(--color-zinc-900);
+  --color-input-placeholder: var(--color-zinc-400);
+  --color-input-focus-bg: var(--color-white);
+  --color-input-focus-border: var(--color-brand-500);
+  --color-input-focus-text: var(--color-zinc-900);
+  --color-input-disabled-bg: var(--color-zinc-100);
+  --color-input-disabled-border: var(--color-zinc-200);
+  --color-input-disabled-text: var(--color-zinc-400);
+  --color-input-invalid-border: var(--color-red-600);
+  --color-input-invalid-text: var(--color-red-600);
+
+  /* Dropdown */
+  --color-dropdown-panel-bg: var(--color-white);
+  --color-dropdown-panel-border: var(--color-zinc-200);
+  --color-dropdown-option-bg: var(--color-white);
+  --color-dropdown-option-text: var(--color-zinc-700);
+  --color-dropdown-option-hover-bg: var(--color-zinc-50);
+  --color-dropdown-option-hover-text: var(--color-zinc-900);
+  --color-dropdown-option-selected-bg: var(--color-indigo-50);
+  --color-dropdown-option-selected-text: var(--color-brand-700);
+
+  /* Tabs */
+  --color-tab-bg: var(--color-white);
+  --color-tab-separator: var(--color-zinc-200);
+  --color-tab-active-bg: var(--color-white);
+  --color-tab-active-text: var(--color-brand-600);
+  --color-tab-active-border: var(--color-brand-600);
+  --color-tab-hover-bg: var(--color-zinc-50);
+  --color-tab-hover-text: var(--color-zinc-700);
+  --color-tab-hover-border: var(--color-zinc-300);
+  --color-tab-inactive-bg: var(--color-white);
+  --color-tab-text: var(--color-zinc-500);
+  --color-tab-border: transparent;
+
+  /* Table */
+  --color-table-header-bg: var(--color-zinc-50);
+  --color-table-header-text: var(--color-zinc-500);
+  --color-table-header-separator: var(--color-zinc-200);
+  --color-table-row-bg: var(--color-white);
+  --color-table-row-text: var(--color-zinc-700);
+  --color-table-row-separator: var(--color-zinc-100);
+  --color-table-row-hover-bg: var(--color-zinc-50);
+  --color-table-row-hover-text: var(--color-zinc-900);
+  --color-table-row-selected-bg: var(--color-brand-50);
+  --color-table-row-selected-text: var(--color-brand-700);
+
+  /* Status indicators */
+
+  /* Badges */
+  --color-badge-success-bg: var(--color-green-100);
+  --color-badge-success-text: var(--color-green-700);
+  --color-badge-success-border: var(--color-green-200);
+  --color-badge-warning-bg: var(--color-yellow-100);
+  --color-badge-warning-text: var(--color-yellow-700);
+  --color-badge-warning-border: var(--color-yellow-200);
+  --color-badge-error-bg: var(--color-red-100);
+  --color-badge-error-text: var(--color-red-700);
+  --color-badge-error-border: var(--color-red-200);
+  --color-badge-standard-bg: var(--color-zinc-100);
+  --color-badge-standard-text: var(--color-zinc-700);
+  --color-badge-standard-border: var(--color-zinc-200);
+  --color-badge-custom-bg: var(--color-indigo-100);
+  --color-badge-custom-text: var(--color-brand-700);
+  --color-badge-custom-border: var(--color-brand-200);
+  --color-badge-muted-bg: var(--color-zinc-100);
+  --color-badge-muted-text: var(--color-zinc-400);
+  --color-badge-muted-border: var(--color-zinc-200);
+
+  /* Pagination */
+  --color-pagination-bg: var(--color-surface-bg);
+  --color-pagination-text: var(--color-text-primary);
+  --color-pagination-border: var(--color-surface-border);
+  --color-pagination-muted-text: var(--color-text-secondary);
+  --color-pagination-hover-bg: var(--color-surface-secondary-bg);
+  --color-pagination-hover-text: var(--color-text-primary);
+  --color-pagination-hover-border: var(--color-surface-border);
+  /* pagination_active_bg / _text are their own flat tokens (Table tab), not
+     derived from brand_bg/text. */
+  --color-pagination-active-bg: var(--color-brand-600);
+  --color-pagination-active-text: var(--color-white);
+  --color-pagination-active-border: var(--color-pagination-active-bg);
+}
+
+/* ── Dark-mode overrides ─────────────────────────────────────────────────── */
+.dark {
+  --color-page-bg: transparent;
+  --color-sidebar-bg: var(--color-zinc-900);
+  --color-content-bg: var(--color-zinc-800);
+  --color-surface-bg: var(--color-zinc-800);
+  --color-surface-secondary-bg: var(--color-zinc-900);
+  --color-surface-border: var(--color-zinc-700);
+  --color-text-primary: var(--color-zinc-300);
+  --color-text-heading: var(--color-zinc-200);
+  --color-text-link: var(--color-brand-500);
+  --color-text-link-hover: var(--color-brand-400);
+  --color-menu-item-text: var(--color-zinc-300);
+  --color-menu-item-hover-bg: var(--color-zinc-800);
+  --color-menu-item-hover-text: var(--color-brand-400);
+  --color-menu-item-selected-bg: var(--color-zinc-800);
+  --color-menu-item-selected-text: var(--color-brand-400);
+  --color-menu-item-disabled-text: var(--color-zinc-600);
+  --color-btn-secondary-bg: var(--color-zinc-800);
+  --color-btn-secondary-text: var(--color-zinc-100);
+  --color-btn-secondary-border: var(--color-zinc-600);
+  --color-btn-secondary-hover-bg: var(--color-zinc-700);
+  --color-btn-secondary-hover-text: var(--color-zinc-100);
+  --color-btn-secondary-hover-border: var(--color-zinc-600);
+  --color-btn-primary-disabled-bg: var(--color-zinc-800);
+  --color-btn-primary-disabled-text: var(--color-zinc-600);
+  --color-btn-secondary-disabled-bg: var(--color-zinc-800);
+  --color-btn-secondary-disabled-text: var(--color-zinc-600);
+  --color-btn-danger-disabled-bg: var(--color-zinc-800);
+  --color-btn-danger-disabled-text: var(--color-zinc-600);
+  /* Overlay */
+  --color-overlay: color-mix(in srgb, black 40%, transparent);
+
+  /* Typography — muted */
+  --color-text-muted: var(--color-zinc-500);
+
+  /* Inputs */
+  --color-input-bg: var(--color-zinc-800);
+  --color-input-border: var(--color-zinc-600);
+  --color-input-text: var(--color-zinc-100);
+  --color-input-placeholder: var(--color-zinc-500);
+  --color-input-focus-bg: var(--color-zinc-800);
+  --color-input-focus-border: var(--color-brand-400);
+  --color-input-focus-text: var(--color-zinc-100);
+  --color-input-disabled-bg: var(--color-zinc-900);
+  --color-input-disabled-border: var(--color-zinc-700);
+  --color-input-disabled-text: var(--color-zinc-600);
+
+  /* Dropdown */
+  --color-dropdown-panel-bg: var(--color-zinc-800);
+  --color-dropdown-panel-border: var(--color-zinc-700);
+  --color-dropdown-option-bg: var(--color-zinc-800);
+  --color-dropdown-option-text: var(--color-zinc-300);
+  --color-dropdown-option-hover-bg: var(--color-zinc-700);
+  --color-dropdown-option-hover-text: var(--color-zinc-100);
+  --color-dropdown-option-selected-bg: var(--color-brand-900);
+  --color-dropdown-option-selected-text: var(--color-brand-300);
+
+  /* Tabs */
+  --color-tab-bg: var(--color-zinc-800);
+  --color-tab-separator: var(--color-zinc-700);
+  --color-tab-active-bg: var(--color-zinc-800);
+  --color-tab-active-text: var(--color-brand-400);
+  --color-tab-active-border: var(--color-brand-400);
+  --color-tab-hover-bg: var(--color-zinc-700);
+  --color-tab-hover-text: var(--color-zinc-200);
+  --color-tab-hover-border: var(--color-zinc-500);
+  --color-tab-inactive-bg: var(--color-zinc-800);
+  --color-tab-text: var(--color-zinc-400);
+
+  /* Table */
+  --color-table-header-bg: var(--color-zinc-900);
+  --color-table-header-text: var(--color-zinc-400);
+  --color-table-header-separator: var(--color-zinc-700);
+  --color-table-row-bg: var(--color-zinc-800);
+  --color-table-row-text: var(--color-zinc-300);
+  --color-table-row-separator: var(--color-zinc-700);
+  --color-table-row-hover-bg: var(--color-zinc-700);
+  --color-table-row-hover-text: var(--color-zinc-100);
+  --color-table-row-selected-bg: var(--color-brand-900);
+  --color-table-row-selected-text: var(--color-indigo-300);
+
+  /* Badges */
+  --color-badge-success-bg: var(--color-green-900);
+  --color-badge-success-text: var(--color-green-300);
+  --color-badge-success-border: var(--color-green-800);
+  --color-badge-warning-bg: var(--color-yellow-900);
+  --color-badge-warning-text: var(--color-yellow-300);
+  --color-badge-warning-border: var(--color-yellow-800);
+  --color-badge-error-bg: var(--color-red-900);
+  --color-badge-error-text: var(--color-red-300);
+  --color-badge-error-border: var(--color-red-800);
+  --color-badge-standard-bg: var(--color-zinc-800);
+  --color-badge-standard-text: var(--color-zinc-300);
+  --color-badge-standard-border: var(--color-zinc-700);
+  --color-badge-custom-bg: var(--color-brand-900);
+  --color-badge-custom-text: var(--color-brand-300);
+  --color-badge-custom-border: var(--color-brand-800);
+  --color-badge-muted-bg: var(--color-zinc-700);
+  --color-badge-muted-text: var(--color-zinc-400);
+  --color-badge-muted-border: var(--color-zinc-600);
+
+  /* Chrome — header text stays indigo in dark (light mode uses the brand ramp) */
+  --color-header-text: var(--color-indigo-200);
+}
