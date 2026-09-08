@@ -37,6 +37,11 @@ class Employee extends Model
         return $this->hasMany(EmployeeHoliday::class)->orderBy('start_date');
     }
 
+    public function recurringAvailabilities(): HasMany
+    {
+        return $this->hasMany(RecurringAvailability::class);
+    }
+
     public function scopeSearch($query, string $search)
     {
         return $query->where(function ($q) use ($search) {

@@ -31,6 +31,7 @@ class PersonalPageController extends Controller
                 'weekly_hours' => $employee->weekly_hours,
             ],
             'holidays' => $employee->holidays->map->toPayload()->all(),
+            'availability' => $employee->recurringAvailabilities->map->toPayload()->all(),
         ]);
     }
 

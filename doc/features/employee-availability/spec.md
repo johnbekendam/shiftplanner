@@ -67,9 +67,17 @@ tab bar in its header.
 A new shared `Tabs` component drives the tab bar. It uses the existing
 `--color-tab-*` tokens. No reusable tab component exists today.
 
-### Part 2 — Recurring blocks (design only)
+### Part 2 — Recurring availability grid (building — see `plan-recurring.md`)
 
-No code this increment. Build after phase 3 delivers named shifts.
+A weekly grid on the **Availability** tab. Rows are the three dayparts
+(`morning`, `afternoon`, `evening`). Columns are the seven weekdays,
+Monday to Sunday. Each of the 21 cells holds one state:
+
+| state | meaning | planner |
+| --- | --- | --- |
+| `available` | the default. Nothing stored. | no constraint |
+| `not_preferred` | the employee would rather not work this slot | soft penalty in the objective |
+| `unavailable` | the employee cannot work this slot | hard constraint |
 
 New table `recurring_availabilities`:
 
@@ -79,24 +87,49 @@ New table `recurring_availabilities`:
 | `employee_id` | foreign key, cascade on employee delete |
 | `weekday` | ISO day number, 1 (Monday) to 7 (Sunday) |
 | `daypart` | `morning`, `afternoon`, or `evening` |
-| `level` | `blocked` (hard) or `avoid` (soft) |
+| `level` | `not_preferred` or `unavailable` |
 | timestamps | |
 
-- One model, two levels. `blocked` is a hard constraint the planner never
-  violates. `avoid` is a soft penalty in the objective: the planner
-  avoids it but may override it for coverage or fairness.
+- Unique on (`employee_id`, `weekday`, `daypart`). `available` is the
+  absence of a row.
 - This model replaces the removed `morning/evening/either` preference.
-- `daypart` is a placeholder set. Phase 3 tags each shift with a daypart.
-  The planner then expands one row onto every shift that matches the
-  weekday and daypart.
-- A later increment puts the recurring UI on the same **Availability**
-  tab.
+- `daypart` is a placeholder set with no clock times. Phase 3 tags each
+  shift with a daypart. The planner then expands one row onto every shift
+  that matches the weekday and daypart.
+
+### Grid behaviour
+
+- A click on a cell cycles its state: `available` → `not_preferred` →
+  `unavailable` → `available`. The cell is a button, so Enter and Space
+  cycle it too.
+- Each change writes at once, like a holiday row. No Save button. The
+  request keeps the page and the open tab, and raises no success banner.
+- The three states are colour-coded through existing badge tokens
+  (`--color-badge-standard-*` for available, `--color-badge-warning-*`
+  for not preferred, `--color-badge-error-*` for unavailable). A legend
+  sits under the grid.
+- The grid shows on both the manager editor and the personal page, the
+  same as the holiday table. On the create page the tab still asks the
+  user to save the employee first.
+
+### Endpoints
+
+One per-cell route on each surface. `PUT` with a `level` of `available`,
+`not_preferred`, or `unavailable`. `available` deletes any row for that
+cell. The others upsert.
+
+- Manager: `PUT /employees/{employee}/availability/{weekday}/{daypart}`
+- Employee: `PUT /personal/{token}/availability/{weekday}/{daypart}`
+
+`weekday` is `1`–`7`. `daypart` is `morning`, `afternoon`, or `evening`.
+The `edit` and `show` payloads carry an `availability` array of
+`{ weekday, daypart, level }` for the non-available cells.
 
 ### `/solve` contract sketch
 
 - Holidays become per-date hard unavailability for the employee.
-- Recurring `blocked` rows become hard constraints.
-- Recurring `avoid` rows become penalty terms in the objective.
+- Recurring `unavailable` cells become hard constraints.
+- Recurring `not_preferred` cells become penalty terms in the objective.
 - Daypart-to-shift resolution uses the phase-3 shift daypart tag.
 
 Fairness weights and shift-level single-day exceptions stay deferred to
@@ -104,16 +137,20 @@ the phase-4 fairness session.
 
 ## Documentation updates
 
-- `doc/roadmap.md` — phase 4 row notes that holidays shipped and the
-  recurring model is specified here.
-- `doc/concept.md` — the employee record now carries holidays. The
-  detailed availability model is partly resolved.
+- `doc/roadmap.md` — phase 4 row notes that holidays and the recurring
+  availability grid shipped.
+- `doc/concept.md` — the employee record carries holidays and a recurring
+  availability grid.
 
 ## Key decisions
 
-- **Holidays now, recurring later.** Holidays have no phase-3 dependency.
-  The recurring model needs named shifts, so it is designed now and built
-  later.
+- **Holidays first, then the grid.** Holidays had no dependency, so they
+  shipped first (`plan.md`). The recurring grid follows in
+  `plan-recurring.md`. It runs on abstract dayparts, so it does not wait
+  for phase 3.
+- **Per-cell writes, click to cycle.** Each cell writes on the click that
+  changes it, the same as a holiday row. A 3-by-7 grid of dropdowns or
+  segmented controls is too dense. `available` is the absence of a row.
 - **Whole days only.** Plain `date` columns. The planner has no shift
   times yet, so sub-day precision has nothing to act on. A later increment
   can add half-days without breaking rows.
@@ -135,11 +172,12 @@ the phase-4 fairness session.
 
 ## Non-goals
 
-- Any recurring-availability code.
+- Clock times or shift names on a daypart. Phase 3 adds those.
 - Manager approval or a leave-request workflow.
 - Half-day or datetime holidays.
 - Prorating the weekly-hours target for a holiday week. That is a phase-5
   `/solve` concern.
-- Fairness weighting for `avoid` rows.
+- Fairness weighting for `not_preferred` cells.
 - Shift-level single-day exceptions.
 - Calendar recurrence for standard day schedules. That is phase 3 and 4.
+- The `/solve` service itself. This feature only stores the data.

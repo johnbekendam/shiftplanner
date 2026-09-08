@@ -6,6 +6,8 @@ use App\Http\Controllers\EmployeeHolidayController;
 use App\Http\Controllers\MailboxController;
 use App\Http\Controllers\PersonalHolidayController;
 use App\Http\Controllers\PersonalPageController;
+use App\Http\Controllers\PersonalRecurringAvailabilityController;
+use App\Http\Controllers\RecurringAvailabilityController;
 use App\Http\Controllers\ThemeBuilderController;
 use Illuminate\Support\Facades\Route;
 
@@ -38,6 +40,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/employees/{employee}/personal-page', [EmployeeController::class, 'personalPage'])->name('employees.personal-page');
     Route::post('/employees/{employee}/holidays', [EmployeeHolidayController::class, 'store'])->name('employees.holidays.store');
     Route::delete('/employees/{employee}/holidays/{holiday}', [EmployeeHolidayController::class, 'destroy'])->name('employees.holidays.destroy');
+    Route::put('/employees/{employee}/availability/{weekday}/{daypart}', [RecurringAvailabilityController::class, 'update'])
+        ->where(['weekday' => '[1-7]', 'daypart' => 'morning|afternoon|evening'])
+        ->name('employees.availability.update');
 });
 
 // Employee personal page — token-only, no auth. Prototype preview links.
@@ -46,3 +51,6 @@ Route::get('/personal/{token}', [PersonalPageController::class, 'show'])->name('
 Route::put('/personal/{token}', [PersonalPageController::class, 'update'])->name('personal.update');
 Route::post('/personal/{token}/holidays', [PersonalHolidayController::class, 'store'])->name('personal.holidays.store');
 Route::delete('/personal/{token}/holidays/{holiday}', [PersonalHolidayController::class, 'destroy'])->name('personal.holidays.destroy');
+Route::put('/personal/{token}/availability/{weekday}/{daypart}', [PersonalRecurringAvailabilityController::class, 'update'])
+    ->where(['weekday' => '[1-7]', 'daypart' => 'morning|afternoon|evening'])
+    ->name('personal.availability.update');
