@@ -6,9 +6,8 @@ const page = usePage()
 const visible = ref(false)
 let timer = null
 
-const flash = computed(() => page.props.flash)
-const type = computed(() => flash.value?.success ? 'success' : 'error')
-const message = computed(() => flash.value?.success || flash.value?.error || null)
+// Only surface problems. A successful action passes without a banner.
+const message = computed(() => page.props.flash?.error || null)
 
 watch(message, (val) => {
     if (val) {
@@ -35,15 +34,10 @@ function dismiss() {
     >
         <div
             v-if="visible && message"
-            :class="[
-                'flex items-center justify-between px-4 py-3 text-sm font-medium',
-                type === 'success'
-                    ? 'bg-(--color-badge-success-bg) text-(--color-badge-success-text)'
-                    : 'bg-(--color-badge-error-bg) text-(--color-badge-error-text)',
-            ]"
+            class="flex items-center justify-between bg-(--color-badge-error-bg) px-4 py-3 text-sm font-medium text-(--color-badge-error-text)"
         >
             <span>{{ message }}</span>
-            <button @click="dismiss" class="ml-4 opacity-60 hover:opacity-100 text-lg leading-none">&times;</button>
+            <button @click="dismiss" class="ml-4 text-lg leading-none opacity-60 hover:opacity-100">&times;</button>
         </div>
     </Transition>
 </template>
