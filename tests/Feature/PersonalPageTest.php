@@ -56,6 +56,17 @@ class PersonalPageTest extends TestCase
         $this->assertSame(40, $employee->fresh()->weekly_hours);
     }
 
+    public function test_employee_can_save_zero_weekly_hours_when_below_the_minimum(): void
+    {
+        [$employee, $token] = $this->linkedEmployee(['weekly_hours' => 20]);
+
+        $this->put("/personal/{$token}", ['weekly_hours' => 0])
+            ->assertRedirect("/personal/{$token}")
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame(0, $employee->fresh()->weekly_hours);
+    }
+
     public function test_weekly_hours_update_rejects_a_value_outside_the_allowed_set(): void
     {
         [$employee, $token] = $this->linkedEmployee(['weekly_hours' => 20]);

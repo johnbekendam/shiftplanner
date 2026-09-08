@@ -70,6 +70,7 @@
     "employees.column.email": "Email",
     "employees.column.weekly_hours": "Weekly hours",
     "employees.hours_option": ":count hours",
+    "employees.hours_below_minimum": "I can only work less than :min hours",
     "employees.action.new": "New employee",
     "employees.action.save": "Save",
     "employees.action.cancel": "Cancel",

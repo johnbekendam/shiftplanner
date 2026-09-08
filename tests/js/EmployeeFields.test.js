@@ -7,6 +7,7 @@ const en = {
     "employees.field.email": "Email",
     "employees.field.weekly_hours": "Weekly hours",
     "employees.hours_option": ":count hours",
+    "employees.hours_below_minimum": "I can only work less than :min hours",
 };
 
 vi.mock("@inertiajs/vue3", () => ({
@@ -27,15 +28,19 @@ function makeForm(overrides = {}) {
 }
 
 describe("EmployeeFields", () => {
-    it("offers the eight allowed weekly-hours values with ':count hours' labels", () => {
+    it("offers 20-48 hours then a below-minimum option that saves 0", () => {
         const w = mount(EmployeeFields, { props: { form: makeForm() } });
         const opts = w.getComponent(SelectInput).props("options");
 
         expect(opts.map((o) => o.value)).toEqual([
-            20, 24, 28, 32, 36, 40, 44, 48,
+            20, 24, 28, 32, 36, 40, 44, 48, 0,
         ]);
         expect(opts[0].label).toBe("20 hours");
-        expect(opts.at(-1).label).toBe("48 hours");
+        expect(opts[7].label).toBe("48 hours");
+        expect(opts.at(-1)).toEqual({
+            value: 0,
+            label: "I can only work less than 20 hours",
+        });
     });
 
     it("binds the weekly-hours select to form.weekly_hours", async () => {

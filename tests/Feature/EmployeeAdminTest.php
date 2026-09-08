@@ -103,6 +103,19 @@ class EmployeeAdminTest extends TestCase
         $this->assertSame(0, Employee::count());
     }
 
+    public function test_create_accepts_zero_weekly_hours_for_an_employee_below_the_minimum(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)->post('/employees', [
+            'name' => 'Below Minimum',
+            'email' => 'below.minimum@example.com',
+            'weekly_hours' => 0,
+        ])->assertRedirect('/employees')->assertSessionHasNoErrors();
+
+        $this->assertSame(0, Employee::firstWhere('email', 'below.minimum@example.com')->weekly_hours);
+    }
+
     public function test_email_must_be_unique_across_employees(): void
     {
         $user = User::factory()->create();

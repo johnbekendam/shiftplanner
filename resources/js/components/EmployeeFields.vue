@@ -13,15 +13,20 @@ const props = defineProps({
     readonlyIdentity: { type: Boolean, default: false },
 })
 
-// Mirrors Employee::WEEKLY_HOURS_OPTIONS — 20 to 48 in steps of 4.
+// The real weekly-hours choices (Employee::WEEKLY_HOURS_OPTIONS also carries
+// 0 for the below-minimum case, which is appended as its own option below).
 const WEEKLY_HOURS_OPTIONS = [20, 24, 28, 32, 36, 40, 44, 48]
 
-const hoursOptions = computed(() =>
-    WEEKLY_HOURS_OPTIONS.map((hours) => ({
+const hoursOptions = computed(() => [
+    ...WEEKLY_HOURS_OPTIONS.map((hours) => ({
         value: hours,
         label: __('employees.hours_option', { count: hours }),
     })),
-)
+    {
+        value: 0,
+        label: __('employees.hours_below_minimum', { min: WEEKLY_HOURS_OPTIONS[0] }),
+    },
+])
 </script>
 
 <template>
