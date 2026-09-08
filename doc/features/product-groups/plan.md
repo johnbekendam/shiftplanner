@@ -1,6 +1,6 @@
 # Product Groups — Plan
 
-Status: in progress — 1/6
+Status: in progress — 2/6
 
 Spec: `spec.md`. Roadmap phase 3.6. Mirrors competences (phase 3.5).
 
@@ -20,7 +20,7 @@ Spec: `spec.md`. Roadmap phase 3.6. Mirrors competences (phase 3.5).
   `PersonalShow.test.js`. `npm run test` and `npm run build` green. No
   back-end change.
 
-- [ ] 2. **Backend: product group records, Settings data, CRUD and
+- [x] 2. **Backend: product group records, Settings data, CRUD and
   reorder.** Migrations `product_groups` (`name` string unique,
   `position` unsigned int, timestamps) and `employee_product_group`
   (`product_group_id` + `employee_id` FKs cascade, composite primary

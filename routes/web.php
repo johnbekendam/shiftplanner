@@ -10,6 +10,7 @@ use App\Http\Controllers\PersonalCompetenceController;
 use App\Http\Controllers\PersonalHolidayController;
 use App\Http\Controllers\PersonalPageController;
 use App\Http\Controllers\PersonalRecurringAvailabilityController;
+use App\Http\Controllers\ProductGroupController;
 use App\Http\Controllers\RecurringAvailabilityController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\ThemeBuilderController;
@@ -34,6 +35,10 @@ Route::middleware('auth')->group(function () {
     Route::put('/settings/competences/{competence}/move', [CompetenceController::class, 'move'])->name('settings.competences.move');
     Route::put('/settings/competences/{competence}', [CompetenceController::class, 'update'])->name('settings.competences.update');
     Route::delete('/settings/competences/{competence}', [CompetenceController::class, 'destroy'])->name('settings.competences.destroy');
+    Route::post('/settings/product-groups', [ProductGroupController::class, 'store'])->name('settings.product-groups.store');
+    Route::put('/settings/product-groups/{productGroup}/move', [ProductGroupController::class, 'move'])->name('settings.product-groups.move');
+    Route::put('/settings/product-groups/{productGroup}', [ProductGroupController::class, 'update'])->name('settings.product-groups.update');
+    Route::delete('/settings/product-groups/{productGroup}', [ProductGroupController::class, 'destroy'])->name('settings.product-groups.destroy');
 
     Route::get('/mailbox', [MailboxController::class, 'index'])->name('mailbox.index');
     Route::post('/mailbox/compose', [MailboxController::class, 'store'])->name('mailbox.compose');

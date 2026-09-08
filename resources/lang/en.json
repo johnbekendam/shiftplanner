@@ -121,6 +121,21 @@
 
     "settings.title": "Settings",
     "settings.tab.competences": "Competences",
+    "settings.tab.product_groups": "Product groups",
+
+    "product_groups.name": "Name",
+    "product_groups.add": "Add product group",
+    "product_groups.add_placeholder": "New product group",
+    "product_groups.move_up": "Move up",
+    "product_groups.move_down": "Move down",
+    "product_groups.delete": "Delete",
+    "product_groups.delete_confirm": "This product group is preferred by :count employee(s). Delete it?",
+    "product_groups.list_empty": "No product groups yet. Add the first one below.",
+    "product_groups.checklist_empty": "No product groups have been set up yet.",
+    "product_groups.error.name_taken": "A product group with this name already exists.",
+    "product_groups.flash.added": "Product group added.",
+    "product_groups.flash.renamed": "Product group renamed.",
+    "product_groups.flash.deleted": "Product group deleted.",
 
     "competences.tab": "Competences",
     "competences.name": "Name",

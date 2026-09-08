@@ -3,25 +3,30 @@
 namespace App\Http\Controllers;
 
 use App\Models\Competence;
+use App\Models\ProductGroup;
 use Inertia\Inertia;
 
 class SettingsController extends Controller
 {
     public function index()
     {
-        $competences = Competence::query()
+        return Inertia::render('Settings/Index', [
+            'competences' => $this->listWithHolderCount(Competence::query()),
+            'productGroups' => $this->listWithHolderCount(ProductGroup::query()),
+        ]);
+    }
+
+    private function listWithHolderCount($query): array
+    {
+        return $query
             ->withCount('employees')
             ->get()
-            ->map(fn (Competence $competence) => [
-                'id' => $competence->id,
-                'name' => $competence->name,
-                'position' => $competence->position,
-                'holder_count' => $competence->employees_count,
+            ->map(fn ($row) => [
+                'id' => $row->id,
+                'name' => $row->name,
+                'position' => $row->position,
+                'holder_count' => $row->employees_count,
             ])
             ->all();
-
-        return Inertia::render('Settings/Index', [
-            'competences' => $competences,
-        ]);
     }
 }
