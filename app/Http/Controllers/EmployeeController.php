@@ -16,7 +16,7 @@ class EmployeeController extends Controller
     {
         $search = $request->input('search', '');
 
-        $query = Employee::query()->with('personalLink')->orderBy('name');
+        $query = Employee::query()->orderBy('name');
 
         if ($search !== '') {
             $query->search($search);
@@ -27,7 +27,6 @@ class EmployeeController extends Controller
             'name' => $employee->name,
             'email' => $employee->email,
             'weekly_hours' => $employee->weekly_hours,
-            'has_personal_link' => $employee->personalLink !== null,
         ]);
 
         return Inertia::render('Employees/Index', [

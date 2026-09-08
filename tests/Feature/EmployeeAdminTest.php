@@ -16,11 +16,10 @@ class EmployeeAdminTest extends TestCase
         $this->get('/employees')->assertRedirect('/login');
     }
 
-    public function test_index_lists_employees_with_weekly_hours_and_link_status(): void
+    public function test_index_lists_employees_with_weekly_hours(): void
     {
         $user = User::factory()->create();
-        $withLink = Employee::factory()->create(['name' => 'Aaron Able', 'weekly_hours' => 32]);
-        $withLink->personalLink()->create(['token' => 'tok-aaron']);
+        Employee::factory()->create(['name' => 'Aaron Able', 'weekly_hours' => 32]);
         Employee::factory()->create(['name' => 'Zoe Zeal']);
 
         $this->actingAs($user)->get('/employees')->assertOk()
@@ -29,8 +28,6 @@ class EmployeeAdminTest extends TestCase
                 ->has('employees.data', 2)
                 ->where('employees.data.0.name', 'Aaron Able')
                 ->where('employees.data.0.weekly_hours', 32)
-                ->where('employees.data.0.has_personal_link', true)
-                ->where('employees.data.1.has_personal_link', false)
                 ->missing('employees.data.0.department')
                 ->missing('employees.data.0.shift_preference')
             );

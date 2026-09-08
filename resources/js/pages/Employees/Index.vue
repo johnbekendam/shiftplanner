@@ -1,7 +1,6 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, watch, onBeforeUnmount } from 'vue'
 import { Head, Link, router } from '@inertiajs/vue3'
-import axios from 'axios'
 import AppLayout from '@/layouts/AppLayout.vue'
 import Card from '@/components/ui/Card.vue'
 import ButtonPrimary from '@/components/ui/ButtonPrimary.vue'
@@ -18,23 +17,25 @@ const props = defineProps({
 
 const searchTerm = ref(props.search)
 
-function runSearch() {
-    router.get('/employees', { search: searchTerm.value }, { preserveState: true, replace: true })
-}
+let searchTimer = null
+watch(searchTerm, (value) => {
+    clearTimeout(searchTimer)
+    searchTimer = setTimeout(() => {
+        router.get('/employees', { search: value }, {
+            preserveState: true,
+            preserveScroll: true,
+            replace: true,
+        })
+    }, 250)
+})
+onBeforeUnmount(() => clearTimeout(searchTimer))
 
 function goToPage(url) {
     if (url) router.get(url, {}, { preserveState: true })
 }
 
-const copiedId = ref(null)
-
-async function copyPersonalLink(employee) {
-    const { data } = await axios.get(`/employees/${employee.id}/personal-page`)
-    await navigator.clipboard.writeText(data.url)
-    copiedId.value = employee.id
-    setTimeout(() => {
-        if (copiedId.value === employee.id) copiedId.value = null
-    }, 2000)
+function openEmployee(employee) {
+    router.visit(`/employees/${employee.id}/edit`)
 }
 </script>
 
@@ -57,7 +58,6 @@ async function copyPersonalLink(employee) {
                     v-model="searchTerm"
                     class="max-w-xs"
                     :placeholder="__('employees.search_placeholder')"
-                    @keyup.enter="runSearch"
                 />
 
                 <table class="w-full text-sm">
@@ -66,39 +66,23 @@ async function copyPersonalLink(employee) {
                             <th class="py-2">{{ __('employees.column.name') }}</th>
                             <th class="py-2">{{ __('employees.column.email') }}</th>
                             <th class="py-2">{{ __('employees.column.weekly_hours') }}</th>
-                            <th class="py-2">{{ __('employees.column.link') }}</th>
-                            <th class="py-2 text-right">{{ __('employees.column.actions') }}</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr
                             v-for="employee in employees.data"
                             :key="employee.id"
-                            class="border-b border-(--color-table-row-separator) hover:bg-(--color-table-row-hover-bg)"
+                            class="cursor-pointer border-b border-(--color-table-row-separator) hover:bg-(--color-table-row-hover-bg)"
+                            @click="openEmployee(employee)"
                         >
                             <td class="py-2 text-(--color-table-row-text)">{{ employee.name }}</td>
                             <td class="py-2 text-(--color-table-row-text)">{{ employee.email }}</td>
                             <td class="py-2 text-(--color-table-row-text)">
                                 {{ __('employees.hours_option', { count: employee.weekly_hours }) }}
                             </td>
-                            <td class="py-2 text-(--color-text-secondary)">
-                                {{ employee.has_personal_link ? __('employees.link.active') : __('employees.link.none') }}
-                            </td>
-                            <td class="py-2">
-                                <div class="flex items-center justify-end gap-2">
-                                    <Link :href="`/employees/${employee.id}/edit`">
-                                        <ButtonSecondary type="button" icon="pencil-square">
-                                            {{ __('employees.action.edit') }}
-                                        </ButtonSecondary>
-                                    </Link>
-                                    <ButtonSecondary type="button" icon="link" @click="copyPersonalLink(employee)">
-                                        {{ copiedId === employee.id ? __('employees.action.copied') : __('employees.action.copy_link') }}
-                                    </ButtonSecondary>
-                                </div>
-                            </td>
                         </tr>
                         <tr v-if="!employees.data.length">
-                            <td colspan="5" class="py-8 text-center text-(--color-text-secondary)">
+                            <td colspan="3" class="py-8 text-center text-(--color-text-secondary)">
                                 {{ __('employees.empty') }}
                             </td>
                         </tr>

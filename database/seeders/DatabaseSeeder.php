@@ -12,6 +12,8 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        $this->call(EmployeeSeeder::class);
+
         $seedUser = config('auth.seed_user');
 
         if ($seedUser['email'] && $seedUser['password']) {
