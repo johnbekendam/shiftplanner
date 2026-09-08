@@ -1,6 +1,6 @@
 # Employee Hours — Plan
 
-Status: in progress — 3/4
+Status: done — 4/4
 
 Spec: `spec.md`. Roadmap phase 1.
 
@@ -49,7 +49,7 @@ The backend change is one atomic slice.
   to `personal.update`. Vitest if the page has testable logic. Front-end
   suite green.
 
-- [ ] 4. **Final checks.** Confirm no department/preference key, string,
+- [x] 4. **Final checks.** Confirm no department/preference key, string,
   or reference is left anywhere. Run Pint, `php artisan test`,
   `npm run test`, `npm run build` — all green.
 
