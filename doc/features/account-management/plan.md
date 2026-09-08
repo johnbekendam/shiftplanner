@@ -1,6 +1,6 @@
 # Account Management — Plan
 
-Status: in progress — 2/7
+Status: in progress — 3/7
 
 Spec: `spec.md`. Roadmap phase 3.7.
 
@@ -32,7 +32,7 @@ Spec: `spec.md`. Roadmap phase 3.7.
   `/employees`; a guest still redirects to `/login`. Full PHP suite
   green.
 
-- [ ] 3. **One-time login code: table, service, endpoints, email.**
+- [x] 3. **One-time login code: table, service, endpoints, email.**
   Migration `login_codes` (`user_id` cascade, `code_hash`, `expires_at`,
   `consumed_at` nullable, `attempts` default 0, timestamps). `LoginCode`
   model. `LoginCodeService`: `request(email)` — void any live code for

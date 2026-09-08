@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Auth\LoginCodeController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\CompetenceController;
 use App\Http\Controllers\EmployeeCompetenceController;
@@ -22,6 +23,8 @@ Route::redirect('/', '/employees');
 
 Route::get('/login', [LoginController::class, 'showForm'])->name('login');
 Route::post('/login', [LoginController::class, 'store'])->middleware('throttle:6,1');
+Route::post('/login/code', [LoginCodeController::class, 'request'])->middleware('throttle:login-code')->name('login.code.request');
+Route::post('/login/code/verify', [LoginCodeController::class, 'verify'])->middleware('throttle:login-code')->name('login.code.verify');
 Route::post('/logout', [LoginController::class, 'destroy'])->name('logout');
 
 Route::middleware('auth')->group(function () {
