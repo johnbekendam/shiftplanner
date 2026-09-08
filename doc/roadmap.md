@@ -13,6 +13,7 @@ starts, a `plan.md` (the steps and progress).
 | 1 | Employee admin prototype — manager employee list/editor, personal-page preview link | Done | `features/employee-admin/spec.md`, `features/employee-admin/plan.md` |
 | 2 | Auth hardening — manager Entra ID (OIDC), employee token hardening | Planned | grill first, then `features/auth-hardening/spec.md` |
 | 3 | Departments and standard day schedules — management UI, shift coverage requirements | Planned | grill first |
+| 3.5 | Competences — config list on a Settings page, per-employee checkmarks | Done | `features/competences/spec.md`, `features/competences/plan.md`. Planning use is out of scope. |
 | 4 | Availability and wishes — recurring availability, date-specific exceptions, fairness model | In progress | Holidays and the recurring availability grid shipped (`features/employee-availability/`). Fairness model still needs a design session. |
 | 5 | Scheduling engine — Python OR-Tools `/solve` service, JSON contract, `GeneratePlan` job, draft review and edit | Planned | depends on phases 3 and 4 |
 | 6 | Publish and employee schedule view — publish a plan, employees see own assignments only | Planned | — |
@@ -80,6 +81,24 @@ Department management UI. Each department owns its schedule definition. A
 standard day schedule holds one or more shifts, each with a time range and
 a required employee count. Calendar recurrence and date-specific
 exceptions are deferred to phase 4.
+
+## Phase 3.5 — Competences
+
+Built ahead of phases 2 and 3. See `features/competences/`.
+
+A new Settings page (sidebar item, `/settings`) holds a tabbed card, one
+tab per configuration category. The first tab is Competences: a manager
+adds, renames, reorders (up and down, manual `position`), and deletes
+competences. Delete asks for confirmation and names the holder count,
+then cascades the employee links.
+
+A competence has a name only. `competence_employee` is the pivot. Both
+the manager (employee editor) and the employee (personal page) toggle
+which competences an employee holds, on a new Competences tab, matching
+the holiday and availability pattern.
+
+Planning use — a work centre that requires a competence — is out of
+scope. Only the data and the two UIs ship here.
 
 ## Phase 4 — Availability and wishes
 

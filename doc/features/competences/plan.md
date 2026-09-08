@@ -1,6 +1,6 @@
 # Competences — Plan
 
-Status: in progress — 4/5
+Status: done — 5/5
 
 Spec: `spec.md`. Roadmap phase 3.5.
 
@@ -88,7 +88,7 @@ Spec: `spec.md`. Roadmap phase 3.5.
   tabs and points the checklist at the token endpoint. Front-end suite
   green.
 
-- [ ] 5. **Docs and full checks.** `doc/roadmap.md` — add the phase 3.5
+- [x] 5. **Docs and full checks.** `doc/roadmap.md` — add the phase 3.5
   `Competences` row (State: done, `features/competences/`). `doc/
   concept.md` — the employee record carries a competence set; the manager
   Core Data section gains competences. Set this `plan.md` header to

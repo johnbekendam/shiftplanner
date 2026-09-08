@@ -15,6 +15,7 @@ The first useful capability is employee administration: managers can add people 
 Managers administer the organization:
 
 - Create departments and standard day schedules.
+- Maintain the competence list on the Settings page.
 - Add and edit employees.
 - Assign every employee to exactly one department.
 - Set shift coverage requirements.
@@ -40,6 +41,13 @@ Each department owns its schedule definition. A standard day schedule contains o
 
 The exact calendar model, including weekly recurrence and date-specific exceptions, is intentionally deferred until planning cadence is known.
 
+### Competences
+
+A configurable list of skills, maintained on the Settings page. Each
+employee holds a subset, checked by a manager or the employee. A later
+phase lets a work centre require a competence, so only employees who hold
+it can be planned there.
+
 ### Employees
 
 An employee record contains:
@@ -52,6 +60,9 @@ An employee record contains:
 - Recurring availability grid: three dayparts by seven weekdays. Each
   cell is available, not preferred (soft), or unavailable (hard). A
   manager or the employee maintains it.
+- Competences: the skills the employee holds, checked from the
+  configurable competence list. A manager or the employee maintains them.
+  Planning use comes later.
 
 Department and the old morning/evening/either preference were
 placeholders and are removed. Departments return as a configurable set in
