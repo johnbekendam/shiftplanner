@@ -7,9 +7,12 @@ const en = {
     "availability.tab.availability": "Availability",
     "availability.holidays.empty": "No holidays yet.",
     "availability.holidays.save_first": "Save the employee first, then add holidays.",
-    "competences.tab": "Competences",
-    "competences.save_first": "Save the employee first, then set competences.",
+    "profile.tab": "Profile",
+    "profile.save_first": "Save the employee first, then set the profile.",
+    "profile.competences_heading": "Competences",
+    "profile.product_groups_heading": "Preferred product groups",
     "competences.checklist_empty": "No competences have been set up yet.",
+    "product_groups.checklist_empty": "No product groups have been set up yet.",
     "employees.field.name": "Name",
     "employees.field.email": "Email",
     "employees.field.weekly_hours": "Weekly hours",
@@ -79,38 +82,42 @@ describe("Employees/Form", () => {
         expect(w.text()).toContain("Save the employee first");
     });
 
-    it("shows a third Competences tab pointed at the employee endpoint", async () => {
+    it("shows a Profile tab with competence and product-group checklists on the employee endpoints", async () => {
         const w = mount(Form, {
             props: {
                 employee: { id: 3, name: "A", email: "a@b.c", weekly_hours: 24 },
                 holidays: [],
                 competences: [{ id: 1, name: "Forklift" }],
                 competenceIds: [1],
+                productGroups: [{ id: 5, name: "Pumps" }, { id: 6, name: "Valves" }],
+                productGroupIds: [6],
             },
             global: { stubs },
         });
 
-        expect(w.text()).toContain("Competences");
+        expect(w.text()).toContain("Profile");
 
-        const tab = w.findAll("button").find((b) => b.text() === "Competences");
+        const tab = w.findAll("button").find((b) => b.text() === "Profile");
         await tab.trigger("click");
         await w.vm.$nextTick();
 
-        const checklist = w.findComponent(TagChecklist);
-        expect(checklist.props("endpoint")).toBe("/employees/3/competences");
-        expect(checklist.props("items")).toHaveLength(1);
-        expect(checklist.props("selectedIds")).toEqual([1]);
+        const lists = w.findAllComponents(TagChecklist);
+        const byEndpoint = Object.fromEntries(lists.map((l) => [l.props("endpoint"), l]));
+
+        expect(byEndpoint["/employees/3/competences"].props("selectedIds")).toEqual([1]);
+        expect(byEndpoint["/employees/3/product-groups"].props("items")).toHaveLength(2);
+        expect(byEndpoint["/employees/3/product-groups"].props("selectedIds")).toEqual([6]);
     });
 
-    it("on create, the Competences tab asks the employee to be saved first", () => {
+    it("on create, the Profile tab asks the employee to be saved first", () => {
         const w = mount(Form, {
             props: { employee: null, holidays: [] },
             global: { stubs },
         });
 
         expect(w.findComponent(TagChecklist).exists()).toBe(false);
-        expect(w.get('[data-testid="panel-competences"]').text()).toContain(
-            "Save the employee first, then set competences.",
+        expect(w.get('[data-testid="panel-profile"]').text()).toContain(
+            "Save the employee first, then set the profile.",
         );
     });
 });

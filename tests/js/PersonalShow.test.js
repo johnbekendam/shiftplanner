@@ -15,8 +15,11 @@ const en = {
     "availability.tab.details": "Details",
     "availability.tab.availability": "Availability",
     "availability.holidays.empty": "No holidays yet.",
-    "competences.tab": "Competences",
+    "profile.tab": "Profile",
+    "profile.competences_heading": "Competences",
+    "profile.product_groups_heading": "Preferred product groups",
     "competences.checklist_empty": "No competences have been set up yet.",
+    "product_groups.checklist_empty": "No product groups have been set up yet.",
 };
 
 const { router } = vi.hoisted(() => ({ router: { post: vi.fn(), delete: vi.fn() } }));
@@ -123,13 +126,20 @@ describe("Personal/Show", () => {
         expect(w.findComponent(AvailabilityGrid).props("endpoint")).toBe("/personal/tok-1/availability");
     });
 
-    it("has a third Competences tab pointed at the token endpoint", () => {
-        const w = mountShow([], { competences: [{ id: 1, name: "Forklift" }], competenceIds: [1] });
-        expect(w.text()).toContain("Competences");
+    it("has a Profile tab with competence and product-group checklists on the token endpoints", () => {
+        const w = mountShow([], {
+            competences: [{ id: 1, name: "Forklift" }],
+            competenceIds: [1],
+            productGroups: [{ id: 5, name: "Pumps" }],
+            productGroupIds: [5],
+        });
+        expect(w.text()).toContain("Profile");
 
-        const checklist = w.findComponent(TagChecklist);
-        expect(checklist.props("endpoint")).toBe("/personal/tok-1/competences");
-        expect(checklist.props("selectedIds")).toEqual([1]);
+        const byEndpoint = Object.fromEntries(
+            w.findAllComponents(TagChecklist).map((l) => [l.props("endpoint"), l]),
+        );
+        expect(byEndpoint["/personal/tok-1/competences"].props("selectedIds")).toEqual([1]);
+        expect(byEndpoint["/personal/tok-1/product-groups"].props("selectedIds")).toEqual([5]);
     });
 
     it("reveals the holiday list when the Availability tab is clicked", async () => {

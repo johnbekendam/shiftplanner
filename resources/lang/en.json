@@ -137,7 +137,11 @@
     "product_groups.flash.renamed": "Product group renamed.",
     "product_groups.flash.deleted": "Product group deleted.",
 
-    "competences.tab": "Competences",
+    "profile.tab": "Profile",
+    "profile.competences_heading": "Competences",
+    "profile.product_groups_heading": "Preferred product groups",
+    "profile.save_first": "Save the employee first, then set the profile.",
+
     "competences.name": "Name",
     "competences.add": "Add competence",
     "competences.add_placeholder": "New competence",
@@ -147,7 +151,6 @@
     "competences.delete_confirm": "This competence is held by :count employee(s). Delete it?",
     "competences.list_empty": "No competences yet. Add the first one below.",
     "competences.checklist_empty": "No competences have been set up yet.",
-    "competences.save_first": "Save the employee first, then set competences.",
     "competences.error.name_taken": "A competence with this name already exists.",
     "competences.flash.added": "Competence added.",
     "competences.flash.renamed": "Competence renamed.",

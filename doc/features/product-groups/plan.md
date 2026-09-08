@@ -1,6 +1,6 @@
 # Product Groups — Plan
 
-Status: in progress — 4/6
+Status: in progress — 5/6
 
 Spec: `spec.md`. Roadmap phase 3.6. Mirrors competences (phase 3.5).
 
@@ -72,7 +72,7 @@ Spec: `spec.md`. Roadmap phase 3.6. Mirrors competences (phase 3.5).
   mounts an `OrderedNameList` on its endpoint. `npm run test` and
   `npm run build` green.
 
-- [ ] 5. **Frontend: the Profile tab with two sections.** On
+- [x] 5. **Frontend: the Profile tab with two sections.** On
   `Personal/Show.vue` and `Employees/Form.vue` rename the third tab from
   `competences` to `profile`: value `profile`, label `__('profile.tab')`,
   `data-testid="panel-profile"`. The panel body is a Competences section

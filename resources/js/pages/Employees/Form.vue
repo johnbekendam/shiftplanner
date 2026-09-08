@@ -21,6 +21,8 @@ const props = defineProps({
     availability: { type: Array, default: () => [] },
     competences: { type: Array, default: () => [] },
     competenceIds: { type: Array, default: () => [] },
+    productGroups: { type: Array, default: () => [] },
+    productGroupIds: { type: Array, default: () => [] },
 })
 
 const isEdit = computed(() => props.employee !== null)
@@ -35,7 +37,7 @@ const tab = ref('details')
 const tabs = computed(() => [
     { value: 'details', label: __('availability.tab.details') },
     { value: 'availability', label: __('availability.tab.availability') },
-    { value: 'competences', label: __('competences.tab') },
+    { value: 'profile', label: __('profile.tab') },
 ])
 
 function submit() {
@@ -97,16 +99,36 @@ function submit() {
                 </p>
             </div>
 
-            <div v-show="tab === 'competences'" data-testid="panel-competences" class="p-6">
-                <TagChecklist
-                    v-if="isEdit"
-                    :items="competences"
-                    :selected-ids="competenceIds"
-                    :endpoint="`/employees/${employee.id}/competences`"
-                    empty-key="competences.checklist_empty"
-                />
+            <div v-show="tab === 'profile'" data-testid="panel-profile" class="p-6">
+                <template v-if="isEdit">
+                    <section class="space-y-3">
+                        <h3 class="text-sm font-semibold text-(--color-text-primary)">
+                            {{ __('profile.competences_heading') }}
+                        </h3>
+                        <TagChecklist
+                            :items="competences"
+                            :selected-ids="competenceIds"
+                            :endpoint="`/employees/${employee.id}/competences`"
+                            empty-key="competences.checklist_empty"
+                        />
+                    </section>
+
+                    <CardSeparator />
+
+                    <section class="space-y-3">
+                        <h3 class="text-sm font-semibold text-(--color-text-primary)">
+                            {{ __('profile.product_groups_heading') }}
+                        </h3>
+                        <TagChecklist
+                            :items="productGroups"
+                            :selected-ids="productGroupIds"
+                            :endpoint="`/employees/${employee.id}/product-groups`"
+                            empty-key="product_groups.checklist_empty"
+                        />
+                    </section>
+                </template>
                 <p v-else class="text-sm text-(--color-text-secondary)">
-                    {{ __('competences.save_first') }}
+                    {{ __('profile.save_first') }}
                 </p>
             </div>
         </Card>
