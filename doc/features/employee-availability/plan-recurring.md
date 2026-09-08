@@ -1,6 +1,6 @@
 # Employee Availability — Recurring Grid Plan
 
-Status: in progress — 2/4
+Status: in progress — 3/4
 
 Spec: `spec.md`, Part 2. Follows `plan.md` (holidays, done).
 
@@ -38,7 +38,7 @@ Spec: `spec.md`, Part 2. Follows `plan.md` (holidays, done).
   state from the prop, a click sends the right URL and next level, and
   `unavailable` cycles to `available`. Front-end suite green.
 
-- [ ] 3. **Wire the grid into both tabs.** In the Availability tab of
+- [x] 3. **Wire the grid into both tabs.** In the Availability tab of
   `Employees/Form.vue`, put `AvailabilityGrid` above `HolidayList` with a
   subheading for each. Pass `/employees/${employee.id}/availability` and
   the `availability` prop. Do the same in `Personal/Show.vue` with

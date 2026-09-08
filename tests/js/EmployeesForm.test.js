@@ -29,6 +29,7 @@ vi.mock("@inertiajs/vue3", () => ({
 
 import Form from "@/pages/Employees/Form.vue";
 import HolidayList from "@/components/HolidayList.vue";
+import AvailabilityGrid from "@/components/AvailabilityGrid.vue";
 
 const stubs = { AppLayout: { template: "<div><slot /></div>" } };
 
@@ -53,6 +54,7 @@ describe("Employees/Form", () => {
         expect(hidden('[data-testid="panel-details"]')).toBe(false);
         expect(hidden('[data-testid="panel-availability"]')).toBe(true);
         expect(w.findComponent(HolidayList).props("endpoint")).toBe("/employees/3/holidays");
+        expect(w.findComponent(AvailabilityGrid).props("endpoint")).toBe("/employees/3/availability");
 
         const availabilityTab = w.findAll("button").find((b) => b.text() === "Availability");
         await availabilityTab.trigger("click");
@@ -69,6 +71,7 @@ describe("Employees/Form", () => {
         });
 
         expect(w.findComponent(HolidayList).exists()).toBe(false);
+        expect(w.findComponent(AvailabilityGrid).exists()).toBe(false);
         expect(w.text()).toContain("Save the employee first");
     });
 });

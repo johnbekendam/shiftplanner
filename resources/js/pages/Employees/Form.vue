@@ -5,6 +5,7 @@ import AppLayout from '@/layouts/AppLayout.vue'
 import Card from '@/components/ui/Card.vue'
 import Tabs from '@/components/ui/Tabs.vue'
 import EmployeeFields from '@/components/EmployeeFields.vue'
+import AvailabilityGrid from '@/components/AvailabilityGrid.vue'
 import HolidayList from '@/components/HolidayList.vue'
 import ButtonPrimary from '@/components/ui/ButtonPrimary.vue'
 import ButtonSecondary from '@/components/ui/ButtonSecondary.vue'
@@ -15,6 +16,7 @@ const __ = useI18n()
 const props = defineProps({
     employee: { type: Object, default: null },
     holidays: { type: Array, default: () => [] },
+    availability: { type: Array, default: () => [] },
 })
 
 const isEdit = computed(() => props.employee !== null)
@@ -64,12 +66,24 @@ function submit() {
                 </form>
             </div>
 
-            <div v-show="tab === 'availability'" data-testid="panel-availability" class="p-6">
-                <HolidayList
-                    v-if="isEdit"
-                    :holidays="holidays"
-                    :endpoint="`/employees/${employee.id}/holidays`"
-                />
+            <div v-show="tab === 'availability'" data-testid="panel-availability" class="space-y-8 p-6">
+                <template v-if="isEdit">
+                    <section class="space-y-3">
+                        <h3 class="text-sm font-semibold text-(--color-text-primary)">
+                            {{ __('availability.grid.heading') }}
+                        </h3>
+                        <AvailabilityGrid
+                            :availability="availability"
+                            :endpoint="`/employees/${employee.id}/availability`"
+                        />
+                    </section>
+                    <section class="space-y-3">
+                        <h3 class="text-sm font-semibold text-(--color-text-primary)">
+                            {{ __('availability.holidays.heading') }}
+                        </h3>
+                        <HolidayList :holidays="holidays" :endpoint="`/employees/${employee.id}/holidays`" />
+                    </section>
+                </template>
                 <p v-else class="text-sm text-(--color-text-secondary)">
                     {{ __('availability.holidays.save_first') }}
                 </p>

@@ -50,6 +50,7 @@ vi.mock("@inertiajs/vue3", () => ({
 import Show from "@/pages/Personal/Show.vue";
 import EmployeeFields from "@/components/EmployeeFields.vue";
 import HolidayList from "@/components/HolidayList.vue";
+import AvailabilityGrid from "@/components/AvailabilityGrid.vue";
 import SelectInput from "@/components/ui/Input/Select.vue";
 
 const mountShow = (holidays = []) =>
@@ -111,6 +112,11 @@ describe("Personal/Show", () => {
     it("points the holiday list at the token endpoint", () => {
         const w = mountShow();
         expect(w.findComponent(HolidayList).props("endpoint")).toBe("/personal/tok-1/holidays");
+    });
+
+    it("points the availability grid at the token endpoint", () => {
+        const w = mountShow();
+        expect(w.findComponent(AvailabilityGrid).props("endpoint")).toBe("/personal/tok-1/availability");
     });
 
     it("reveals the holiday list when the Availability tab is clicked", async () => {

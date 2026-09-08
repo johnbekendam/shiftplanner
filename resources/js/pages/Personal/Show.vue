@@ -4,6 +4,7 @@ import { Head, useForm } from '@inertiajs/vue3'
 import CenteredLayout from '@/layouts/CenteredLayout.vue'
 import Tabs from '@/components/ui/Tabs.vue'
 import EmployeeFields from '@/components/EmployeeFields.vue'
+import AvailabilityGrid from '@/components/AvailabilityGrid.vue'
 import HolidayList from '@/components/HolidayList.vue'
 import ButtonPrimary from '@/components/ui/ButtonPrimary.vue'
 import { useI18n } from '@/composables/useI18n'
@@ -14,6 +15,7 @@ const props = defineProps({
     token: { type: String, required: true },
     employee: { type: Object, required: true },
     holidays: { type: Array, default: () => [] },
+    availability: { type: Array, default: () => [] },
 })
 
 const form = useForm({
@@ -65,8 +67,19 @@ function save() {
             </form>
         </div>
 
-        <div v-show="tab === 'availability'" data-testid="panel-availability">
-            <HolidayList :holidays="holidays" :endpoint="`/personal/${token}/holidays`" />
+        <div v-show="tab === 'availability'" data-testid="panel-availability" class="space-y-8">
+            <section class="space-y-3">
+                <h3 class="text-sm font-semibold text-(--color-text-primary)">
+                    {{ __('availability.grid.heading') }}
+                </h3>
+                <AvailabilityGrid :availability="availability" :endpoint="`/personal/${token}/availability`" />
+            </section>
+            <section class="space-y-3">
+                <h3 class="text-sm font-semibold text-(--color-text-primary)">
+                    {{ __('availability.holidays.heading') }}
+                </h3>
+                <HolidayList :holidays="holidays" :endpoint="`/personal/${token}/holidays`" />
+            </section>
         </div>
     </CenteredLayout>
 </template>
