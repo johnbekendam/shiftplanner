@@ -47,13 +47,13 @@ function remove(holiday) {
 
 <template>
     <form @submit.prevent="add">
-        <table class="w-full text-sm">
+        <table class="w-full table-fixed text-sm">
             <thead>
                 <tr class="border-b border-(--color-table-header-separator) text-left text-(--color-table-header-text)">
-                    <th class="w-32 py-2 pr-3 font-medium">{{ __('availability.holidays.start') }}</th>
-                    <th class="w-32 py-2 pr-3 font-medium">{{ __('availability.holidays.end') }}</th>
+                    <th class="w-28 py-2 pr-3 font-medium">{{ __('availability.holidays.start') }}</th>
+                    <th class="w-28 py-2 pr-3 font-medium">{{ __('availability.holidays.end') }}</th>
                     <th class="py-2 pr-3 font-medium">{{ __('availability.holidays.note') }}</th>
-                    <th class="w-0 py-2" />
+                    <th class="w-12 py-2" />
                 </tr>
             </thead>
             <tbody>
@@ -85,13 +85,13 @@ function remove(holiday) {
                 </tr>
 
                 <tr data-testid="holiday-add-row" class="border-t border-(--color-table-row-separator)">
-                    <td class="w-32 py-2 pr-3 align-top">
+                    <td class="w-28 py-2 pr-3 align-top">
                         <DateInput v-model="draft.start_date" class="w-full" />
                         <p v-if="errors.start_date" class="mt-1 text-xs text-[var(--color-badge-error-text)]">
                             {{ errors.start_date }}
                         </p>
                     </td>
-                    <td class="w-32 py-2 pr-3 align-top">
+                    <td class="w-28 py-2 pr-3 align-top">
                         <DateInput v-model="draft.end_date" class="w-full" />
                         <p v-if="errors.end_date" class="mt-1 text-xs text-[var(--color-badge-error-text)]">
                             {{ errors.end_date }}
