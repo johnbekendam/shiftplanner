@@ -3,6 +3,7 @@ import { computed, ref } from 'vue'
 import { Head, Link, useForm } from '@inertiajs/vue3'
 import AppLayout from '@/layouts/AppLayout.vue'
 import Card from '@/components/ui/Card.vue'
+import CardSeparator from '@/components/ui/CardSeparator.vue'
 import Tabs from '@/components/ui/Tabs.vue'
 import EmployeeFields from '@/components/EmployeeFields.vue'
 import AvailabilityGrid from '@/components/AvailabilityGrid.vue'
@@ -66,7 +67,7 @@ function submit() {
                 </form>
             </div>
 
-            <div v-show="tab === 'availability'" data-testid="panel-availability" class="space-y-8 p-6">
+            <div v-show="tab === 'availability'" data-testid="panel-availability" class="p-6">
                 <template v-if="isEdit">
                     <section class="space-y-3">
                         <h3 class="text-sm font-semibold text-(--color-text-primary)">
@@ -77,6 +78,9 @@ function submit() {
                             :endpoint="`/employees/${employee.id}/availability`"
                         />
                     </section>
+
+                    <CardSeparator />
+
                     <section class="space-y-3">
                         <h3 class="text-sm font-semibold text-(--color-text-primary)">
                             {{ __('availability.holidays.heading') }}

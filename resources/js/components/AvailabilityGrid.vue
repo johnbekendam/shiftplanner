@@ -1,6 +1,7 @@
 <script setup>
 import { reactive, watch } from 'vue'
 import { router } from '@inertiajs/vue3'
+import Icon from '@/components/ui/Icon.vue'
 import { useI18n } from '@/composables/useI18n'
 
 const __ = useI18n()
@@ -14,6 +15,7 @@ const props = defineProps({
 
 const DAYPARTS = ['morning', 'afternoon', 'evening']
 const WEEKDAYS = [1, 2, 3, 4, 5, 6, 7]
+const STATES = ['available', 'not_preferred', 'unavailable']
 // available -> not_preferred -> unavailable -> available
 const CYCLE = { available: 'not_preferred', not_preferred: 'unavailable', unavailable: 'available' }
 
@@ -31,10 +33,17 @@ function sync(rows) {
 sync(props.availability)
 watch(() => props.availability, sync)
 
+// Theme-builder badge tokens: Success / Warning / Error.
 const LEVEL_CLASS = {
-    available: 'bg-(--color-badge-standard-bg) text-(--color-badge-standard-text) border-(--color-badge-standard-border)',
+    available: 'bg-(--color-badge-success-bg) text-(--color-badge-success-text) border-(--color-badge-success-border)',
     not_preferred: 'bg-(--color-badge-warning-bg) text-(--color-badge-warning-text) border-(--color-badge-warning-border)',
     unavailable: 'bg-(--color-badge-error-bg) text-(--color-badge-error-text) border-(--color-badge-error-border)',
+}
+
+const LEVEL_ICON = {
+    available: 'check-circle',
+    not_preferred: 'exclamation-triangle',
+    unavailable: 'x-circle',
 }
 
 function cycle(weekday, daypart) {
@@ -72,18 +81,25 @@ function cycle(weekday, daypart) {
                                 day: __(`availability.weekday.${weekday}`),
                                 state: __(`availability.state.${cells[`${weekday}-${daypart}`]}`),
                             })"
-                            class="h-8 w-full rounded border transition-colors"
+                            class="flex h-8 w-full items-center justify-center rounded border transition-colors"
                             :class="LEVEL_CLASS[cells[`${weekday}-${daypart}`]]"
                             @click="cycle(weekday, daypart)"
-                        />
+                        >
+                            <Icon :name="LEVEL_ICON[cells[`${weekday}-${daypart}`]]" class="size-4" />
+                        </button>
                     </td>
                 </tr>
             </tbody>
         </table>
 
-        <ul class="flex flex-wrap gap-x-4 gap-y-1 text-xs text-(--color-text-secondary)">
-            <li v-for="level in ['available', 'not_preferred', 'unavailable']" :key="level" class="flex items-center gap-1.5">
-                <span class="inline-block h-3 w-3 rounded border" :class="LEVEL_CLASS[level]" />
+        <ul class="flex flex-wrap justify-end gap-x-4 gap-y-1 text-xs text-(--color-text-secondary)">
+            <li v-for="level in STATES" :key="level" class="flex items-center gap-1.5">
+                <span
+                    class="flex size-5 items-center justify-center rounded border"
+                    :class="LEVEL_CLASS[level]"
+                >
+                    <Icon :name="LEVEL_ICON[level]" class="size-3.5" />
+                </span>
                 {{ __(`availability.state.${level}`) }}
             </li>
         </ul>

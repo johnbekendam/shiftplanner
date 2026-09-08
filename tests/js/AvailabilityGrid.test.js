@@ -49,10 +49,16 @@ describe("AvailabilityGrid", () => {
         expect(cls).toContain("bg-(--color-badge-error-bg)");
     });
 
-    it("leaves cells with no row as available", () => {
+    it("leaves cells with no row as available (success tokens)", () => {
         const w = mountGrid();
         const cls = w.get('[data-testid="cell-4-evening"]').classes().join(" ");
-        expect(cls).toContain("bg-(--color-badge-standard-bg)");
+        expect(cls).toContain("bg-(--color-badge-success-bg)");
+    });
+
+    it("shows a state icon in each cell", () => {
+        const w = mountGrid();
+        expect(w.get('[data-testid="cell-4-evening"]').findComponent({ name: "Icon" }).exists()).toBe(true);
+        expect(w.findAll('[data-testid^="cell-"] svg')).toHaveLength(21);
     });
 
     it("cycles available -> not_preferred and writes to the cell endpoint", async () => {

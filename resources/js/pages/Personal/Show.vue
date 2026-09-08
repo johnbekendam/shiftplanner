@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue'
 import { Head, useForm } from '@inertiajs/vue3'
 import CenteredLayout from '@/layouts/CenteredLayout.vue'
+import CardSeparator from '@/components/ui/CardSeparator.vue'
 import Tabs from '@/components/ui/Tabs.vue'
 import EmployeeFields from '@/components/EmployeeFields.vue'
 import AvailabilityGrid from '@/components/AvailabilityGrid.vue'
@@ -67,13 +68,16 @@ function save() {
             </form>
         </div>
 
-        <div v-show="tab === 'availability'" data-testid="panel-availability" class="space-y-8">
+        <div v-show="tab === 'availability'" data-testid="panel-availability">
             <section class="space-y-3">
                 <h3 class="text-sm font-semibold text-(--color-text-primary)">
                     {{ __('availability.grid.heading') }}
                 </h3>
                 <AvailabilityGrid :availability="availability" :endpoint="`/personal/${token}/availability`" />
             </section>
+
+            <CardSeparator />
+
             <section class="space-y-3">
                 <h3 class="text-sm font-semibold text-(--color-text-primary)">
                     {{ __('availability.holidays.heading') }}
