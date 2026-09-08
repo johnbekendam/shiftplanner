@@ -1,6 +1,6 @@
 # Account Management — Plan
 
-Status: in progress — 1/7
+Status: in progress — 2/7
 
 Spec: `spec.md`. Roadmap phase 3.7.
 
@@ -20,7 +20,7 @@ Spec: `spec.md`. Roadmap phase 3.7.
   behave; the shared props carry `role` and `employee_id`. Full PHP
   suite green.
 
-- [ ] 2. **`role:admin` middleware and route gating.** New middleware
+- [x] 2. **`role:admin` middleware and route gating.** New middleware
   (registered as `admin`) that 403s a signed-in non-admin and defers to
   `auth` for a guest. Wrap the `/settings*`, `/theme-builder*`, and
   `/mailbox*` routes in it; `/employees*` stays `auth`-only. Update every
