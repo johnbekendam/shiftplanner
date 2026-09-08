@@ -30,6 +30,7 @@ class PersonalPageController extends Controller
                 'email' => $employee->email,
                 'weekly_hours' => $employee->weekly_hours,
             ],
+            'holidays' => $employee->holidays->map->toPayload()->all(),
         ]);
     }
 

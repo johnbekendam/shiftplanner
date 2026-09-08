@@ -2,7 +2,9 @@
 
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\EmployeeController;
+use App\Http\Controllers\EmployeeHolidayController;
 use App\Http\Controllers\MailboxController;
+use App\Http\Controllers\PersonalHolidayController;
 use App\Http\Controllers\PersonalPageController;
 use App\Http\Controllers\ThemeBuilderController;
 use Illuminate\Support\Facades\Route;
@@ -34,9 +36,13 @@ Route::middleware('auth')->group(function () {
     Route::get('/employees/{employee}/edit', [EmployeeController::class, 'edit'])->name('employees.edit');
     Route::put('/employees/{employee}', [EmployeeController::class, 'update'])->name('employees.update');
     Route::get('/employees/{employee}/personal-page', [EmployeeController::class, 'personalPage'])->name('employees.personal-page');
+    Route::post('/employees/{employee}/holidays', [EmployeeHolidayController::class, 'store'])->name('employees.holidays.store');
+    Route::delete('/employees/{employee}/holidays/{holiday}', [EmployeeHolidayController::class, 'destroy'])->name('employees.holidays.destroy');
 });
 
 // Employee personal page — token-only, no auth. Prototype preview links.
 // See doc/features/employee-admin/spec.md and roadmap phase 2.
 Route::get('/personal/{token}', [PersonalPageController::class, 'show'])->name('personal.show');
 Route::put('/personal/{token}', [PersonalPageController::class, 'update'])->name('personal.update');
+Route::post('/personal/{token}/holidays', [PersonalHolidayController::class, 'store'])->name('personal.holidays.store');
+Route::delete('/personal/{token}/holidays/{holiday}', [PersonalHolidayController::class, 'destroy'])->name('personal.holidays.destroy');

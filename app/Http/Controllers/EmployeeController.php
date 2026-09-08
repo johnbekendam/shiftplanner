@@ -54,6 +54,7 @@ class EmployeeController extends Controller
     {
         return Inertia::render('Employees/Form', [
             'employee' => $employee->only(['id', 'name', 'email', 'weekly_hours']),
+            'holidays' => $employee->holidays->map->toPayload()->all(),
         ]);
     }
 
