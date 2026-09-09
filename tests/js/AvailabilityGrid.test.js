@@ -2,9 +2,9 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { mount } from "@vue/test-utils";
 
 const en = {
-    "availability.daypart.morning": "Morning",
-    "availability.daypart.afternoon": "Afternoon",
-    "availability.daypart.evening": "Evening",
+    "availability.grid.cell": ":shift, :day: :state",
+    "availability.grid.no_shifts": "No shifts are defined yet.",
+    "availability.grid.no_shifts_manager": "No shifts are defined yet. Add them on the Settings page.",
     "availability.weekday.1": "Mon",
     "availability.weekday.2": "Tue",
     "availability.weekday.3": "Wed",
@@ -26,10 +26,16 @@ vi.mock("@inertiajs/vue3", () => ({
 
 import AvailabilityGrid from "@/components/AvailabilityGrid.vue";
 
+const shifts = [
+    { id: 10, name: "Early", start_time: "06:00", end_time: "14:00" },
+    { id: 20, name: "Late", start_time: "14:00", end_time: "22:00" },
+];
+
 const mountGrid = (props = {}) =>
     mount(AvailabilityGrid, {
         props: {
-            availability: [{ weekday: 2, daypart: "morning", level: "unavailable" }],
+            shifts,
+            availability: [{ weekday: 2, shift_id: 10, level: "unavailable" }],
             endpoint: "/employees/7/availability",
             ...props,
         },
@@ -38,49 +44,58 @@ const mountGrid = (props = {}) =>
 beforeEach(() => router.put.mockReset());
 
 describe("AvailabilityGrid", () => {
-    it("renders a cell for every daypart and weekday", () => {
+    it("renders one row per shift and a cell for every weekday", () => {
         const w = mountGrid();
-        expect(w.findAll('[data-testid^="cell-"]')).toHaveLength(21);
+        expect(w.findAll('[data-testid^="cell-"]')).toHaveLength(14);
+        expect(w.text()).toContain("Early");
+        expect(w.text()).toContain("Late");
+        expect(w.text()).toContain("06:00 – 14:00");
     });
 
     it("colours a stored cell by its level", () => {
         const w = mountGrid();
-        const cls = w.get('[data-testid="cell-2-morning"]').classes().join(" ");
+        const cls = w.get('[data-testid="cell-2-10"]').classes().join(" ");
         expect(cls).toContain("bg-(--color-badge-error-bg)");
     });
 
     it("leaves cells with no row as available (success tokens)", () => {
         const w = mountGrid();
-        const cls = w.get('[data-testid="cell-4-evening"]').classes().join(" ");
+        const cls = w.get('[data-testid="cell-4-20"]').classes().join(" ");
         expect(cls).toContain("bg-(--color-badge-success-bg)");
     });
 
-    it("shows a state icon in each cell", () => {
+    it("cycles available -> not_preferred and writes to the shift cell endpoint", async () => {
         const w = mountGrid();
-        expect(w.get('[data-testid="cell-4-evening"]').findComponent({ name: "Icon" }).exists()).toBe(true);
-        expect(w.findAll('[data-testid^="cell-"] svg')).toHaveLength(21);
-    });
-
-    it("cycles available -> not_preferred and writes to the cell endpoint", async () => {
-        const w = mountGrid();
-        await w.get('[data-testid="cell-4-evening"]').trigger("click");
+        await w.get('[data-testid="cell-4-20"]').trigger("click");
 
         expect(router.put).toHaveBeenCalledTimes(1);
         const [url, payload, opts] = router.put.mock.calls[0];
-        expect(url).toBe("/employees/7/availability/4/evening");
+        expect(url).toBe("/employees/7/availability/4/20");
         expect(payload).toEqual({ level: "not_preferred" });
         expect(opts).toMatchObject({ preserveScroll: true, preserveState: true });
 
-        expect(w.get('[data-testid="cell-4-evening"]').classes().join(" ")).toContain(
+        expect(w.get('[data-testid="cell-4-20"]').classes().join(" ")).toContain(
             "bg-(--color-badge-warning-bg)",
         );
     });
 
     it("cycles unavailable -> available", async () => {
         const w = mountGrid();
-        await w.get('[data-testid="cell-2-morning"]').trigger("click");
+        await w.get('[data-testid="cell-2-10"]').trigger("click");
 
-        expect(router.put.mock.calls[0][0]).toBe("/employees/7/availability/2/morning");
+        expect(router.put.mock.calls[0][0]).toBe("/employees/7/availability/2/10");
         expect(router.put.mock.calls[0][1]).toEqual({ level: "available" });
+    });
+
+    it("shows the plain empty state when no shift is defined", () => {
+        const w = mountGrid({ shifts: [] });
+        expect(w.text()).toContain("No shifts are defined yet.");
+        expect(w.text()).not.toContain("Settings page");
+        expect(w.findAll('[data-testid^="cell-"]')).toHaveLength(0);
+    });
+
+    it("adds the Settings hint to the empty state on the manager surface", () => {
+        const w = mountGrid({ shifts: [], showAddHint: true });
+        expect(w.text()).toContain("Add them on the Settings page.");
     });
 });

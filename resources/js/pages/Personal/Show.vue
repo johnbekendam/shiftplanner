@@ -17,6 +17,7 @@ const props = defineProps({
     token: { type: String, required: true },
     employee: { type: Object, required: true },
     holidays: { type: Array, default: () => [] },
+    shifts: { type: Array, default: () => [] },
     availability: { type: Array, default: () => [] },
     competences: { type: Array, default: () => [] },
     competenceIds: { type: Array, default: () => [] },
@@ -79,7 +80,11 @@ function save() {
                 <h3 class="text-sm font-semibold text-(--color-text-primary)">
                     {{ __('availability.grid.heading') }}
                 </h3>
-                <AvailabilityGrid :availability="availability" :endpoint="`/personal/${token}/availability`" />
+                <AvailabilityGrid
+                    :shifts="shifts"
+                    :availability="availability"
+                    :endpoint="`/personal/${token}/availability`"
+                />
             </section>
 
             <CardSeparator />

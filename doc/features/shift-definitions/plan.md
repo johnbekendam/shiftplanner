@@ -1,6 +1,6 @@
 # Shift Definitions — Plan
 
-Status: in progress — 3/5
+Status: in progress — 4/5
 
 Spec: `spec.md`. Roadmap phase 3. The Settings CRUD mirrors
 `BusinessLineController` without the `move` action. The grid change
@@ -64,7 +64,7 @@ swaps `recurring_availabilities.daypart` for a `shift_id` foreign key.
   it; deleting the shift cascades the cell; the `edit`/`show` payloads
   carry `shifts` and the new `availability` shape. Full PHP suite green.
 
-- [ ] 4. **Frontend: grid rows from shifts.** `AvailabilityGrid.vue`
+- [x] 4. **Frontend: grid rows from shifts.** `AvailabilityGrid.vue`
   gains a `shifts` prop (`{ id, name, start_time, end_time }`), drops the
   `DAYPARTS` constant, builds rows from `shifts`, keys cells by
   `${weekday}-${shiftId}`, and writes to `${endpoint}/${weekday}/${shiftId}`.

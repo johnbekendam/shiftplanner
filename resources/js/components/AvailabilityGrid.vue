@@ -7,31 +7,38 @@ import { useI18n } from '@/composables/useI18n'
 const __ = useI18n()
 
 const props = defineProps({
-    // Array of { weekday, daypart, level } for the non-available cells.
+    // Defined shifts, in display order: { id, name, start_time, end_time }.
+    shifts: { type: Array, default: () => [] },
+    // Array of { weekday, shift_id, level } for the non-available cells.
     availability: { type: Array, default: () => [] },
     // Base URL, e.g. /employees/7/availability.
     endpoint: { type: String, required: true },
+    // Manager surface: the empty state also points at the Settings page.
+    showAddHint: { type: Boolean, default: false },
 })
 
-const DAYPARTS = ['morning', 'afternoon', 'evening']
 const WEEKDAYS = [1, 2, 3, 4, 5, 6, 7]
 const STATES = ['available', 'not_preferred', 'unavailable']
 // available -> not_preferred -> unavailable -> available
 const CYCLE = { available: 'not_preferred', not_preferred: 'unavailable', unavailable: 'available' }
 
-const key = (weekday, daypart) => `${weekday}-${daypart}`
+const key = (weekday, shiftId) => `${weekday}-${shiftId}`
 
 // Local state for instant feedback; the server write follows.
 const cells = reactive({})
 
-function sync(rows) {
-    for (const weekday of WEEKDAYS) {
-        for (const daypart of DAYPARTS) cells[key(weekday, daypart)] = 'available'
+function sync() {
+    for (const k of Object.keys(cells)) delete cells[k]
+    for (const shift of props.shifts) {
+        for (const weekday of WEEKDAYS) cells[key(weekday, shift.id)] = 'available'
     }
-    for (const row of rows) cells[key(row.weekday, row.daypart)] = row.level
+    for (const row of props.availability) {
+        const k = key(row.weekday, row.shift_id)
+        if (k in cells) cells[k] = row.level
+    }
 }
-sync(props.availability)
-watch(() => props.availability, sync)
+sync()
+watch(() => [props.shifts, props.availability], sync, { deep: true })
 
 // Theme-builder badge tokens: Success / Warning / Error.
 const LEVEL_CLASS = {
@@ -46,10 +53,10 @@ const LEVEL_ICON = {
     unavailable: 'x-circle',
 }
 
-function cycle(weekday, daypart) {
-    const next = CYCLE[cells[key(weekday, daypart)]]
-    cells[key(weekday, daypart)] = next
-    router.put(`${props.endpoint}/${weekday}/${daypart}`, { level: next }, {
+function cycle(weekday, shiftId) {
+    const next = CYCLE[cells[key(weekday, shiftId)]]
+    cells[key(weekday, shiftId)] = next
+    router.put(`${props.endpoint}/${weekday}/${shiftId}`, { level: next }, {
         preserveScroll: true,
         preserveState: true,
     })
@@ -57,35 +64,42 @@ function cycle(weekday, daypart) {
 </script>
 
 <template>
-    <div class="space-y-3">
+    <p v-if="!shifts.length" class="text-sm text-(--color-text-secondary)">
+        {{ showAddHint ? __('availability.grid.no_shifts_manager') : __('availability.grid.no_shifts') }}
+    </p>
+
+    <div v-else class="space-y-3">
         <table class="w-full table-fixed text-sm">
             <thead>
                 <tr class="text-(--color-table-header-text)">
-                    <th class="w-24 py-2" />
+                    <th class="w-32 py-2" />
                     <th v-for="weekday in WEEKDAYS" :key="weekday" class="py-2 text-center font-medium">
                         {{ __(`availability.weekday.${weekday}`) }}
                     </th>
                 </tr>
             </thead>
             <tbody>
-                <tr v-for="daypart in DAYPARTS" :key="daypart">
+                <tr v-for="shift in shifts" :key="shift.id">
                     <th class="py-1 pr-3 text-left font-medium text-(--color-table-row-text)">
-                        {{ __(`availability.daypart.${daypart}`) }}
+                        <span class="block">{{ shift.name }}</span>
+                        <span class="block text-xs font-normal text-(--color-text-secondary)">
+                            {{ shift.start_time }} – {{ shift.end_time }}
+                        </span>
                     </th>
                     <td v-for="weekday in WEEKDAYS" :key="weekday" class="p-1">
                         <button
                             type="button"
-                            :data-testid="`cell-${weekday}-${daypart}`"
+                            :data-testid="`cell-${weekday}-${shift.id}`"
                             :aria-label="__('availability.grid.cell', {
-                                daypart: __(`availability.daypart.${daypart}`),
+                                shift: shift.name,
                                 day: __(`availability.weekday.${weekday}`),
-                                state: __(`availability.state.${cells[`${weekday}-${daypart}`]}`),
+                                state: __(`availability.state.${cells[`${weekday}-${shift.id}`]}`),
                             })"
                             class="flex h-8 w-full items-center justify-center rounded border transition-colors"
-                            :class="LEVEL_CLASS[cells[`${weekday}-${daypart}`]]"
-                            @click="cycle(weekday, daypart)"
+                            :class="LEVEL_CLASS[cells[`${weekday}-${shift.id}`]]"
+                            @click="cycle(weekday, shift.id)"
                         >
-                            <Icon :name="LEVEL_ICON[cells[`${weekday}-${daypart}`]]" class="size-4" />
+                            <Icon :name="LEVEL_ICON[cells[`${weekday}-${shift.id}`]]" class="size-4" />
                         </button>
                     </td>
                 </tr>

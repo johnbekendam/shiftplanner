@@ -19,6 +19,7 @@ const props = defineProps({
     employee: { type: Object, default: null },
     businessLines: { type: Array, default: () => [] },
     holidays: { type: Array, default: () => [] },
+    shifts: { type: Array, default: () => [] },
     availability: { type: Array, default: () => [] },
     competences: { type: Array, default: () => [] },
     competenceIds: { type: Array, default: () => [] },
@@ -82,8 +83,10 @@ function submit() {
                             {{ __('availability.grid.heading') }}
                         </h3>
                         <AvailabilityGrid
+                            :shifts="shifts"
                             :availability="availability"
                             :endpoint="`/employees/${employee.id}/availability`"
+                            show-add-hint
                         />
                     </section>
 
