@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\MessageType;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -11,6 +12,10 @@ return new class extends Migration
         Schema::create('messages', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+            // Plain string, not a DB enum: the type set grows and each new
+            // case would otherwise need a constraint migration. Validated
+            // against App\Enums\MessageType in the app.
+            $table->string('type')->default(MessageType::PersonalPageLink->value)->index();
             $table->string('recipient_name')->nullable();
             $table->string('recipient_email');
             $table->string('subject');

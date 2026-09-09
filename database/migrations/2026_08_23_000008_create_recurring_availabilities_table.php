@@ -11,12 +11,12 @@ return new class extends Migration
         Schema::create('recurring_availabilities', function (Blueprint $table) {
             $table->id();
             $table->foreignId('employee_id')->constrained()->cascadeOnDelete();
-            $table->unsignedTinyInteger('weekday'); // ISO 1 (Monday) to 7 (Sunday)
-            $table->string('daypart'); // morning | afternoon | evening
-            $table->string('level');   // not_preferred | unavailable
+            $table->unsignedTinyInteger('weekday'); // ISO 1 (Monday) to 5 (Friday); weekday-only grid
+            $table->foreignId('shift_id')->constrained()->cascadeOnDelete();
+            $table->string('level'); // not_preferred | unavailable
             $table->timestamps();
 
-            $table->unique(['employee_id', 'weekday', 'daypart']);
+            $table->unique(['employee_id', 'weekday', 'shift_id']);
         });
     }
 

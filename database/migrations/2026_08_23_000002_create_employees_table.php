@@ -13,6 +13,7 @@ return new class extends Migration
             $table->string('name');
             $table->string('email')->unique();
             $table->unsignedSmallInteger('weekly_hours')->default(20);
+            $table->foreignId('business_line_id')->nullable()->constrained()->nullOnDelete();
             $table->timestamps();
         });
     }

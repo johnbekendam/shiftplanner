@@ -13,6 +13,9 @@ return new class extends Migration
             $table->unsignedSmallInteger('fte_hours')->default(40); // weekly hours that equal one FTE
             $table->date('period_start')->nullable();
             $table->date('period_end')->nullable();
+            $table->text('shift_note')->nullable();
+            // On by default: today the personal page is always editable.
+            $table->boolean('allow_employee_changes')->default(true);
             $table->timestamps();
         });
     }
