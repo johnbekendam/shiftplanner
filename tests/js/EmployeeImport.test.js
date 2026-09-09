@@ -4,7 +4,7 @@ import { mount, flushPromises } from "@vue/test-utils";
 const en = {
     "import.title": "Import employees",
     "import.heading": "Import employees",
-    "import.intro": "The first row is skipped. Two columns: name, then email.",
+    "import.intro": "The first row is skipped. Three columns: first name, last name, then email.",
     "import.dropzone": "Drop a CSV here or click to browse",
     "import.busy": "Importing…",
     "import.result.summary": ":created created, :updated updated",

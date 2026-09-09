@@ -3,7 +3,8 @@ import { mount } from "@vue/test-utils";
 import { reactive } from "vue";
 
 const en = {
-    "employees.field.name": "Name",
+    "employees.field.first_name": "First name",
+    "employees.field.last_name": "Last name",
     "employees.field.email": "Email",
     "employees.field.weekly_hours": "Weekly hours",
     "employees.field.business_line": "Business line",
@@ -21,7 +22,8 @@ import SelectInput from "@/components/ui/Input/Select.vue";
 
 function makeForm(overrides = {}) {
     return reactive({
-        name: "Jordan Lee",
+        first_name: "Jordan",
+        last_name: "Lee",
         email: "jordan@example.com",
         weekly_hours: 32,
         errors: {},
@@ -57,26 +59,44 @@ describe("EmployeeFields", () => {
         expect(form.weekly_hours).toBe(40);
     });
 
-    it("leaves name and email editable by default", () => {
+    it("shows first name, last name and email fields", () => {
+        const w = mount(EmployeeFields, { props: { form: makeForm() } });
+
+        expect(w.text()).toContain("First name");
+        expect(w.text()).toContain("Last name");
+        expect(w.findAll("input")).toHaveLength(3);
+    });
+
+    it("leaves first name, last name and email editable by default", () => {
         const w = mount(EmployeeFields, { props: { form: makeForm() } });
         const inputs = w.findAll("input");
 
-        expect(inputs).toHaveLength(2);
+        expect(inputs).toHaveLength(3);
         expect(inputs.every((i) => i.attributes("disabled") === undefined)).toBe(
             true,
         );
     });
 
-    it("disables name and email when readonlyIdentity is set", () => {
+    it("disables the identity fields when readonlyIdentity is set", () => {
         const w = mount(EmployeeFields, {
             props: { form: makeForm(), readonlyIdentity: true },
         });
         const inputs = w.findAll("input");
 
-        expect(inputs).toHaveLength(2);
+        expect(inputs).toHaveLength(3);
         expect(inputs.every((i) => i.attributes("disabled") !== undefined)).toBe(
             true,
         );
+    });
+
+    it("seeds the identity inputs from the form and shows their errors", () => {
+        const form = makeForm({ errors: { first_name: "The first name is required." } });
+        const w = mount(EmployeeFields, { props: { form } });
+        const [first, last] = w.findAll("input");
+
+        expect(first.element.value).toBe("Jordan");
+        expect(last.element.value).toBe("Lee");
+        expect(w.text()).toContain("The first name is required.");
     });
 
     it("hides the business-line select when no lines are given", () => {

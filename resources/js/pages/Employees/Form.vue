@@ -33,7 +33,8 @@ const props = defineProps({
 const isEdit = computed(() => props.employee !== null)
 
 const form = useForm({
-    name: props.employee?.name ?? '',
+    first_name: props.employee?.first_name ?? '',
+    last_name: props.employee?.last_name ?? '',
     email: props.employee?.email ?? '',
     weekly_hours: props.employee?.weekly_hours ?? 20,
     business_line_id: props.employee?.business_line_id ?? null,

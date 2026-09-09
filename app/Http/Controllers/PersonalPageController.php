@@ -31,7 +31,8 @@ class PersonalPageController extends Controller
             'token' => $token,
             'editable' => PlanningSettings::current()->allow_employee_changes,
             'employee' => [
-                'name' => $employee->name,
+                'first_name' => $employee->first_name,
+                'last_name' => $employee->last_name,
                 'email' => $employee->email,
                 'weekly_hours' => $employee->weekly_hours,
             ],

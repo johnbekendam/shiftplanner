@@ -1,6 +1,6 @@
 # Employee Name Split — Plan
 
-Status: in progress — 1/4
+Status: in progress — 2/4
 
 Spec: `spec.md`. Replace `employees.name` with `first_name` + `last_name`,
 keep a `name` read accessor, and redefine the `:name` mail/shift-note
@@ -36,15 +36,18 @@ is changed.
   `import.error.name`, reword `import.intro`.
   `php artisan test` green. `npm test` green (components unchanged).
 
-- [ ] 2. **Front-end form.**
-  Tests: update `tests/js/EmployeesIndex.test.js` and any employee-form
-  JS test — the form renders "First name" and "Last name"; the list
-  column still shows `"First Last"`. Confirm red.
-  Code: `Employees/Form.vue` form state → `first_name`, `last_name`.
-  `EmployeeFields.vue` renders two stacked fields, both honoring
-  `readonlyIdentity` and `disabled`. `EmployeeImport.vue` intro copy.
-  `en.json` — `employees.field.first_name`, `employees.field.last_name`,
-  drop `employees.field.name`; keep `employees.column.name`.
+- [x] 2. **Front-end form.**
+  Tests: `EmployeeFields.test.js`, `EmployeesForm.test.js`,
+  `PersonalShow.test.js` — the form renders "First name" and "Last name"
+  (three inputs), both toggling with `readonlyIdentity`; the list column
+  still shows `"First Last"`. `PersonalPageTest` asserts the split
+  fields.
+  Code: `Employees/Form.vue` and `Personal/Show.vue` form state →
+  `first_name`, `last_name`. `EmployeeFields.vue` renders two stacked
+  fields, both honoring `readonlyIdentity` and `disabled`.
+  `PersonalPageController` payload carries the split fields. `en.json` —
+  `employees.field.first_name`, `employees.field.last_name`, drop
+  `employees.field.name`; keep `employees.column.name`.
   Full suite green.
 
 - [ ] 3. **`:name` becomes the first name.**

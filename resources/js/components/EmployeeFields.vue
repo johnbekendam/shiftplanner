@@ -7,8 +7,8 @@ import { useI18n } from '@/composables/useI18n'
 const __ = useI18n()
 
 const props = defineProps({
-    // An Inertia useForm() instance with name, email, weekly_hours,
-    // business_line_id fields.
+    // An Inertia useForm() instance with first_name, last_name, email,
+    // weekly_hours, business_line_id fields.
     form: { type: Object, required: true },
     // When true, name and email render read-only (used by the personal page).
     readonlyIdentity: { type: Boolean, default: false },
@@ -42,8 +42,12 @@ const businessLineOptions = computed(() => [
 
 <template>
     <div class="space-y-5">
-        <LabeledInput :label="__('employees.field.name')" :error="form.errors.name">
-            <TextInput v-model="form.name" :disabled="readonlyIdentity" class="w-full" />
+        <LabeledInput :label="__('employees.field.first_name')" :error="form.errors.first_name">
+            <TextInput v-model="form.first_name" :disabled="readonlyIdentity" class="w-full" />
+        </LabeledInput>
+
+        <LabeledInput :label="__('employees.field.last_name')" :error="form.errors.last_name">
+            <TextInput v-model="form.last_name" :disabled="readonlyIdentity" class="w-full" />
         </LabeledInput>
 
         <LabeledInput :label="__('employees.field.email')" :error="form.errors.email">

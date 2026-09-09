@@ -32,7 +32,8 @@ const props = defineProps({
 })
 
 const form = useForm({
-    name: props.employee.name,
+    first_name: props.employee.first_name,
+    last_name: props.employee.last_name,
     email: props.employee.email,
     weekly_hours: props.employee.weekly_hours,
 })

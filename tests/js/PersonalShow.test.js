@@ -3,7 +3,8 @@ import { mount } from "@vue/test-utils";
 import { reactive } from "vue";
 
 const en = {
-    "employees.field.name": "Name",
+    "employees.field.first_name": "First name",
+    "employees.field.last_name": "Last name",
     "employees.field.email": "Email",
     "employees.field.weekly_hours": "Weekly hours",
     "employees.hours_option": ":count hours",
@@ -25,7 +26,8 @@ const en = {
 const { router } = vi.hoisted(() => ({ router: { post: vi.fn(), delete: vi.fn() } }));
 
 const form = reactive({
-    name: "",
+    first_name: "",
+    last_name: "",
     email: "",
     weekly_hours: null,
     errors: {},
@@ -37,7 +39,12 @@ const form = reactive({
         return this;
     },
     put(url, opts) {
-        const data = { name: this.name, email: this.email, weekly_hours: this.weekly_hours };
+        const data = {
+            first_name: this.first_name,
+            last_name: this.last_name,
+            email: this.email,
+            weekly_hours: this.weekly_hours,
+        };
         form.lastPut = { url, opts, data: this._transform ? this._transform(data) : data };
     },
 });
@@ -65,7 +72,7 @@ const mountShow = (holidays = [], extra = {}) =>
     mount(Show, {
         props: {
             token: "tok-1",
-            employee: { name: "Jordan Lee", email: "jordan@example.com", weekly_hours: 24 },
+            employee: { first_name: "Jordan", last_name: "Lee", email: "jordan@example.com", weekly_hours: 24 },
             holidays,
             ...extra,
         },
@@ -81,12 +88,12 @@ const mountShow = (holidays = [], extra = {}) =>
 const hidden = (w, sel) => (w.get(sel).attributes("style") ?? "").includes("display: none");
 
 describe("Personal/Show", () => {
-    it("renders the shared fields with name and email read-only", () => {
+    it("renders the shared fields with the identity fields read-only", () => {
         const w = mountShow();
         expect(w.findComponent(EmployeeFields).props("readonlyIdentity")).toBe(true);
 
         const inputs = w.get('[data-testid="panel-details"]').findAll("input");
-        expect(inputs).toHaveLength(2);
+        expect(inputs).toHaveLength(3);
         expect(inputs.every((i) => i.attributes("disabled") !== undefined)).toBe(true);
     });
 

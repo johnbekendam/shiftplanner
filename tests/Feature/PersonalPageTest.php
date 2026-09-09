@@ -29,7 +29,8 @@ class PersonalPageTest extends TestCase
         $this->get("/personal/{$token}")->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->component('Personal/Show')
-                ->where('employee.name', 'Pat Person')
+                ->where('employee.first_name', 'Pat')
+                ->where('employee.last_name', 'Person')
                 ->where('employee.email', 'pat@example.com')
                 ->where('employee.weekly_hours', 28)
                 ->missing('employee.shift_preference')
