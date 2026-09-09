@@ -5,6 +5,7 @@ use App\Http\Controllers\Auth\LoginCodeController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\BusinessLineController;
 use App\Http\Controllers\CompetenceController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EmployeeCompetenceController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\EmployeeHolidayController;
@@ -23,7 +24,7 @@ use App\Http\Controllers\ThemeBuilderController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
-Route::redirect('/', '/employees');
+Route::redirect('/', '/dashboard');
 
 Route::get('/login', [LoginController::class, 'showForm'])->name('login');
 Route::post('/login', [LoginController::class, 'store'])->middleware('throttle:6,1');
@@ -69,6 +70,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/users/{user}/edit', [UserController::class, 'edit'])->name('users.edit');
         Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update');
     }); // end admin group
+
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard.index');
 
     Route::get('/account', [AccountController::class, 'show'])->name('account.show');
     Route::put('/account/password', [AccountController::class, 'updatePassword'])->name('account.password');

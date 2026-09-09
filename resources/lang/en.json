@@ -1,6 +1,7 @@
 {
     "app.close": "Close",
 
+    "nav.dashboard": "Dashboard",
     "nav.theme_builder": "Theme Builder",
     "nav.mailbox": "Mailbox",
     "nav.employees": "Employees",
@@ -213,6 +214,10 @@
     "period.save": "Save period",
     "period.flash.saved": "Period saved.",
     "period.error.range": "The period end cannot be before the start.",
+
+    "dashboard.title": "Dashboard",
+    "dashboard.overall": "Overall",
+    "dashboard.no_period": "Set a period on the Settings page to see available FTE.",
 
     "profile.tab": "Profile",
     "profile.competences_heading": "Competences",

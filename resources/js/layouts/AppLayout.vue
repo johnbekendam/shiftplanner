@@ -36,6 +36,7 @@ const isAdmin = computed(() => user.value?.role === 'admin')
 
 const navItems = computed(() => {
     const items = [
+        { label: __('nav.dashboard'), href: '/dashboard', icon: 'chart-bar' },
         { label: __('nav.employees'), href: '/employees', icon: 'users' },
     ]
 

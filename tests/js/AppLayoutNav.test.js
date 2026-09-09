@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { mount } from "@vue/test-utils";
 
 const en = {
+    "nav.dashboard": "Dashboard",
     "nav.employees": "Employees",
     "nav.my_details": "My details",
     "nav.account": "Account",
@@ -33,24 +34,24 @@ beforeEach(() => {
 });
 
 describe("AppLayout navigation", () => {
-    it("shows only Employees to a manager", () => {
+    it("shows the Dashboard and Employees to a manager", () => {
         state.user = { role: "manager" };
         const hrefs = navHrefs(mount(AppLayout, { global: { stubs } }));
 
-        expect(hrefs).toEqual(["/employees"]);
+        expect(hrefs).toEqual(["/dashboard", "/employees"]);
     });
 
     it("shows Users, Settings and Theme Builder to an admin", () => {
         state.user = { role: "admin" };
         const hrefs = navHrefs(mount(AppLayout, { global: { stubs } }));
 
-        expect(hrefs).toEqual(["/employees", "/users", "/settings", "/theme-builder"]);
+        expect(hrefs).toEqual(["/dashboard", "/employees", "/users", "/settings", "/theme-builder"]);
     });
 
     it("adds a My details link when the account is linked to an employee", () => {
         state.user = { role: "manager", employee_id: 12 };
         const hrefs = navHrefs(mount(AppLayout, { global: { stubs } }));
 
-        expect(hrefs).toEqual(["/employees", "/employees/12/edit"]);
+        expect(hrefs).toEqual(["/dashboard", "/employees", "/employees/12/edit"]);
     });
 });

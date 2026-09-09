@@ -1,6 +1,6 @@
 # Business Lines — Plan
 
-Status: in progress — 5/8
+Status: in progress — 6/8
 
 Spec: `spec.md`. Roadmap phase 3. Business Lines replace Departments.
 The Settings CRUD mirrors `ProductGroupController`.
@@ -91,7 +91,7 @@ The Settings CRUD mirrors `ProductGroupController`.
   `SettingsIndex.test.js`: the tab renders the three fields seeded from
   the prop and submits them. `npm run test` and `npm run build` green.
 
-- [ ] 6. **Backend + frontend: the dashboard page and data.**
+- [x] 6. **Backend + frontend: the dashboard page and data.**
   `DashboardController@index` reads `PlanningSettings::current()`. With
   either date blank it returns `period: null`. Otherwise it builds `days`
   (every date from `period_start` to `period_end` inclusive) and, per day,
