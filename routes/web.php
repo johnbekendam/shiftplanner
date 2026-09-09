@@ -57,6 +57,7 @@ Route::middleware('auth')->group(function () {
         Route::put('/settings/business-lines/{businessLine}', [BusinessLineController::class, 'update'])->name('settings.business-lines.update');
         Route::delete('/settings/business-lines/{businessLine}', [BusinessLineController::class, 'destroy'])->name('settings.business-lines.destroy');
         Route::post('/settings/shifts', [ShiftController::class, 'store'])->name('settings.shifts.store');
+        Route::put('/settings/shifts/note', [ShiftController::class, 'updateNote'])->name('settings.shifts.note');
         Route::put('/settings/shifts/{shift}', [ShiftController::class, 'update'])->name('settings.shifts.update');
         Route::delete('/settings/shifts/{shift}', [ShiftController::class, 'destroy'])->name('settings.shifts.destroy');
         Route::put('/settings/period', [PeriodController::class, 'update'])->name('settings.period.update');

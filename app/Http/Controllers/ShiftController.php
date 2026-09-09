@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\PlanningSettings;
 use App\Models\Shift;
 use Closure;
 use Illuminate\Http\Request;
@@ -27,6 +28,19 @@ class ShiftController extends Controller
         $shift->delete();
 
         return back()->with('success', __('shifts.flash.deleted'));
+    }
+
+    public function updateNote(Request $request)
+    {
+        $note = $request->validate([
+            'note' => ['nullable', 'string', 'max:20000'],
+        ])['note'] ?? '';
+
+        PlanningSettings::current()->update([
+            'shift_note' => trim($note) === '' ? null : $note,
+        ]);
+
+        return back()->with('success', __('shifts.flash.note_saved'));
     }
 
     /** @return array<string, mixed> */

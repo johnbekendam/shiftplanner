@@ -18,6 +18,7 @@ class SettingsController extends Controller
             'productGroups' => $this->listWithHolderCount(ProductGroup::query()),
             'businessLines' => $this->businessLines(),
             'shifts' => Shift::all()->map->toPayload()->all(),
+            'shiftNote' => PlanningSettings::current()->shift_note ?? '',
             'period' => PlanningSettings::current()->toPayload(),
         ]);
     }

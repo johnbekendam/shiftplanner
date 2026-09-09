@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
 
 class PlanningSettings extends Model
 {
@@ -13,6 +14,7 @@ class PlanningSettings extends Model
         'fte_hours',
         'period_start',
         'period_end',
+        'shift_note',
     ];
 
     protected function casts(): array
@@ -28,6 +30,19 @@ class PlanningSettings extends Model
     public static function current(): self
     {
         return static::firstOrCreate(['id' => self::ID], ['fte_hours' => 40]);
+    }
+
+    /** The shift information note rendered to HTML, or null when blank. */
+    public function shiftNoteHtml(): ?string
+    {
+        if (trim((string) $this->shift_note) === '') {
+            return null;
+        }
+
+        return Str::markdown($this->shift_note, [
+            'html_input' => 'allow',
+            'allow_unsafe_links' => true,
+        ]);
     }
 
     /** The shape shared with the front end. */
