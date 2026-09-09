@@ -1,6 +1,6 @@
 # Employee Self-Signup — Plan
 
-Status: in progress — 3/6
+Status: in progress — 4/6
 
 - [x] **1. `messages.user_id` nullable.** Fold `->nullable()` into the
   `create_messages_table` migration, keeping the FK and
@@ -29,7 +29,7 @@ Status: in progress — 3/6
   the same email inside the window flashes success but runs no send;
   the route rejects a 7th call in a minute.
 
-- [ ] **4. Signup page — `GET /signup`.** Public route rendering a
+- [x] **4. Signup page — `GET /signup`.** Public route rendering a
   `Signup` Inertia page in `CenteredLayout`: `TextInput` first/last
   name, `EmailInput`, `ButtonPrimary`. On the `success` flash, replace
   the form with the confirmation panel. All copy from `signup.*` keys.

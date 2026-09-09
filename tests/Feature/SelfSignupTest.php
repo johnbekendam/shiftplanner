@@ -189,4 +189,11 @@ class SelfSignupTest extends TestCase
             'email' => 'a5@example.com',
         ])->assertStatus(429);
     }
+
+    // ── Step 4: GET /signup ─────────────────────────────────────────────
+
+    public function test_the_signup_page_renders_for_a_guest(): void
+    {
+        $this->get('/signup')->assertOk()->assertInertia(fn ($page) => $page->component('Signup'));
+    }
 }
