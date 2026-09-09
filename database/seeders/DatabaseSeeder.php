@@ -12,7 +12,14 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        $this->call(EmployeeSeeder::class);
+        $this->call([
+            BusinessLineSeeder::class,
+            ShiftSeeder::class,
+            CompetenceSeeder::class,
+            AvailabilityQuestionSeeder::class,
+            PlanningSettingsSeeder::class,
+            EmployeeSeeder::class,
+        ]);
 
         $seedUser = config('auth.seed_user');
 
