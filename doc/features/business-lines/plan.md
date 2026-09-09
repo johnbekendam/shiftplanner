@@ -1,6 +1,6 @@
 # Business Lines — Plan
 
-Status: in progress — 2/8
+Status: in progress — 3/8
 
 Spec: `spec.md`. Roadmap phase 3. Business Lines replace Departments.
 The Settings CRUD mirrors `ProductGroupController`.
@@ -47,7 +47,7 @@ The Settings CRUD mirrors `ProductGroupController`.
   submits the chosen id; an existing employee's line is preselected.
   `npm run test` and `npm run build` green.
 
-- [ ] 3. **Frontend: the Business lines Settings tab.** New
+- [x] 3. **Frontend: the Business lines Settings tab.** New
   `resources/js/components/BusinessLineList.vue`: a row per Business Line
   with an abbreviation `TextInput`, a description `TextInput`, and a
   `NumberInput` for `target_fte`, each writing `PUT .../business-lines/{id}`

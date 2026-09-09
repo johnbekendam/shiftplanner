@@ -5,6 +5,11 @@ const en = {
     "settings.title": "Settings",
     "settings.tab.competences": "Competences",
     "settings.tab.product_groups": "Product groups",
+    "settings.tab.business_lines": "Business lines",
+    "business_lines.abbreviation": "Abbreviation",
+    "business_lines.description": "Description",
+    "business_lines.target_fte": "Target FTE",
+    "business_lines.list_empty": "No business lines yet.",
     "competences.name": "Name",
     "competences.list_empty": "No competences yet.",
     "competences.add_placeholder": "New competence",
@@ -25,20 +30,33 @@ vi.mock("@inertiajs/vue3", () => ({
 
 import Settings from "@/pages/Settings/Index.vue";
 import OrderedNameList from "@/components/OrderedNameList.vue";
+import BusinessLineList from "@/components/BusinessLineList.vue";
 
 const stubs = { AppLayout: { template: "<div><slot /></div>" } };
 
 const mountPage = (props = {}) =>
     mount(Settings, {
-        props: { competences: [], productGroups: [], ...props },
+        props: { competences: [], productGroups: [], businessLines: [], ...props },
         global: { stubs },
     });
 
 describe("Settings/Index", () => {
-    it("shows a Competences and a Product groups tab", () => {
+    it("shows a Competences, Product groups and Business lines tab", () => {
         const text = mountPage().text();
         expect(text).toContain("Competences");
         expect(text).toContain("Product groups");
+        expect(text).toContain("Business lines");
+    });
+
+    it("mounts the Business lines list against its endpoint", () => {
+        const w = mountPage({
+            businessLines: [
+                { id: 3, abbreviation: "PMP", description: "Pumps", target_fte: 4, employee_count: 2 },
+            ],
+        });
+        const list = w.findComponent(BusinessLineList);
+        expect(list.props("endpoint")).toBe("/settings/business-lines");
+        expect(list.props("items")).toHaveLength(1);
     });
 
     it("mounts a list per tab against its own endpoint and prefix", () => {

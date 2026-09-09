@@ -5,6 +5,7 @@ import AppLayout from '@/layouts/AppLayout.vue'
 import Card from '@/components/ui/Card.vue'
 import Tabs from '@/components/ui/Tabs.vue'
 import OrderedNameList from '@/components/OrderedNameList.vue'
+import BusinessLineList from '@/components/BusinessLineList.vue'
 import { useI18n } from '@/composables/useI18n'
 
 const __ = useI18n()
@@ -12,12 +13,14 @@ const __ = useI18n()
 defineProps({
     competences: { type: Array, default: () => [] },
     productGroups: { type: Array, default: () => [] },
+    businessLines: { type: Array, default: () => [] },
 })
 
 const tab = ref('competences')
 const tabs = computed(() => [
     { value: 'competences', label: __('settings.tab.competences') },
     { value: 'product_groups', label: __('settings.tab.product_groups') },
+    { value: 'business_lines', label: __('settings.tab.business_lines') },
 ])
 </script>
 
@@ -25,7 +28,7 @@ const tabs = computed(() => [
     <AppLayout>
         <Head :title="__('settings.title')" />
 
-        <Card class="max-w-2xl">
+        <Card class="max-w-3xl">
             <template #header>
                 <Tabs v-model="tab" :tabs="tabs" />
             </template>
@@ -44,6 +47,10 @@ const tabs = computed(() => [
                     endpoint="/settings/product-groups"
                     i18n-prefix="product_groups"
                 />
+            </div>
+
+            <div v-show="tab === 'business_lines'" data-testid="panel-business-lines" class="p-6">
+                <BusinessLineList :items="businessLines" endpoint="/settings/business-lines" />
             </div>
         </Card>
     </AppLayout>
