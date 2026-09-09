@@ -62,6 +62,10 @@ function goToPage(url) {
 function openEmployee(employee) {
     router.visit(`/employees/${employee.id}/edit`)
 }
+
+function composeLinkUrl(employee) {
+    return `/mailbox?tab=compose&type=personal_page_link&employee=${employee.id}`
+}
 </script>
 
 <template>
@@ -102,6 +106,7 @@ function openEmployee(employee) {
                                     />
                                 </button>
                             </th>
+                            <th class="py-2" />
                         </tr>
                     </thead>
                     <tbody>
@@ -118,9 +123,16 @@ function openEmployee(employee) {
                             <td class="py-2 text-(--color-table-row-text)">
                                 {{ __('employees.hours_option', { count: employee.weekly_hours }) }}
                             </td>
+                            <td class="py-2 text-right" @click.stop>
+                                <Link :href="composeLinkUrl(employee)">
+                                    <ButtonSecondary type="button" icon="envelope">
+                                        {{ employee.link_sent ? __('employees.action.resend_link') : __('employees.action.send_link') }}
+                                    </ButtonSecondary>
+                                </Link>
+                            </td>
                         </tr>
                         <tr v-if="!employees.data.length">
-                            <td :colspan="columns.length" class="py-8 text-center text-(--color-text-secondary)">
+                            <td :colspan="columns.length + 1" class="py-8 text-center text-(--color-text-secondary)">
                                 {{ __('employees.empty') }}
                             </td>
                         </tr>

@@ -75,6 +75,14 @@ return [
             'channel' => env('MAIL_LOG_CHANNEL'),
         ],
 
+        // Microsoft Graph shared-mailbox send (App\Mail\Transport\GraphTransport,
+        // registered in AppServiceProvider). Set MAIL_MAILER=graph and the
+        // GRAPH_* env in production; local dev stays on `log`.
+        'graph' => [
+            'transport' => 'graph',
+            'save_to_sent_items' => true,
+        ],
+
         'array' => [
             'transport' => 'array',
         ],

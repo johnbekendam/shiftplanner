@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Enums\MessageType;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -11,6 +12,7 @@ class MessageFactory extends Factory
     {
         return [
             'user_id' => User::factory(),
+            'type' => MessageType::PersonalPageLink,
             'recipient_name' => null,
             'recipient_email' => fake()->safeEmail(),
             'subject' => fake()->sentence(),

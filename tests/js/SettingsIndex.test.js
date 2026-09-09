@@ -9,7 +9,9 @@ const en = {
     "settings.tab.shifts": "Shifts",
     "settings.tab.information": "Information",
     "settings.tab.questions": "Questions",
-    "settings.tab.period": "Period",
+    "settings.tab.general": "General",
+    "general.allow_employee_changes": "Allow employees to change their own details",
+    "general.allow_employee_changes_hint": "When off, personal pages stay visible but read-only.",
     "shifts.name": "Name",
     "shifts.start_time": "Start",
     "shifts.end_time": "End",
@@ -70,14 +72,14 @@ const mountPage = (props = {}) =>
     });
 
 describe("Settings/Index", () => {
-    it("shows a tab for competences, business lines, shifts, information, questions and the period", () => {
+    it("shows a tab for competences, business lines, shifts, information, questions and general", () => {
         const text = mountPage().text();
         expect(text).toContain("Competences");
         expect(text).toContain("Business lines");
         expect(text).toContain("Shifts");
         expect(text).toContain("Information");
         expect(text).toContain("Questions");
-        expect(text).toContain("Period");
+        expect(text).toContain("General");
         expect(text).not.toContain("Product groups");
     });
 

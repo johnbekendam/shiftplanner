@@ -12,6 +12,9 @@ const props = defineProps({
     holidays: { type: Array, default: () => [] },
     // Base URL for the holiday sub-resource, e.g. /employees/7/holidays.
     endpoint: { type: String, required: true },
+    // Read-only: the list shows but the add row and delete buttons are hidden
+    // (employee change lock).
+    disabled: { type: Boolean, default: false },
 })
 
 const blank = () => ({ start_date: '', end_date: '', note: '' })
@@ -24,6 +27,7 @@ const busy = ref(false)
 const stay = { preserveScroll: true, preserveState: true }
 
 function add() {
+    if (props.disabled) return
     busy.value = true
     router.post(props.endpoint, { ...draft.value }, {
         ...stay,
@@ -41,6 +45,7 @@ function add() {
 }
 
 function remove(holiday) {
+    if (props.disabled) return
     router.delete(`${props.endpoint}/${holiday.id}`, stay)
 }
 </script>
@@ -68,6 +73,7 @@ function remove(holiday) {
                     <td class="py-2 pr-3 text-(--color-text-secondary)">{{ holiday.note }}</td>
                     <td class="py-2 text-right">
                         <ButtonDanger
+                            v-if="!disabled"
                             type="button"
                             icon="bin"
                             class="px-2.5"
@@ -84,7 +90,7 @@ function remove(holiday) {
                     <td />
                 </tr>
 
-                <tr data-testid="holiday-add-row" class="border-t border-(--color-table-row-separator)">
+                <tr v-if="!disabled" data-testid="holiday-add-row" class="border-t border-(--color-table-row-separator)">
                     <td class="w-36 py-2 pr-3 align-top">
                         <DateInput v-model="draft.start_date" class="w-full" />
                         <p v-if="errors.start_date" class="mt-1 text-xs text-[var(--color-badge-error-text)]">

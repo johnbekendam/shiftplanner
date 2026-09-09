@@ -71,6 +71,18 @@ describe("TagChecklist", () => {
         expect(router.delete).not.toHaveBeenCalled();
     });
 
+    it("does not write and disables the boxes when disabled", async () => {
+        const w = mountList({ disabled: true });
+        const boxes = w.findAllComponents(CheckboxInput);
+        expect(boxes.every((b) => b.props("disabled") === true)).toBe(true);
+
+        boxes[0].vm.$emit("update:modelValue", true);
+        await w.vm.$nextTick();
+
+        expect(router.put).not.toHaveBeenCalled();
+        expect(router.delete).not.toHaveBeenCalled();
+    });
+
     it("detaches with a DELETE when an item is checked off", async () => {
         const w = mountList();
         w.findAllComponents(CheckboxInput)[1].vm.$emit("update:modelValue", false);

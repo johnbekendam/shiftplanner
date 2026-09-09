@@ -5,6 +5,18 @@ import AppLogo from '@/components/AppLogo.vue'
 import Card from '@/components/ui/Card.vue'
 
 const page = usePage()
+
+// Login-shaped pages sit centred in the viewport. Pages whose card
+// changes height as the user interacts with it (tabs, expanding panels)
+// pass `top` so the card keeps a fixed position instead of drifting
+// vertically on every content swap.
+defineProps({
+    align: {
+        type: String,
+        default: 'center',
+        validator: (v) => ['center', 'top'].includes(v),
+    },
+})
 </script>
 
 <template>
@@ -19,7 +31,10 @@ const page = usePage()
         </template>
 
         <!-- Page: centered form card -->
-        <div class="flex flex-col items-center justify-center min-h-full py-12 px-4">
+        <div
+            class="flex flex-col items-center min-h-full px-4"
+            :class="align === 'top' ? 'justify-start pt-8 pb-12' : 'justify-center py-12'"
+        >
             <Card class="w-full max-w-md">
                 <template v-if="$slots.header || $slots.title" #header>
                     <slot name="header">

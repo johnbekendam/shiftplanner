@@ -8,12 +8,14 @@ const en = {
     "employees.field.weekly_hours": "Weekly hours",
     "employees.hours_option": ":count hours",
     "personal.title": "Your working hours",
-    "personal.greeting": "Hello, :name",
-    "personal.intro": "Choose how many hours you want to work each week.",
     "personal.action.save": "Save",
     "personal.saved": "Saved",
+    "personal.locked_notice": "Changes are currently closed by your planner.",
+    "availability.tab.information": "Information",
     "availability.tab.details": "Details",
     "availability.tab.availability": "Availability",
+    "availability.info.empty": "No information has been provided yet.",
+    "availability.info.cta": "Please update your details, availability and competences on the different tabs.",
     "availability.holidays.empty": "No holidays yet.",
     "availability.questions.heading": "Questions",
     "competences.tab": "Competences",
@@ -79,10 +81,6 @@ const mountShow = (holidays = [], extra = {}) =>
 const hidden = (w, sel) => (w.get(sel).attributes("style") ?? "").includes("display: none");
 
 describe("Personal/Show", () => {
-    it("greets the employee by name", () => {
-        expect(mountShow().text()).toContain("Hello, Jordan Lee");
-    });
-
     it("renders the shared fields with name and email read-only", () => {
         const w = mountShow();
         expect(w.findComponent(EmployeeFields).props("readonlyIdentity")).toBe(true);
@@ -108,11 +106,14 @@ describe("Personal/Show", () => {
         expect(form.lastPut.data).toEqual({ weekly_hours: 40 });
     });
 
-    it("has Details and Availability tabs, Details first", () => {
+    it("mirrors the employee page tabs, Information first", () => {
         const w = mountShow();
+        expect(w.text()).toContain("Information");
         expect(w.text()).toContain("Details");
         expect(w.text()).toContain("Availability");
-        expect(hidden(w, '[data-testid="panel-details"]')).toBe(false);
+        expect(w.text()).toContain("Competences");
+        expect(hidden(w, '[data-testid="panel-information"]')).toBe(false);
+        expect(hidden(w, '[data-testid="panel-details"]')).toBe(true);
         expect(hidden(w, '[data-testid="panel-availability"]')).toBe(true);
     });
 
@@ -126,12 +127,12 @@ describe("Personal/Show", () => {
         expect(w.findComponent(AvailabilityGrid).props("endpoint")).toBe("/personal/tok-1/availability");
     });
 
-    it("renders the shift note at the top of the Availability tab when set", () => {
+    it("renders the shift note on the Information tab when set", () => {
         const w = mountShow([], { shiftNoteHtml: "<p>Allowances table here</p>" });
         const note = w.findComponent(ShiftNote);
         expect(note.exists()).toBe(true);
         expect(note.props("html")).toBe("<p>Allowances table here</p>");
-        expect(w.get('[data-testid="panel-availability"]').text()).toContain("Allowances table here");
+        expect(w.get('[data-testid="panel-information"]').text()).toContain("Allowances table here");
     });
 
     it("renders no shift note when the prop is absent", () => {
@@ -171,6 +172,34 @@ describe("Personal/Show", () => {
         expect(w.get('[data-testid="panel-availability"]').text()).not.toContain("Questions");
     });
 
+    it("is fully editable by default: no lock notice, controls enabled", () => {
+        const w = mountShow();
+        expect(w.find('[data-testid="locked-notice"]').exists()).toBe(false);
+        expect(w.findComponent(AvailabilityGrid).props("disabled")).toBe(false);
+        expect(w.findComponent(HolidayList).props("disabled")).toBe(false);
+        expect(w.findComponent(EmployeeFields).props("disabled")).toBe(false);
+        expect(w.get("form").text()).toContain("Save");
+    });
+
+    it("shows the lock notice and disables every control when editable is false", () => {
+        const w = mountShow([], {
+            editable: false,
+            competences: [{ id: 1, name: "Forklift" }],
+            competenceIds: [],
+            questions: [{ id: 5, text: "Weekend?" }],
+            questionAnswers: [],
+        });
+
+        expect(w.get('[data-testid="locked-notice"]').text()).toContain("closed by your planner");
+        expect(w.findComponent(AvailabilityGrid).props("disabled")).toBe(true);
+        expect(w.findComponent(HolidayList).props("disabled")).toBe(true);
+        expect(w.findComponent(QuestionChecklist).props("disabled")).toBe(true);
+        expect(w.findComponent(TagChecklist).props("disabled")).toBe(true);
+        expect(w.findComponent(EmployeeFields).props("disabled")).toBe(true);
+        // The Details save button is gone.
+        expect(w.get("form").text()).not.toContain("Save");
+    });
+
     it("reveals the holiday list when the Availability tab is clicked", async () => {
         const w = mountShow();
         const tab = w.findAll("button").find((b) => b.text() === "Availability");
@@ -178,6 +207,6 @@ describe("Personal/Show", () => {
         await w.vm.$nextTick();
 
         expect(hidden(w, '[data-testid="panel-availability"]')).toBe(false);
-        expect(hidden(w, '[data-testid="panel-details"]')).toBe(true);
+        expect(hidden(w, '[data-testid="panel-information"]')).toBe(true);
     });
 });

@@ -29,6 +29,7 @@ class PersonalPageController extends Controller
 
         return Inertia::render('Personal/Show', [
             'token' => $token,
+            'editable' => PlanningSettings::current()->allow_employee_changes,
             'employee' => [
                 'name' => $employee->name,
                 'email' => $employee->email,
@@ -36,7 +37,7 @@ class PersonalPageController extends Controller
             ],
             'holidays' => $employee->holidays->map->toPayload()->all(),
             'shifts' => Shift::all()->map->toPayload()->all(),
-            'shiftNoteHtml' => PlanningSettings::current()->shiftNoteHtml(),
+            'shiftNoteHtml' => PlanningSettings::current()->shiftNoteHtml($employee->name),
             'availability' => $employee->recurringAvailabilities->map->toPayload()->all(),
             'competences' => Competence::all()->map->toPayload()->all(),
             'competenceIds' => $employee->competences->pluck('id')->all(),

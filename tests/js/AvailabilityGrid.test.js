@@ -87,6 +87,14 @@ describe("AvailabilityGrid", () => {
         expect(router.put.mock.calls[0][1]).toEqual({ level: "available" });
     });
 
+    it("does not write and marks cells disabled when disabled", async () => {
+        const w = mountGrid({ disabled: true });
+        await w.get('[data-testid="cell-2-10"]').trigger("click");
+
+        expect(router.put).not.toHaveBeenCalled();
+        expect(w.get('[data-testid="cell-2-10"]').attributes("disabled")).toBeDefined();
+    });
+
     it("shows the plain empty state when no shift is defined", () => {
         const w = mountGrid({ shifts: [] });
         expect(w.text()).toContain("No shifts are defined yet.");

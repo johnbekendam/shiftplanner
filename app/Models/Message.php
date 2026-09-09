@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\MessageType;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -12,6 +13,7 @@ class Message extends Model
 
     protected $fillable = [
         'user_id',
+        'type',
         'recipient_name',
         'recipient_email',
         'subject',
@@ -24,6 +26,7 @@ class Message extends Model
     protected function casts(): array
     {
         return [
+            'type' => MessageType::class,
             'sent_at' => 'datetime',
         ];
     }
@@ -31,11 +34,6 @@ class Message extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
-    }
-
-    public function scopeForUser($query, int $userId)
-    {
-        return $query->where('user_id', $userId);
     }
 
     public function scopeForStatus($query, string $status)

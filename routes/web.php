@@ -9,6 +9,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EmployeeCompetenceController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\EmployeeHolidayController;
+use App\Http\Controllers\EmployeeImportController;
 use App\Http\Controllers\EmployeeQuestionController;
 use App\Http\Controllers\MailboxController;
 use App\Http\Controllers\PeriodController;
@@ -43,6 +44,9 @@ Route::middleware('auth')->group(function () {
         Route::post('/theme-builder/logo', [ThemeBuilderController::class, 'uploadLogo'])->name('theme-builder.logo.upload');
         Route::delete('/theme-builder/logo', [ThemeBuilderController::class, 'deleteLogo'])->name('theme-builder.logo.delete');
 
+        Route::get('/import', [EmployeeImportController::class, 'index'])->name('import.index');
+        Route::post('/import', [EmployeeImportController::class, 'store'])->name('import.store');
+
         Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
         Route::post('/settings/competences', [CompetenceController::class, 'store'])->name('settings.competences.store');
         Route::put('/settings/competences/{competence}/move', [CompetenceController::class, 'move'])->name('settings.competences.move');
@@ -65,6 +69,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/mailbox', [MailboxController::class, 'index'])->name('mailbox.index');
         Route::post('/mailbox/compose', [MailboxController::class, 'store'])->name('mailbox.compose');
         Route::post('/mailbox/compose/preview', [MailboxController::class, 'preview'])->name('mailbox.preview');
+        Route::put('/mailbox/templates/{type}', [MailboxController::class, 'updateTemplate'])->name('mailbox.templates.update');
         Route::post('/mailbox/{message}/send', [MailboxController::class, 'send'])->name('mailbox.send');
         Route::post('/mailbox/bulk-delete', [MailboxController::class, 'bulkDelete'])->name('mailbox.bulk-delete');
         Route::delete('/mailbox/{message}', [MailboxController::class, 'destroy'])->name('mailbox.destroy');
@@ -101,12 +106,18 @@ Route::middleware('auth')->group(function () {
 // Employee personal page — token-only, no auth. Prototype preview links.
 // See doc/features/employee-admin/spec.md and roadmap phase 2.
 Route::get('/personal/{token}', [PersonalPageController::class, 'show'])->name('personal.show');
-Route::put('/personal/{token}', [PersonalPageController::class, 'update'])->name('personal.update');
-Route::post('/personal/{token}/holidays', [PersonalHolidayController::class, 'store'])->name('personal.holidays.store');
-Route::delete('/personal/{token}/holidays/{holiday}', [PersonalHolidayController::class, 'destroy'])->name('personal.holidays.destroy');
-Route::put('/personal/{token}/availability/{weekday}/{shift}', [PersonalRecurringAvailabilityController::class, 'update'])
-    ->where(['weekday' => '[1-5]', 'shift' => '[0-9]+'])
-    ->name('personal.availability.update');
-Route::put('/personal/{token}/competences/{competence}', [PersonalCompetenceController::class, 'update'])->name('personal.competences.update');
-Route::delete('/personal/{token}/competences/{competence}', [PersonalCompetenceController::class, 'destroy'])->name('personal.competences.destroy');
-Route::put('/personal/{token}/questions/{question}', [PersonalQuestionController::class, 'update'])->name('personal.questions.update');
+
+// Employee-side writes: blocked when a manager turns off
+// `allow_employee_changes` (features/employee-change-lock/). The show route
+// above is deliberately outside this group so the page stays viewable.
+Route::middleware('employee.changes')->group(function () {
+    Route::put('/personal/{token}', [PersonalPageController::class, 'update'])->name('personal.update');
+    Route::post('/personal/{token}/holidays', [PersonalHolidayController::class, 'store'])->name('personal.holidays.store');
+    Route::delete('/personal/{token}/holidays/{holiday}', [PersonalHolidayController::class, 'destroy'])->name('personal.holidays.destroy');
+    Route::put('/personal/{token}/availability/{weekday}/{shift}', [PersonalRecurringAvailabilityController::class, 'update'])
+        ->where(['weekday' => '[1-5]', 'shift' => '[0-9]+'])
+        ->name('personal.availability.update');
+    Route::put('/personal/{token}/competences/{competence}', [PersonalCompetenceController::class, 'update'])->name('personal.competences.update');
+    Route::delete('/personal/{token}/competences/{competence}', [PersonalCompetenceController::class, 'destroy'])->name('personal.competences.destroy');
+    Route::put('/personal/{token}/questions/{question}', [PersonalQuestionController::class, 'update'])->name('personal.questions.update');
+});

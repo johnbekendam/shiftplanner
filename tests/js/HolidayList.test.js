@@ -82,4 +82,13 @@ describe("HolidayList", () => {
         expect(url).toBe("/employees/7/holidays/1");
         expect(opts).toMatchObject({ preserveScroll: true, preserveState: true });
     });
+
+    it("hides the add row and the delete buttons when disabled", () => {
+        const w = mountList({ disabled: true });
+
+        expect(w.find('[data-testid="holiday-add-row"]').exists()).toBe(false);
+        expect(w.find('[data-testid="holiday-row"] button').exists()).toBe(false);
+        // The rows themselves still show.
+        expect(w.findAll('[data-testid="holiday-row"]')).toHaveLength(2);
+    });
 });

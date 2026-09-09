@@ -22,9 +22,14 @@ Managers administer the organization:
 - Assign each employee to a Business Line.
 - Set shift coverage requirements.
 - Generate, review, edit, and publish schedules.
-- Send employee invitations with a prepared `mailto:` message containing a personal link.
+- Send an employee the link to their personal page from the mailbox.
 
-The application does not require an outbound email server initially. The manager's local email client sends the prepared invitation. Server-side email delivery can replace this later.
+The mailbox composes typed messages from a reusable per-type template,
+previews the branded email, and stores each as a draft. One type ships:
+the personal-page link. Delivery goes through Microsoft Graph from one
+shared mailbox (app-permission client credentials); until that is
+configured the app keeps the `log` mailer and messages simply stay in the
+outbox. Drafts, outbox, and sent are shared across all admins.
 
 ### Employees
 
@@ -118,6 +123,12 @@ An employee record contains:
   configurable Business Line list. Optional. A manager sets it; the
   personal page does not show it.
 
+A global switch on the Settings General tab, `allow_employee_changes`
+(default on), governs every "a manager or the employee maintains it"
+field above. When off, the personal page stays visible but read-only and
+the employee-side write routes return `403`; the manager editor is
+unaffected.
+
 The old morning/evening/either preference was a placeholder and is
 removed. The recurring grid replaces the preference. It first shipped
 with three fixed dayparts; phase 3 shift definitions replaced those, so
@@ -148,7 +159,7 @@ The generated plan is advice, not an automatic publication. Managers remain resp
 
 ## Initial Product Shape
 
-The manager experience starts with an employee list. From there, a manager can add an employee, edit employee details, assign a department, and create an invitation link.
+The manager experience starts with an employee list. From there, a manager can add an employee, edit employee details, assign a department, and send the employee their personal-page link from the mailbox.
 
 As the product expands, manager navigation should include employees, departments, schedules, planning drafts, and published schedules. Employee links should open a focused personal view with preferences and assigned shifts.
 
@@ -198,7 +209,10 @@ The schedule optimizer is a separate service from the start, not a deferred addi
 - Employee assignment confirmation, swap, or self-scheduling workflows.
 - Exact token-link security, expiry, revocation, and recovery behavior.
 - Department qualifications or multi-department staffing.
-- Server-side email delivery.
+- Microsoft Graph tenant details: the Azure app registration, the shared
+  mailbox address, and admin consent for `Mail.Send`
+  (`features/mailbox/`). The transport and config keys exist; only the
+  values are outstanding.
 - Fairness definitions, planning cadence, and the exact JSON contract for the OR-Tools worker.
 - The Entra ID integration package and claims mapping.
 
@@ -208,4 +222,4 @@ The schedule optimizer is a separate service from the start, not a deferred addi
 - Automatic schedule publication.
 - Multi-department employee assignments.
 - Detailed availability calendars.
-- Server-managed email delivery.
+- Message types beyond the personal-page link; bulk send.

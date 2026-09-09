@@ -16,6 +16,7 @@ starts, a `plan.md` (the steps and progress).
 | 3.5 | Competences — config list on a Settings page, per-employee checkmarks | Done | `features/competences/spec.md`, `features/competences/plan.md`. Planning use is out of scope. |
 | 3.6 | Product groups | Removed | Shipped, then removed from the product. Tables dropped by `2026_09_09_000007`; the config tab, per-employee checklist, routes, and language keys are gone. |
 | 3.7 | Account management (interim auth) — admin/manager roles, password or email code, admin `/users`, account page | Done | `features/account-management/`. Entra ID, the PostgreSQL switch, and employee token hardening stay in phase 2. |
+| 3.8 | Mailbox and employee change lock — typed messages with a reusable template, one type (personal-page link), Microsoft Graph transport prepared but inert; a global switch that makes the personal page read-only | Mostly done | Both features shipped (`features/mailbox/`, `features/employee-change-lock/`). Only the Graph tenant values (Azure app registration, shared mailbox, admin consent) are pending, on a machine with tenant access. Supersedes the phase-2 `mailto:` line with a shared Graph mailbox. |
 | 4 | Availability and wishes — recurring availability, date-specific exceptions, fairness model | In progress | Holidays and the recurring availability grid shipped (`features/employee-availability/`); the grid is weekday-only and carries manager-defined yes/no questions (`features/availability-questions/`). Fairness model still needs a design session. |
 | 5 | Scheduling engine — Python OR-Tools `/solve` service, JSON contract, `GeneratePlan` job, draft review and edit | Planned | depends on phases 3 and 4 |
 | 6 | Publish and employee schedule view — publish a plan, employees see own assignments only | Planned | — |
@@ -75,7 +76,9 @@ Required before any real employee use.
   expiring, revocable tokens. A dedicated employee guard and middleware.
   Regeneration and audit fields. Negative security tests for unauthorized
   access.
-- `mailto:` invitation generation from the manager's employee editor.
+- Invitation delivery is handled in phase 3.8 (`features/mailbox/`): a
+  shared-mailbox Microsoft Graph transport sends the personal link. The
+  original `mailto:` plan is dropped.
 
 ## Phase 3 — Business Lines and standard day schedules
 
@@ -157,6 +160,33 @@ shortcut. Employees still reach only their personal page, by token link.
 The PostgreSQL switch, Entra ID / OIDC, and employee token hardening stay
 in phase 2.
 
+## Phase 3.8 — Mailbox and employee change lock
+
+Two independent features, one phase. See `features/mailbox/` and
+`features/employee-change-lock/`.
+
+Mailbox: the phase-0 template left a generic mailbox baseline. This turns
+it into a typed message tool. Every message has a type; one type ships,
+`personal_page_link`. Each type has one stored, editable template
+(subject + Markdown body, `:name` / `:link` placeholders) kept in a
+`message_templates` table and edited on the Compose tab. Compose picks a
+type, edits the template, selects employees from a searchable list,
+previews the branded email, and creates one draft per employee with the
+link resolved. Draft / Outbox / Sent are shared across all admins. The
+employees list and editor carry a **Send link** / **Resend link** action
+that opens Compose preselected. Microsoft Graph delivery is prepared but
+inert: a custom `graph` Laravel mail transport, app-permission client
+credentials against a shared mailbox (`POST /users/{mailbox}/sendMail`),
+config keys and blank `GRAPH_*` env. Local dev keeps `MAIL_MAILER=log`;
+the Graph path is exercised on a machine with tenant access. This
+supersedes the phase-2 `mailto:` invitation plan.
+
+Employee change lock: a global `planning_settings.allow_employee_changes`
+switch, default on, on the renamed **General** settings tab (was Period).
+When off, the five personal write routes return `403` and the personal
+page renders read-only with a banner; `personal.show` and every manager
+route are untouched.
+
 ## Phase 4 — Availability and wishes
 
 Dedicated design session before any code. Recurring availability,
@@ -180,6 +210,10 @@ Done so far — `features/employee-availability/`:
   in for a weekend?", "are you reachable in week 53?". The employee or
   the manager answers each with a checkbox on the Availability tab. A
   checked box is a stored pivot row; nothing else. No planner use yet.
+- The global `allow_employee_changes` switch (phase 3.8,
+  `features/employee-change-lock/`) closes all employee-side edits to
+  this data while keeping the personal page viewable — a manager uses it
+  to freeze availability during a planning round.
 
 Still open: the fairness definitions and objective-term weights, and the
 `/solve` service that reads this data.
