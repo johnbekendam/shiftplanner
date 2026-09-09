@@ -89,8 +89,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/employees/{employee}/personal-page', [EmployeeController::class, 'personalPage'])->name('employees.personal-page');
     Route::post('/employees/{employee}/holidays', [EmployeeHolidayController::class, 'store'])->name('employees.holidays.store');
     Route::delete('/employees/{employee}/holidays/{holiday}', [EmployeeHolidayController::class, 'destroy'])->name('employees.holidays.destroy');
-    Route::put('/employees/{employee}/availability/{weekday}/{daypart}', [RecurringAvailabilityController::class, 'update'])
-        ->where(['weekday' => '[1-7]', 'daypart' => 'morning|afternoon|evening'])
+    Route::put('/employees/{employee}/availability/{weekday}/{shift}', [RecurringAvailabilityController::class, 'update'])
+        ->where(['weekday' => '[1-7]', 'shift' => '[0-9]+'])
         ->name('employees.availability.update');
     Route::put('/employees/{employee}/competences/{competence}', [EmployeeCompetenceController::class, 'update'])->name('employees.competences.update');
     Route::delete('/employees/{employee}/competences/{competence}', [EmployeeCompetenceController::class, 'destroy'])->name('employees.competences.destroy');
@@ -104,8 +104,8 @@ Route::get('/personal/{token}', [PersonalPageController::class, 'show'])->name('
 Route::put('/personal/{token}', [PersonalPageController::class, 'update'])->name('personal.update');
 Route::post('/personal/{token}/holidays', [PersonalHolidayController::class, 'store'])->name('personal.holidays.store');
 Route::delete('/personal/{token}/holidays/{holiday}', [PersonalHolidayController::class, 'destroy'])->name('personal.holidays.destroy');
-Route::put('/personal/{token}/availability/{weekday}/{daypart}', [PersonalRecurringAvailabilityController::class, 'update'])
-    ->where(['weekday' => '[1-7]', 'daypart' => 'morning|afternoon|evening'])
+Route::put('/personal/{token}/availability/{weekday}/{shift}', [PersonalRecurringAvailabilityController::class, 'update'])
+    ->where(['weekday' => '[1-7]', 'shift' => '[0-9]+'])
     ->name('personal.availability.update');
 Route::put('/personal/{token}/competences/{competence}', [PersonalCompetenceController::class, 'update'])->name('personal.competences.update');
 Route::delete('/personal/{token}/competences/{competence}', [PersonalCompetenceController::class, 'destroy'])->name('personal.competences.destroy');

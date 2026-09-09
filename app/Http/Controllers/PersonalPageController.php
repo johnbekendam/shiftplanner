@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Competence;
 use App\Models\Employee;
 use App\Models\ProductGroup;
+use App\Models\Shift;
 use App\Services\EmployeePersonalLinkService;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -33,6 +34,7 @@ class PersonalPageController extends Controller
                 'weekly_hours' => $employee->weekly_hours,
             ],
             'holidays' => $employee->holidays->map->toPayload()->all(),
+            'shifts' => Shift::all()->map->toPayload()->all(),
             'availability' => $employee->recurringAvailabilities->map->toPayload()->all(),
             'competences' => Competence::all()->map->toPayload()->all(),
             'competenceIds' => $employee->competences->pluck('id')->all(),

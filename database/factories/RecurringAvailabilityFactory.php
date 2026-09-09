@@ -4,6 +4,7 @@ namespace Database\Factories;
 
 use App\Models\Employee;
 use App\Models\RecurringAvailability;
+use App\Models\Shift;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 class RecurringAvailabilityFactory extends Factory
@@ -13,7 +14,7 @@ class RecurringAvailabilityFactory extends Factory
         return [
             'employee_id' => Employee::factory(),
             'weekday' => fake()->numberBetween(1, 7),
-            'daypart' => fake()->randomElement(RecurringAvailability::DAYPARTS),
+            'shift_id' => Shift::factory(),
             'level' => fake()->randomElement(RecurringAvailability::LEVELS),
         ];
     }

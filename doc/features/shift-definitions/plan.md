@@ -1,6 +1,6 @@
 # Shift Definitions — Plan
 
-Status: in progress — 2/5
+Status: in progress — 3/5
 
 Spec: `spec.md`. Roadmap phase 3. The Settings CRUD mirrors
 `BusinessLineController` without the `move` action. The grid change
@@ -43,7 +43,7 @@ swaps `recurring_availabilities.daypart` for a `shift_id` foreign key.
   mounts the list on its endpoint). `npm run test` and `npm run build`
   green.
 
-- [ ] 3. **Backend: recurring availability keyed by shift.** Migration
+- [x] 3. **Backend: recurring availability keyed by shift.** Migration
   on `recurring_availabilities`: drop `daypart`, add `shift_id`
   (`foreignId`, `constrained`, `cascadeOnDelete`), drop the old unique
   and add `(employee_id, weekday, shift_id)`. It runs on synthetic data;

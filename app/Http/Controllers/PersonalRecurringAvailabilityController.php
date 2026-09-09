@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\Concerns\SetsRecurringAvailability;
 use App\Models\Employee;
+use App\Models\Shift;
 use App\Services\EmployeePersonalLinkService;
 use Illuminate\Http\Request;
 
@@ -19,11 +20,11 @@ class PersonalRecurringAvailabilityController extends Controller
 
     public function __construct(private EmployeePersonalLinkService $links) {}
 
-    public function update(Request $request, string $token, int $weekday, string $daypart)
+    public function update(Request $request, string $token, int $weekday, Shift $shift)
     {
         $employee = $this->resolveOrFail($token);
 
-        $this->setCell($request, $employee, $weekday, $daypart);
+        $this->setCell($request, $employee, $weekday, $shift);
 
         return redirect("/personal/{$token}");
     }

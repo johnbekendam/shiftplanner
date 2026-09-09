@@ -6,6 +6,7 @@ use App\Models\BusinessLine;
 use App\Models\Competence;
 use App\Models\Employee;
 use App\Models\ProductGroup;
+use App\Models\Shift;
 use App\Services\EmployeePersonalLinkService;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -77,6 +78,7 @@ class EmployeeController extends Controller
             'employee' => $employee->only(['id', 'name', 'email', 'weekly_hours', 'business_line_id']),
             'businessLines' => BusinessLine::all()->map->toPayload()->all(),
             'holidays' => $employee->holidays->map->toPayload()->all(),
+            'shifts' => Shift::all()->map->toPayload()->all(),
             'availability' => $employee->recurringAvailabilities->map->toPayload()->all(),
             'competences' => Competence::all()->map->toPayload()->all(),
             'competenceIds' => $employee->competences->pluck('id')->all(),

@@ -10,16 +10,13 @@ class RecurringAvailability extends Model
 {
     use HasFactory;
 
-    /** The three parts of a day a cell can cover. */
-    public const DAYPARTS = ['morning', 'afternoon', 'evening'];
-
     /** Stored levels. 'available' is the absence of a row, so it is not here. */
     public const LEVELS = ['not_preferred', 'unavailable'];
 
     protected $fillable = [
         'employee_id',
         'weekday',
-        'daypart',
+        'shift_id',
         'level',
     ];
 
@@ -27,6 +24,7 @@ class RecurringAvailability extends Model
     {
         return [
             'weekday' => 'integer',
+            'shift_id' => 'integer',
         ];
     }
 
@@ -35,12 +33,17 @@ class RecurringAvailability extends Model
         return $this->belongsTo(Employee::class);
     }
 
+    public function shift(): BelongsTo
+    {
+        return $this->belongsTo(Shift::class);
+    }
+
     /** The shape shared with the front end. */
     public function toPayload(): array
     {
         return [
             'weekday' => $this->weekday,
-            'daypart' => $this->daypart,
+            'shift_id' => $this->shift_id,
             'level' => $this->level,
         ];
     }
