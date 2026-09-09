@@ -46,11 +46,21 @@ most one Business Line, on the employee Details tab. Business Lines take
 the slot the earlier plan called "Departments"; there is no separate
 Department record.
 
-Each Business Line owns its schedule definition later. A standard day
-schedule contains one or more shifts. Every shift specifies its time
-range and required employee count.
+A per-Business-Line standard day schedule — which shifts a line runs and
+the required headcount for each — comes in a later phase. The exact
+calendar model, including weekly recurrence and date-specific exceptions,
+is deferred until planning cadence is known.
 
-The exact calendar model, including weekly recurrence and date-specific exceptions, is intentionally deferred until planning cadence is known.
+### Shifts
+
+A shift is the planning baseline unit. It has a name, a start time, and
+an end time; the end must be after the start, so no shift crosses
+midnight. Managers maintain the list on the Settings page. Shifts show in
+start-time order everywhere.
+
+Shifts are global, not per Business Line. Required headcount and the link
+from a shift to a workcenter come in a later phase. The recurring
+availability grid has one row per shift.
 
 ### Dashboard
 
@@ -84,9 +94,9 @@ An employee record contains:
 - Weekly hours: 20 to 48, in steps of 4
 - Holidays: whole-day date ranges the employee is away. Hard blocks for
   the planner. A manager or the employee maintains them.
-- Recurring availability grid: three dayparts by seven weekdays. Each
-  cell is available, not preferred (soft), or unavailable (hard). A
-  manager or the employee maintains it.
+- Recurring availability grid: one row per defined shift by seven
+  weekdays. Each cell is available, not preferred (soft), or unavailable
+  (hard). A manager or the employee maintains it.
 - Competences: the skills the employee holds, checked from the
   configurable competence list. A manager or the employee maintains them.
   Planning use comes later.
@@ -98,8 +108,9 @@ An employee record contains:
   personal page does not show it.
 
 The old morning/evening/either preference was a placeholder and is
-removed. The recurring grid replaces the preference. Its dayparts map to
-named shifts in phase 3.
+removed. The recurring grid replaces the preference. It first shipped
+with three fixed dayparts; phase 3 shift definitions replaced those, so
+each grid row is now a named shift.
 
 ## Planning Workflow
 
@@ -171,7 +182,7 @@ The schedule optimizer is a separate service from the start, not a deferred addi
 
 ## Deferred Decisions
 
-- Availability model — holidays and the recurring weekday/daypart grid are done (`features/employee-availability/`). Date-specific shift exceptions and fairness weights are still open.
+- Availability model — holidays and the recurring weekday/shift grid are done (`features/employee-availability/`, `features/shift-definitions/`). Date-specific shift exceptions and fairness weights are still open.
 - Calendar recurrence and exceptions for standard day schedules.
 - Employee assignment confirmation, swap, or self-scheduling workflows.
 - Exact token-link security, expiry, revocation, and recovery behavior.

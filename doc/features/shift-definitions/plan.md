@@ -1,6 +1,6 @@
 # Shift Definitions — Plan
 
-Status: in progress — 4/5
+Status: done — 5/5
 
 Spec: `spec.md`. Roadmap phase 3. The Settings CRUD mirrors
 `BusinessLineController` without the `move` action. The grid change
@@ -82,7 +82,7 @@ swaps `recurring_availabilities.daypart` for a `shift_id` foreign key.
   the `PersonalShow.test.js` / `EmployeesForm.test.js` availability
   assertions. `npm run test` and `npm run build` green.
 
-- [ ] 5. **Docs and full checks.** `doc/roadmap.md` — phase 3 row and
+- [x] 5. **Docs and full checks.** `doc/roadmap.md` — phase 3 row and
   section note that shifts shipped (name and clock range; headcount and
   the workcenter link still later); phase 4 section note that the grid
   rows are the defined shifts, not dayparts. `doc/concept.md` — a Shifts

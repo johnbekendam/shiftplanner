@@ -3,6 +3,12 @@
 Part of roadmap phase 4. Phase 4 is large. This increment builds the
 holiday half now and writes down the recurring half for a later build.
 
+> **Superseded (phase 3):** the recurring grid shipped with three fixed
+> dayparts (morning, afternoon, evening). `features/shift-definitions/`
+> replaced them. `recurring_availabilities.daypart` is now `shift_id`,
+> and each grid row is a defined shift. The daypart language below is
+> kept for history.
+
 ## Problem
 
 The planner needs to know when an employee cannot work. Two cases:

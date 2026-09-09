@@ -12,7 +12,7 @@ starts, a `plan.md` (the steps and progress).
 | 0 | Scaffold — TeamApps template snapshot, SQLite dev DB, compose stub | Done | — |
 | 1 | Employee admin prototype — manager employee list/editor, personal-page preview link | Done | `features/employee-admin/spec.md`, `features/employee-admin/plan.md` |
 | 2 | Auth hardening — manager Entra ID (OIDC), employee token hardening | Planned | grill first, then `features/auth-hardening/spec.md` |
-| 3 | Business Lines and standard day schedules — config list, per-employee assignment, FTE dashboard; then schedules and coverage | In progress | Business Lines shipped (`features/business-lines/`). Standard day schedules and shift coverage still need a design session. |
+| 3 | Business Lines and standard day schedules — config list, per-employee assignment, FTE dashboard; then schedules and coverage | In progress | Business Lines shipped (`features/business-lines/`). Shift definitions shipped (`features/shift-definitions/`). Shift coverage (required headcount, the workcenter link) still needs a design session. |
 | 3.5 | Competences — config list on a Settings page, per-employee checkmarks | Done | `features/competences/spec.md`, `features/competences/plan.md`. Planning use is out of scope. |
 | 3.6 | Product groups — config list on the Settings page, per-employee preferences | Done | `features/product-groups/spec.md`, `features/product-groups/plan.md`. Planning use is out of scope. |
 | 3.7 | Account management (interim auth) — admin/manager roles, password or email code, admin `/users`, account page | Done | `features/account-management/`. Entra ID, the PostgreSQL switch, and employee token hardening stay in phase 2. |
@@ -90,9 +90,13 @@ page, that charts available FTE per day — `weekly_hours / fte_hours` on a
 weekday, nothing on a weekend or holiday — for every employee and for
 each Business Line against its target.
 
-Still to design: each Business Line's standard day schedule — one or more
-shifts, each with a time range and a required employee count. Calendar
-recurrence and date-specific exceptions stay in phase 4.
+Also shipped (`features/shift-definitions/`): a Settings tab to add, edit,
+and delete shifts (name, start time, end time; ordered by start time).
+The recurring availability grid now has one row per defined shift instead
+of the three fixed dayparts.
+
+Still to design: required headcount per shift and the shift-to-workcenter
+link. Calendar recurrence and date-specific exceptions stay in phase 4.
 
 ## Phase 3.5 — Competences
 
@@ -167,10 +171,11 @@ Done so far — `features/employee-availability/`:
 - Per-employee holidays. Whole-day date ranges, hard blocks, no approval.
   A manager or the employee adds and removes them on a new Availability
   tab.
-- Recurring availability grid. Three dayparts by seven weekdays. Each
-  cell is `available`, `not_preferred` (soft), or `unavailable` (hard).
-  One table, `weekday` + `daypart` + `level`. It replaces the old shift
-  preference. Dayparts map to named shifts in phase 3.
+- Recurring availability grid. One row per defined shift (phase 3), seven
+  weekdays. Each cell is `available`, `not_preferred` (soft), or
+  `unavailable` (hard). One table, `weekday` + `shift_id` + `level`. It
+  replaces the old shift preference. The three fixed dayparts it first
+  shipped with were superseded by the shift definitions.
 
 Still open: the fairness definitions and objective-term weights, and the
 `/solve` service that reads this data.
