@@ -108,6 +108,17 @@ already carries `business_line_id` once it is `$fillable`.
 The personal page does not show or set the Business Line. It is a
 manager-only field.
 
+### Employee list
+
+The employee list drops the email column and shows the assigned Business
+Line abbreviation instead (a dash when none). Its column headers sort the
+list: `name`, `business_line`, `weekly_hours`, each toggling
+ascending/descending. `EmployeeController@index` takes `sort` and
+`direction` query parameters against a fixed column allow-list, defaults
+to `name` ascending, joins `business_lines` for the abbreviation sort,
+and shares `sort` and `direction` back. Search still matches name or
+email.
+
 ### Dashboard
 
 A new `/dashboard` Inertia page behind plain `auth`, so every signed-in

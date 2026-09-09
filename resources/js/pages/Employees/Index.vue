@@ -1,10 +1,11 @@
 <script setup>
-import { ref, watch, onBeforeUnmount } from 'vue'
+import { ref, computed, watch, onBeforeUnmount } from 'vue'
 import { Head, Link, router } from '@inertiajs/vue3'
 import AppLayout from '@/layouts/AppLayout.vue'
 import Card from '@/components/ui/Card.vue'
 import ButtonPrimary from '@/components/ui/ButtonPrimary.vue'
 import ButtonSecondary from '@/components/ui/ButtonSecondary.vue'
+import Icon from '@/components/ui/Icon.vue'
 import { SearchInput } from '@/components/ui/Input'
 import { useI18n } from '@/composables/useI18n'
 
@@ -13,21 +14,44 @@ const __ = useI18n()
 const props = defineProps({
     employees: { type: Object, required: true },
     search: { type: String, default: '' },
+    sort: { type: String, default: 'name' },
+    direction: { type: String, default: 'asc' },
 })
+
+const columns = [
+    { key: 'name', label: 'employees.column.name' },
+    { key: 'business_line', label: 'employees.column.business_line' },
+    { key: 'weekly_hours', label: 'employees.column.weekly_hours' },
+]
 
 const searchTerm = ref(props.search ?? '')
 
+const query = computed(() => {
+    const q = {}
+    const search = (searchTerm.value ?? '').trim()
+    if (search !== '') q.search = search
+    if (props.sort !== 'name') q.sort = props.sort
+    if (props.direction !== 'asc') q.direction = props.direction
+    return q
+})
+
+function reload(overrides) {
+    router.get('/employees', { ...query.value, ...overrides }, {
+        preserveState: true,
+        preserveScroll: true,
+        replace: true,
+    })
+}
+
+function sortBy(key) {
+    const direction = props.sort === key && props.direction === 'asc' ? 'desc' : 'asc'
+    reload({ sort: key === 'name' ? undefined : key, direction: direction === 'asc' ? undefined : direction })
+}
+
 let searchTimer = null
-watch(searchTerm, (value) => {
+watch(searchTerm, () => {
     clearTimeout(searchTimer)
-    const search = (value ?? '').trim()
-    searchTimer = setTimeout(() => {
-        router.get('/employees', search === '' ? {} : { search }, {
-            preserveState: true,
-            preserveScroll: true,
-            replace: true,
-        })
-    }, 250)
+    searchTimer = setTimeout(() => reload(), 250)
 })
 onBeforeUnmount(() => clearTimeout(searchTimer))
 
@@ -64,9 +88,20 @@ function openEmployee(employee) {
                 <table class="w-full text-sm">
                     <thead>
                         <tr class="border-b border-(--color-table-header-separator) text-left text-(--color-table-header-text)">
-                            <th class="py-2">{{ __('employees.column.name') }}</th>
-                            <th class="py-2">{{ __('employees.column.email') }}</th>
-                            <th class="py-2">{{ __('employees.column.weekly_hours') }}</th>
+                            <th v-for="column in columns" :key="column.key" class="py-2">
+                                <button
+                                    type="button"
+                                    class="flex items-center gap-1 font-medium hover:text-(--color-text-primary)"
+                                    @click="sortBy(column.key)"
+                                >
+                                    {{ __(column.label) }}
+                                    <Icon
+                                        v-if="sort === column.key"
+                                        :name="direction === 'asc' ? 'chevron-up' : 'chevron-down'"
+                                        class="size-3.5"
+                                    />
+                                </button>
+                            </th>
                         </tr>
                     </thead>
                     <tbody>
@@ -77,13 +112,15 @@ function openEmployee(employee) {
                             @click="openEmployee(employee)"
                         >
                             <td class="py-2 text-(--color-table-row-text)">{{ employee.name }}</td>
-                            <td class="py-2 text-(--color-table-row-text)">{{ employee.email }}</td>
+                            <td class="py-2 text-(--color-table-row-text)">
+                                {{ employee.business_line ?? __('employees.no_business_line') }}
+                            </td>
                             <td class="py-2 text-(--color-table-row-text)">
                                 {{ __('employees.hours_option', { count: employee.weekly_hours }) }}
                             </td>
                         </tr>
                         <tr v-if="!employees.data.length">
-                            <td colspan="3" class="py-8 text-center text-(--color-text-secondary)">
+                            <td :colspan="columns.length" class="py-8 text-center text-(--color-text-secondary)">
                                 {{ __('employees.empty') }}
                             </td>
                         </tr>

@@ -6,8 +6,9 @@ const en = {
     "employees.search_placeholder": "Search name or email",
     "employees.empty": "No employees yet.",
     "employees.column.name": "Name",
-    "employees.column.email": "Email",
+    "employees.column.business_line": "Business line",
     "employees.column.weekly_hours": "Weekly hours",
+    "employees.no_business_line": "—",
     "employees.action.new": "New employee",
     "employees.hours_option": ":count hours",
 };
@@ -27,8 +28,8 @@ import Index from "@/pages/Employees/Index.vue";
 
 const employees = {
     data: [
-        { id: 1, name: "Ann Ant", email: "ann@example.com", weekly_hours: 24 },
-        { id: 2, name: "Bo Bee", email: "bo@example.com", weekly_hours: 40 },
+        { id: 1, name: "Ann Ant", business_line: "PMP", weekly_hours: 24 },
+        { id: 2, name: "Bo Bee", business_line: null, weekly_hours: 40 },
     ],
     last_page: 1,
     current_page: 1,
@@ -36,9 +37,9 @@ const employees = {
     next_page_url: null,
 };
 
-const mountIndex = () =>
+const mountIndex = (props = {}) =>
     mount(Index, {
-        props: { employees, search: "" },
+        props: { employees, search: "", sort: "name", direction: "asc", ...props },
         global: { stubs: { AppLayout: { template: "<div><slot /></div>" } } },
     });
 
@@ -53,12 +54,44 @@ afterEach(() => {
 });
 
 describe("Employees/Index", () => {
-    it("shows only name, email and weekly-hours columns", () => {
+    it("shows name, business line and weekly-hours columns", () => {
         const w = mountIndex();
         const headers = w.findAll("thead th").map((th) => th.text());
 
-        expect(headers).toEqual(["Name", "Email", "Weekly hours"]);
-        expect(w.text()).not.toContain("Personal link");
+        expect(headers).toEqual(["Name", "Business line", "Weekly hours"]);
+        expect(w.text()).not.toContain("Email");
+    });
+
+    it("renders the assigned business line, with a dash when there is none", () => {
+        const w = mountIndex();
+        const rows = w.findAll("tbody tr");
+
+        expect(rows[0].findAll("td")[1].text()).toBe("PMP");
+        expect(rows[1].findAll("td")[1].text()).toBe("—");
+    });
+
+    it("sorts by a column when its header is clicked", async () => {
+        const w = mountIndex();
+        await w.findAll("thead th button")[1].trigger("click"); // Business line
+
+        expect(router.get).toHaveBeenCalledTimes(1);
+        const [url, params] = router.get.mock.calls[0];
+        expect(url).toBe("/employees");
+        expect(params).toEqual({ sort: "business_line", direction: undefined });
+    });
+
+    it("toggles to descending when the active column header is clicked again", async () => {
+        const w = mountIndex({ sort: "business_line", direction: "asc" });
+        await w.findAll("thead th button")[1].trigger("click");
+
+        expect(router.get.mock.calls[0][1]).toEqual({ sort: "business_line", direction: "desc" });
+    });
+
+    it("clears the sort back to the default when the name header cycles off", async () => {
+        const w = mountIndex({ sort: "name", direction: "asc" });
+        await w.findAll("thead th button")[0].trigger("click");
+
+        expect(router.get.mock.calls[0][1]).toEqual({ sort: undefined, direction: "desc" });
     });
 
     it("has no per-row action buttons", () => {

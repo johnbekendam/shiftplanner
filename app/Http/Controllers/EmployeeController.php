@@ -15,11 +15,27 @@ class EmployeeController extends Controller
 {
     public function __construct(private EmployeePersonalLinkService $links) {}
 
+    /** Sortable list columns mapped to their ORDER BY expression. */
+    private const SORT_COLUMNS = [
+        'name' => 'employees.name',
+        'business_line' => 'business_lines.abbreviation',
+        'weekly_hours' => 'employees.weekly_hours',
+    ];
+
     public function index(Request $request)
     {
         $search = trim((string) $request->input('search', ''));
 
-        $query = Employee::query()->orderBy('name');
+        $sort = $request->input('sort');
+        $sort = array_key_exists($sort, self::SORT_COLUMNS) ? $sort : 'name';
+        $direction = $request->input('direction') === 'desc' ? 'desc' : 'asc';
+
+        $query = Employee::query()
+            ->select('employees.*')
+            ->leftJoin('business_lines', 'business_lines.id', '=', 'employees.business_line_id')
+            ->with('businessLine')
+            ->orderBy(self::SORT_COLUMNS[$sort], $direction)
+            ->orderBy('employees.name');
 
         if ($search !== '') {
             $query->search($search);
@@ -28,13 +44,15 @@ class EmployeeController extends Controller
         $employees = $query->paginate(20)->withQueryString()->through(fn (Employee $employee) => [
             'id' => $employee->id,
             'name' => $employee->name,
-            'email' => $employee->email,
+            'business_line' => $employee->businessLine?->abbreviation,
             'weekly_hours' => $employee->weekly_hours,
         ]);
 
         return Inertia::render('Employees/Index', [
             'employees' => $employees,
             'search' => $search,
+            'sort' => $sort,
+            'direction' => $direction,
         ]);
     }
 
