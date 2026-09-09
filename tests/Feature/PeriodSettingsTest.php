@@ -51,6 +51,7 @@ class PeriodSettingsTest extends TestCase
             'fte_hours' => 36,
             'period_start' => '2026-01-01',
             'period_end' => '2026-03-31',
+            'allow_employee_changes' => true,
         ])->assertRedirect()->assertSessionHasNoErrors();
 
         $settings = PlanningSettings::current();
@@ -67,6 +68,7 @@ class PeriodSettingsTest extends TestCase
             'fte_hours' => 40,
             'period_start' => null,
             'period_end' => null,
+            'allow_employee_changes' => true,
         ])->assertSessionHasNoErrors();
 
         $this->assertNull(PlanningSettings::current()->period_start);

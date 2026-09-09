@@ -15,6 +15,8 @@ const props = defineProps({
     endpoint: { type: String, required: true },
     // Manager surface: the empty state also points at the Settings page.
     showAddHint: { type: Boolean, default: false },
+    // Read-only: cells render but do not cycle (employee change lock).
+    disabled: { type: Boolean, default: false },
 })
 
 // Monday–Friday. The team runs no weekend shifts; a weekend need is a
@@ -56,6 +58,7 @@ const LEVEL_ICON = {
 }
 
 function cycle(weekday, shiftId) {
+    if (props.disabled) return
     const next = CYCLE[cells[key(weekday, shiftId)]]
     cells[key(weekday, shiftId)] = next
     router.put(`${props.endpoint}/${weekday}/${shiftId}`, { level: next }, {
@@ -91,13 +94,14 @@ function cycle(weekday, shiftId) {
                     <td v-for="weekday in WEEKDAYS" :key="weekday" class="p-1">
                         <button
                             type="button"
+                            :disabled="disabled"
                             :data-testid="`cell-${weekday}-${shift.id}`"
                             :aria-label="__('availability.grid.cell', {
                                 shift: shift.name,
                                 day: __(`availability.weekday.${weekday}`),
                                 state: __(`availability.state.${cells[`${weekday}-${shift.id}`]}`),
                             })"
-                            class="flex h-8 w-full items-center justify-center rounded border transition-colors"
+                            class="flex h-8 w-full items-center justify-center rounded border transition-colors disabled:cursor-not-allowed disabled:opacity-60"
                             :class="LEVEL_CLASS[cells[`${weekday}-${shift.id}`]]"
                             @click="cycle(weekday, shift.id)"
                         >

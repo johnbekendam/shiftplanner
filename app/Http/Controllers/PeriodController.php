@@ -13,6 +13,7 @@ class PeriodController extends Controller
             'fte_hours' => ['required', 'integer', 'min:1'],
             'period_start' => ['nullable', 'date'],
             'period_end' => ['nullable', 'date', 'after_or_equal:period_start'],
+            'allow_employee_changes' => ['required', 'boolean'],
         ]);
 
         PlanningSettings::current()->update($data);

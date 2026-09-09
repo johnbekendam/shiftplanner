@@ -26,6 +26,9 @@ const props = defineProps({
     competenceIds: { type: Array, default: () => [] },
     questions: { type: Array, default: () => [] },
     questionAnswers: { type: Array, default: () => [] },
+    // False when a manager has closed employee changes: the page stays
+    // visible but every control is read-only.
+    editable: { type: Boolean, default: true },
 })
 
 const form = useForm({
@@ -42,6 +45,7 @@ const tabs = computed(() => [
 ])
 
 function save() {
+    if (!props.editable) return
     form
         .transform((data) => ({ weekly_hours: data.weekly_hours }))
         .put(`/personal/${props.token}`, { preserveScroll: true })
@@ -56,6 +60,14 @@ function save() {
             <Tabs v-model="tab" :tabs="tabs" />
         </template>
 
+        <p
+            v-if="!editable"
+            data-testid="locked-notice"
+            class="mb-5 rounded-md border border-(--color-badge-warning-border) bg-(--color-badge-warning-bg) px-3 py-2 text-sm text-(--color-badge-warning-text)"
+        >
+            {{ __('personal.locked_notice') }}
+        </p>
+
         <div v-show="tab === 'details'" data-testid="panel-details" class="space-y-5">
             <div class="space-y-1">
                 <p class="text-sm font-medium text-(--color-text-primary)">
@@ -65,9 +77,9 @@ function save() {
             </div>
 
             <form class="space-y-5" @submit.prevent="save">
-                <EmployeeFields :form="form" readonly-identity />
+                <EmployeeFields :form="form" readonly-identity :disabled="!editable" />
 
-                <div class="flex items-center justify-end gap-3">
+                <div v-if="editable" class="flex items-center justify-end gap-3">
                     <span v-if="form.recentlySuccessful" class="text-sm text-(--color-badge-success-text)">
                         {{ __('personal.saved') }}
                     </span>
@@ -89,6 +101,7 @@ function save() {
                     :shifts="shifts"
                     :availability="availability"
                     :endpoint="`/personal/${token}/availability`"
+                    :disabled="!editable"
                 />
             </section>
 
@@ -103,6 +116,7 @@ function save() {
                         :items="questions"
                         :answered-ids="questionAnswers"
                         :endpoint="`/personal/${token}/questions`"
+                        :disabled="!editable"
                     />
                 </section>
             </template>
@@ -113,7 +127,7 @@ function save() {
                 <h3 class="text-sm font-semibold text-(--color-text-primary)">
                     {{ __('availability.holidays.heading') }}
                 </h3>
-                <HolidayList :holidays="holidays" :endpoint="`/personal/${token}/holidays`" />
+                <HolidayList :holidays="holidays" :endpoint="`/personal/${token}/holidays`" :disabled="!editable" />
             </section>
         </div>
 
@@ -123,6 +137,7 @@ function save() {
                 :selected-ids="competenceIds"
                 :endpoint="`/personal/${token}/competences`"
                 empty-key="competences.checklist_empty"
+                :disabled="!editable"
             />
         </div>
     </CenteredLayout>

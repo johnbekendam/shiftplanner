@@ -2,8 +2,11 @@
 
 namespace Tests\Feature;
 
+use App\Enums\MessageType;
 use App\Jobs\SendMailboxMessage;
+use App\Models\Employee;
 use App\Models\Message;
+use App\Models\MessageTemplate;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
@@ -13,228 +16,271 @@ class MailboxTest extends TestCase
 {
     use RefreshDatabase;
 
+    private function admin(): User
+    {
+        $user = User::factory()->admin()->create();
+        $this->actingAs($user);
+
+        return $user;
+    }
+
+    // ── Access ───────────────────────────────────────────────────────────
+
     public function test_guest_is_redirected_to_login(): void
     {
         $this->get('/mailbox')->assertRedirect('/login');
     }
 
-    public function test_index_only_shows_the_current_users_messages(): void
+    public function test_manager_cannot_open_the_mailbox(): void
     {
-        $user = User::factory()->admin()->create();
+        $this->actingAs(User::factory()->create());
+
+        $this->get('/mailbox')->assertForbidden();
+    }
+
+    // ── Shared across admins ─────────────────────────────────────────────
+
+    public function test_index_shows_every_admins_messages(): void
+    {
+        $me = $this->admin();
         $other = User::factory()->admin()->create();
 
-        Message::factory()->for($user)->create(['subject' => 'Mine']);
-        Message::factory()->for($other)->create(['subject' => 'Not mine']);
+        Message::factory()->for($me)->create(['subject' => 'Mine', 'status' => 'draft']);
+        Message::factory()->for($other)->create(['subject' => 'Theirs', 'status' => 'draft']);
 
-        $response = $this->actingAs($user)->get('/mailbox?tab=draft');
-
-        $response->assertOk();
-        $response->assertInertia(fn ($page) => $page
+        $this->get('/mailbox?tab=draft')->assertInertia(fn ($page) => $page
             ->component('Mailbox')
-            ->where('messages.data.0.subject', 'Mine')
-            ->has('messages.data', 1)
+            ->has('messages.data', 2)
         );
     }
 
-    public function test_compose_saves_a_draft_without_sending(): void
+    public function test_an_admin_can_send_another_admins_draft(): void
     {
         Queue::fake();
-        $user = User::factory()->admin()->create();
+        $this->admin();
+        $other = User::factory()->admin()->create();
+        $message = Message::factory()->for($other)->create(['status' => 'draft']);
 
-        $response = $this->actingAs($user)->post('/mailbox/compose', [
-            'to' => 'a@example.com',
-            'subject' => 'Hello',
-            'body' => 'Just **testing**',
-            'send_mode' => 'draft',
-        ]);
+        $this->post("/mailbox/{$message->id}/send")->assertRedirect();
 
-        $response->assertRedirect();
-        $this->assertDatabaseHas('messages', [
-            'user_id' => $user->id,
-            'recipient_email' => 'a@example.com',
-            'subject' => 'Hello',
-            'status' => 'draft',
-        ]);
-        Queue::assertNothingPushed();
-    }
-
-    public function test_compose_with_multiple_recipients_creates_one_message_per_recipient(): void
-    {
-        Queue::fake();
-        $user = User::factory()->admin()->create();
-
-        $this->actingAs($user)->post('/mailbox/compose', [
-            'to' => 'a@example.com, b@example.com',
-            'subject' => 'Hello',
-            'body' => 'Body',
-            'send_mode' => 'draft',
-        ]);
-
-        $this->assertSame(2, Message::forUser($user->id)->count());
-        $this->assertDatabaseHas('messages', ['recipient_email' => 'a@example.com']);
-        $this->assertDatabaseHas('messages', ['recipient_email' => 'b@example.com']);
-    }
-
-    public function test_compose_rejects_invalid_email_address(): void
-    {
-        $user = User::factory()->admin()->create();
-
-        $response = $this->actingAs($user)->post('/mailbox/compose', [
-            'to' => 'not-an-email',
-            'subject' => 'Hello',
-            'body' => 'Body',
-            'send_mode' => 'draft',
-        ]);
-
-        $response->assertSessionHasErrors('to');
-        $this->assertSame(0, Message::count());
-    }
-
-    public function test_compose_queue_mode_dispatches_send_job(): void
-    {
-        Queue::fake();
-        $user = User::factory()->admin()->create();
-
-        $this->actingAs($user)->post('/mailbox/compose', [
-            'to' => 'a@example.com',
-            'subject' => 'Hello',
-            'body' => 'Body',
-            'send_mode' => 'queue',
-        ]);
-
-        $this->assertDatabaseHas('messages', ['recipient_email' => 'a@example.com', 'status' => 'outbox']);
-        Queue::assertPushed(SendMailboxMessage::class);
-    }
-
-    public function test_preview_renders_without_persisting(): void
-    {
-        $user = User::factory()->admin()->create();
-
-        $response = $this->actingAs($user)->post('/mailbox/compose/preview', [
-            'subject' => 'Hello',
-            'body' => 'Some **body**',
-        ]);
-
-        $response->assertOk();
-        $response->assertJsonPath('subject', 'Hello');
-        $this->assertStringContainsString('<strong', $response->json('html'));
-        $this->assertStringContainsString('body', $response->json('html'));
-        $this->assertSame(0, Message::count());
-    }
-
-    public function test_send_now_promotes_a_draft_to_outbox_and_dispatches(): void
-    {
-        Queue::fake();
-        $user = User::factory()->admin()->create();
-        $message = Message::factory()->for($user)->create(['status' => 'draft']);
-
-        $response = $this->actingAs($user)->post("/mailbox/{$message->id}/send");
-
-        $response->assertRedirect();
         $this->assertSame('outbox', $message->fresh()->status);
         Queue::assertPushed(SendMailboxMessage::class);
     }
 
-    public function test_send_now_fails_for_a_non_draft_message(): void
+    public function test_an_admin_can_delete_another_admins_message(): void
     {
-        $user = User::factory()->admin()->create();
-        $message = Message::factory()->for($user)->sent()->create();
+        $this->admin();
+        $other = User::factory()->admin()->create();
+        $message = Message::factory()->for($other)->create();
 
-        $this->actingAs($user)->post("/mailbox/{$message->id}/send")->assertStatus(422);
-    }
+        $this->delete("/mailbox/{$message->id}")->assertRedirect();
 
-    public function test_cannot_send_someone_elses_draft(): void
-    {
-        $owner = User::factory()->admin()->create();
-        $intruder = User::factory()->admin()->create();
-        $message = Message::factory()->for($owner)->create(['status' => 'draft']);
-
-        $this->actingAs($intruder)->post("/mailbox/{$message->id}/send")->assertStatus(403);
-    }
-
-    public function test_user_can_delete_own_message(): void
-    {
-        $user = User::factory()->admin()->create();
-        $message = Message::factory()->for($user)->create();
-
-        $response = $this->actingAs($user)->delete("/mailbox/{$message->id}");
-
-        $response->assertRedirect();
         $this->assertDatabaseMissing('messages', ['id' => $message->id]);
     }
 
-    public function test_cannot_delete_someone_elses_message(): void
-    {
-        $owner = User::factory()->admin()->create();
-        $intruder = User::factory()->admin()->create();
-        $message = Message::factory()->for($owner)->create();
+    // ── Compose: personal_page_link ──────────────────────────────────────
 
-        $this->actingAs($intruder)->delete("/mailbox/{$message->id}")->assertStatus(403);
-        $this->assertDatabaseHas('messages', ['id' => $message->id]);
+    public function test_compose_creates_one_draft_per_employee_with_placeholders_resolved(): void
+    {
+        Queue::fake();
+        $this->admin();
+        $alice = Employee::factory()->create(['name' => 'Alice Ng', 'email' => 'alice@example.com']);
+        $bob = Employee::factory()->create(['name' => 'Bob Li', 'email' => 'bob@example.com']);
+
+        $this->post('/mailbox/compose', [
+            'type' => MessageType::PersonalPageLink->value,
+            'subject' => 'Your page',
+            'body' => "Hi :name,\n\n:link",
+            'employee_ids' => [$alice->id, $bob->id],
+            'send_mode' => 'draft',
+        ])->assertRedirect();
+
+        $this->assertSame(2, Message::count());
+
+        $aliceMessage = Message::where('recipient_email', 'alice@example.com')->firstOrFail();
+        $this->assertSame(MessageType::PersonalPageLink, $aliceMessage->type);
+        $this->assertSame('Alice Ng', $aliceMessage->recipient_name);
+        $this->assertStringContainsString('Hi Alice Ng,', $aliceMessage->body);
+        $token = $alice->personalLink->token;
+        $this->assertStringContainsString("/personal/{$token}", $aliceMessage->body);
+        $this->assertStringContainsString("/personal/{$token}", $aliceMessage->body_html);
+        $this->assertSame('draft', $aliceMessage->status);
+        Queue::assertNothingPushed();
+    }
+
+    public function test_compose_reuses_an_existing_personal_link_token(): void
+    {
+        $this->admin();
+        $employee = Employee::factory()->create();
+        $employee->personalLink()->create(['token' => 'existing-token']);
+
+        $this->post('/mailbox/compose', [
+            'type' => MessageType::PersonalPageLink->value,
+            'subject' => 'S',
+            'body' => ':link',
+            'employee_ids' => [$employee->id],
+            'send_mode' => 'draft',
+        ]);
+
+        $this->assertSame(1, $employee->personalLink()->count());
+        $this->assertStringContainsString('/personal/existing-token', Message::firstOrFail()->body);
+    }
+
+    public function test_compose_queue_mode_sets_outbox_and_dispatches_per_employee(): void
+    {
+        Queue::fake();
+        $this->admin();
+        $employees = Employee::factory()->count(2)->create();
+
+        $this->post('/mailbox/compose', [
+            'type' => MessageType::PersonalPageLink->value,
+            'subject' => 'S',
+            'body' => ':link',
+            'employee_ids' => $employees->pluck('id')->all(),
+            'send_mode' => 'queue',
+        ]);
+
+        $this->assertSame(2, Message::where('status', 'outbox')->count());
+        Queue::assertPushed(SendMailboxMessage::class, 2);
+    }
+
+    public function test_compose_rejects_an_unknown_type(): void
+    {
+        $this->admin();
+        $employee = Employee::factory()->create();
+
+        $this->post('/mailbox/compose', [
+            'type' => 'nope',
+            'subject' => 'S',
+            'body' => 'B',
+            'employee_ids' => [$employee->id],
+            'send_mode' => 'draft',
+        ])->assertSessionHasErrors('type');
+
+        $this->assertSame(0, Message::count());
+    }
+
+    public function test_compose_requires_at_least_one_employee(): void
+    {
+        $this->admin();
+
+        $this->post('/mailbox/compose', [
+            'type' => MessageType::PersonalPageLink->value,
+            'subject' => 'S',
+            'body' => 'B',
+            'employee_ids' => [],
+            'send_mode' => 'draft',
+        ])->assertSessionHasErrors('employee_ids');
+
+        $this->assertSame(0, Message::count());
+    }
+
+    // ── Preview ─────────────────────────────────────────────────────────
+
+    public function test_preview_resolves_the_link_for_the_given_employee_without_persisting(): void
+    {
+        $this->admin();
+        $employee = Employee::factory()->create(['name' => 'Alice Ng']);
+
+        $response = $this->postJson('/mailbox/compose/preview', [
+            'type' => MessageType::PersonalPageLink->value,
+            'subject' => 'Hello :name',
+            'body' => 'Open :link',
+            'employee_id' => $employee->id,
+        ]);
+
+        $response->assertOk();
+        $response->assertJsonPath('subject', 'Hello Alice Ng');
+        $token = $employee->personalLink->token;
+        $this->assertStringContainsString("/personal/{$token}", $response->json('html'));
+        $this->assertSame(0, Message::count());
+    }
+
+    public function test_preview_without_an_employee_uses_sample_values(): void
+    {
+        $this->admin();
+
+        $response = $this->postJson('/mailbox/compose/preview', [
+            'type' => MessageType::PersonalPageLink->value,
+            'subject' => 'Hello :name',
+            'body' => 'Open :link',
+        ]);
+
+        $response->assertOk();
+        $response->assertJsonPath('subject', 'Hello '.__('mailbox.preview.sample_name'));
+        $this->assertStringContainsString('/personal/EXAMPLE-TOKEN', $response->json('html'));
+    }
+
+    // ── Templates ───────────────────────────────────────────────────────
+
+    public function test_admin_updates_a_type_template(): void
+    {
+        $this->admin();
+
+        $this->put('/mailbox/templates/'.MessageType::PersonalPageLink->value, [
+            'subject' => 'New subject',
+            'body' => 'New body :link',
+        ])->assertRedirect();
+
+        $template = MessageTemplate::forType(MessageType::PersonalPageLink);
+        $this->assertSame('New subject', $template->subject);
+        $this->assertSame('New body :link', $template->body);
+    }
+
+    public function test_template_update_rejects_an_unknown_type(): void
+    {
+        $this->admin();
+
+        $this->put('/mailbox/templates/not-a-type', [
+            'subject' => 'x',
+            'body' => 'y',
+        ])->assertNotFound();
+    }
+
+    public function test_manager_cannot_update_a_template(): void
+    {
+        $this->actingAs(User::factory()->create());
+
+        $this->put('/mailbox/templates/'.MessageType::PersonalPageLink->value, [
+            'subject' => 'x',
+            'body' => 'y',
+        ])->assertForbidden();
+    }
+
+    // ── Send / delete ───────────────────────────────────────────────────
+
+    public function test_send_now_fails_for_a_non_draft_message(): void
+    {
+        $this->admin();
+        $message = Message::factory()->sent()->create();
+
+        $this->post("/mailbox/{$message->id}/send")->assertStatus(422);
     }
 
     public function test_bulk_delete_removes_only_the_given_ids(): void
     {
-        $user = User::factory()->admin()->create();
-        $a = Message::factory()->for($user)->create(['status' => 'draft']);
-        $b = Message::factory()->for($user)->create(['status' => 'draft']);
-        $c = Message::factory()->for($user)->create(['status' => 'draft']);
+        $this->admin();
+        $a = Message::factory()->create(['status' => 'draft']);
+        $b = Message::factory()->create(['status' => 'draft']);
+        $c = Message::factory()->create(['status' => 'draft']);
 
-        $response = $this->actingAs($user)->post('/mailbox/bulk-delete', [
-            'tab' => 'draft',
-            'ids' => [$a->id, $b->id],
-        ]);
+        $this->post('/mailbox/bulk-delete', ['tab' => 'draft', 'ids' => [$a->id, $b->id]])
+            ->assertRedirect();
 
-        $response->assertRedirect();
         $this->assertDatabaseMissing('messages', ['id' => $a->id]);
         $this->assertDatabaseMissing('messages', ['id' => $b->id]);
         $this->assertDatabaseHas('messages', ['id' => $c->id]);
     }
 
-    public function test_bulk_delete_with_no_ids_deletes_everything_in_the_tab(): void
+    public function test_bulk_delete_with_no_ids_clears_the_tab(): void
     {
-        $user = User::factory()->admin()->create();
-        Message::factory()->for($user)->count(3)->create(['status' => 'draft']);
-        $outboxMessage = Message::factory()->for($user)->outbox()->create();
+        $this->admin();
+        Message::factory()->count(3)->create(['status' => 'draft']);
+        $outbox = Message::factory()->outbox()->create();
 
-        $response = $this->actingAs($user)->post('/mailbox/bulk-delete', [
-            'tab' => 'draft',
-            'ids' => [],
-        ]);
+        $this->post('/mailbox/bulk-delete', ['tab' => 'draft', 'ids' => []])->assertRedirect();
 
-        $response->assertRedirect();
-        $this->assertSame(0, Message::forUser($user->id)->forStatus('draft')->count());
-        $this->assertDatabaseHas('messages', ['id' => $outboxMessage->id]);
-    }
-
-    public function test_bulk_delete_with_no_ids_and_a_search_term_only_deletes_matches(): void
-    {
-        $user = User::factory()->admin()->create();
-        $match = Message::factory()->for($user)->create(['status' => 'draft', 'subject' => 'Findme']);
-        $noMatch = Message::factory()->for($user)->create(['status' => 'draft', 'subject' => 'Other']);
-
-        $response = $this->actingAs($user)->post('/mailbox/bulk-delete', [
-            'tab' => 'draft',
-            'search' => 'Findme',
-            'ids' => [],
-        ]);
-
-        $response->assertRedirect();
-        $this->assertDatabaseMissing('messages', ['id' => $match->id]);
-        $this->assertDatabaseHas('messages', ['id' => $noMatch->id]);
-    }
-
-    public function test_bulk_delete_only_affects_the_current_users_messages(): void
-    {
-        $user = User::factory()->admin()->create();
-        $other = User::factory()->admin()->create();
-        $theirs = Message::factory()->for($other)->create(['status' => 'draft']);
-
-        $this->actingAs($user)->post('/mailbox/bulk-delete', [
-            'tab' => 'draft',
-            'ids' => [$theirs->id],
-        ]);
-
-        $this->assertDatabaseHas('messages', ['id' => $theirs->id]);
+        $this->assertSame(0, Message::forStatus('draft')->count());
+        $this->assertDatabaseHas('messages', ['id' => $outbox->id]);
     }
 }

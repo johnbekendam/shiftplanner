@@ -69,13 +69,25 @@ function submit() {
                 <form class="space-y-5" @submit.prevent="submit">
                     <EmployeeFields :form="form" :business-lines="businessLines" />
 
-                    <div class="flex justify-end gap-3">
-                        <Link href="/employees">
-                            <ButtonSecondary type="button">{{ __('employees.action.cancel') }}</ButtonSecondary>
+                    <div class="flex items-center justify-between gap-3">
+                        <Link
+                            v-if="isEdit"
+                            :href="`/mailbox?tab=compose&type=personal_page_link&employee=${employee.id}`"
+                        >
+                            <ButtonSecondary type="button" icon="envelope">
+                                {{ employee.link_sent ? __('employees.action.resend_link') : __('employees.action.send_link') }}
+                            </ButtonSecondary>
                         </Link>
-                        <ButtonPrimary type="submit" :disabled="form.processing">
-                            {{ __('employees.action.save') }}
-                        </ButtonPrimary>
+                        <span v-else />
+
+                        <div class="flex gap-3">
+                            <Link href="/employees">
+                                <ButtonSecondary type="button">{{ __('employees.action.cancel') }}</ButtonSecondary>
+                            </Link>
+                            <ButtonPrimary type="submit" :disabled="form.processing">
+                                {{ __('employees.action.save') }}
+                            </ButtonPrimary>
+                        </div>
                     </div>
                 </form>
             </div>

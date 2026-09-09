@@ -8,6 +8,8 @@ const en = {
     "period.period_start": "Period start",
     "period.period_end": "Period end",
     "period.save": "Save period",
+    "general.allow_employee_changes": "Allow employees to change their own details",
+    "general.allow_employee_changes_hint": "When off, personal pages stay visible but read-only.",
 };
 
 const { putSpy } = vi.hoisted(() => ({ putSpy: vi.fn() }));
@@ -35,7 +37,7 @@ vi.mock("@inertiajs/vue3", () => ({
 }));
 
 import PeriodSettingsForm from "@/components/PeriodSettingsForm.vue";
-import { NumberInput, DateInput } from "@/components/ui/Input";
+import { NumberInput, DateInput, CheckboxInput } from "@/components/ui/Input";
 
 beforeEach(() => putSpy.mockReset());
 
@@ -68,5 +70,25 @@ describe("PeriodSettingsForm", () => {
         const [url, data] = putSpy.mock.calls[0];
         expect(url).toBe("/settings/period");
         expect(data).toMatchObject({ fte_hours: 40, period_start: null, period_end: null });
+    });
+
+    it("seeds the employee-changes toggle from the period prop and defaults it on", () => {
+        const on = mount(PeriodSettingsForm, { props: { period: {} } });
+        expect(on.findComponent(CheckboxInput).props("modelValue")).toBe(true);
+
+        const off = mount(PeriodSettingsForm, {
+            props: { period: { allow_employee_changes: false } },
+        });
+        expect(off.findComponent(CheckboxInput).props("modelValue")).toBe(false);
+    });
+
+    it("submits the employee-changes flag", async () => {
+        const w = mount(PeriodSettingsForm, {
+            props: { period: { fte_hours: 40, allow_employee_changes: false } },
+        });
+
+        await w.get("form").trigger("submit");
+
+        expect(putSpy.mock.calls[0][1]).toMatchObject({ allow_employee_changes: false });
     });
 });

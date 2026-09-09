@@ -1,14 +1,14 @@
 <script setup>
 import { useForm } from '@inertiajs/vue3'
 import LabeledInput from '@/components/LabeledInput.vue'
-import { NumberInput, DateInput } from '@/components/ui/Input'
+import { NumberInput, DateInput, CheckboxInput } from '@/components/ui/Input'
 import ButtonPrimary from '@/components/ui/ButtonPrimary.vue'
 import { useI18n } from '@/composables/useI18n'
 
 const __ = useI18n()
 
 const props = defineProps({
-    // { fte_hours, period_start, period_end } — dates are ISO strings or null.
+    // { fte_hours, period_start, period_end, allow_employee_changes } — dates are ISO strings or null.
     period: { type: Object, default: () => ({}) },
 })
 
@@ -16,6 +16,7 @@ const form = useForm({
     fte_hours: props.period.fte_hours ?? 40,
     period_start: props.period.period_start ?? '',
     period_end: props.period.period_end ?? '',
+    allow_employee_changes: props.period.allow_employee_changes ?? true,
 })
 
 function submit() {
@@ -41,6 +42,13 @@ function submit() {
         <LabeledInput :label="__('period.period_end')" :error="form.errors.period_end">
             <DateInput v-model="form.period_end" class="w-full" />
         </LabeledInput>
+
+        <div>
+            <CheckboxInput v-model="form.allow_employee_changes">
+                {{ __('general.allow_employee_changes') }}
+            </CheckboxInput>
+            <p class="mt-1 text-xs text-(--color-text-secondary)">{{ __('general.allow_employee_changes_hint') }}</p>
+        </div>
 
         <ButtonPrimary type="submit" :disabled="form.processing">
             {{ __('period.save') }}

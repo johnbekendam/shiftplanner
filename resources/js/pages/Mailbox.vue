@@ -7,7 +7,8 @@ import ButtonPrimary from '@/components/ui/ButtonPrimary.vue'
 import ButtonSecondary from '@/components/ui/ButtonSecondary.vue'
 import LabeledInput from '@/components/LabeledInput.vue'
 import EmailPreviewModal from '@/components/mailbox/EmailPreviewModal.vue'
-import { TextInput, MultilineInput, SearchInput, CheckboxInput } from '@/components/ui/Input'
+import EmployeeMultiSelect from '@/components/mailbox/EmployeeMultiSelect.vue'
+import { TextInput, MultilineInput, SearchInput, CheckboxInput, SelectInput } from '@/components/ui/Input'
 import { useI18n } from '@/composables/useI18n'
 
 const __ = useI18n()
@@ -17,6 +18,8 @@ const props = defineProps({
     tab:      { type: String, required: true },
     search:   { type: String, default: '' },
     counts:   { type: Object, default: () => ({}) },
+    // { types: [{value,label}], type, template: {subject, body}, employees: [{id,name,email}], preselected_employee_id }
+    compose:  { type: Object, default: null },
 })
 
 const tabs = ['compose', 'draft', 'outbox', 'sent']
@@ -78,10 +81,29 @@ function openRowPreview(message) {
 
 // ── Compose tab ──────────────────────────────────────────────────────────
 const composeForm = useForm({
-    to:      '',
-    subject: '',
-    body:    '',
+    type:         props.compose?.type ?? 'personal_page_link',
+    subject:      props.compose?.template?.subject ?? '',
+    body:         props.compose?.template?.body ?? '',
+    employee_ids: props.compose?.preselected_employee_id ? [props.compose.preselected_employee_id] : [],
 })
+
+const templateSaving = ref(false)
+
+function changeType(type) {
+    router.get('/mailbox', { tab: 'compose', type }, { preserveState: false })
+}
+
+function saveTemplate() {
+    templateSaving.value = true
+    router.put(`/mailbox/templates/${composeForm.type}`, {
+        subject: composeForm.subject,
+        body:    composeForm.body,
+    }, {
+        preserveScroll: true,
+        preserveState: true,
+        onFinish: () => { templateSaving.value = false },
+    })
+}
 
 async function previewCompose() {
     previewMessage.value = null
@@ -90,7 +112,12 @@ async function previewCompose() {
     const response = await fetch('/mailbox/compose/preview', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content },
-        body: JSON.stringify({ subject: composeForm.subject, body: composeForm.body }),
+        body: JSON.stringify({
+            type:        composeForm.type,
+            subject:     composeForm.subject,
+            body:        composeForm.body,
+            employee_id: composeForm.employee_ids[0] ?? null,
+        }),
     })
     const data = await response.json()
     previewSubject.value = data.subject
@@ -98,12 +125,12 @@ async function previewCompose() {
     previewLoading.value = false
 }
 
-function sendCompose(sendMode) {
+function submitCompose(sendMode) {
     composeForm.transform(data => ({
         ...data,
         send_mode: sendMode,
     })).post('/mailbox/compose', {
-        onSuccess: () => composeForm.reset(),
+        onSuccess: () => { composeForm.employee_ids = [] },
     })
 }
 
@@ -146,9 +173,13 @@ function deleteMessage(message) {
             <div class="p-6">
                 <!-- Compose tab -->
                 <div v-if="tab === 'compose'" class="space-y-5">
-                    <LabeledInput :label="__('mailbox.compose.to')" :error="composeForm.errors.to">
-                        <TextInput v-model="composeForm.to" class="w-full" />
-                        <p class="mt-1 text-xs text-(--color-text-secondary)">{{ __('mailbox.compose.to_hint') }}</p>
+                    <LabeledInput :label="__('mailbox.compose.type')">
+                        <SelectInput
+                            :model-value="composeForm.type"
+                            :options="compose?.types ?? []"
+                            class="w-full"
+                            @update:model-value="changeType"
+                        />
                     </LabeledInput>
 
                     <LabeledInput :label="__('mailbox.compose.subject')" :error="composeForm.errors.subject">
@@ -160,15 +191,29 @@ function deleteMessage(message) {
                         <p class="mt-1 text-xs text-(--color-text-secondary)">{{ __('mailbox.compose.body_hint') }}</p>
                     </LabeledInput>
 
+                    <div class="flex justify-end">
+                        <ButtonSecondary type="button" icon="check" :disabled="templateSaving" @click="saveTemplate">
+                            {{ __('mailbox.compose.template_save') }}
+                        </ButtonSecondary>
+                    </div>
+
+                    <LabeledInput :label="__('mailbox.compose.employees')" :error="composeForm.errors.employee_ids">
+                        <EmployeeMultiSelect
+                            v-model="composeForm.employee_ids"
+                            :employees="compose?.employees ?? []"
+                        />
+                        <p class="mt-1 text-xs text-(--color-text-secondary)">{{ __('mailbox.compose.employees_hint') }}</p>
+                    </LabeledInput>
+
                     <div class="flex justify-end gap-3">
                         <ButtonSecondary type="button" icon="eye" @click="previewCompose">
                             {{ __('mailbox.compose.preview') }}
                         </ButtonSecondary>
-                        <ButtonSecondary type="button" :disabled="composeForm.processing" @click="sendCompose('draft')">
-                            {{ __('mailbox.compose.save_draft') }}
+                        <ButtonSecondary type="button" :disabled="composeForm.processing || !composeForm.employee_ids.length" @click="submitCompose('draft')">
+                            {{ __('mailbox.compose.create_drafts') }}
                         </ButtonSecondary>
-                        <ButtonPrimary type="button" :disabled="composeForm.processing" @click="sendCompose('queue')">
-                            {{ __('mailbox.compose.send') }}
+                        <ButtonPrimary type="button" :disabled="composeForm.processing || !composeForm.employee_ids.length" @click="submitCompose('queue')">
+                            {{ __('mailbox.action.send_now') }}
                         </ButtonPrimary>
                     </div>
                 </div>
@@ -200,6 +245,7 @@ function deleteMessage(message) {
                                 </th>
                                 <th class="py-2">{{ __('mailbox.column.recipient') }}</th>
                                 <th class="py-2">{{ __('mailbox.column.subject') }}</th>
+                                <th class="py-2">{{ __('mailbox.column.composed_by') }}</th>
                                 <th class="py-2">{{ __('mailbox.column.status') }}</th>
                             </tr>
                         </thead>
@@ -218,10 +264,11 @@ function deleteMessage(message) {
                                 </td>
                                 <td class="py-2 text-(--color-table-row-text)">{{ message.recipient_email }}</td>
                                 <td class="py-2 text-(--color-table-row-text)">{{ message.subject }}</td>
+                                <td class="py-2 text-(--color-text-secondary)">{{ message.composed_by }}</td>
                                 <td class="py-2 text-(--color-text-secondary)">{{ message.status }}</td>
                             </tr>
                             <tr v-if="!messages.data.length">
-                                <td colspan="4" class="py-8 text-center text-(--color-text-secondary)">
+                                <td colspan="5" class="py-8 text-center text-(--color-text-secondary)">
                                     {{ __('mailbox.empty') }}
                                 </td>
                             </tr>

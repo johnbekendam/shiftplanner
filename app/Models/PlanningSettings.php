@@ -15,6 +15,7 @@ class PlanningSettings extends Model
         'period_start',
         'period_end',
         'shift_note',
+        'allow_employee_changes',
     ];
 
     protected function casts(): array
@@ -23,13 +24,17 @@ class PlanningSettings extends Model
             'fte_hours' => 'integer',
             'period_start' => 'date:Y-m-d',
             'period_end' => 'date:Y-m-d',
+            'allow_employee_changes' => 'boolean',
         ];
     }
 
     /** The single settings row, created with defaults on first read. */
     public static function current(): self
     {
-        return static::firstOrCreate(['id' => self::ID], ['fte_hours' => 40]);
+        return static::firstOrCreate(['id' => self::ID], [
+            'fte_hours' => 40,
+            'allow_employee_changes' => true,
+        ]);
     }
 
     /** The shift information note rendered to HTML, or null when blank. */
@@ -52,6 +57,7 @@ class PlanningSettings extends Model
             'fte_hours' => $this->fte_hours,
             'period_start' => $this->period_start?->toDateString(),
             'period_end' => $this->period_end?->toDateString(),
+            'allow_employee_changes' => $this->allow_employee_changes,
         ];
     }
 }

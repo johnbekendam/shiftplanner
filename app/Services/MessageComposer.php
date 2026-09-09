@@ -8,8 +8,9 @@ use League\CommonMark\Extension\CommonMark\CommonMarkCoreExtension;
 use League\CommonMark\MarkdownConverter;
 
 /**
- * Converts a user-written Markdown subject/body into HTML. No placeholder resolution —
- * compose is subject + Markdown body only, see doc/features/mailbox-baseline/spec.md.
+ * Converts a message's Markdown body into HTML. Placeholder resolution
+ * (:name, :link) happens before this, in App\Services\PersonalLinkMessage —
+ * see doc/features/mailbox/spec.md.
  */
 class MessageComposer
 {

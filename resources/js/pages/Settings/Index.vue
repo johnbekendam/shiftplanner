@@ -25,7 +25,7 @@ defineProps({
 const tab = ref('business_lines')
 const tabs = computed(() => [
     { value: 'business_lines', label: __('settings.tab.business_lines') },
-    { value: 'period', label: __('settings.tab.period') },
+    { value: 'general', label: __('settings.tab.general') },
     { value: 'shifts', label: __('settings.tab.shifts') },
     { value: 'information', label: __('settings.tab.information') },
     { value: 'questions', label: __('settings.tab.questions') },
@@ -46,7 +46,7 @@ const tabs = computed(() => [
                 <BusinessLineList :items="businessLines" endpoint="/settings/business-lines" />
             </div>
 
-            <div v-show="tab === 'period'" data-testid="panel-period" class="p-6">
+            <div v-show="tab === 'general'" data-testid="panel-general" class="p-6">
                 <PeriodSettingsForm :period="period" />
             </div>
 

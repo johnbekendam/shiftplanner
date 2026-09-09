@@ -29,6 +29,7 @@ class PersonalPageController extends Controller
 
         return Inertia::render('Personal/Show', [
             'token' => $token,
+            'editable' => PlanningSettings::current()->allow_employee_changes,
             'employee' => [
                 'name' => $employee->name,
                 'email' => $employee->email,

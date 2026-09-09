@@ -9,6 +9,8 @@ const props = defineProps({
     answeredIds: { type: Array, default: () => [] },
     // Base URL for the toggle, e.g. /employees/7/questions.
     endpoint: { type: String, required: true },
+    // Read-only: boxes render but do not toggle (employee change lock).
+    disabled: { type: Boolean, default: false },
 })
 
 // Each write keeps the component and the open tab mounted, the same as
@@ -16,6 +18,7 @@ const props = defineProps({
 const stay = { preserveScroll: true, preserveState: true }
 
 function toggle(item, answer) {
+    if (props.disabled) return
     router.put(`${props.endpoint}/${item.id}`, { answer }, stay)
 }
 </script>
@@ -25,6 +28,7 @@ function toggle(item, answer) {
         <div v-for="item in items" :key="item.id">
             <CheckboxInput
                 :model-value="answeredIds.includes(item.id)"
+                :disabled="disabled"
                 :data-testid="`question-${item.id}`"
                 @update:model-value="toggle(item, $event)"
             >

@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\MessageType;
 use App\Models\AvailabilityQuestion;
 use App\Models\BusinessLine;
 use App\Models\Competence;
 use App\Models\Employee;
+use App\Models\Message;
 use App\Models\PlanningSettings;
 use App\Models\Shift;
 use App\Services\EmployeePersonalLinkService;
@@ -43,11 +45,21 @@ class EmployeeController extends Controller
             $query->search($search);
         }
 
-        $employees = $query->paginate(20)->withQueryString()->through(fn (Employee $employee) => [
+        $employees = $query->paginate(20)->withQueryString();
+
+        $linkSent = Message::query()
+            ->where('type', MessageType::PersonalPageLink)
+            ->where('status', 'sent')
+            ->whereIn('recipient_email', $employees->pluck('email'))
+            ->pluck('recipient_email')
+            ->flip();
+
+        $employees = $employees->through(fn (Employee $employee) => [
             'id' => $employee->id,
             'name' => $employee->name,
             'business_line' => $employee->businessLine?->abbreviation,
             'weekly_hours' => $employee->weekly_hours,
+            'link_sent' => $linkSent->has($employee->email),
         ]);
 
         return Inertia::render('Employees/Index', [
@@ -76,7 +88,14 @@ class EmployeeController extends Controller
     public function edit(Employee $employee)
     {
         return Inertia::render('Employees/Form', [
-            'employee' => $employee->only(['id', 'name', 'email', 'weekly_hours', 'business_line_id']),
+            'employee' => [
+                ...$employee->only(['id', 'name', 'email', 'weekly_hours', 'business_line_id']),
+                'link_sent' => Message::query()
+                    ->where('type', MessageType::PersonalPageLink)
+                    ->where('status', 'sent')
+                    ->where('recipient_email', $employee->email)
+                    ->exists(),
+            ],
             'businessLines' => BusinessLine::all()->map->toPayload()->all(),
             'holidays' => $employee->holidays->map->toPayload()->all(),
             'shifts' => Shift::all()->map->toPayload()->all(),

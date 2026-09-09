@@ -14,6 +14,8 @@ const props = defineProps({
     endpoint: { type: String, required: true },
     // i18n key for the empty-list message.
     emptyKey: { type: String, required: true },
+    // Read-only: boxes render but do not toggle (employee change lock).
+    disabled: { type: Boolean, default: false },
 })
 
 // Each write keeps the component and the open tab mounted, the same as
@@ -21,6 +23,7 @@ const props = defineProps({
 const stay = { preserveScroll: true, preserveState: true }
 
 function toggle(item, checked) {
+    if (props.disabled) return
     const url = `${props.endpoint}/${item.id}`
     if (checked) {
         router.put(url, {}, stay)
@@ -35,6 +38,7 @@ function toggle(item, checked) {
         <div v-for="item in items" :key="item.id">
             <CheckboxInput
                 :model-value="selectedIds.includes(item.id)"
+                :disabled="disabled"
                 :data-testid="`tag-${item.id}`"
                 @update:model-value="toggle(item, $event)"
             >

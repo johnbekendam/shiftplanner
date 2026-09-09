@@ -12,6 +12,9 @@ const props = defineProps({
     form: { type: Object, required: true },
     // When true, name and email render read-only (used by the personal page).
     readonlyIdentity: { type: Boolean, default: false },
+    // When true, the editable fields (hours, business line) are disabled too
+    // (personal page under the employee change lock).
+    disabled: { type: Boolean, default: false },
     // Every business line as { id, abbreviation }. Empty hides the field.
     businessLines: { type: Array, default: () => [] },
 })
@@ -48,7 +51,7 @@ const businessLineOptions = computed(() => [
         </LabeledInput>
 
         <LabeledInput :label="__('employees.field.weekly_hours')" :error="form.errors.weekly_hours">
-            <SelectInput v-model="form.weekly_hours" :options="hoursOptions" class="w-full" />
+            <SelectInput v-model="form.weekly_hours" :options="hoursOptions" :disabled="disabled" class="w-full" />
         </LabeledInput>
 
         <LabeledInput
@@ -56,7 +59,7 @@ const businessLineOptions = computed(() => [
             :label="__('employees.field.business_line')"
             :error="form.errors.business_line_id"
         >
-            <SelectInput v-model="form.business_line_id" :options="businessLineOptions" class="w-full" />
+            <SelectInput v-model="form.business_line_id" :options="businessLineOptions" :disabled="disabled" class="w-full" />
         </LabeledInput>
     </div>
 </template>

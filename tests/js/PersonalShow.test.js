@@ -12,6 +12,7 @@ const en = {
     "personal.intro": "Choose how many hours you want to work each week.",
     "personal.action.save": "Save",
     "personal.saved": "Saved",
+    "personal.locked_notice": "Changes are currently closed by your planner.",
     "availability.tab.details": "Details",
     "availability.tab.availability": "Availability",
     "availability.holidays.empty": "No holidays yet.",
@@ -169,6 +170,34 @@ describe("Personal/Show", () => {
         const w = mountShow();
         expect(w.findComponent(QuestionChecklist).exists()).toBe(false);
         expect(w.get('[data-testid="panel-availability"]').text()).not.toContain("Questions");
+    });
+
+    it("is fully editable by default: no lock notice, controls enabled", () => {
+        const w = mountShow();
+        expect(w.find('[data-testid="locked-notice"]').exists()).toBe(false);
+        expect(w.findComponent(AvailabilityGrid).props("disabled")).toBe(false);
+        expect(w.findComponent(HolidayList).props("disabled")).toBe(false);
+        expect(w.findComponent(EmployeeFields).props("disabled")).toBe(false);
+        expect(w.get("form").text()).toContain("Save");
+    });
+
+    it("shows the lock notice and disables every control when editable is false", () => {
+        const w = mountShow([], {
+            editable: false,
+            competences: [{ id: 1, name: "Forklift" }],
+            competenceIds: [],
+            questions: [{ id: 5, text: "Weekend?" }],
+            questionAnswers: [],
+        });
+
+        expect(w.get('[data-testid="locked-notice"]').text()).toContain("closed by your planner");
+        expect(w.findComponent(AvailabilityGrid).props("disabled")).toBe(true);
+        expect(w.findComponent(HolidayList).props("disabled")).toBe(true);
+        expect(w.findComponent(QuestionChecklist).props("disabled")).toBe(true);
+        expect(w.findComponent(TagChecklist).props("disabled")).toBe(true);
+        expect(w.findComponent(EmployeeFields).props("disabled")).toBe(true);
+        // The Details save button is gone.
+        expect(w.get("form").text()).not.toContain("Save");
     });
 
     it("reveals the holiday list when the Availability tab is clicked", async () => {
