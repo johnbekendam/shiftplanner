@@ -10,13 +10,22 @@ const page = usePage()
 // changes height as the user interacts with it (tabs, expanding panels)
 // pass `top` so the card keeps a fixed position instead of drifting
 // vertically on every content swap.
-defineProps({
+const props = defineProps({
     align: {
         type: String,
         default: 'center',
         validator: (v) => ['center', 'top'].includes(v),
     },
+    // Card width. Login-shaped pages keep the default; content-heavy
+    // pages (the personal page) pass a wider value.
+    width: {
+        type: String,
+        default: 'md',
+        validator: (v) => ['md', 'lg'].includes(v),
+    },
 })
+
+const widthClass = { md: 'max-w-md', lg: 'max-w-lg' }[props.width]
 </script>
 
 <template>
@@ -35,7 +44,7 @@ defineProps({
             class="flex flex-col items-center min-h-full px-4"
             :class="align === 'top' ? 'justify-start pt-8 pb-12' : 'justify-center py-12'"
         >
-            <Card class="w-full max-w-md">
+            <Card class="w-full" :class="widthClass">
                 <template v-if="$slots.header || $slots.title" #header>
                     <slot name="header">
                         <div class="px-10 py-4 text-base font-semibold">

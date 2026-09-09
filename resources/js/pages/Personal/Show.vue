@@ -75,7 +75,7 @@ watch(tab, (next, prev) => {
 </script>
 
 <template>
-    <CenteredLayout align="top">
+    <CenteredLayout align="top" width="lg">
         <Head :title="__('personal.title')" />
 
         <template #header>
