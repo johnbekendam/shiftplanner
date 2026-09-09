@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Employee;
 use App\Models\PlanningSettings;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -95,5 +96,40 @@ class ShiftNoteTest extends TestCase
     public function test_note_html_is_null_when_blank(): void
     {
         $this->assertNull(PlanningSettings::current()->shiftNoteHtml());
+    }
+
+    public function test_employee_edit_payload_carries_the_rendered_note(): void
+    {
+        $this->actingAs(User::factory()->create());
+        PlanningSettings::current()->update(['shift_note' => '**Bold** note']);
+        $employee = Employee::factory()->create();
+
+        $this->get("/employees/{$employee->id}/edit")->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Employees/Form')
+                ->where('shiftNoteHtml', fn ($html) => str_contains((string) $html, '<strong>Bold</strong>'))
+            );
+    }
+
+    public function test_personal_show_payload_carries_the_rendered_note(): void
+    {
+        PlanningSettings::current()->update(['shift_note' => '**Bold** note']);
+        $employee = Employee::factory()->create();
+        $token = $employee->personalLink()->create(['token' => 'tok-note'])->token;
+
+        $this->get("/personal/{$token}")->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Personal/Show')
+                ->where('shiftNoteHtml', fn ($html) => str_contains((string) $html, '<strong>Bold</strong>'))
+            );
+    }
+
+    public function test_personal_show_note_is_null_when_unset(): void
+    {
+        $employee = Employee::factory()->create();
+        $token = $employee->personalLink()->create(['token' => 'tok-none'])->token;
+
+        $this->get("/personal/{$token}")->assertOk()
+            ->assertInertia(fn ($page) => $page->where('shiftNoteHtml', null));
     }
 }

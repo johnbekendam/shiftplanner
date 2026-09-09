@@ -1,6 +1,6 @@
 # Shift Information Note — Plan
 
-Status: in progress — 2/4
+Status: in progress — 3/4
 
 Spec: `spec.md`. Roadmap phase 3, after `features/shift-definitions/`.
 One global Markdown note on `planning_settings`, edited on the Shifts
@@ -34,7 +34,7 @@ settings tab, rendered at the top of the availability page.
   the endpoint) and `SettingsIndex.test.js` (the shifts panel mounts the
   form on its prop). `npm run test` and `npm run build` green.
 
-- [ ] 3. **Render the note atop the availability page.**
+- [x] 3. **Render the note atop the availability page.**
   `EmployeeController@edit` and `PersonalPageController@show` payloads add
   `shiftNoteHtml` from `PlanningSettings::current()->shiftNoteHtml()`.
   New `resources/js/components/ShiftNote.vue`: an `html` prop; renders a

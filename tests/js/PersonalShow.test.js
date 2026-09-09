@@ -56,6 +56,7 @@ import Show from "@/pages/Personal/Show.vue";
 import EmployeeFields from "@/components/EmployeeFields.vue";
 import HolidayList from "@/components/HolidayList.vue";
 import AvailabilityGrid from "@/components/AvailabilityGrid.vue";
+import ShiftNote from "@/components/ShiftNote.vue";
 import TagChecklist from "@/components/TagChecklist.vue";
 import SelectInput from "@/components/ui/Input/Select.vue";
 
@@ -124,6 +125,18 @@ describe("Personal/Show", () => {
     it("points the availability grid at the token endpoint", () => {
         const w = mountShow();
         expect(w.findComponent(AvailabilityGrid).props("endpoint")).toBe("/personal/tok-1/availability");
+    });
+
+    it("renders the shift note at the top of the Availability tab when set", () => {
+        const w = mountShow([], { shiftNoteHtml: "<p>Allowances table here</p>" });
+        const note = w.findComponent(ShiftNote);
+        expect(note.exists()).toBe(true);
+        expect(note.props("html")).toBe("<p>Allowances table here</p>");
+        expect(w.get('[data-testid="panel-availability"]').text()).toContain("Allowances table here");
+    });
+
+    it("renders no shift note when the prop is absent", () => {
+        expect(mountShow().findComponent(ShiftNote).exists()).toBe(false);
     });
 
     it("has a Profile tab with competence and product-group checklists on the token endpoints", () => {

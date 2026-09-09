@@ -39,6 +39,7 @@ import Form from "@/pages/Employees/Form.vue";
 import EmployeeFields from "@/components/EmployeeFields.vue";
 import HolidayList from "@/components/HolidayList.vue";
 import AvailabilityGrid from "@/components/AvailabilityGrid.vue";
+import ShiftNote from "@/components/ShiftNote.vue";
 import TagChecklist from "@/components/TagChecklist.vue";
 
 const stubs = { AppLayout: { template: "<div><slot /></div>" } };
@@ -72,6 +73,30 @@ describe("Employees/Form", () => {
 
         expect(hidden('[data-testid="panel-details"]')).toBe(true);
         expect(hidden('[data-testid="panel-availability"]')).toBe(false);
+    });
+
+    it("renders the shift note at the top of the Availability tab when set", () => {
+        const w = mount(Form, {
+            props: {
+                employee: { id: 3, name: "A", email: "a@b.c", weekly_hours: 24 },
+                holidays: [],
+                shiftNoteHtml: "<p>Allowances table here</p>",
+            },
+            global: { stubs },
+        });
+
+        const note = w.findComponent(ShiftNote);
+        expect(note.exists()).toBe(true);
+        expect(note.props("html")).toBe("<p>Allowances table here</p>");
+        expect(w.get('[data-testid="panel-availability"]').text()).toContain("Allowances table here");
+    });
+
+    it("renders no shift note when the prop is absent", () => {
+        const w = mount(Form, {
+            props: { employee: { id: 3, name: "A", email: "a@b.c", weekly_hours: 24 }, holidays: [] },
+            global: { stubs },
+        });
+        expect(w.findComponent(ShiftNote).exists()).toBe(false);
     });
 
     it("on create, the Availability tab explains the employee must be saved first", () => {

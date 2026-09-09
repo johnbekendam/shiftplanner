@@ -6,6 +6,7 @@ import CardSeparator from '@/components/ui/CardSeparator.vue'
 import Tabs from '@/components/ui/Tabs.vue'
 import EmployeeFields from '@/components/EmployeeFields.vue'
 import AvailabilityGrid from '@/components/AvailabilityGrid.vue'
+import ShiftNote from '@/components/ShiftNote.vue'
 import HolidayList from '@/components/HolidayList.vue'
 import TagChecklist from '@/components/TagChecklist.vue'
 import ButtonPrimary from '@/components/ui/ButtonPrimary.vue'
@@ -18,6 +19,7 @@ const props = defineProps({
     employee: { type: Object, required: true },
     holidays: { type: Array, default: () => [] },
     shifts: { type: Array, default: () => [] },
+    shiftNoteHtml: { type: String, default: null },
     availability: { type: Array, default: () => [] },
     competences: { type: Array, default: () => [] },
     competenceIds: { type: Array, default: () => [] },
@@ -76,6 +78,8 @@ function save() {
         </div>
 
         <div v-show="tab === 'availability'" data-testid="panel-availability">
+            <ShiftNote v-if="shiftNoteHtml" :html="shiftNoteHtml" class="mb-6" />
+
             <section class="space-y-3">
                 <h3 class="text-sm font-semibold text-(--color-text-primary)">
                     {{ __('availability.grid.heading') }}

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Competence;
 use App\Models\Employee;
+use App\Models\PlanningSettings;
 use App\Models\ProductGroup;
 use App\Models\Shift;
 use App\Services\EmployeePersonalLinkService;
@@ -35,6 +36,7 @@ class PersonalPageController extends Controller
             ],
             'holidays' => $employee->holidays->map->toPayload()->all(),
             'shifts' => Shift::all()->map->toPayload()->all(),
+            'shiftNoteHtml' => PlanningSettings::current()->shiftNoteHtml(),
             'availability' => $employee->recurringAvailabilities->map->toPayload()->all(),
             'competences' => Competence::all()->map->toPayload()->all(),
             'competenceIds' => $employee->competences->pluck('id')->all(),
