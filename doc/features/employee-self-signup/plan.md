@@ -1,6 +1,6 @@
 # Employee Self-Signup — Plan
 
-Status: in progress — 1/6
+Status: in progress — 2/6
 
 - [x] **1. `messages.user_id` nullable.** Fold `->nullable()` into the
   `create_messages_table` migration, keeping the FK and
@@ -9,7 +9,7 @@ Status: in progress — 1/6
   null. Test: a `Message` saves with `user_id` null; the mailbox index
   payload returns the self-signup label for that row.
 
-- [ ] **2. Signup service — create-or-find plus send.** A
+- [x] **2. Signup service — create-or-find plus send.** A
   `SelfSignupService` (or a method group) that takes first name, last
   name, email and: matches an employee by lower-cased email, creates one
   when none matches, ensures the personal link, and creates the
