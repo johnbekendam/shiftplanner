@@ -95,6 +95,10 @@ and delete shifts (name, start time, end time; ordered by start time).
 The recurring availability grid now has one row per defined shift instead
 of the three fixed dayparts.
 
+Also shipped (`features/shift-info-note/`): one global Markdown note on
+the Shifts tab, rendered at the top of every employee's availability page
+— typically an allowances table per shift.
+
 Still to design: required headcount per shift and the shift-to-workcenter
 link. Calendar recurrence and date-specific exceptions stay in phase 4.
 

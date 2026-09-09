@@ -62,6 +62,11 @@ Shifts are global, not per Business Line. Required headcount and the link
 from a shift to a workcenter come in a later phase. The recurring
 availability grid has one row per shift.
 
+The Shifts settings tab also holds one global Markdown note — shift
+information such as an allowances table. It renders at the top of every
+employee's availability page, on the manager editor and the personal
+page. Only an admin edits it.
+
 ### Dashboard
 
 The signed-in landing page. It reads a global planning period (a start

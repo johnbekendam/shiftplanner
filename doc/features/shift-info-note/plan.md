@@ -1,6 +1,6 @@
 # Shift Information Note — Plan
 
-Status: in progress — 3/4
+Status: done — 4/4
 
 Spec: `spec.md`. Roadmap phase 3, after `features/shift-definitions/`.
 One global Markdown note on `planning_settings`, edited on the Shifts
@@ -50,7 +50,7 @@ settings tab, rendered at the top of the availability page.
   above the grid when the prop is set). `npm run test` and `npm run
   build` green.
 
-- [ ] 4. **Docs and full checks.** `doc/roadmap.md` — the phase 3
+- [x] 4. **Docs and full checks.** `doc/roadmap.md` — the phase 3
   Shifts note mentions the information block. `doc/concept.md` — the
   Shifts section notes the Markdown information block shown on the
   availability page. Set this `plan.md` header to `4/4`. Run Pint,
