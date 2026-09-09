@@ -1,6 +1,6 @@
 # Employee Self-Signup — Plan
 
-Status: in progress — 5/6
+Status: done — 6/6
 
 - [x] **1. `messages.user_id` nullable.** Fold `->nullable()` into the
   `create_messages_table` migration, keeping the FK and
@@ -40,6 +40,6 @@ Status: in progress — 5/6
   `Login.vue`, pointing at `/signup`, using a `signup.*` key. Test:
   the login page renders and the `signup.login_link` key exists.
 
-- [ ] **6. Full-suite pass and docs.** Run `php artisan test` and
+- [x] **6. Full-suite pass and docs.** Run `php artisan test` and
   `npm run test`; fix any regression. Mark the roadmap phase 2 note
   and this plan done.

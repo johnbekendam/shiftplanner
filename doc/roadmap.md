@@ -17,6 +17,7 @@ starts, a `plan.md` (the steps and progress).
 | 3.6 | Product groups | Removed | Shipped, then removed from the product. Tables dropped by `2026_09_09_000007`; the config tab, per-employee checklist, routes, and language keys are gone. |
 | 3.7 | Account management (interim auth) — admin/manager roles, password or email code, admin `/users`, account page | Done | `features/account-management/`. Entra ID, the PostgreSQL switch, and employee token hardening stay in phase 2. |
 | 3.8 | Mailbox and employee change lock — typed messages with a reusable template, one type (personal-page link), Microsoft Graph transport prepared but inert; a global switch that makes the personal page read-only | Mostly done | Both features shipped (`features/mailbox/`, `features/employee-change-lock/`). Only the Graph tenant values (Azure app registration, shared mailbox, admin consent) are pending, on a machine with tenant access. Supersedes the phase-2 `mailto:` line with a shared Graph mailbox. |
+| 3.9 | Employee self-signup — a public page where a person requests their personal-page link by first name, last name and email; creates the employee when none matches, then sends the link through the mailbox pipeline | Done | `features/employee-self-signup/`. Token hardening stays in phase 2. |
 | 4 | Availability and wishes — recurring availability, date-specific exceptions, fairness model | In progress | Holidays and the recurring availability grid shipped (`features/employee-availability/`); the grid is weekday-only and carries manager-defined yes/no questions (`features/availability-questions/`). Fairness model still needs a design session. |
 | 5 | Scheduling engine — Python OR-Tools `/solve` service, JSON contract, `GeneratePlan` job, draft review and edit | Planned | depends on phases 3 and 4 |
 | 6 | Publish and employee schedule view — publish a plan, employees see own assignments only | Planned | — |
@@ -75,7 +76,8 @@ Required before any real employee use.
 - Employees: replace preview tokens with hashed, cryptographically random,
   expiring, revocable tokens. A dedicated employee guard and middleware.
   Regeneration and audit fields. Negative security tests for unauthorized
-  access.
+  access. The phase 3.9 self-signup page issues the same prototype token
+  and is hardened here too.
 - Invitation delivery is handled in phase 3.8 (`features/mailbox/`): a
   shared-mailbox Microsoft Graph transport sends the personal link. The
   original `mailto:` plan is dropped.
