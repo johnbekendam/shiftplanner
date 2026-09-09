@@ -1,6 +1,6 @@
 # Business Lines — Plan
 
-Status: in progress — 7/8
+Status: done — 8/8
 
 Spec: `spec.md`. Roadmap phase 3. Business Lines replace Departments.
 The Settings CRUD mirrors `ProductGroupController`.
@@ -134,7 +134,7 @@ The Settings CRUD mirrors `ProductGroupController`.
   `DashboardIndex.test.js` (one chart per block, overall first). `npm run
   test` and `npm run build` green.
 
-- [ ] 8. **Docs and full checks.** `doc/roadmap.md` — rewrite the phase 3
+- [x] 8. **Docs and full checks.** `doc/roadmap.md` — rewrite the phase 3
   row and section as Business Lines (replaces Departments; standard day
   schedules still later), note the dashboard and planning settings.
   `doc/concept.md` — a Business Lines entry under Core Data, replace the

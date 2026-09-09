@@ -14,10 +14,12 @@ The first useful capability is employee administration: managers can add people 
 
 Managers administer the organization:
 
-- Create departments and standard day schedules.
-- Maintain the competence list on the Settings page.
+- Create Business Lines and standard day schedules.
+- Maintain the competence, product group, and Business Line lists, and
+  the planning period, on the Settings page.
+- Watch available FTE over the period on the dashboard.
 - Add and edit employees.
-- Assign every employee to exactly one department.
+- Assign each employee to a Business Line.
 - Set shift coverage requirements.
 - Generate, review, edit, and publish schedules.
 - Send employee invitations with a prepared `mailto:` message containing a personal link.
@@ -35,11 +37,30 @@ Employees cannot view other employees, edit departmental schedules, or publish p
 
 ## Core Data
 
-### Departments and Standard Schedules
+### Business Lines and Standard Schedules
 
-Each department owns its schedule definition. A standard day schedule contains one or more shifts. Every shift specifies its time range and required employee count.
+A Business Line is the org unit an employee belongs to. It has an
+abbreviation, a description, a target FTE, and a manual order. Managers
+maintain the list on the Settings page. Each employee is assigned to at
+most one Business Line, on the employee Details tab. Business Lines take
+the slot the earlier plan called "Departments"; there is no separate
+Department record.
+
+Each Business Line owns its schedule definition later. A standard day
+schedule contains one or more shifts. Every shift specifies its time
+range and required employee count.
 
 The exact calendar model, including weekly recurrence and date-specific exceptions, is intentionally deferred until planning cadence is known.
+
+### Dashboard
+
+The signed-in landing page. It reads a global planning period (a start
+date, an end date) and the weekly hours that count as one FTE, both set
+on the Settings page. For each day in the period it charts available FTE:
+an employee counts `weekly_hours / fte_hours` on a weekday, and nothing
+on a weekend or a holiday. One chart totals every employee against the
+summed Business Line targets; one chart per Business Line totals its
+members against that line's target.
 
 ### Competences
 
@@ -72,10 +93,12 @@ An employee record contains:
 - Preferred product groups: the product families the employee would
   rather work on, checked from the configurable product group list. A
   manager or the employee maintains them. Planning use comes later.
+- Business Line: the org unit the employee belongs to, chosen from the
+  configurable Business Line list. Optional. A manager sets it; the
+  personal page does not show it.
 
-Department and the old morning/evening/either preference were
-placeholders and are removed. Departments return as a configurable set in
-phase 3. The recurring grid replaces the preference. Its dayparts map to
+The old morning/evening/either preference was a placeholder and is
+removed. The recurring grid replaces the preference. Its dayparts map to
 named shifts in phase 3.
 
 ## Planning Workflow

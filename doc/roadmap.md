@@ -12,7 +12,7 @@ starts, a `plan.md` (the steps and progress).
 | 0 | Scaffold — TeamApps template snapshot, SQLite dev DB, compose stub | Done | — |
 | 1 | Employee admin prototype — manager employee list/editor, personal-page preview link | Done | `features/employee-admin/spec.md`, `features/employee-admin/plan.md` |
 | 2 | Auth hardening — manager Entra ID (OIDC), employee token hardening | Planned | grill first, then `features/auth-hardening/spec.md` |
-| 3 | Departments and standard day schedules — management UI, shift coverage requirements | Planned | grill first |
+| 3 | Business Lines and standard day schedules — config list, per-employee assignment, FTE dashboard; then schedules and coverage | In progress | Business Lines shipped (`features/business-lines/`). Standard day schedules and shift coverage still need a design session. |
 | 3.5 | Competences — config list on a Settings page, per-employee checkmarks | Done | `features/competences/spec.md`, `features/competences/plan.md`. Planning use is out of scope. |
 | 3.6 | Product groups — config list on the Settings page, per-employee preferences | Done | `features/product-groups/spec.md`, `features/product-groups/plan.md`. Planning use is out of scope. |
 | 3.7 | Account management (interim auth) — admin/manager roles, password or email code, admin `/users`, account page | Done | `features/account-management/`. Entra ID, the PostgreSQL switch, and employee token hardening stay in phase 2. |
@@ -77,12 +77,22 @@ Required before any real employee use.
   access.
 - `mailto:` invitation generation from the manager's employee editor.
 
-## Phase 3 — Departments and standard day schedules
+## Phase 3 — Business Lines and standard day schedules
 
-Department management UI. Each department owns its schedule definition. A
-standard day schedule holds one or more shifts, each with a time range and
-a required employee count. Calendar recurrence and date-specific
-exceptions are deferred to phase 4.
+Business Lines are the org unit, taking the slot the plan first called
+"Departments". See `features/business-lines/`.
+
+Shipped: a Settings tab to add, edit, reorder, and delete Business Lines
+(abbreviation, description, target FTE); an optional Business Line select
+on the employee Details tab; a Settings tab for the planning period
+(start date, end date, hours per FTE); and a dashboard, now the landing
+page, that charts available FTE per day — `weekly_hours / fte_hours` on a
+weekday, nothing on a weekend or holiday — for every employee and for
+each Business Line against its target.
+
+Still to design: each Business Line's standard day schedule — one or more
+shifts, each with a time range and a required employee count. Calendar
+recurrence and date-specific exceptions stay in phase 4.
 
 ## Phase 3.5 — Competences
 
