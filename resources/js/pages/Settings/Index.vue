@@ -22,12 +22,12 @@ defineProps({
     period: { type: Object, default: () => ({}) },
 })
 
-const tab = ref('competences')
+const tab = ref('business_lines')
 const tabs = computed(() => [
-    { value: 'competences', label: __('settings.tab.competences') },
     { value: 'business_lines', label: __('settings.tab.business_lines') },
-    { value: 'shifts', label: __('settings.tab.shifts') },
     { value: 'period', label: __('settings.tab.period') },
+    { value: 'shifts', label: __('settings.tab.shifts') },
+    { value: 'competences', label: __('settings.tab.competences') },
 ])
 </script>
 
@@ -40,16 +40,12 @@ const tabs = computed(() => [
                 <Tabs v-model="tab" :tabs="tabs" />
             </template>
 
-            <div v-show="tab === 'competences'" data-testid="panel-competences" class="p-6">
-                <OrderedNameList
-                    :items="competences"
-                    endpoint="/settings/competences"
-                    i18n-prefix="competences"
-                />
-            </div>
-
             <div v-show="tab === 'business_lines'" data-testid="panel-business-lines" class="p-6">
                 <BusinessLineList :items="businessLines" endpoint="/settings/business-lines" />
+            </div>
+
+            <div v-show="tab === 'period'" data-testid="panel-period" class="p-6">
+                <PeriodSettingsForm :period="period" />
             </div>
 
             <div v-show="tab === 'shifts'" data-testid="panel-shifts" class="p-6">
@@ -58,8 +54,12 @@ const tabs = computed(() => [
                 <ShiftNoteForm :note="shiftNote" />
             </div>
 
-            <div v-show="tab === 'period'" data-testid="panel-period" class="p-6">
-                <PeriodSettingsForm :period="period" />
+            <div v-show="tab === 'competences'" data-testid="panel-competences" class="p-6">
+                <OrderedNameList
+                    :items="competences"
+                    endpoint="/settings/competences"
+                    i18n-prefix="competences"
+                />
             </div>
         </Card>
     </AppLayout>

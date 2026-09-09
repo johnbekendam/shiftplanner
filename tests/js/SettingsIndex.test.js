@@ -116,17 +116,18 @@ describe("Settings/Index", () => {
         expect(byEndpoint["/settings/product-groups"]).toBeUndefined();
     });
 
-    it("switches to the Business lines panel when its tab is clicked", async () => {
+    it("opens on the Business lines panel and switches on a tab click", async () => {
         const w = mountPage();
         const hidden = (sel) => (w.get(sel).attributes("style") ?? "").includes("display: none");
 
-        expect(hidden('[data-testid="panel-business-lines"]')).toBe(true);
+        expect(hidden('[data-testid="panel-business-lines"]')).toBe(false);
+        expect(hidden('[data-testid="panel-shifts"]')).toBe(true);
 
-        const tab = w.findAll("button").find((b) => b.text() === "Business lines");
+        const tab = w.findAll("button").find((b) => b.text() === "Shifts");
         await tab.trigger("click");
         await w.vm.$nextTick();
 
-        expect(hidden('[data-testid="panel-business-lines"]')).toBe(false);
-        expect(hidden('[data-testid="panel-competences"]')).toBe(true);
+        expect(hidden('[data-testid="panel-shifts"]')).toBe(false);
+        expect(hidden('[data-testid="panel-business-lines"]')).toBe(true);
     });
 });
