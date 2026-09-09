@@ -66,8 +66,9 @@ class ThemeTokens
         // brand_bg / brand_text drive the checkbox check, radio dot, toggle,
         // slider fill, and the email accent. Pagination has its own
         // pagination_active_* tokens now. Not shown in the builder — see
-        // UNLISTED_COLORS. The primary button has its own btn_primary_* tokens.
-        'brand_bg' => ['light' => 'indigo-600', 'dark' => 'indigo-600'],
+        // UNLISTED_COLORS; brand_bg follows the brand ramp until it gets its
+        // own picker. The primary button has its own btn_primary_* tokens.
+        'brand_bg' => ['light' => 'brand-600', 'dark' => 'brand-600'],
         'brand_text' => ['light' => 'white', 'dark' => 'white'],
 
         // Buttons: variant x state x slot. Disabled shares one muted look.

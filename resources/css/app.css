@@ -78,7 +78,7 @@ html.dark {
 
   /* Brand accent — checkbox/radio/toggle/slider fill + email accent.
      Pagination has its own --color-pagination-active-* tokens. */
-  --color-brand-bg: var(--color-indigo-600);
+  --color-brand-bg: var(--color-brand-600);
   --color-brand-text: var(--color-white);
 
   /* Buttons — variant x state x slot */
