@@ -8,7 +8,6 @@ const en = {
     "nav.account": "Account",
     "nav.users": "Users",
     "nav.settings": "Settings",
-    "nav.theme_builder": "Theme Builder",
 };
 
 const state = vi.hoisted(() => ({ user: null }));
@@ -41,11 +40,11 @@ describe("AppLayout navigation", () => {
         expect(hrefs).toEqual(["/dashboard", "/employees"]);
     });
 
-    it("shows Users, Settings and Theme Builder to an admin", () => {
+    it("shows Users and Settings to an admin, but not Theme Builder", () => {
         state.user = { role: "admin" };
         const hrefs = navHrefs(mount(AppLayout, { global: { stubs } }));
 
-        expect(hrefs).toEqual(["/dashboard", "/employees", "/users", "/settings", "/theme-builder"]);
+        expect(hrefs).toEqual(["/dashboard", "/employees", "/users", "/settings"]);
     });
 
     it("adds a My details link when the account is linked to an employee", () => {

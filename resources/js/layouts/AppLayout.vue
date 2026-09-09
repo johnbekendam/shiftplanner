@@ -52,8 +52,8 @@ const navItems = computed(() => {
         items.push(
             { label: __('nav.users'), href: '/users', icon: 'user-plus' },
             { label: __('nav.settings'), href: '/settings', icon: 'cog' },
-            { label: __('nav.theme_builder'), href: '/theme-builder', icon: 'swatch' },
         )
+        // Theme builder stays reachable at /theme-builder but is not in the nav.
     }
 
     return items
