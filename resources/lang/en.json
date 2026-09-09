@@ -206,6 +206,14 @@
     "business_lines.flash.updated": "Business line updated.",
     "business_lines.flash.deleted": "Business line deleted.",
 
+    "period.fte_hours": "Hours per FTE",
+    "period.fte_hours_hint": "Weekly hours that count as one full-time equivalent.",
+    "period.period_start": "Period start",
+    "period.period_end": "Period end",
+    "period.save": "Save period",
+    "period.flash.saved": "Period saved.",
+    "period.error.range": "The period end cannot be before the start.",
+
     "profile.tab": "Profile",
     "profile.competences_heading": "Competences",
     "profile.product_groups_heading": "Preferred product groups",

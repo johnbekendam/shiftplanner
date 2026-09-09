@@ -10,6 +10,7 @@ use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\EmployeeHolidayController;
 use App\Http\Controllers\EmployeeProductGroupController;
 use App\Http\Controllers\MailboxController;
+use App\Http\Controllers\PeriodController;
 use App\Http\Controllers\PersonalCompetenceController;
 use App\Http\Controllers\PersonalHolidayController;
 use App\Http\Controllers\PersonalPageController;
@@ -53,6 +54,7 @@ Route::middleware('auth')->group(function () {
         Route::put('/settings/business-lines/{businessLine}/move', [BusinessLineController::class, 'move'])->name('settings.business-lines.move');
         Route::put('/settings/business-lines/{businessLine}', [BusinessLineController::class, 'update'])->name('settings.business-lines.update');
         Route::delete('/settings/business-lines/{businessLine}', [BusinessLineController::class, 'destroy'])->name('settings.business-lines.destroy');
+        Route::put('/settings/period', [PeriodController::class, 'update'])->name('settings.period.update');
 
         Route::get('/mailbox', [MailboxController::class, 'index'])->name('mailbox.index');
         Route::post('/mailbox/compose', [MailboxController::class, 'store'])->name('mailbox.compose');

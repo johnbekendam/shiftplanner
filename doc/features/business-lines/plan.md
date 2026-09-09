@@ -1,6 +1,6 @@
 # Business Lines — Plan
 
-Status: in progress — 3/8
+Status: in progress — 4/8
 
 Spec: `spec.md`. Roadmap phase 3. Business Lines replace Departments.
 The Settings CRUD mirrors `ProductGroupController`.
@@ -65,7 +65,7 @@ The Settings CRUD mirrors `ProductGroupController`.
   `SettingsIndex.test.js` (the new tab mounts the list on its endpoint).
   `npm run test` and `npm run build` green.
 
-- [ ] 4. **Backend: planning settings.** Migration `planning_settings`
+- [x] 4. **Backend: planning settings.** Migration `planning_settings`
   (`fte_hours` unsigned small int default 40, `period_start` date
   nullable, `period_end` date nullable, timestamps). `PlanningSettings`
   model with `$fillable` the three fields, date casts, and a static

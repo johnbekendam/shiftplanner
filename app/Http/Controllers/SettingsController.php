@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\BusinessLine;
 use App\Models\Competence;
+use App\Models\PlanningSettings;
 use App\Models\ProductGroup;
 use Inertia\Inertia;
 
@@ -15,6 +16,7 @@ class SettingsController extends Controller
             'competences' => $this->listWithHolderCount(Competence::query()),
             'productGroups' => $this->listWithHolderCount(ProductGroup::query()),
             'businessLines' => $this->businessLines(),
+            'period' => PlanningSettings::current()->toPayload(),
         ]);
     }
 
