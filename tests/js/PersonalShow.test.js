@@ -73,6 +73,7 @@ import AvailabilityGrid from "@/components/AvailabilityGrid.vue";
 import ShiftNote from "@/components/ShiftNote.vue";
 import TagChecklist from "@/components/TagChecklist.vue";
 import QuestionChecklist from "@/components/QuestionChecklist.vue";
+import SelectInput from "@/components/ui/Input/Select.vue";
 
 const mountShow = (holidays = [], extra = {}) =>
     mount(Show, {
@@ -145,6 +146,50 @@ describe("Personal/Show", () => {
 
         expect(form.lastPut.url).toBe("/personal/tok-1");
         expect(form.lastPut.data).toEqual({ weekly_hours: 24, business_line_id: null });
+    });
+
+    it("auto-saves when the business line changes, and keeps the Save button", async () => {
+        const w = mountShow([], { businessLines: [{ id: 5, abbreviation: "PMP" }] });
+        form.lastPut = undefined;
+
+        w.get('[data-testid="panel-details"]').findComponent(SelectInput)
+            .vm.$emit("update:modelValue", 5);
+        await w.vm.$nextTick();
+
+        expect(form.business_line_id).toBe(5);
+        expect(form.lastPut.data).toEqual({ weekly_hours: 24, business_line_id: 5 });
+        expect(w.get('[data-testid="panel-details"] form').text()).toContain("Save");
+    });
+
+    it("auto-saves on leaving the Details tab with a dirty form", async () => {
+        const w = mountShow();
+        form.lastPut = undefined;
+        form.isDirty = true;
+
+        const detailsTab = w.findAll("button").find((b) => b.text() === "Details");
+        await detailsTab.trigger("click");
+        await w.vm.$nextTick();
+        const availabilityTab = w.findAll("button").find((b) => b.text() === "Availability");
+        await availabilityTab.trigger("click");
+        await w.vm.$nextTick();
+
+        expect(form.lastPut).toBeTruthy();
+        expect(form.lastPut.url).toBe("/personal/tok-1");
+    });
+
+    it("does not auto-save when editable is false", async () => {
+        const w = mountShow([], { editable: false, businessLines: [{ id: 5, abbreviation: "PMP" }] });
+        form.lastPut = undefined;
+        form.isDirty = true;
+
+        const detailsTab = w.findAll("button").find((b) => b.text() === "Details");
+        await detailsTab.trigger("click");
+        await w.vm.$nextTick();
+        const availabilityTab = w.findAll("button").find((b) => b.text() === "Availability");
+        await availabilityTab.trigger("click");
+        await w.vm.$nextTick();
+
+        expect(form.lastPut).toBeUndefined();
     });
 
     it("mirrors the employee page tabs, Information first", () => {

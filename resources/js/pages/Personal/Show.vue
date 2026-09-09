@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { Head, useForm } from '@inertiajs/vue3'
 import CenteredLayout from '@/layouts/CenteredLayout.vue'
 import CardSeparator from '@/components/ui/CardSeparator.vue'
@@ -56,7 +56,7 @@ function save() {
             weekly_hours: data.weekly_hours,
             business_line_id: data.business_line_id,
         }))
-        .put(`/personal/${props.token}`, { preserveScroll: true })
+        .put(`/personal/${props.token}`, { preserveScroll: true, preserveState: true })
 }
 
 // Weekly hours lives on the Availability tab and auto-saves on change.
@@ -64,6 +64,14 @@ function onWeeklyHoursChange(value) {
     form.weekly_hours = value
     save()
 }
+
+// The business line is the only editable Details field. Auto-save it on
+// change, and flush a dirty Details form when the user leaves the tab.
+watch(() => form.business_line_id, () => save())
+
+watch(tab, (next, prev) => {
+    if (prev === 'details' && form.isDirty) save()
+})
 </script>
 
 <template>

@@ -1,6 +1,6 @@
 # Employee Details Layout — Plan
 
-Status: in progress — 3/5
+Status: in progress — 4/5
 
 Spec: `spec.md`. Business line editable on the personal page, shared
 detail fields reordered, weekly hours moved to the Availability tab,
@@ -49,7 +49,7 @@ Details tabs auto-save, admin create is a single card.
   `employee` is null. `en.json` — `employees.action.create`.
   Full suite green.
 
-- [ ] 4. **Auto-save the Details tabs.**
+- [x] 4. **Auto-save the Details tabs.**
   Tests: `EmployeesForm.test.js` — on edit, a committed Details field
   fires `form.put`. Switching away from the Details tab with unsaved
   changes fires `form.put`. The Save button stays.

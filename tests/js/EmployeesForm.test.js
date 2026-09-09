@@ -37,7 +37,7 @@ vi.mock("@inertiajs/vue3", () => ({
     Head: { name: "Head", render: () => null },
     Link: { name: "Link", props: ["href"], template: '<a :href="href"><slot /></a>' },
     usePage: () => ({ props: { translations: en } }),
-    useForm: (initial) => reactive({ ...initial, errors: {}, processing: false, put: vi.fn(), post: vi.fn() }),
+    useForm: (initial) => reactive({ ...initial, errors: {}, processing: false, isDirty: false, put: vi.fn(), post: vi.fn() }),
 }));
 
 import Form from "@/pages/Employees/Form.vue";
@@ -251,6 +251,51 @@ describe("Employees/Form", () => {
         await w.vm.$nextTick();
 
         expect(form.weekly_hours).toBe(40);
-        expect(form.put).toHaveBeenCalledWith("/employees/3");
+        expect(form.put).toHaveBeenCalled();
+        expect(form.put.mock.calls[0][0]).toBe("/employees/3");
+    });
+
+    it("auto-saves a Details field when it changes, and keeps the Save button", async () => {
+        const w = mount(Form, {
+            props: { employee: { id: 3, first_name: "A", last_name: "B", email: "a@b.c", weekly_hours: 24 }, holidays: [] },
+            global: { stubs },
+        });
+        const form = w.findComponent(EmployeeFields).props("form");
+
+        form.email = "new@b.c";
+        await w.vm.$nextTick();
+
+        expect(form.put).toHaveBeenCalled();
+        expect(form.put.mock.calls[0][0]).toBe("/employees/3");
+        expect(w.get('[data-testid="panel-details"]').text()).toContain("Save");
+    });
+
+    it("auto-saves on leaving the Details tab with unsaved changes", async () => {
+        const w = mount(Form, {
+            props: { employee: { id: 3, first_name: "A", last_name: "B", email: "a@b.c", weekly_hours: 24 }, holidays: [] },
+            global: { stubs },
+        });
+        const form = w.findComponent(EmployeeFields).props("form");
+        form.isDirty = true;
+
+        // Start on Details, then move away.
+        const detailsTab = w.findAll("button").find((b) => b.text() === "Details");
+        await detailsTab.trigger("click");
+        await w.vm.$nextTick();
+        const availabilityTab = w.findAll("button").find((b) => b.text() === "Availability");
+        await availabilityTab.trigger("click");
+        await w.vm.$nextTick();
+
+        expect(form.put).toHaveBeenCalled();
+    });
+
+    it("does not auto-save on create", async () => {
+        const w = mount(Form, { props: { employee: null, holidays: [] }, global: { stubs } });
+        const form = w.findComponent(EmployeeFields).props("form");
+
+        form.email = "x@y.z";
+        await w.vm.$nextTick();
+
+        expect(form.put).not.toHaveBeenCalled();
     });
 });

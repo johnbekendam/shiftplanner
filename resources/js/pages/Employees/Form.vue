@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { Head, Link, useForm } from '@inertiajs/vue3'
 import AppLayout from '@/layouts/AppLayout.vue'
 import Card from '@/components/ui/Card.vue'
@@ -50,7 +50,7 @@ const tabs = computed(() => [
 ])
 
 function save() {
-    form.put(`/employees/${props.employee.id}`)
+    form.put(`/employees/${props.employee.id}`, { preserveScroll: true, preserveState: true })
 }
 
 function submit() {
@@ -67,6 +67,21 @@ function onWeeklyHoursChange(value) {
     form.weekly_hours = value
     if (isEdit.value) save()
 }
+
+// Auto-save the Details fields on edit. Text inputs emit on commit
+// (blur / Enter / Tab) and selects on change, so this fires at the
+// right moment without a debounce.
+watch(
+    () => [form.first_name, form.last_name, form.email, form.business_line_id],
+    () => {
+        if (isEdit.value) save()
+    },
+)
+
+// Flush a dirty Details form when the user moves to another tab.
+watch(tab, (next, prev) => {
+    if (isEdit.value && prev === 'details' && form.isDirty) save()
+})
 </script>
 
 <template>
