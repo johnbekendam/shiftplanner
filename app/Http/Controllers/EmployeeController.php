@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\BusinessLine;
 use App\Models\Competence;
 use App\Models\Employee;
 use App\Models\ProductGroup;
@@ -41,6 +42,7 @@ class EmployeeController extends Controller
     {
         return Inertia::render('Employees/Form', [
             'employee' => null,
+            'businessLines' => BusinessLine::all()->map->toPayload()->all(),
         ]);
     }
 
@@ -54,7 +56,8 @@ class EmployeeController extends Controller
     public function edit(Employee $employee)
     {
         return Inertia::render('Employees/Form', [
-            'employee' => $employee->only(['id', 'name', 'email', 'weekly_hours']),
+            'employee' => $employee->only(['id', 'name', 'email', 'weekly_hours', 'business_line_id']),
+            'businessLines' => BusinessLine::all()->map->toPayload()->all(),
             'holidays' => $employee->holidays->map->toPayload()->all(),
             'availability' => $employee->recurringAvailabilities->map->toPayload()->all(),
             'competences' => Competence::all()->map->toPayload()->all(),
@@ -82,6 +85,7 @@ class EmployeeController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', Rule::unique('employees', 'email')->ignore($employee?->id)],
             'weekly_hours' => ['required', 'integer', Rule::in(Employee::WEEKLY_HOURS_OPTIONS)],
+            'business_line_id' => ['nullable', 'integer', 'exists:business_lines,id'],
         ]);
     }
 }

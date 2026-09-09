@@ -1,6 +1,6 @@
 # Business Lines — Plan
 
-Status: in progress — 1/8
+Status: in progress — 2/8
 
 Spec: `spec.md`. Roadmap phase 3. Business Lines replace Departments.
 The Settings CRUD mirrors `ProductGroupController`.
@@ -30,7 +30,7 @@ The Settings CRUD mirrors `ProductGroupController`.
   nulls members, not deletes them; move up and down; move past an end is a
   no-op; bad direction rejected). Full PHP suite green.
 
-- [ ] 2. **Backend + frontend: the employee Business Line select.**
+- [x] 2. **Backend + frontend: the employee Business Line select.**
   `Employee::$fillable` gains `business_line_id`. `EmployeeController`
   `store` and `update` validate `business_line_id` as
   `nullable|integer|exists:business_lines,id`. `create` and `edit`

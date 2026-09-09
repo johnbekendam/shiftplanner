@@ -93,6 +93,8 @@
     "employees.field.name": "Name",
     "employees.field.email": "Email",
     "employees.field.weekly_hours": "Weekly hours",
+    "employees.field.business_line": "Business line",
+    "employees.field.business_line_none": "None",
     "employees.flash.created": "Employee created.",
     "employees.flash.updated": "Employee updated.",
 

@@ -7,10 +7,13 @@ import { useI18n } from '@/composables/useI18n'
 const __ = useI18n()
 
 const props = defineProps({
-    // An Inertia useForm() instance with name, email, weekly_hours fields.
+    // An Inertia useForm() instance with name, email, weekly_hours,
+    // business_line_id fields.
     form: { type: Object, required: true },
     // When true, name and email render read-only (used by the personal page).
     readonlyIdentity: { type: Boolean, default: false },
+    // Every business line as { id, abbreviation }. Empty hides the field.
+    businessLines: { type: Array, default: () => [] },
 })
 
 // The real weekly-hours choices (Employee::WEEKLY_HOURS_OPTIONS also carries
@@ -27,6 +30,11 @@ const hoursOptions = computed(() => [
         label: __('employees.hours_below_minimum', { min: WEEKLY_HOURS_OPTIONS[0] }),
     },
 ])
+
+const businessLineOptions = computed(() => [
+    { value: null, label: __('employees.field.business_line_none') },
+    ...props.businessLines.map((line) => ({ value: line.id, label: line.abbreviation })),
+])
 </script>
 
 <template>
@@ -41,6 +49,14 @@ const hoursOptions = computed(() => [
 
         <LabeledInput :label="__('employees.field.weekly_hours')" :error="form.errors.weekly_hours">
             <SelectInput v-model="form.weekly_hours" :options="hoursOptions" class="w-full" />
+        </LabeledInput>
+
+        <LabeledInput
+            v-if="businessLines.length"
+            :label="__('employees.field.business_line')"
+            :error="form.errors.business_line_id"
+        >
+            <SelectInput v-model="form.business_line_id" :options="businessLineOptions" class="w-full" />
         </LabeledInput>
     </div>
 </template>

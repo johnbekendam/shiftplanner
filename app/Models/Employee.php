@@ -26,6 +26,7 @@ class Employee extends Model
         'name',
         'email',
         'weekly_hours',
+        'business_line_id',
     ];
 
     protected function casts(): array

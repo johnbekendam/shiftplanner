@@ -6,6 +6,8 @@ const en = {
     "employees.field.name": "Name",
     "employees.field.email": "Email",
     "employees.field.weekly_hours": "Weekly hours",
+    "employees.field.business_line": "Business line",
+    "employees.field.business_line_none": "None",
     "employees.hours_option": ":count hours",
     "employees.hours_below_minimum": "I can only work less than :min hours",
 };
@@ -75,6 +77,37 @@ describe("EmployeeFields", () => {
         expect(inputs.every((i) => i.attributes("disabled") !== undefined)).toBe(
             true,
         );
+    });
+
+    it("hides the business-line select when no lines are given", () => {
+        const w = mount(EmployeeFields, { props: { form: makeForm() } });
+        expect(w.text()).not.toContain("Business line");
+        expect(w.findAllComponents(SelectInput)).toHaveLength(1);
+    });
+
+    it("offers a None option then one per business line, bound to form.business_line_id", async () => {
+        const form = makeForm({ business_line_id: 5 });
+        const w = mount(EmployeeFields, {
+            props: {
+                form,
+                businessLines: [
+                    { id: 5, abbreviation: "PMP" },
+                    { id: 8, abbreviation: "VLV" },
+                ],
+            },
+        });
+
+        const select = w.findAllComponents(SelectInput)[1];
+        expect(select.props("options")).toEqual([
+            { value: null, label: "None" },
+            { value: 5, label: "PMP" },
+            { value: 8, label: "VLV" },
+        ]);
+        expect(select.props("modelValue")).toBe(5);
+
+        select.vm.$emit("update:modelValue", null);
+        await w.vm.$nextTick();
+        expect(form.business_line_id).toBe(null);
     });
 
     it("shows the field error messages from the form", () => {

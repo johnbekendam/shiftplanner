@@ -17,6 +17,7 @@ const __ = useI18n()
 
 const props = defineProps({
     employee: { type: Object, default: null },
+    businessLines: { type: Array, default: () => [] },
     holidays: { type: Array, default: () => [] },
     availability: { type: Array, default: () => [] },
     competences: { type: Array, default: () => [] },
@@ -31,6 +32,7 @@ const form = useForm({
     name: props.employee?.name ?? '',
     email: props.employee?.email ?? '',
     weekly_hours: props.employee?.weekly_hours ?? 20,
+    business_line_id: props.employee?.business_line_id ?? null,
 })
 
 const tab = ref('details')
@@ -60,7 +62,7 @@ function submit() {
 
             <div v-show="tab === 'details'" data-testid="panel-details" class="p-6">
                 <form class="space-y-5" @submit.prevent="submit">
-                    <EmployeeFields :form="form" />
+                    <EmployeeFields :form="form" :business-lines="businessLines" />
 
                     <div class="flex justify-end gap-3">
                         <Link href="/employees">

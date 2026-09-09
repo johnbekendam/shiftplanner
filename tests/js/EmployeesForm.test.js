@@ -16,6 +16,8 @@ const en = {
     "employees.field.name": "Name",
     "employees.field.email": "Email",
     "employees.field.weekly_hours": "Weekly hours",
+    "employees.field.business_line": "Business line",
+    "employees.field.business_line_none": "None",
     "employees.hours_option": ":count hours",
     "employees.form.edit_title": "Edit employee",
     "employees.form.create_title": "Add employee",
@@ -34,6 +36,7 @@ vi.mock("@inertiajs/vue3", () => ({
 }));
 
 import Form from "@/pages/Employees/Form.vue";
+import EmployeeFields from "@/components/EmployeeFields.vue";
 import HolidayList from "@/components/HolidayList.vue";
 import AvailabilityGrid from "@/components/AvailabilityGrid.vue";
 import TagChecklist from "@/components/TagChecklist.vue";
@@ -107,6 +110,24 @@ describe("Employees/Form", () => {
         expect(byEndpoint["/employees/3/competences"].props("selectedIds")).toEqual([1]);
         expect(byEndpoint["/employees/3/product-groups"].props("items")).toHaveLength(2);
         expect(byEndpoint["/employees/3/product-groups"].props("selectedIds")).toEqual([6]);
+    });
+
+    it("forwards the business lines to EmployeeFields and preselects the employee's line", () => {
+        const w = mount(Form, {
+            props: {
+                employee: { id: 3, name: "A", email: "a@b.c", weekly_hours: 24, business_line_id: 8 },
+                businessLines: [
+                    { id: 5, abbreviation: "PMP" },
+                    { id: 8, abbreviation: "VLV" },
+                ],
+                holidays: [],
+            },
+            global: { stubs },
+        });
+
+        const fields = w.findComponent(EmployeeFields);
+        expect(fields.props("businessLines")).toHaveLength(2);
+        expect(fields.props("form").business_line_id).toBe(8);
     });
 
     it("on create, the Profile tab asks the employee to be saved first", () => {
