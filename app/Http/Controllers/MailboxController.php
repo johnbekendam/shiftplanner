@@ -51,7 +51,7 @@ class MailboxController extends Controller
                 'subject' => $message->subject,
                 'status' => $message->status,
                 'body_html' => $message->body_html,
-                'composed_by' => $message->user?->name,
+                'composed_by' => $message->user?->name ?? __('mailbox.compose.self_signup'),
             ]);
         }
 

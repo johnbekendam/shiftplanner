@@ -60,6 +60,7 @@
     "mailbox.compose.preview": "Preview",
     "mailbox.compose.template_save": "Save template",
     "mailbox.compose.create_drafts": "Create drafts",
+    "mailbox.compose.self_signup": "Self-signup",
     "mailbox.compose.employees": "Employees",
     "mailbox.compose.employees_hint": "One message is created per selected employee.",
     "mailbox.compose.employees_search": "Search name or email",

@@ -11,7 +11,9 @@ return new class extends Migration
     {
         Schema::create('messages', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+            // Nullable: a self-signup send (features/employee-self-signup/)
+            // has no composing admin and stores null here.
+            $table->foreignId('user_id')->nullable()->constrained()->cascadeOnDelete();
             // Plain string, not a DB enum: the type set grows and each new
             // case would otherwise need a constraint migration. Validated
             // against App\Enums\MessageType in the app.
