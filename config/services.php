@@ -40,6 +40,7 @@ return [
         'client_id' => env('GRAPH_CLIENT_ID'),
         'client_secret' => env('GRAPH_CLIENT_SECRET'),
         'mail_from' => env('GRAPH_MAIL_FROM'),
+        'ca_bundle' => env('GRAPH_CA_BUNDLE'),
     ],
 
 ];

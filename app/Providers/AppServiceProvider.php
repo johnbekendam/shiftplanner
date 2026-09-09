@@ -25,6 +25,7 @@ class AppServiceProvider extends ServiceProvider
             (string) config('services.graph.tenant_id'),
             (string) config('services.graph.client_id'),
             (string) config('services.graph.client_secret'),
+            config('services.graph.ca_bundle'),
         ));
     }
 
