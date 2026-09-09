@@ -13,6 +13,7 @@ vi.mock("@inertiajs/vue3", () => ({
 }));
 
 import Dashboard from "@/pages/Dashboard/Index.vue";
+import FteLineChart from "@/components/FteLineChart.vue";
 
 const stubs = { AppLayout: { template: "<div><slot /></div>" } };
 
@@ -41,5 +42,11 @@ describe("Dashboard/Index", () => {
         expect(blocks[0].text()).toContain("Overall");
         expect(blocks[1].text()).toContain("PMP — Pumps");
         expect(blocks[2].text()).toContain("VLV — Valves");
+
+        const charts = w.findAllComponents(FteLineChart);
+        expect(charts).toHaveLength(3);
+        expect(charts[0].props("title")).toBe("Overall");
+        expect(charts[0].props("available")).toEqual([2, 1]);
+        expect(charts[1].props("target")).toBe(5);
     });
 });

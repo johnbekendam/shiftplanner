@@ -1,6 +1,6 @@
 # Business Lines — Plan
 
-Status: in progress — 6/8
+Status: in progress — 7/8
 
 Spec: `spec.md`. Roadmap phase 3. Business Lines replace Departments.
 The Settings CRUD mirrors `ProductGroupController`.
@@ -119,7 +119,7 @@ The Settings CRUD mirrors `ProductGroupController`.
   data. `/` redirect test updated. `npm run test` and `npm run build`
   green.
 
-- [ ] 7. **Frontend: the FTE line chart.**
+- [x] 7. **Frontend: the FTE line chart.**
   `resources/js/components/FteLineChart.vue`: props `title`, `days`
   (date strings), `available` (numbers), `target` (number). Inline SVG
   with a `viewBox`, a left FTE axis with a few ticks, a bottom axis with a

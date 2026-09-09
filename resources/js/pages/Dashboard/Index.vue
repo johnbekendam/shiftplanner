@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { Head } from '@inertiajs/vue3'
 import AppLayout from '@/layouts/AppLayout.vue'
 import Card from '@/components/ui/Card.vue'
+import FteLineChart from '@/components/FteLineChart.vue'
 import { useI18n } from '@/composables/useI18n'
 
 const __ = useI18n()
@@ -18,7 +19,12 @@ const props = defineProps({
 const blocks = computed(() => {
     if (!props.overall) return []
     return [
-        { key: 'overall', title: __('dashboard.overall'), ...props.overall },
+        {
+            key: 'overall',
+            title: __('dashboard.overall'),
+            available: props.overall.available,
+            target: props.overall.target,
+        },
         ...props.lines.map((line) => ({
             key: line.abbreviation,
             title: `${line.abbreviation} — ${line.description}`,
@@ -39,11 +45,12 @@ const blocks = computed(() => {
 
         <div v-else class="space-y-6">
             <Card v-for="block in blocks" :key="block.key" data-testid="dashboard-block">
-                <h2 class="mb-2 text-sm font-semibold text-(--color-text-primary)">{{ block.title }}</h2>
-                <p class="text-xs text-(--color-text-secondary)">
-                    {{ block.available.join(', ') }}
-                </p>
-                <p class="text-xs text-(--color-text-secondary)">target: {{ block.target }}</p>
+                <FteLineChart
+                    :title="block.title"
+                    :days="days"
+                    :available="block.available"
+                    :target="block.target"
+                />
             </Card>
         </div>
     </AppLayout>
