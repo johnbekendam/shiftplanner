@@ -36,6 +36,6 @@ describe("FteLineChart", () => {
 
     it("uses the brand token for the series stroke", () => {
         const w = mount(FteLineChart, { props: base });
-        expect(w.get('[data-testid="fte-line"]').attributes("stroke")).toBe("var(--color-brand)");
+        expect(w.get('[data-testid="fte-line"]').attributes("stroke")).toBe("var(--color-brand-bg)");
     });
 });

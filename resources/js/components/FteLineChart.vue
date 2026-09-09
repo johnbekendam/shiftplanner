@@ -9,6 +9,9 @@ const props = defineProps({
     available: { type: Array, default: () => [] },
     // Target FTE — a flat reference line.
     target: { type: Number, default: 0 },
+    // Show the title as a visible caption above the chart. Turn off when a
+    // surrounding container (e.g. a card header) already names the chart.
+    showCaption: { type: Boolean, default: true },
 })
 
 // ── Geometry ────────────────────────────────────────────────────────────
@@ -59,7 +62,7 @@ const xTicks = computed(() => {
 
 <template>
     <figure class="space-y-2">
-        <figcaption class="text-sm font-semibold text-(--color-text-primary)">{{ title }}</figcaption>
+        <figcaption v-if="showCaption" class="text-sm font-semibold text-(--color-text-primary)">{{ title }}</figcaption>
         <svg
             :viewBox="`0 0 ${W} ${H}`"
             class="w-full"
@@ -120,7 +123,7 @@ const xTicks = computed(() => {
                 data-testid="fte-line"
                 :points="linePoints"
                 fill="none"
-                stroke="var(--color-brand)"
+                stroke="var(--color-brand-bg)"
                 stroke-width="2"
                 stroke-linejoin="round"
                 stroke-linecap="round"

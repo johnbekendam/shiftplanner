@@ -20,6 +20,7 @@ use App\Http\Controllers\PersonalRecurringAvailabilityController;
 use App\Http\Controllers\ProductGroupController;
 use App\Http\Controllers\RecurringAvailabilityController;
 use App\Http\Controllers\SettingsController;
+use App\Http\Controllers\ShiftController;
 use App\Http\Controllers\ThemeBuilderController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
@@ -55,6 +56,9 @@ Route::middleware('auth')->group(function () {
         Route::put('/settings/business-lines/{businessLine}/move', [BusinessLineController::class, 'move'])->name('settings.business-lines.move');
         Route::put('/settings/business-lines/{businessLine}', [BusinessLineController::class, 'update'])->name('settings.business-lines.update');
         Route::delete('/settings/business-lines/{businessLine}', [BusinessLineController::class, 'destroy'])->name('settings.business-lines.destroy');
+        Route::post('/settings/shifts', [ShiftController::class, 'store'])->name('settings.shifts.store');
+        Route::put('/settings/shifts/{shift}', [ShiftController::class, 'update'])->name('settings.shifts.update');
+        Route::delete('/settings/shifts/{shift}', [ShiftController::class, 'destroy'])->name('settings.shifts.destroy');
         Route::put('/settings/period', [PeriodController::class, 'update'])->name('settings.period.update');
 
         Route::get('/mailbox', [MailboxController::class, 'index'])->name('mailbox.index');
