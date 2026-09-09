@@ -15,11 +15,8 @@ const en = {
     "availability.tab.details": "Details",
     "availability.tab.availability": "Availability",
     "availability.holidays.empty": "No holidays yet.",
-    "profile.tab": "Profile",
-    "profile.competences_heading": "Competences",
-    "profile.product_groups_heading": "Preferred product groups",
+    "competences.tab": "Competences",
     "competences.checklist_empty": "No competences have been set up yet.",
-    "product_groups.checklist_empty": "No product groups have been set up yet.",
 };
 
 const { router } = vi.hoisted(() => ({ router: { post: vi.fn(), delete: vi.fn() } }));
@@ -139,20 +136,18 @@ describe("Personal/Show", () => {
         expect(mountShow().findComponent(ShiftNote).exists()).toBe(false);
     });
 
-    it("has a Profile tab with competence and product-group checklists on the token endpoints", () => {
+    it("has a Competences tab with the competence checklist on the token endpoint", () => {
         const w = mountShow([], {
             competences: [{ id: 1, name: "Forklift" }],
             competenceIds: [1],
-            productGroups: [{ id: 5, name: "Pumps" }],
-            productGroupIds: [5],
         });
-        expect(w.text()).toContain("Profile");
+        expect(w.text()).toContain("Competences");
 
         const byEndpoint = Object.fromEntries(
             w.findAllComponents(TagChecklist).map((l) => [l.props("endpoint"), l]),
         );
         expect(byEndpoint["/personal/tok-1/competences"].props("selectedIds")).toEqual([1]);
-        expect(byEndpoint["/personal/tok-1/product-groups"].props("selectedIds")).toEqual([5]);
+        expect(byEndpoint["/personal/tok-1/product-groups"]).toBeUndefined();
     });
 
     it("reveals the holiday list when the Availability tab is clicked", async () => {

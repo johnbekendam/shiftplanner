@@ -66,11 +66,6 @@ class Employee extends Model
         return $this->belongsToMany(Competence::class);
     }
 
-    public function productGroups(): BelongsToMany
-    {
-        return $this->belongsToMany(ProductGroup::class);
-    }
-
     public function scopeSearch($query, string $search)
     {
         return $query->where(function ($q) use ($search) {

@@ -9,15 +9,12 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EmployeeCompetenceController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\EmployeeHolidayController;
-use App\Http\Controllers\EmployeeProductGroupController;
 use App\Http\Controllers\MailboxController;
 use App\Http\Controllers\PeriodController;
 use App\Http\Controllers\PersonalCompetenceController;
 use App\Http\Controllers\PersonalHolidayController;
 use App\Http\Controllers\PersonalPageController;
-use App\Http\Controllers\PersonalProductGroupController;
 use App\Http\Controllers\PersonalRecurringAvailabilityController;
-use App\Http\Controllers\ProductGroupController;
 use App\Http\Controllers\RecurringAvailabilityController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\ShiftController;
@@ -48,10 +45,6 @@ Route::middleware('auth')->group(function () {
         Route::put('/settings/competences/{competence}/move', [CompetenceController::class, 'move'])->name('settings.competences.move');
         Route::put('/settings/competences/{competence}', [CompetenceController::class, 'update'])->name('settings.competences.update');
         Route::delete('/settings/competences/{competence}', [CompetenceController::class, 'destroy'])->name('settings.competences.destroy');
-        Route::post('/settings/product-groups', [ProductGroupController::class, 'store'])->name('settings.product-groups.store');
-        Route::put('/settings/product-groups/{productGroup}/move', [ProductGroupController::class, 'move'])->name('settings.product-groups.move');
-        Route::put('/settings/product-groups/{productGroup}', [ProductGroupController::class, 'update'])->name('settings.product-groups.update');
-        Route::delete('/settings/product-groups/{productGroup}', [ProductGroupController::class, 'destroy'])->name('settings.product-groups.destroy');
         Route::post('/settings/business-lines', [BusinessLineController::class, 'store'])->name('settings.business-lines.store');
         Route::put('/settings/business-lines/{businessLine}/move', [BusinessLineController::class, 'move'])->name('settings.business-lines.move');
         Route::put('/settings/business-lines/{businessLine}', [BusinessLineController::class, 'update'])->name('settings.business-lines.update');
@@ -95,8 +88,6 @@ Route::middleware('auth')->group(function () {
         ->name('employees.availability.update');
     Route::put('/employees/{employee}/competences/{competence}', [EmployeeCompetenceController::class, 'update'])->name('employees.competences.update');
     Route::delete('/employees/{employee}/competences/{competence}', [EmployeeCompetenceController::class, 'destroy'])->name('employees.competences.destroy');
-    Route::put('/employees/{employee}/product-groups/{productGroup}', [EmployeeProductGroupController::class, 'update'])->name('employees.product-groups.update');
-    Route::delete('/employees/{employee}/product-groups/{productGroup}', [EmployeeProductGroupController::class, 'destroy'])->name('employees.product-groups.destroy');
 });
 
 // Employee personal page — token-only, no auth. Prototype preview links.
@@ -110,5 +101,3 @@ Route::put('/personal/{token}/availability/{weekday}/{shift}', [PersonalRecurrin
     ->name('personal.availability.update');
 Route::put('/personal/{token}/competences/{competence}', [PersonalCompetenceController::class, 'update'])->name('personal.competences.update');
 Route::delete('/personal/{token}/competences/{competence}', [PersonalCompetenceController::class, 'destroy'])->name('personal.competences.destroy');
-Route::put('/personal/{token}/product-groups/{productGroup}', [PersonalProductGroupController::class, 'update'])->name('personal.product-groups.update');
-Route::delete('/personal/{token}/product-groups/{productGroup}', [PersonalProductGroupController::class, 'destroy'])->name('personal.product-groups.destroy');

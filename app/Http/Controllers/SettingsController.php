@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\BusinessLine;
 use App\Models\Competence;
 use App\Models\PlanningSettings;
-use App\Models\ProductGroup;
 use App\Models\Shift;
 use Inertia\Inertia;
 
@@ -15,7 +14,6 @@ class SettingsController extends Controller
     {
         return Inertia::render('Settings/Index', [
             'competences' => $this->listWithHolderCount(Competence::query()),
-            'productGroups' => $this->listWithHolderCount(ProductGroup::query()),
             'businessLines' => $this->businessLines(),
             'shifts' => Shift::all()->map->toPayload()->all(),
             'shiftNote' => PlanningSettings::current()->shift_note ?? '',

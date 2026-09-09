@@ -6,7 +6,6 @@ use App\Models\BusinessLine;
 use App\Models\Competence;
 use App\Models\Employee;
 use App\Models\PlanningSettings;
-use App\Models\ProductGroup;
 use App\Models\Shift;
 use App\Services\EmployeePersonalLinkService;
 use Illuminate\Http\Request;
@@ -84,8 +83,6 @@ class EmployeeController extends Controller
             'availability' => $employee->recurringAvailabilities->map->toPayload()->all(),
             'competences' => Competence::all()->map->toPayload()->all(),
             'competenceIds' => $employee->competences->pluck('id')->all(),
-            'productGroups' => ProductGroup::all()->map->toPayload()->all(),
-            'productGroupIds' => $employee->productGroups->pluck('id')->all(),
         ]);
     }
 

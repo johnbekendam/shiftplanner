@@ -23,8 +23,6 @@ const props = defineProps({
     availability: { type: Array, default: () => [] },
     competences: { type: Array, default: () => [] },
     competenceIds: { type: Array, default: () => [] },
-    productGroups: { type: Array, default: () => [] },
-    productGroupIds: { type: Array, default: () => [] },
 })
 
 const form = useForm({
@@ -37,7 +35,7 @@ const tab = ref('details')
 const tabs = computed(() => [
     { value: 'details', label: __('availability.tab.details') },
     { value: 'availability', label: __('availability.tab.availability') },
-    { value: 'profile', label: __('profile.tab') },
+    { value: 'competences', label: __('competences.tab') },
 ])
 
 function save() {
@@ -101,32 +99,13 @@ function save() {
             </section>
         </div>
 
-        <div v-show="tab === 'profile'" data-testid="panel-profile">
-            <section class="space-y-3">
-                <h3 class="text-sm font-semibold text-(--color-text-primary)">
-                    {{ __('profile.competences_heading') }}
-                </h3>
-                <TagChecklist
-                    :items="competences"
-                    :selected-ids="competenceIds"
-                    :endpoint="`/personal/${token}/competences`"
-                    empty-key="competences.checklist_empty"
-                />
-            </section>
-
-            <CardSeparator />
-
-            <section class="space-y-3">
-                <h3 class="text-sm font-semibold text-(--color-text-primary)">
-                    {{ __('profile.product_groups_heading') }}
-                </h3>
-                <TagChecklist
-                    :items="productGroups"
-                    :selected-ids="productGroupIds"
-                    :endpoint="`/personal/${token}/product-groups`"
-                    empty-key="product_groups.checklist_empty"
-                />
-            </section>
+        <div v-show="tab === 'competences'" data-testid="panel-competences">
+            <TagChecklist
+                :items="competences"
+                :selected-ids="competenceIds"
+                :endpoint="`/personal/${token}/competences`"
+                empty-key="competences.checklist_empty"
+            />
         </div>
     </CenteredLayout>
 </template>
