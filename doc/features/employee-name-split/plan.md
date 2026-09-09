@@ -1,6 +1,6 @@
 # Employee Name Split — Plan
 
-Status: in progress — 3/4
+Status: done — 4/4
 
 Spec: `spec.md`. Replace `employees.name` with `first_name` + `last_name`,
 keep a `name` read accessor, and redefine the `:name` mail/shift-note
@@ -62,10 +62,11 @@ is changed.
   `:name`.
   Full suite green.
 
-- [ ] 4. **Full suite, lint, build, docs.**
-  `php artisan test` and `npm test` green. `vendor/bin/pint --dirty`
-  clean. `npm run build` green. `php artisan migrate:fresh --seed`
-  against a scratch database. Mark `plan.md` `4/4`.
+- [x] 4. **Full suite, lint, build, docs.**
+  `php artisan test` 298 pass. `npm test` 266 pass. `vendor/bin/pint
+  --dirty` clean. `npm run build` green. `php artisan migrate:fresh
+  --seed` against a scratch database seeds 50 employees with populated
+  `first_name` / `last_name`.
 
 ## Not done / deferred
 
