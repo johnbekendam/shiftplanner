@@ -225,6 +225,8 @@
     "dashboard.title": "Dashboard",
     "dashboard.overall": "Overall",
     "dashboard.no_period": "Set a period on the Settings page to see available FTE.",
+    "dashboard.coverage": "Hours covered",
+    "dashboard.hours_ratio": ":available / :required h",
 
     "competences.tab": "Competences",
     "competences.save_first": "Save the employee first, then set competences.",

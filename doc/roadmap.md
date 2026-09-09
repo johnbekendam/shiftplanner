@@ -86,9 +86,11 @@ Shipped: a Settings tab to add, edit, reorder, and delete Business Lines
 (abbreviation, description, target FTE); an optional Business Line select
 on the employee Details tab; a Settings tab for the planning period
 (start date, end date, hours per FTE); and a dashboard, now the landing
-page, that charts available FTE per day — `weekly_hours / fte_hours` on a
-weekday, nothing on a weekend or holiday — for every employee and for
-each Business Line against its target.
+page, that charts available FTE per weekday — `weekly_hours / fte_hours`,
+nothing inside a holiday, weekend dates dropped — for every employee and
+for each Business Line against its target. Each card also carries a
+coverage donut: available vs required person-hours over the period
+(`features/dashboard-coverage/`).
 
 Also shipped (`features/shift-definitions/`): a Settings tab to add, edit,
 and delete shifts (name, start time, end time; ordered by start time).

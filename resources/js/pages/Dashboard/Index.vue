@@ -4,6 +4,7 @@ import { Head } from '@inertiajs/vue3'
 import AppLayout from '@/layouts/AppLayout.vue'
 import Card from '@/components/ui/Card.vue'
 import FteLineChart from '@/components/FteLineChart.vue'
+import CoverageDonut from '@/components/CoverageDonut.vue'
 import { useI18n } from '@/composables/useI18n'
 
 const __ = useI18n()
@@ -24,12 +25,16 @@ const blocks = computed(() => {
             title: __('dashboard.overall'),
             available: props.overall.available,
             target: props.overall.target,
+            availableHours: props.overall.available_hours,
+            requiredHours: props.overall.required_hours,
         },
         ...props.lines.map((line) => ({
             key: line.abbreviation,
             title: `${line.abbreviation} — ${line.description}`,
             available: line.available,
             target: line.target,
+            availableHours: line.available_hours,
+            requiredHours: line.required_hours,
         })),
     ]
 })
@@ -51,14 +56,22 @@ const blocks = computed(() => {
                     </h2>
                 </template>
 
-                <div class="p-4">
-                    <FteLineChart
-                        :title="block.title"
-                        :days="days"
-                        :available="block.available"
-                        :target="block.target"
-                        :show-caption="false"
-                    />
+                <div class="flex flex-wrap items-center gap-4 p-4">
+                    <div class="min-w-0 flex-1">
+                        <FteLineChart
+                            :title="block.title"
+                            :days="days"
+                            :available="block.available"
+                            :target="block.target"
+                            :show-caption="false"
+                        />
+                    </div>
+                    <div class="w-28 shrink-0">
+                        <CoverageDonut
+                            :available="block.availableHours"
+                            :required="block.requiredHours"
+                        />
+                    </div>
                 </div>
             </Card>
         </div>

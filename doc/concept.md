@@ -71,11 +71,14 @@ page. Only an admin edits it.
 
 The signed-in landing page. It reads a global planning period (a start
 date, an end date) and the weekly hours that count as one FTE, both set
-on the Settings page. For each day in the period it charts available FTE:
-an employee counts `weekly_hours / fte_hours` on a weekday, and nothing
-on a weekend or a holiday. One chart totals every employee against the
-summed Business Line targets; one chart per Business Line totals its
-members against that line's target.
+on the Settings page. For each weekday in the period it charts available
+FTE: an employee counts `weekly_hours / fte_hours`, and nothing inside a
+holiday. Weekend dates are dropped from the charts. One card totals every
+employee against the summed Business Line targets; one card per Business
+Line totals its members against that line's target. Each card also
+carries a donut showing how much of its required hours are covered —
+`available_hours` against `required_hours`, both real person-hours over
+the period at `fte_hours / 5` per working day.
 
 ### Competences
 

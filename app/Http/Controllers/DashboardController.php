@@ -21,7 +21,12 @@ class DashboardController extends Controller
         }
 
         /** @var Collection<int, CarbonInterface> $days */
-        $days = collect(CarbonPeriod::create($settings->period_start, $settings->period_end)->toArray());
+        $days = collect(CarbonPeriod::create($settings->period_start, $settings->period_end)->toArray())
+            ->reject(fn (CarbonInterface $day) => $day->isWeekend())
+            ->values();
+
+        // One FTE is fte_hours per week, so fte_hours / 5 per working day.
+        $dailyFteHours = $settings->fte_hours / 5;
 
         $businessLines = BusinessLine::all(); // position-ordered by the model scope
         $zeros = array_fill(0, $days->count(), 0.0);
@@ -48,12 +53,16 @@ class DashboardController extends Controller
             'overall' => [
                 'available' => $overall,
                 'target' => (float) $businessLines->sum('target_fte'),
+                'available_hours' => array_sum($overall) * $dailyFteHours,
+                'required_hours' => (float) $businessLines->sum('target_fte') * $days->count() * $dailyFteHours,
             ],
             'lines' => $businessLines->map(fn (BusinessLine $line) => [
                 'abbreviation' => $line->abbreviation,
                 'description' => $line->description,
                 'available' => $lines[$line->id],
                 'target' => (float) $line->target_fte,
+                'available_hours' => array_sum($lines[$line->id]) * $dailyFteHours,
+                'required_hours' => (float) $line->target_fte * $days->count() * $dailyFteHours,
             ])->all(),
         ]);
     }
