@@ -74,7 +74,8 @@ class EmployeeAdminTest extends TestCase
             'weekly_hours' => 32,
         ]);
 
-        $response->assertRedirect('/employees');
+        $new = Employee::firstWhere('email', 'new.hire@example.com');
+        $response->assertRedirect("/employees/{$new->id}/edit");
         $this->assertDatabaseHas('employees', [
             'first_name' => 'New',
             'last_name' => 'Hire',
@@ -123,7 +124,7 @@ class EmployeeAdminTest extends TestCase
             'last_name' => 'Minimum',
             'email' => 'below.minimum@example.com',
             'weekly_hours' => 0,
-        ])->assertRedirect('/employees')->assertSessionHasNoErrors();
+        ])->assertSessionHasNoErrors();
 
         $this->assertSame(0, Employee::firstWhere('email', 'below.minimum@example.com')->weekly_hours);
     }
@@ -160,7 +161,7 @@ class EmployeeAdminTest extends TestCase
             'weekly_hours' => 40,
         ]);
 
-        $response->assertRedirect('/employees');
+        $response->assertRedirect("/employees/{$employee->id}/edit");
         $this->assertDatabaseHas('employees', [
             'id' => $employee->id,
             'first_name' => 'New',
@@ -179,7 +180,7 @@ class EmployeeAdminTest extends TestCase
             'last_name' => $employee->last_name,
             'email' => 'mine@example.com',
             'weekly_hours' => 24,
-        ])->assertRedirect('/employees');
+        ])->assertRedirect("/employees/{$employee->id}/edit");
     }
 
     public function test_personal_page_action_returns_a_link_url(): void

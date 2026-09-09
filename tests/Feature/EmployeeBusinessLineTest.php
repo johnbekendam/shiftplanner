@@ -54,7 +54,7 @@ class EmployeeBusinessLineTest extends TestCase
             'email' => 'new.hire@example.com',
             'weekly_hours' => 32,
             'business_line_id' => $line->id,
-        ])->assertRedirect('/employees')->assertSessionHasNoErrors();
+        ])->assertSessionHasNoErrors();
 
         $this->assertDatabaseHas('employees', [
             'email' => 'new.hire@example.com',
@@ -71,7 +71,7 @@ class EmployeeBusinessLineTest extends TestCase
             'email' => 'new.hire@example.com',
             'weekly_hours' => 32,
             'business_line_id' => null,
-        ])->assertRedirect('/employees')->assertSessionHasNoErrors();
+        ])->assertSessionHasNoErrors();
 
         $this->assertDatabaseHas('employees', [
             'email' => 'new.hire@example.com',
@@ -105,7 +105,7 @@ class EmployeeBusinessLineTest extends TestCase
             'email' => $employee->email,
             'weekly_hours' => $employee->weekly_hours,
             'business_line_id' => null,
-        ])->assertRedirect('/employees')->assertSessionHasNoErrors();
+        ])->assertRedirect("/employees/{$employee->id}/edit")->assertSessionHasNoErrors();
 
         $this->assertNull($employee->fresh()->business_line_id);
     }

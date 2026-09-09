@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\AvailabilityQuestion;
+use App\Models\BusinessLine;
 use App\Models\Competence;
 use App\Models\Employee;
 use App\Models\PlanningSettings;
@@ -109,7 +110,7 @@ class EmployeeChangeLockTest extends TestCase
 
         $this->lock(false);
 
-        $this->put("/personal/{$token}", ['weekly_hours' => 40])->assertForbidden();
+        $this->put("/personal/{$token}", ['weekly_hours' => 40, 'business_line_id' => null])->assertForbidden();
         $this->post("/personal/{$token}/holidays", ['start_date' => '2026-02-01', 'end_date' => '2026-02-02'])->assertForbidden();
         $this->delete("/personal/{$token}/holidays/{$holiday->id}")->assertForbidden();
         $this->put("/personal/{$token}/availability/1/{$shift->id}", ['level' => 'unavailable'])->assertForbidden();
@@ -124,12 +125,15 @@ class EmployeeChangeLockTest extends TestCase
     {
         [$employee, $token] = $this->linkedEmployee();
         $competence = Competence::create(['name' => 'Forklift', 'position' => 1]);
+        $line = BusinessLine::factory()->create();
 
         // Default is on.
-        $this->put("/personal/{$token}", ['weekly_hours' => 40])->assertRedirect("/personal/{$token}");
+        $this->put("/personal/{$token}", ['weekly_hours' => 40, 'business_line_id' => $line->id])
+            ->assertRedirect("/personal/{$token}");
         $this->put("/personal/{$token}/competences/{$competence->id}")->assertRedirect("/personal/{$token}");
 
         $this->assertSame(40, $employee->fresh()->weekly_hours);
+        $this->assertSame($line->id, $employee->fresh()->business_line_id);
         $this->assertTrue($employee->competences()->whereKey($competence->id)->exists());
     }
 
@@ -164,7 +168,7 @@ class EmployeeChangeLockTest extends TestCase
             'first_name' => 'Still', 'last_name' => 'Editable',
             'email' => $employee->email,
             'weekly_hours' => 40,
-        ])->assertRedirect('/employees');
+        ])->assertRedirect("/employees/{$employee->id}/edit");
 
         $this->assertSame('Still Editable', $employee->fresh()->name);
     }

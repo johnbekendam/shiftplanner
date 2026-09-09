@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\AvailabilityQuestion;
+use App\Models\BusinessLine;
 use App\Models\Competence;
 use App\Models\Employee;
 use App\Models\PlanningSettings;
@@ -35,7 +36,9 @@ class PersonalPageController extends Controller
                 'last_name' => $employee->last_name,
                 'email' => $employee->email,
                 'weekly_hours' => $employee->weekly_hours,
+                'business_line_id' => $employee->business_line_id,
             ],
+            'businessLines' => BusinessLine::all()->map->toPayload()->all(),
             'holidays' => $employee->holidays->map->toPayload()->all(),
             'shifts' => Shift::all()->map->toPayload()->all(),
             'shiftNoteHtml' => PlanningSettings::current()->shiftNoteHtml($employee->first_name),
@@ -53,6 +56,7 @@ class PersonalPageController extends Controller
 
         $employee->update($request->validate([
             'weekly_hours' => ['required', 'integer', Rule::in(Employee::WEEKLY_HOURS_OPTIONS)],
+            'business_line_id' => ['nullable', 'integer', 'exists:business_lines,id'],
         ]));
 
         return redirect("/personal/{$token}")->with('success', __('personal.flash.saved'));

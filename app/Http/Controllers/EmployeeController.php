@@ -86,9 +86,9 @@ class EmployeeController extends Controller
 
     public function store(Request $request)
     {
-        Employee::create($this->validated($request));
+        $employee = Employee::create($this->validated($request));
 
-        return redirect('/employees')->with('success', __('employees.flash.created'));
+        return redirect("/employees/{$employee->id}/edit")->with('success', __('employees.flash.created'));
     }
 
     public function edit(Employee $employee)
@@ -118,7 +118,7 @@ class EmployeeController extends Controller
     {
         $employee->update($this->validated($request, $employee));
 
-        return redirect('/employees')->with('success', __('employees.flash.updated'));
+        return redirect("/employees/{$employee->id}/edit")->with('success', __('employees.flash.updated'));
     }
 
     public function personalPage(Employee $employee)
