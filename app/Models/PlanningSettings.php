@@ -37,14 +37,27 @@ class PlanningSettings extends Model
         ]);
     }
 
-    /** The shift information note rendered to HTML, or null when blank. */
-    public function shiftNoteHtml(): ?string
+    /**
+     * The shift information note rendered to HTML, or null when blank.
+     *
+     * `:name` in the note is replaced with $name when one is given — the
+     * personal page and the employee editor pass the employee's name. On
+     * the settings editor, where no employee is in context, it is left
+     * as written.
+     */
+    public function shiftNoteHtml(?string $name = null): ?string
     {
-        if (trim((string) $this->shift_note) === '') {
+        $note = (string) $this->shift_note;
+
+        if (trim($note) === '') {
             return null;
         }
 
-        return Str::markdown($this->shift_note, [
+        if ($name !== null) {
+            $note = strtr($note, [':name' => $name]);
+        }
+
+        return Str::markdown($note, [
             'html_input' => 'allow',
             'allow_unsafe_links' => true,
         ]);

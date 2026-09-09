@@ -37,8 +37,9 @@ const form = useForm({
     weekly_hours: props.employee.weekly_hours,
 })
 
-const tab = ref('details')
+const tab = ref('information')
 const tabs = computed(() => [
+    { value: 'information', label: __('availability.tab.information') },
     { value: 'details', label: __('availability.tab.details') },
     { value: 'availability', label: __('availability.tab.availability') },
     { value: 'competences', label: __('competences.tab') },
@@ -53,7 +54,7 @@ function save() {
 </script>
 
 <template>
-    <CenteredLayout>
+    <CenteredLayout align="top">
         <Head :title="__('personal.title')" />
 
         <template #header>
@@ -68,14 +69,16 @@ function save() {
             {{ __('personal.locked_notice') }}
         </p>
 
-        <div v-show="tab === 'details'" data-testid="panel-details" class="space-y-5">
-            <div class="space-y-1">
-                <p class="text-sm font-medium text-(--color-text-primary)">
-                    {{ __('personal.greeting', { name: employee.name }) }}
-                </p>
-                <p class="text-sm text-(--color-text-secondary)">{{ __('personal.intro') }}</p>
-            </div>
+        <div v-show="tab === 'information'" data-testid="panel-information">
+            <ShiftNote v-if="shiftNoteHtml" :html="shiftNoteHtml" class="mb-6" />
+            <p v-else class="mb-6 text-sm text-(--color-text-secondary)">
+                {{ __('availability.info.empty') }}
+            </p>
 
+            <p class="text-sm text-(--color-text-secondary)">{{ __('availability.info.cta') }}</p>
+        </div>
+
+        <div v-show="tab === 'details'" data-testid="panel-details">
             <form class="space-y-5" @submit.prevent="save">
                 <EmployeeFields :form="form" readonly-identity :disabled="!editable" />
 
@@ -91,8 +94,6 @@ function save() {
         </div>
 
         <div v-show="tab === 'availability'" data-testid="panel-availability">
-            <ShiftNote v-if="shiftNoteHtml" :html="shiftNoteHtml" class="mb-6" />
-
             <section class="space-y-3">
                 <h3 class="text-sm font-semibold text-(--color-text-primary)">
                     {{ __('availability.grid.heading') }}

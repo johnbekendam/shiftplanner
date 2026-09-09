@@ -98,6 +98,23 @@ class ShiftNoteTest extends TestCase
         $this->assertNull(PlanningSettings::current()->shiftNoteHtml());
     }
 
+    public function test_note_html_replaces_the_name_placeholder(): void
+    {
+        PlanningSettings::current()->update(['shift_note' => 'Hello :name, please read this.']);
+
+        $html = PlanningSettings::current()->fresh()->shiftNoteHtml('Jordan Lee');
+
+        $this->assertStringContainsString('Hello Jordan Lee, please read this.', $html);
+        $this->assertStringNotContainsString(':name', $html);
+    }
+
+    public function test_note_html_keeps_the_name_placeholder_when_no_name_is_given(): void
+    {
+        PlanningSettings::current()->update(['shift_note' => 'Hello :name.']);
+
+        $this->assertStringContainsString(':name', PlanningSettings::current()->fresh()->shiftNoteHtml());
+    }
+
     public function test_employee_edit_payload_carries_the_rendered_note(): void
     {
         $this->actingAs(User::factory()->create());
@@ -121,6 +138,18 @@ class ShiftNoteTest extends TestCase
             ->assertInertia(fn ($page) => $page
                 ->component('Personal/Show')
                 ->where('shiftNoteHtml', fn ($html) => str_contains((string) $html, '<strong>Bold</strong>'))
+            );
+    }
+
+    public function test_personal_show_payload_resolves_the_name_placeholder(): void
+    {
+        PlanningSettings::current()->update(['shift_note' => 'Hi :name']);
+        $employee = Employee::factory()->create(['name' => 'Jordan Lee']);
+        $token = $employee->personalLink()->create(['token' => 'tok-name'])->token;
+
+        $this->get("/personal/{$token}")->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('shiftNoteHtml', fn ($html) => str_contains((string) $html, 'Hi Jordan Lee'))
             );
     }
 
