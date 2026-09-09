@@ -3,6 +3,7 @@
 use App\Http\Controllers\AccountController;
 use App\Http\Controllers\Auth\LoginCodeController;
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\BusinessLineController;
 use App\Http\Controllers\CompetenceController;
 use App\Http\Controllers\EmployeeCompetenceController;
 use App\Http\Controllers\EmployeeController;
@@ -48,6 +49,10 @@ Route::middleware('auth')->group(function () {
         Route::put('/settings/product-groups/{productGroup}/move', [ProductGroupController::class, 'move'])->name('settings.product-groups.move');
         Route::put('/settings/product-groups/{productGroup}', [ProductGroupController::class, 'update'])->name('settings.product-groups.update');
         Route::delete('/settings/product-groups/{productGroup}', [ProductGroupController::class, 'destroy'])->name('settings.product-groups.destroy');
+        Route::post('/settings/business-lines', [BusinessLineController::class, 'store'])->name('settings.business-lines.store');
+        Route::put('/settings/business-lines/{businessLine}/move', [BusinessLineController::class, 'move'])->name('settings.business-lines.move');
+        Route::put('/settings/business-lines/{businessLine}', [BusinessLineController::class, 'update'])->name('settings.business-lines.update');
+        Route::delete('/settings/business-lines/{businessLine}', [BusinessLineController::class, 'destroy'])->name('settings.business-lines.destroy');
 
         Route::get('/mailbox', [MailboxController::class, 'index'])->name('mailbox.index');
         Route::post('/mailbox/compose', [MailboxController::class, 'store'])->name('mailbox.compose');
