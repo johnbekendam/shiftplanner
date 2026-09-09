@@ -26,7 +26,10 @@ const tabs = ['compose', 'draft', 'outbox', 'sent']
 
 function switchTab(tab) {
     selectedIds.value = []
-    router.get('/mailbox', { tab }, { preserveState: true })
+    // Compose seeds a useForm from props at setup time, so it needs a fresh
+    // mount — preserving state would leave the form empty (bug: empty compose
+    // on tab switch, fills in only after a reload).
+    router.get('/mailbox', { tab }, { preserveState: tab !== 'compose' })
 }
 
 // ── Search (draft/outbox/sent tabs) ─────────────────────────────────────

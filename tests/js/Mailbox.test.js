@@ -122,6 +122,36 @@ describe("Mailbox — Compose tab", () => {
     });
 });
 
+describe("Mailbox — tab switching", () => {
+    it("does not preserve state when switching to the compose tab", async () => {
+        const w = mount(Mailbox, {
+            props: { messages: { data: [] }, tab: "draft", search: "", counts: {}, compose: null },
+            global: { stubs: { AppLayout: { template: "<div><slot /></div>" } } },
+        });
+
+        await w.findAll("button").find((b) => b.text().startsWith("Compose")).trigger("click");
+
+        expect(router.get).toHaveBeenCalledTimes(1);
+        const [url, params, options] = router.get.mock.calls[0];
+        expect(url).toBe("/mailbox");
+        expect(params).toEqual({ tab: "compose" });
+        expect(options.preserveState).not.toBe(true);
+    });
+
+    it("preserves state when switching between list tabs", async () => {
+        const w = mount(Mailbox, {
+            props: { messages: { data: [] }, tab: "draft", search: "", counts: {}, compose: null },
+            global: { stubs: { AppLayout: { template: "<div><slot /></div>" } } },
+        });
+
+        await w.findAll("button").find((b) => b.text().startsWith("Sent")).trigger("click");
+
+        const [, params, options] = router.get.mock.calls[0];
+        expect(params).toEqual({ tab: "sent" });
+        expect(options.preserveState).toBe(true);
+    });
+});
+
 describe("Mailbox — message list", () => {
     const messages = {
         data: [
