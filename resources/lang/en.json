@@ -121,7 +121,7 @@
     "availability.tab.availability": "Availability",
     "availability.info.empty": "No information has been provided yet.",
     "availability.info.cta": "Please update your details, availability and competences on the different tabs.",
-    "availability.grid.heading": "Shifts",
+    "availability.grid.shift_column": "Shift",
     "availability.grid.cell": ":shift, :day: :state",
     "availability.grid.no_shifts": "No shifts are defined yet.",
     "availability.grid.no_shifts_manager": "No shifts are defined yet. Add them on the Settings page.",

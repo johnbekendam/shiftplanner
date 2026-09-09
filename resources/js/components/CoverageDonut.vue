@@ -24,6 +24,13 @@ const fraction = computed(() =>
 
 const dashArray = computed(() => `${fraction.value * CIRCUMFERENCE} ${CIRCUMFERENCE}`)
 
+// Once coverage reaches the target, switch the arc to the success colour.
+const arcColor = computed(() =>
+    hasTarget.value && props.available >= props.required
+        ? 'var(--color-badge-success-text)'
+        : 'var(--color-brand-bg)',
+)
+
 const label = computed(() =>
     hasTarget.value ? `${Math.round((props.available / props.required) * 100)}%` : '—',
 )
@@ -58,7 +65,7 @@ const caption = computed(() =>
                 cy="50"
                 :r="R"
                 fill="none"
-                stroke="var(--color-brand-bg)"
+                :stroke="arcColor"
                 stroke-width="10"
                 stroke-linecap="round"
                 :stroke-dasharray="dashArray"

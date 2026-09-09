@@ -16,14 +16,19 @@ const props = defineProps({
 
 // ── Geometry ────────────────────────────────────────────────────────────
 const W = 640
-const H = 240
+const H = 180
 const PAD = { top: 12, right: 12, bottom: 24, left: 40 }
 const plotW = W - PAD.left - PAD.right
 const plotH = H - PAD.top - PAD.bottom
 
+const Y_STEPS = 4
+
 const maxValue = computed(() => {
     const peak = Math.max(props.target, ...props.available, 1)
-    return peak * 1.1
+    // Round up to a whole-number axis top that divides evenly into Y_STEPS,
+    // so every tick lands on an integer.
+    const step = Math.max(1, Math.ceil((peak * 1.1) / Y_STEPS))
+    return step * Y_STEPS
 })
 
 const x = (i) => {
@@ -39,22 +44,40 @@ const targetY = computed(() => y(props.target))
 
 // ── Axis ticks ──────────────────────────────────────────────────────────
 const yTicks = computed(() => {
-    const steps = 4
-    return Array.from({ length: steps + 1 }, (_, k) => {
-        const value = (maxValue.value / steps) * k
-        return { value, y: y(value), label: value.toFixed(1) }
+    return Array.from({ length: Y_STEPS + 1 }, (_, k) => {
+        const value = (maxValue.value / Y_STEPS) * k
+        return { value, y: y(value), label: String(value) }
     })
 })
 
+// ISO-8601 week number for a "YYYY-MM-DD" string.
+const isoWeek = (iso) => {
+    const d = new Date(`${iso}T00:00:00Z`)
+    const dayOfWeek = (d.getUTCDay() + 6) % 7 // Mon = 0
+    d.setUTCDate(d.getUTCDate() - dayOfWeek + 3) // Thursday of this week
+    const firstThursday = new Date(Date.UTC(d.getUTCFullYear(), 0, 4))
+    const ftDay = (firstThursday.getUTCDay() + 6) % 7
+    firstThursday.setUTCDate(firstThursday.getUTCDate() - ftDay + 3)
+    return 1 + Math.round((d - firstThursday) / (7 * 24 * 3600 * 1000))
+}
+
 const xTicks = computed(() => {
     const ticks = []
+    // Minimum horizontal gap between labels, in viewBox units, so short
+    // partial weeks at the edges don't collide with the next label.
+    const minGap = 30
+    let prevWeek = null
+    let lastX = -Infinity
     props.days.forEach((day, i) => {
-        const first = i === 0
-        const last = i === props.days.length - 1
-        const monthStart = day.slice(8, 10) === '01'
-        if (first || last || monthStart) {
-            ticks.push({ x: x(i), label: day.slice(0, 7) })
-        }
+        const week = isoWeek(day)
+        const mondayFirstDay = i === 0 && new Date(`${day}T00:00:00Z`).getUTCDay() === 1
+        const weekChanged = prevWeek !== null && week !== prevWeek
+        prevWeek = week
+        if (!mondayFirstDay && !weekChanged) return
+        const px = x(i)
+        if (px - lastX < minGap) return
+        ticks.push({ x: px, label: `W${week}` })
+        lastX = px
     })
     return ticks
 })
@@ -94,6 +117,24 @@ const xTicks = computed(() => {
                     fill="var(--color-text-secondary)"
                 >{{ tick.label }}</text>
             </g>
+
+            <!-- Axis lines -->
+            <line
+                :x1="PAD.left"
+                :x2="PAD.left"
+                :y1="PAD.top"
+                :y2="PAD.top + plotH"
+                stroke="var(--color-text-secondary)"
+                stroke-width="1"
+            />
+            <line
+                :x1="PAD.left"
+                :x2="W - PAD.right"
+                :y1="PAD.top + plotH"
+                :y2="PAD.top + plotH"
+                stroke="var(--color-text-secondary)"
+                stroke-width="1"
+            />
 
             <!-- X labels -->
             <text

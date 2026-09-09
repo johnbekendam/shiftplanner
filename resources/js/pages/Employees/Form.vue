@@ -69,25 +69,13 @@ function submit() {
                 <form class="space-y-5" @submit.prevent="submit">
                     <EmployeeFields :form="form" :business-lines="businessLines" />
 
-                    <div class="flex items-center justify-between gap-3">
-                        <Link
-                            v-if="isEdit"
-                            :href="`/mailbox?tab=compose&type=personal_page_link&employee=${employee.id}`"
-                        >
-                            <ButtonSecondary type="button" icon="envelope">
-                                {{ employee.link_sent ? __('employees.action.resend_link') : __('employees.action.send_link') }}
-                            </ButtonSecondary>
+                    <div class="flex items-center justify-end gap-3">
+                        <Link href="/employees">
+                            <ButtonSecondary type="button">{{ __('employees.action.cancel') }}</ButtonSecondary>
                         </Link>
-                        <span v-else />
-
-                        <div class="flex gap-3">
-                            <Link href="/employees">
-                                <ButtonSecondary type="button">{{ __('employees.action.cancel') }}</ButtonSecondary>
-                            </Link>
-                            <ButtonPrimary type="submit" :disabled="form.processing">
-                                {{ __('employees.action.save') }}
-                            </ButtonPrimary>
-                        </div>
+                        <ButtonPrimary type="submit" :disabled="form.processing">
+                            {{ __('employees.action.save') }}
+                        </ButtonPrimary>
                     </div>
                 </form>
             </div>
@@ -104,9 +92,6 @@ function submit() {
             <div v-show="tab === 'availability'" data-testid="panel-availability" class="p-6">
                 <template v-if="isEdit">
                     <section class="space-y-3">
-                        <h3 class="text-sm font-semibold text-(--color-text-primary)">
-                            {{ __('availability.grid.heading') }}
-                        </h3>
                         <AvailabilityGrid
                             :shifts="shifts"
                             :availability="availability"

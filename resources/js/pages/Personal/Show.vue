@@ -95,9 +95,6 @@ function save() {
 
         <div v-show="tab === 'availability'" data-testid="panel-availability">
             <section class="space-y-3">
-                <h3 class="text-sm font-semibold text-(--color-text-primary)">
-                    {{ __('availability.grid.heading') }}
-                </h3>
                 <AvailabilityGrid
                     :shifts="shifts"
                     :availability="availability"

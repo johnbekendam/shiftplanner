@@ -48,7 +48,7 @@ const blocks = computed(() => {
             {{ __('dashboard.no_period') }}
         </p>
 
-        <div v-else class="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+        <div v-else class="grid gap-6 md:w-1/2">
             <Card v-for="block in blocks" :key="block.key" data-testid="dashboard-block">
                 <template #header>
                     <h2 class="px-4 py-2.5 text-sm font-semibold text-(--color-card-header-text)">

@@ -37,6 +37,7 @@ const mountGrid = (props = {}) =>
             endpoint: "/employees/7/availability",
             ...props,
         },
+        global: { stubs: { teleport: true } },
     });
 
 beforeEach(() => router.put.mockReset());
@@ -64,9 +65,20 @@ describe("AvailabilityGrid", () => {
         expect(cls).toContain("bg-(--color-badge-success-bg)");
     });
 
-    it("cycles available -> not_preferred and writes to the shift cell endpoint", async () => {
+    it("opens a menu on click without writing", async () => {
+        const w = mountGrid();
+        expect(w.find('[data-testid="availability-menu"]').exists()).toBe(false);
+
+        await w.get('[data-testid="cell-4-20"]').trigger("click");
+
+        expect(w.get('[data-testid="availability-menu"]').exists()).toBe(true);
+        expect(router.put).not.toHaveBeenCalled();
+    });
+
+    it("writes the picked state to the shift cell endpoint", async () => {
         const w = mountGrid();
         await w.get('[data-testid="cell-4-20"]').trigger("click");
+        await w.get('[data-testid="availability-menu-not_preferred"]').trigger("click");
 
         expect(router.put).toHaveBeenCalledTimes(1);
         const [url, payload, opts] = router.put.mock.calls[0];
@@ -77,20 +89,22 @@ describe("AvailabilityGrid", () => {
         expect(w.get('[data-testid="cell-4-20"]').classes().join(" ")).toContain(
             "bg-(--color-badge-warning-bg)",
         );
+        expect(w.find('[data-testid="availability-menu"]').exists()).toBe(false);
     });
 
-    it("cycles unavailable -> available", async () => {
+    it("does not write when the picked state matches the current one", async () => {
         const w = mountGrid();
         await w.get('[data-testid="cell-2-10"]').trigger("click");
+        await w.get('[data-testid="availability-menu-unavailable"]').trigger("click");
 
-        expect(router.put.mock.calls[0][0]).toBe("/employees/7/availability/2/10");
-        expect(router.put.mock.calls[0][1]).toEqual({ level: "available" });
+        expect(router.put).not.toHaveBeenCalled();
     });
 
-    it("does not write and marks cells disabled when disabled", async () => {
+    it("does not open the menu and marks cells disabled when disabled", async () => {
         const w = mountGrid({ disabled: true });
         await w.get('[data-testid="cell-2-10"]').trigger("click");
 
+        expect(w.find('[data-testid="availability-menu"]').exists()).toBe(false);
         expect(router.put).not.toHaveBeenCalled();
         expect(w.get('[data-testid="cell-2-10"]').attributes("disabled")).toBeDefined();
     });

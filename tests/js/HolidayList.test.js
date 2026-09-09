@@ -39,7 +39,8 @@ describe("HolidayList", () => {
     it("renders a row per holiday", () => {
         const w = mountList();
         expect(w.findAll('[data-testid="holiday-row"]')).toHaveLength(2);
-        expect(w.text()).toContain("2026-06-01");
+        expect(w.text()).toContain("01-06-2026");
+        expect(w.text()).not.toContain("2026-06-01");
         expect(w.text()).toContain("Early");
     });
 

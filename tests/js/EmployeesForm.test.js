@@ -195,36 +195,12 @@ describe("Employees/Form", () => {
         expect(fields.props("form").business_line_id).toBe(8);
     });
 
-    it("shows a personal-link action on the Details tab in edit mode", () => {
+    it("does not show a personal-link action on the Details tab", () => {
         const w = mount(Form, {
             props: {
                 employee: { id: 3, name: "A", email: "a@b.c", weekly_hours: 24, link_sent: false },
                 holidays: [],
             },
-            global: { stubs },
-        });
-
-        const details = w.get('[data-testid="panel-details"]');
-        const link = details.findAll("a").find((a) => a.text() === "Send link");
-        expect(link).toBeTruthy();
-        expect(link.attributes("href")).toBe("/mailbox?tab=compose&type=personal_page_link&employee=3");
-    });
-
-    it("labels the personal-link action Resend link once one was sent", () => {
-        const w = mount(Form, {
-            props: {
-                employee: { id: 3, name: "A", email: "a@b.c", weekly_hours: 24, link_sent: true },
-                holidays: [],
-            },
-            global: { stubs },
-        });
-
-        expect(w.get('[data-testid="panel-details"]').text()).toContain("Resend link");
-    });
-
-    it("hides the personal-link action on create", () => {
-        const w = mount(Form, {
-            props: { employee: null, holidays: [] },
             global: { stubs },
         });
 
