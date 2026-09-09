@@ -1,6 +1,6 @@
 # Employee Details Layout — Plan
 
-Status: in progress — 4/5
+Status: done — 5/5
 
 Spec: `spec.md`. Business line editable on the personal page, shared
 detail fields reordered, weekly hours moved to the Availability tab,
@@ -61,9 +61,9 @@ Details tabs auto-save, admin create is a single card.
   leaves `details`.
   Full suite green.
 
-- [ ] 5. **Full suite, lint, build, docs.**
-  `php artisan test` and `npm test` green. `vendor/bin/pint --dirty`
-  clean. `npm run build` green. Mark `plan.md` `5/5`.
+- [x] 5. **Full suite, lint, build, docs.**
+  `php artisan test` 302 pass. `npm test` 284 pass. `vendor/bin/pint
+  --dirty` clean. `npm run build` green.
 
 ## Not done / deferred
 
