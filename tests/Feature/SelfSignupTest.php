@@ -119,4 +119,74 @@ class SelfSignupTest extends TestCase
         $this->assertStringContainsString('/personal/known-token', $message->body_html);
         $this->assertSame(1, $employee->personalLink()->count());
     }
+
+    public function test_the_per_email_limit_skips_a_second_send_in_the_window(): void
+    {
+        Queue::fake();
+
+        $this->service()->register('Ada', 'Lin', 'ada@example.com');
+        $this->service()->register('Ada', 'Lin', 'ada@example.com');
+
+        $this->assertSame(1, Message::count());
+        $this->assertSame(1, Employee::count());
+        Queue::assertPushed(SendMailboxMessage::class, 1);
+    }
+
+    // ── Step 3: POST /signup ────────────────────────────────────────────
+
+    public function test_a_valid_request_registers_and_flashes_the_confirmation(): void
+    {
+        Queue::fake();
+
+        $this->post('/signup', [
+            'first_name' => 'Nina',
+            'last_name' => 'Park',
+            'email' => 'nina@example.com',
+        ])->assertRedirect('/signup')->assertSessionHas('success');
+
+        $this->assertSame(1, Employee::where('email', 'nina@example.com')->count());
+        Queue::assertPushed(SendMailboxMessage::class, 1);
+    }
+
+    public function test_a_request_missing_fields_is_rejected(): void
+    {
+        Queue::fake();
+
+        $this->post('/signup', ['first_name' => 'Nina'])
+            ->assertSessionHasErrors(['last_name', 'email']);
+
+        $this->assertSame(0, Employee::count());
+        Queue::assertNothingPushed();
+    }
+
+    public function test_a_second_request_for_the_same_email_still_confirms_but_does_not_resend(): void
+    {
+        Queue::fake();
+
+        $payload = ['first_name' => 'Ada', 'last_name' => 'Lin', 'email' => 'ada@example.com'];
+        $this->post('/signup', $payload)->assertSessionHas('success');
+        $this->post('/signup', $payload)->assertSessionHas('success');
+
+        $this->assertSame(1, Message::count());
+        Queue::assertPushed(SendMailboxMessage::class, 1);
+    }
+
+    public function test_the_route_throttles_a_burst_of_requests(): void
+    {
+        Queue::fake();
+
+        for ($i = 0; $i < 5; $i++) {
+            $this->post('/signup', [
+                'first_name' => 'A',
+                'last_name' => 'B',
+                'email' => "a{$i}@example.com",
+            ])->assertRedirect();
+        }
+
+        $this->post('/signup', [
+            'first_name' => 'A',
+            'last_name' => 'B',
+            'email' => 'a5@example.com',
+        ])->assertStatus(429);
+    }
 }

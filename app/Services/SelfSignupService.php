@@ -8,6 +8,7 @@ use App\Mail\ComposedMessage;
 use App\Models\Employee;
 use App\Models\Message;
 use App\Models\MessageTemplate;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 
 /**
@@ -17,8 +18,12 @@ use Illuminate\Support\Str;
  */
 class SelfSignupService
 {
+    /** One accepted request per email inside this window. */
+    public const REQUEST_MAX = 1;
+
+    public const REQUEST_WINDOW_SECONDS = 600;
+
     public function __construct(
-        private EmployeePersonalLinkService $links,
         private PersonalLinkMessage $placeholders,
         private MessageComposer $composer,
     ) {}
@@ -26,11 +31,19 @@ class SelfSignupService
     /**
      * Match an employee by email (case-insensitive), create one when none
      * matches, then queue the personal-page link to that address. An
-     * existing employee's stored details are left untouched.
+     * existing employee's stored details are left untouched. Silent once
+     * the per-email request limit is spent.
      */
     public function register(string $firstName, string $lastName, string $email): void
     {
         $email = trim($email);
+        $key = 'self-signup:'.Str::lower($email);
+
+        if (RateLimiter::tooManyAttempts($key, self::REQUEST_MAX)) {
+            return;
+        }
+
+        RateLimiter::hit($key, self::REQUEST_WINDOW_SECONDS);
 
         $employee = Employee::query()
             ->whereRaw('lower(email) = ?', [Str::lower($email)])

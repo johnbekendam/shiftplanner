@@ -22,6 +22,7 @@ use App\Http\Controllers\QuestionController;
 use App\Http\Controllers\RecurringAvailabilityController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\ShiftController;
+use App\Http\Controllers\SignupController;
 use App\Http\Controllers\ThemeBuilderController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
@@ -33,6 +34,10 @@ Route::post('/login', [LoginController::class, 'store'])->middleware('throttle:6
 Route::post('/login/code', [LoginCodeController::class, 'request'])->middleware('throttle:login-code')->name('login.code.request');
 Route::post('/login/code/verify', [LoginCodeController::class, 'verify'])->middleware('throttle:login-code')->name('login.code.verify');
 Route::post('/logout', [LoginController::class, 'destroy'])->name('logout');
+
+// Public employee self-signup — features/employee-self-signup/.
+Route::get('/signup', [SignupController::class, 'show'])->name('signup.show');
+Route::post('/signup', [SignupController::class, 'store'])->middleware('throttle:5,1')->name('signup.store');
 
 Route::middleware('auth')->group(function () {
     // Admin-only: everything except the employee list/editor.

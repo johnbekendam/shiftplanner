@@ -1,6 +1,6 @@
 # Employee Self-Signup — Plan
 
-Status: in progress — 2/6
+Status: in progress — 3/6
 
 - [x] **1. `messages.user_id` nullable.** Fold `->nullable()` into the
   `create_messages_table` migration, keeping the FK and
@@ -20,7 +20,7 @@ Status: in progress — 2/6
   a name that differs from the stored one does not change the row;
   `:link` in the sent body is the employee's personal URL.
 
-- [ ] **3. `POST /signup` route and controller.** Public route with
+- [x] **3. `POST /signup` route and controller.** Public route with
   `throttle:5,1`. Validate the three fields. Apply the per-email
   `RateLimiter` limit (1 per 10 minutes on the lower-cased email); when
   spent, skip the service call. Always redirect back with the same
