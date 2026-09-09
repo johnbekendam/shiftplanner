@@ -6,6 +6,7 @@ import Card from '@/components/ui/Card.vue'
 import Tabs from '@/components/ui/Tabs.vue'
 import OrderedNameList from '@/components/OrderedNameList.vue'
 import BusinessLineList from '@/components/BusinessLineList.vue'
+import PeriodSettingsForm from '@/components/PeriodSettingsForm.vue'
 import { useI18n } from '@/composables/useI18n'
 
 const __ = useI18n()
@@ -14,6 +15,7 @@ defineProps({
     competences: { type: Array, default: () => [] },
     productGroups: { type: Array, default: () => [] },
     businessLines: { type: Array, default: () => [] },
+    period: { type: Object, default: () => ({}) },
 })
 
 const tab = ref('competences')
@@ -21,6 +23,7 @@ const tabs = computed(() => [
     { value: 'competences', label: __('settings.tab.competences') },
     { value: 'product_groups', label: __('settings.tab.product_groups') },
     { value: 'business_lines', label: __('settings.tab.business_lines') },
+    { value: 'period', label: __('settings.tab.period') },
 ])
 </script>
 
@@ -51,6 +54,10 @@ const tabs = computed(() => [
 
             <div v-show="tab === 'business_lines'" data-testid="panel-business-lines" class="p-6">
                 <BusinessLineList :items="businessLines" endpoint="/settings/business-lines" />
+            </div>
+
+            <div v-show="tab === 'period'" data-testid="panel-period" class="p-6">
+                <PeriodSettingsForm :period="period" />
             </div>
         </Card>
     </AppLayout>

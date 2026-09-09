@@ -1,15 +1,22 @@
 import { describe, it, expect, vi } from "vitest";
 import { mount } from "@vue/test-utils";
+import { reactive } from "vue";
 
 const en = {
     "settings.title": "Settings",
     "settings.tab.competences": "Competences",
     "settings.tab.product_groups": "Product groups",
     "settings.tab.business_lines": "Business lines",
+    "settings.tab.period": "Period",
     "business_lines.abbreviation": "Abbreviation",
     "business_lines.description": "Description",
     "business_lines.target_fte": "Target FTE",
     "business_lines.list_empty": "No business lines yet.",
+    "period.fte_hours": "Hours per FTE",
+    "period.fte_hours_hint": "hint",
+    "period.period_start": "Period start",
+    "period.period_end": "Period end",
+    "period.save": "Save period",
     "competences.name": "Name",
     "competences.list_empty": "No competences yet.",
     "competences.add_placeholder": "New competence",
@@ -26,26 +33,42 @@ vi.mock("@inertiajs/vue3", () => ({
     router,
     Head: { name: "Head", render: () => null },
     usePage: () => ({ props: { translations: en } }),
+    useForm: (initial) =>
+        reactive({ ...initial, errors: {}, processing: false, transform() { return this; }, put: vi.fn() }),
 }));
 
 import Settings from "@/pages/Settings/Index.vue";
 import OrderedNameList from "@/components/OrderedNameList.vue";
 import BusinessLineList from "@/components/BusinessLineList.vue";
+import PeriodSettingsForm from "@/components/PeriodSettingsForm.vue";
 
 const stubs = { AppLayout: { template: "<div><slot /></div>" } };
 
 const mountPage = (props = {}) =>
     mount(Settings, {
-        props: { competences: [], productGroups: [], businessLines: [], ...props },
+        props: {
+            competences: [],
+            productGroups: [],
+            businessLines: [],
+            period: { fte_hours: 40, period_start: null, period_end: null },
+            ...props,
+        },
         global: { stubs },
     });
 
 describe("Settings/Index", () => {
-    it("shows a Competences, Product groups and Business lines tab", () => {
+    it("shows a tab for competences, product groups, business lines and the period", () => {
         const text = mountPage().text();
         expect(text).toContain("Competences");
         expect(text).toContain("Product groups");
         expect(text).toContain("Business lines");
+        expect(text).toContain("Period");
+    });
+
+    it("mounts the period form seeded from the period prop", () => {
+        const w = mountPage({ period: { fte_hours: 32, period_start: "2026-02-01", period_end: "2026-02-28" } });
+        const form = w.findComponent(PeriodSettingsForm);
+        expect(form.props("period")).toMatchObject({ fte_hours: 32, period_start: "2026-02-01" });
     });
 
     it("mounts the Business lines list against its endpoint", () => {

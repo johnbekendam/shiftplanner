@@ -1,6 +1,6 @@
 # Business Lines — Plan
 
-Status: in progress — 4/8
+Status: in progress — 5/8
 
 Spec: `spec.md`. Roadmap phase 3. Business Lines replace Departments.
 The Settings CRUD mirrors `ProductGroupController`.
@@ -81,7 +81,7 @@ The Settings CRUD mirrors `ProductGroupController`.
   before `period_start` rejected; blank dates accepted). Full PHP suite
   green.
 
-- [ ] 5. **Frontend: the Period Settings tab.** `Settings/Index.vue` gains
+- [x] 5. **Frontend: the Period Settings tab.** `Settings/Index.vue` gains
   a `period` tab after `business_lines`, one form: a `NumberInput` for
   `fte_hours`, a `DateInput` for `period_start`, a `DateInput` for
   `period_end`, and one `ButtonPrimary` that sends `PUT /settings/period`.
