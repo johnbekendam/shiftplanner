@@ -14,7 +14,7 @@ starts, a `plan.md` (the steps and progress).
 | 2 | Auth hardening — manager Entra ID (OIDC), employee token hardening | Planned | grill first, then `features/auth-hardening/spec.md` |
 | 3 | Business Lines and standard day schedules — config list, per-employee assignment, FTE dashboard; then schedules and coverage | In progress | Business Lines shipped (`features/business-lines/`). Shift definitions shipped (`features/shift-definitions/`). Shift coverage (required headcount, the workcenter link) still needs a design session. |
 | 3.5 | Competences — config list on a Settings page, per-employee checkmarks | Done | `features/competences/spec.md`, `features/competences/plan.md`. Planning use is out of scope. |
-| 3.6 | Product groups — config list on the Settings page, per-employee preferences | Done | `features/product-groups/spec.md`, `features/product-groups/plan.md`. Planning use is out of scope. |
+| 3.6 | Product groups | Removed | Shipped, then removed from the product. Tables dropped by `2026_09_09_000007`; the config tab, per-employee checklist, routes, and language keys are gone. |
 | 3.7 | Account management (interim auth) — admin/manager roles, password or email code, admin `/users`, account page | Done | `features/account-management/`. Entra ID, the PostgreSQL switch, and employee token hardening stay in phase 2. |
 | 4 | Availability and wishes — recurring availability, date-specific exceptions, fairness model | In progress | Holidays and the recurring availability grid shipped (`features/employee-availability/`). Fairness model still needs a design session. |
 | 5 | Scheduling engine — Python OR-Tools `/solve` service, JSON contract, `GeneratePlan` job, draft review and edit | Planned | depends on phases 3 and 4 |
@@ -120,24 +120,16 @@ the holiday and availability pattern.
 Planning use — a work centre that requires a competence — is out of
 scope. Only the data and the two UIs ship here.
 
-## Phase 3.6 — Product groups
+## Phase 3.6 — Product groups (removed)
 
-Built after competences. See `features/product-groups/`.
-
-Mirrors competences. The Settings card gets a second tab, Product groups,
-with the same add, rename, reorder, and confirm-then-cascade delete. A
-product group has a name only; `employee_product_group` is the pivot.
-
-Each employee has a set of preferred product groups. A row means "this
-employee prefers this group" — no rank. The manager and the employee
-both toggle them, write on click.
-
-The employee editor and personal page Competences tab is renamed
-Profile. It now holds two sections split by a separator: Competences,
-then Preferred product groups. The two competences Vue components became
-the shared `OrderedNameList` and `TagChecklist`, used by both features.
-
-Planning use is out of scope. Only the data and the UI ship here.
+Built after competences, then removed from the product. The
+`product_groups` and `employee_product_group` tables, the config tab, the
+per-employee checklist, and all routes and language keys are gone. The
+`2026_09_09_000007` migration drops the tables; the original create
+migrations stay in history. The employee editor and personal page tab is
+`Competences` again (its Profile-era rename is reverted). The shared
+`OrderedNameList` and `TagChecklist` components stay — competences use
+them.
 
 ## Phase 3.7 — Account management (interim auth)
 

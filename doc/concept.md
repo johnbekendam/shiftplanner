@@ -15,8 +15,8 @@ The first useful capability is employee administration: managers can add people 
 Managers administer the organization:
 
 - Create Business Lines and standard day schedules.
-- Maintain the competence, product group, and Business Line lists, and
-  the planning period, on the Settings page.
+- Maintain the competence and Business Line lists, the shifts, and the
+  planning period, on the Settings page.
 - Watch available FTE over the period on the dashboard.
 - Add and edit employees.
 - Assign each employee to a Business Line.
@@ -84,12 +84,6 @@ employee holds a subset, checked by a manager or the employee. A later
 phase lets a work centre require a competence, so only employees who hold
 it can be planned there.
 
-### Product Groups
-
-A configurable list of product families, maintained on the Settings page.
-Each employee has a set of preferred product groups, set by a manager or
-the employee. A later phase uses the preference as a planning wish.
-
 ### Employees
 
 An employee record contains:
@@ -105,9 +99,6 @@ An employee record contains:
 - Competences: the skills the employee holds, checked from the
   configurable competence list. A manager or the employee maintains them.
   Planning use comes later.
-- Preferred product groups: the product families the employee would
-  rather work on, checked from the configurable product group list. A
-  manager or the employee maintains them. Planning use comes later.
 - Business Line: the org unit the employee belongs to, chosen from the
   configurable Business Line list. Optional. A manager sets it; the
   personal page does not show it.
