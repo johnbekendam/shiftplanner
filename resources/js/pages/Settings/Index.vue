@@ -3,10 +3,12 @@ import { ref, computed } from 'vue'
 import { Head } from '@inertiajs/vue3'
 import AppLayout from '@/layouts/AppLayout.vue'
 import Card from '@/components/ui/Card.vue'
+import CardSeparator from '@/components/ui/CardSeparator.vue'
 import Tabs from '@/components/ui/Tabs.vue'
 import OrderedNameList from '@/components/OrderedNameList.vue'
 import BusinessLineList from '@/components/BusinessLineList.vue'
 import ShiftList from '@/components/ShiftList.vue'
+import ShiftNoteForm from '@/components/ShiftNoteForm.vue'
 import PeriodSettingsForm from '@/components/PeriodSettingsForm.vue'
 import { useI18n } from '@/composables/useI18n'
 
@@ -17,6 +19,7 @@ defineProps({
     productGroups: { type: Array, default: () => [] },
     businessLines: { type: Array, default: () => [] },
     shifts: { type: Array, default: () => [] },
+    shiftNote: { type: String, default: '' },
     period: { type: Object, default: () => ({}) },
 })
 
@@ -61,6 +64,8 @@ const tabs = computed(() => [
 
             <div v-show="tab === 'shifts'" data-testid="panel-shifts" class="p-6">
                 <ShiftList :items="shifts" endpoint="/settings/shifts" />
+                <CardSeparator />
+                <ShiftNoteForm :note="shiftNote" />
             </div>
 
             <div v-show="tab === 'period'" data-testid="panel-period" class="p-6">

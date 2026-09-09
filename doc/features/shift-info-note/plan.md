@@ -1,6 +1,6 @@
 # Shift Information Note — Plan
 
-Status: in progress — 1/4
+Status: in progress — 2/4
 
 Spec: `spec.md`. Roadmap phase 3, after `features/shift-definitions/`.
 One global Markdown note on `planning_settings`, edited on the Shifts
@@ -22,7 +22,7 @@ settings tab, rendered at the top of the availability page.
   `<table>` via `shiftNoteHtml`; a raw `<span>` survives the render).
   Full PHP suite green.
 
-- [ ] 2. **Frontend: the note editor on the Shifts tab.** New
+- [x] 2. **Frontend: the note editor on the Shifts tab.** New
   `resources/js/components/ShiftNoteForm.vue`, built like
   `PeriodSettingsForm.vue`: a labelled `MultilineInput` seeded from a
   `note` prop and one `ButtonPrimary` that sends

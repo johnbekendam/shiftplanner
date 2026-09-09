@@ -13,6 +13,9 @@ const en = {
     "shifts.start_time": "Start",
     "shifts.end_time": "End",
     "shifts.list_empty": "No shifts yet.",
+    "shifts.note_label": "Shift information",
+    "shifts.note_hint": "Markdown.",
+    "shifts.note_save": "Save information",
     "business_lines.abbreviation": "Abbreviation",
     "business_lines.description": "Description",
     "business_lines.target_fte": "Target FTE",
@@ -46,6 +49,7 @@ import Settings from "@/pages/Settings/Index.vue";
 import OrderedNameList from "@/components/OrderedNameList.vue";
 import BusinessLineList from "@/components/BusinessLineList.vue";
 import ShiftList from "@/components/ShiftList.vue";
+import ShiftNoteForm from "@/components/ShiftNoteForm.vue";
 import PeriodSettingsForm from "@/components/PeriodSettingsForm.vue";
 
 const stubs = { AppLayout: { template: "<div><slot /></div>" } };
@@ -57,6 +61,7 @@ const mountPage = (props = {}) =>
             productGroups: [],
             businessLines: [],
             shifts: [],
+            shiftNote: "",
             period: { fte_hours: 40, period_start: null, period_end: null },
             ...props,
         },
@@ -86,6 +91,11 @@ describe("Settings/Index", () => {
         const list = w.findComponent(ShiftList);
         expect(list.props("endpoint")).toBe("/settings/shifts");
         expect(list.props("items")).toHaveLength(1);
+    });
+
+    it("mounts the shift note form seeded from the shiftNote prop", () => {
+        const w = mountPage({ shiftNote: "# Allowances" });
+        expect(w.findComponent(ShiftNoteForm).props("note")).toBe("# Allowances");
     });
 
     it("mounts the Business lines list against its endpoint", () => {
