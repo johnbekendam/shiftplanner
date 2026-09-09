@@ -3,7 +3,7 @@ import { mount } from "@vue/test-utils";
 import { reactive } from "vue";
 
 const en = {
-    "shifts.note_label": "Shift information",
+    "shifts.note_label": "Information for employees",
     "shifts.note_hint": "Markdown. Shown at the top of every availability page.",
     "shifts.note_save": "Save information",
 };

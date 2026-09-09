@@ -7,12 +7,13 @@ const en = {
     "settings.tab.competences": "Competences",
     "settings.tab.business_lines": "Business lines",
     "settings.tab.shifts": "Shifts",
+    "settings.tab.information": "Information",
     "settings.tab.period": "Period",
     "shifts.name": "Name",
     "shifts.start_time": "Start",
     "shifts.end_time": "End",
     "shifts.list_empty": "No shifts yet.",
-    "shifts.note_label": "Shift information",
+    "shifts.note_label": "Information for employees",
     "shifts.note_hint": "Markdown.",
     "shifts.note_save": "Save information",
     "business_lines.abbreviation": "Abbreviation",
@@ -64,11 +65,12 @@ const mountPage = (props = {}) =>
     });
 
 describe("Settings/Index", () => {
-    it("shows a tab for competences, business lines, shifts and the period", () => {
+    it("shows a tab for competences, business lines, shifts, information and the period", () => {
         const text = mountPage().text();
         expect(text).toContain("Competences");
         expect(text).toContain("Business lines");
         expect(text).toContain("Shifts");
+        expect(text).toContain("Information");
         expect(text).toContain("Period");
         expect(text).not.toContain("Product groups");
     });

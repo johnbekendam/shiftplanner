@@ -3,7 +3,6 @@ import { ref, computed } from 'vue'
 import { Head } from '@inertiajs/vue3'
 import AppLayout from '@/layouts/AppLayout.vue'
 import Card from '@/components/ui/Card.vue'
-import CardSeparator from '@/components/ui/CardSeparator.vue'
 import Tabs from '@/components/ui/Tabs.vue'
 import OrderedNameList from '@/components/OrderedNameList.vue'
 import BusinessLineList from '@/components/BusinessLineList.vue'
@@ -27,6 +26,7 @@ const tabs = computed(() => [
     { value: 'business_lines', label: __('settings.tab.business_lines') },
     { value: 'period', label: __('settings.tab.period') },
     { value: 'shifts', label: __('settings.tab.shifts') },
+    { value: 'information', label: __('settings.tab.information') },
     { value: 'competences', label: __('settings.tab.competences') },
 ])
 </script>
@@ -50,7 +50,9 @@ const tabs = computed(() => [
 
             <div v-show="tab === 'shifts'" data-testid="panel-shifts" class="p-6">
                 <ShiftList :items="shifts" endpoint="/settings/shifts" />
-                <CardSeparator />
+            </div>
+
+            <div v-show="tab === 'information'" data-testid="panel-information" class="p-6">
                 <ShiftNoteForm :note="shiftNote" />
             </div>
 

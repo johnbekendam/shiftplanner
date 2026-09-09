@@ -3,8 +3,11 @@ import { mount } from "@vue/test-utils";
 import { reactive } from "vue";
 
 const en = {
+    "availability.tab.information": "Information",
     "availability.tab.details": "Details",
     "availability.tab.availability": "Availability",
+    "availability.info.empty": "No information has been provided yet.",
+    "availability.info.cta": "Please update your details, availability and competences on the different tabs.",
     "availability.holidays.empty": "No holidays yet.",
     "availability.holidays.save_first": "Save the employee first, then add holidays.",
     "competences.tab": "Competences",
@@ -42,16 +45,17 @@ import TagChecklist from "@/components/TagChecklist.vue";
 const stubs = { AppLayout: { template: "<div><slot /></div>" } };
 
 describe("Employees/Form", () => {
-    it("shows Details and Availability tabs", () => {
+    it("shows Information, Details and Availability tabs", () => {
         const w = mount(Form, {
             props: { employee: { id: 3, name: "A", email: "a@b.c", weekly_hours: 24 }, holidays: [] },
             global: { stubs },
         });
+        expect(w.text()).toContain("Information");
         expect(w.text()).toContain("Details");
         expect(w.text()).toContain("Availability");
     });
 
-    it("starts on Details and reveals Availability on tab click", async () => {
+    it("starts on Information and reveals Availability on tab click", async () => {
         const w = mount(Form, {
             props: { employee: { id: 3, name: "A", email: "a@b.c", weekly_hours: 24 }, holidays: [] },
             global: { stubs },
@@ -59,7 +63,7 @@ describe("Employees/Form", () => {
 
         const hidden = (sel) => (w.get(sel).attributes("style") ?? "").includes("display: none");
 
-        expect(hidden('[data-testid="panel-details"]')).toBe(false);
+        expect(hidden('[data-testid="panel-information"]')).toBe(false);
         expect(hidden('[data-testid="panel-availability"]')).toBe(true);
         expect(w.findComponent(HolidayList).props("endpoint")).toBe("/employees/3/holidays");
         expect(w.findComponent(AvailabilityGrid).props("endpoint")).toBe("/employees/3/availability");
@@ -68,11 +72,11 @@ describe("Employees/Form", () => {
         await availabilityTab.trigger("click");
         await w.vm.$nextTick();
 
-        expect(hidden('[data-testid="panel-details"]')).toBe(true);
+        expect(hidden('[data-testid="panel-information"]')).toBe(true);
         expect(hidden('[data-testid="panel-availability"]')).toBe(false);
     });
 
-    it("renders the shift note at the top of the Availability tab when set", () => {
+    it("renders the shift note on the Information tab when set", () => {
         const w = mount(Form, {
             props: {
                 employee: { id: 3, name: "A", email: "a@b.c", weekly_hours: 24 },
@@ -85,15 +89,27 @@ describe("Employees/Form", () => {
         const note = w.findComponent(ShiftNote);
         expect(note.exists()).toBe(true);
         expect(note.props("html")).toBe("<p>Allowances table here</p>");
-        expect(w.get('[data-testid="panel-availability"]').text()).toContain("Allowances table here");
+        expect(w.get('[data-testid="panel-information"]').text()).toContain("Allowances table here");
     });
 
-    it("renders no shift note when the prop is absent", () => {
+    it("shows an empty state on the Information tab when no shift note is set", () => {
         const w = mount(Form, {
             props: { employee: { id: 3, name: "A", email: "a@b.c", weekly_hours: 24 }, holidays: [] },
             global: { stubs },
         });
         expect(w.findComponent(ShiftNote).exists()).toBe(false);
+        expect(w.get('[data-testid="panel-information"]').text()).toContain("No information has been provided yet.");
+    });
+
+    it("Information tab prompts the employee to update the other tabs", () => {
+        const w = mount(Form, {
+            props: { employee: { id: 3, name: "A", email: "a@b.c", weekly_hours: 24 }, holidays: [] },
+            global: { stubs },
+        });
+
+        expect(w.get('[data-testid="panel-information"]').text()).toContain(
+            "Please update your details, availability and competences on the different tabs.",
+        );
     });
 
     it("on create, the Availability tab explains the employee must be saved first", () => {

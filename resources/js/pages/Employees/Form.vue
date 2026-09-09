@@ -36,8 +36,9 @@ const form = useForm({
     business_line_id: props.employee?.business_line_id ?? null,
 })
 
-const tab = ref('details')
+const tab = ref('information')
 const tabs = computed(() => [
+    { value: 'information', label: __('availability.tab.information') },
     { value: 'details', label: __('availability.tab.details') },
     { value: 'availability', label: __('availability.tab.availability') },
     { value: 'competences', label: __('competences.tab') },
@@ -76,9 +77,16 @@ function submit() {
                 </form>
             </div>
 
-            <div v-show="tab === 'availability'" data-testid="panel-availability" class="p-6">
+            <div v-show="tab === 'information'" data-testid="panel-information" class="p-6">
                 <ShiftNote v-if="shiftNoteHtml" :html="shiftNoteHtml" class="mb-6" />
+                <p v-else class="mb-6 text-sm text-(--color-text-secondary)">
+                    {{ __('availability.info.empty') }}
+                </p>
 
+                <p class="text-sm text-(--color-text-secondary)">{{ __('availability.info.cta') }}</p>
+            </div>
+
+            <div v-show="tab === 'availability'" data-testid="panel-availability" class="p-6">
                 <template v-if="isEdit">
                     <section class="space-y-3">
                         <h3 class="text-sm font-semibold text-(--color-text-primary)">
