@@ -66,6 +66,12 @@ class Employee extends Model
         return $this->belongsToMany(Competence::class);
     }
 
+    /** Availability questions the employee answered with yes. */
+    public function availabilityQuestions(): BelongsToMany
+    {
+        return $this->belongsToMany(AvailabilityQuestion::class);
+    }
+
     public function scopeSearch($query, string $search)
     {
         return $query->where(function ($q) use ($search) {

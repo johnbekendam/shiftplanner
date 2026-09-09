@@ -10,6 +10,7 @@ const en = {
     "availability.info.cta": "Please update your details, availability and competences on the different tabs.",
     "availability.holidays.empty": "No holidays yet.",
     "availability.holidays.save_first": "Save the employee first, then add holidays.",
+    "availability.questions.heading": "Questions",
     "competences.tab": "Competences",
     "competences.save_first": "Save the employee first, then set competences.",
     "competences.checklist_empty": "No competences have been set up yet.",
@@ -41,6 +42,7 @@ import HolidayList from "@/components/HolidayList.vue";
 import AvailabilityGrid from "@/components/AvailabilityGrid.vue";
 import ShiftNote from "@/components/ShiftNote.vue";
 import TagChecklist from "@/components/TagChecklist.vue";
+import QuestionChecklist from "@/components/QuestionChecklist.vue";
 
 const stubs = { AppLayout: { template: "<div><slot /></div>" } };
 
@@ -120,7 +122,35 @@ describe("Employees/Form", () => {
 
         expect(w.findComponent(HolidayList).exists()).toBe(false);
         expect(w.findComponent(AvailabilityGrid).exists()).toBe(false);
+        expect(w.findComponent(QuestionChecklist).exists()).toBe(false);
         expect(w.text()).toContain("Save the employee first");
+    });
+
+    it("shows the questions checklist on the Availability tab, pointed at the employee endpoint", () => {
+        const w = mount(Form, {
+            props: {
+                employee: { id: 3, name: "A", email: "a@b.c", weekly_hours: 24 },
+                holidays: [],
+                questions: [{ id: 5, text: "Can we contact you to work in the weekend?" }],
+                questionAnswers: [5],
+            },
+            global: { stubs },
+        });
+
+        const checklist = w.findComponent(QuestionChecklist);
+        expect(checklist.exists()).toBe(true);
+        expect(checklist.props("endpoint")).toBe("/employees/3/questions");
+        expect(checklist.props("answeredIds")).toEqual([5]);
+        expect(w.get('[data-testid="panel-availability"]').text()).toContain("Questions");
+    });
+
+    it("omits the questions section when no question is configured", () => {
+        const w = mount(Form, {
+            props: { employee: { id: 3, name: "A", email: "a@b.c", weekly_hours: 24 }, holidays: [] },
+            global: { stubs },
+        });
+        expect(w.findComponent(QuestionChecklist).exists()).toBe(false);
+        expect(w.get('[data-testid="panel-availability"]').text()).not.toContain("Questions");
     });
 
     it("shows a Competences tab with the competence checklist on the employee endpoint", async () => {

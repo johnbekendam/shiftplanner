@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AvailabilityQuestion;
 use App\Models\Competence;
 use App\Models\Employee;
 use App\Models\PlanningSettings;
@@ -39,6 +40,8 @@ class PersonalPageController extends Controller
             'availability' => $employee->recurringAvailabilities->map->toPayload()->all(),
             'competences' => Competence::all()->map->toPayload()->all(),
             'competenceIds' => $employee->competences->pluck('id')->all(),
+            'questions' => AvailabilityQuestion::all()->map->toPayload()->all(),
+            'questionAnswers' => $employee->availabilityQuestions->pluck('id')->all(),
         ]);
     }
 

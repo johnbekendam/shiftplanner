@@ -15,6 +15,7 @@ const en = {
     "availability.tab.details": "Details",
     "availability.tab.availability": "Availability",
     "availability.holidays.empty": "No holidays yet.",
+    "availability.questions.heading": "Questions",
     "competences.tab": "Competences",
     "competences.checklist_empty": "No competences have been set up yet.",
 };
@@ -55,6 +56,7 @@ import HolidayList from "@/components/HolidayList.vue";
 import AvailabilityGrid from "@/components/AvailabilityGrid.vue";
 import ShiftNote from "@/components/ShiftNote.vue";
 import TagChecklist from "@/components/TagChecklist.vue";
+import QuestionChecklist from "@/components/QuestionChecklist.vue";
 import SelectInput from "@/components/ui/Input/Select.vue";
 
 const mountShow = (holidays = [], extra = {}) =>
@@ -148,6 +150,25 @@ describe("Personal/Show", () => {
         );
         expect(byEndpoint["/personal/tok-1/competences"].props("selectedIds")).toEqual([1]);
         expect(byEndpoint["/personal/tok-1/product-groups"]).toBeUndefined();
+    });
+
+    it("shows the questions checklist on the Availability tab, pointed at the token endpoint", () => {
+        const w = mountShow([], {
+            questions: [{ id: 5, text: "Can we contact you to work in the weekend?" }],
+            questionAnswers: [5],
+        });
+
+        const checklist = w.findComponent(QuestionChecklist);
+        expect(checklist.exists()).toBe(true);
+        expect(checklist.props("endpoint")).toBe("/personal/tok-1/questions");
+        expect(checklist.props("answeredIds")).toEqual([5]);
+        expect(w.get('[data-testid="panel-availability"]').text()).toContain("Questions");
+    });
+
+    it("omits the questions section when no question is configured", () => {
+        const w = mountShow();
+        expect(w.findComponent(QuestionChecklist).exists()).toBe(false);
+        expect(w.get('[data-testid="panel-availability"]').text()).not.toContain("Questions");
     });
 
     it("reveals the holiday list when the Availability tab is clicked", async () => {

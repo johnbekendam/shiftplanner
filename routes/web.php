@@ -9,12 +9,15 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EmployeeCompetenceController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\EmployeeHolidayController;
+use App\Http\Controllers\EmployeeQuestionController;
 use App\Http\Controllers\MailboxController;
 use App\Http\Controllers\PeriodController;
 use App\Http\Controllers\PersonalCompetenceController;
 use App\Http\Controllers\PersonalHolidayController;
 use App\Http\Controllers\PersonalPageController;
+use App\Http\Controllers\PersonalQuestionController;
 use App\Http\Controllers\PersonalRecurringAvailabilityController;
+use App\Http\Controllers\QuestionController;
 use App\Http\Controllers\RecurringAvailabilityController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\ShiftController;
@@ -53,6 +56,10 @@ Route::middleware('auth')->group(function () {
         Route::put('/settings/shifts/note', [ShiftController::class, 'updateNote'])->name('settings.shifts.note');
         Route::put('/settings/shifts/{shift}', [ShiftController::class, 'update'])->name('settings.shifts.update');
         Route::delete('/settings/shifts/{shift}', [ShiftController::class, 'destroy'])->name('settings.shifts.destroy');
+        Route::post('/settings/questions', [QuestionController::class, 'store'])->name('settings.questions.store');
+        Route::put('/settings/questions/{question}/move', [QuestionController::class, 'move'])->name('settings.questions.move');
+        Route::put('/settings/questions/{question}', [QuestionController::class, 'update'])->name('settings.questions.update');
+        Route::delete('/settings/questions/{question}', [QuestionController::class, 'destroy'])->name('settings.questions.destroy');
         Route::put('/settings/period', [PeriodController::class, 'update'])->name('settings.period.update');
 
         Route::get('/mailbox', [MailboxController::class, 'index'])->name('mailbox.index');
@@ -84,10 +91,11 @@ Route::middleware('auth')->group(function () {
     Route::post('/employees/{employee}/holidays', [EmployeeHolidayController::class, 'store'])->name('employees.holidays.store');
     Route::delete('/employees/{employee}/holidays/{holiday}', [EmployeeHolidayController::class, 'destroy'])->name('employees.holidays.destroy');
     Route::put('/employees/{employee}/availability/{weekday}/{shift}', [RecurringAvailabilityController::class, 'update'])
-        ->where(['weekday' => '[1-7]', 'shift' => '[0-9]+'])
+        ->where(['weekday' => '[1-5]', 'shift' => '[0-9]+'])
         ->name('employees.availability.update');
     Route::put('/employees/{employee}/competences/{competence}', [EmployeeCompetenceController::class, 'update'])->name('employees.competences.update');
     Route::delete('/employees/{employee}/competences/{competence}', [EmployeeCompetenceController::class, 'destroy'])->name('employees.competences.destroy');
+    Route::put('/employees/{employee}/questions/{question}', [EmployeeQuestionController::class, 'update'])->name('employees.questions.update');
 });
 
 // Employee personal page — token-only, no auth. Prototype preview links.
@@ -97,7 +105,8 @@ Route::put('/personal/{token}', [PersonalPageController::class, 'update'])->name
 Route::post('/personal/{token}/holidays', [PersonalHolidayController::class, 'store'])->name('personal.holidays.store');
 Route::delete('/personal/{token}/holidays/{holiday}', [PersonalHolidayController::class, 'destroy'])->name('personal.holidays.destroy');
 Route::put('/personal/{token}/availability/{weekday}/{shift}', [PersonalRecurringAvailabilityController::class, 'update'])
-    ->where(['weekday' => '[1-7]', 'shift' => '[0-9]+'])
+    ->where(['weekday' => '[1-5]', 'shift' => '[0-9]+'])
     ->name('personal.availability.update');
 Route::put('/personal/{token}/competences/{competence}', [PersonalCompetenceController::class, 'update'])->name('personal.competences.update');
 Route::delete('/personal/{token}/competences/{competence}', [PersonalCompetenceController::class, 'destroy'])->name('personal.competences.destroy');
+Route::put('/personal/{token}/questions/{question}', [PersonalQuestionController::class, 'update'])->name('personal.questions.update');

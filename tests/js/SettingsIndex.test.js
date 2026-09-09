@@ -8,6 +8,7 @@ const en = {
     "settings.tab.business_lines": "Business lines",
     "settings.tab.shifts": "Shifts",
     "settings.tab.information": "Information",
+    "settings.tab.questions": "Questions",
     "settings.tab.period": "Period",
     "shifts.name": "Name",
     "shifts.start_time": "Start",
@@ -28,6 +29,9 @@ const en = {
     "competences.name": "Name",
     "competences.list_empty": "No competences yet.",
     "competences.add_placeholder": "New competence",
+    "questions.name": "Question",
+    "questions.list_empty": "No questions yet.",
+    "questions.add_placeholder": "New question",
 };
 
 const { router } = vi.hoisted(() => ({
@@ -58,6 +62,7 @@ const mountPage = (props = {}) =>
             businessLines: [],
             shifts: [],
             shiftNote: "",
+            questions: [],
             period: { fte_hours: 40, period_start: null, period_end: null },
             ...props,
         },
@@ -65,12 +70,13 @@ const mountPage = (props = {}) =>
     });
 
 describe("Settings/Index", () => {
-    it("shows a tab for competences, business lines, shifts, information and the period", () => {
+    it("shows a tab for competences, business lines, shifts, information, questions and the period", () => {
         const text = mountPage().text();
         expect(text).toContain("Competences");
         expect(text).toContain("Business lines");
         expect(text).toContain("Shifts");
         expect(text).toContain("Information");
+        expect(text).toContain("Questions");
         expect(text).toContain("Period");
         expect(text).not.toContain("Product groups");
     });
@@ -116,6 +122,17 @@ describe("Settings/Index", () => {
         expect(byEndpoint["/settings/competences"].props("i18nPrefix")).toBe("competences");
         expect(byEndpoint["/settings/competences"].props("items")).toHaveLength(1);
         expect(byEndpoint["/settings/product-groups"]).toBeUndefined();
+    });
+
+    it("mounts the questions list against its endpoint and prefix", () => {
+        const lists = mountPage({
+            questions: [{ id: 1, name: "Weekend?", position: 1, holder_count: 2 }],
+        }).findAllComponents(OrderedNameList);
+
+        const byEndpoint = Object.fromEntries(lists.map((l) => [l.props("endpoint"), l]));
+
+        expect(byEndpoint["/settings/questions"].props("i18nPrefix")).toBe("questions");
+        expect(byEndpoint["/settings/questions"].props("items")).toHaveLength(1);
     });
 
     it("opens on the Business lines panel and switches on a tab click", async () => {

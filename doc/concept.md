@@ -15,8 +15,8 @@ The first useful capability is employee administration: managers can add people 
 Managers administer the organization:
 
 - Create Business Lines and standard day schedules.
-- Maintain the competence and Business Line lists, the shifts, and the
-  planning period, on the Settings page.
+- Maintain the competence and Business Line lists, the shifts, the
+  availability questions, and the planning period, on the Settings page.
 - Watch available FTE over the period on the dashboard.
 - Add and edit employees.
 - Assign each employee to a Business Line.
@@ -84,6 +84,15 @@ employee holds a subset, checked by a manager or the employee. A later
 phase lets a work centre require a competence, so only employees who hold
 it can be planned there.
 
+### Availability Questions
+
+A configurable list of yes/no questions, maintained on the Settings page
+— for cover the weekday grid does not describe, such as weekend
+call-outs or an extra ISO week. Each employee answers each question with
+a checkbox on the Availability tab; a checked box is the only thing
+stored, so an unanswered question counts as no. A later phase decides how
+the planner reads the answers.
+
 ### Employees
 
 An employee record contains:
@@ -93,9 +102,12 @@ An employee record contains:
 - Weekly hours: 20 to 48, in steps of 4
 - Holidays: whole-day date ranges the employee is away. Hard blocks for
   the planner. A manager or the employee maintains them.
-- Recurring availability grid: one row per defined shift by seven
-  weekdays. Each cell is available, not preferred (soft), or unavailable
-  (hard). A manager or the employee maintains it.
+- Recurring availability grid: one row per defined shift by five weekdays
+  (Monday–Friday). Each cell is available, not preferred (soft), or
+  unavailable (hard). A manager or the employee maintains it.
+- Availability question answers: a yes/no answer to each question on the
+  configurable question list. Unanswered means no. A manager or the
+  employee sets them on the Availability tab.
 - Competences: the skills the employee holds, checked from the
   configurable competence list. A manager or the employee maintains them.
   Planning use comes later.

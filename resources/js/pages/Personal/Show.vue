@@ -8,6 +8,7 @@ import EmployeeFields from '@/components/EmployeeFields.vue'
 import AvailabilityGrid from '@/components/AvailabilityGrid.vue'
 import ShiftNote from '@/components/ShiftNote.vue'
 import HolidayList from '@/components/HolidayList.vue'
+import QuestionChecklist from '@/components/QuestionChecklist.vue'
 import TagChecklist from '@/components/TagChecklist.vue'
 import ButtonPrimary from '@/components/ui/ButtonPrimary.vue'
 import { useI18n } from '@/composables/useI18n'
@@ -23,6 +24,8 @@ const props = defineProps({
     availability: { type: Array, default: () => [] },
     competences: { type: Array, default: () => [] },
     competenceIds: { type: Array, default: () => [] },
+    questions: { type: Array, default: () => [] },
+    questionAnswers: { type: Array, default: () => [] },
 })
 
 const form = useForm({
@@ -88,6 +91,21 @@ function save() {
                     :endpoint="`/personal/${token}/availability`"
                 />
             </section>
+
+            <template v-if="questions.length">
+                <CardSeparator />
+
+                <section class="space-y-3">
+                    <h3 class="text-sm font-semibold text-(--color-text-primary)">
+                        {{ __('availability.questions.heading') }}
+                    </h3>
+                    <QuestionChecklist
+                        :items="questions"
+                        :answered-ids="questionAnswers"
+                        :endpoint="`/personal/${token}/questions`"
+                    />
+                </section>
+            </template>
 
             <CardSeparator />
 

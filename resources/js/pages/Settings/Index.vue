@@ -18,6 +18,7 @@ defineProps({
     businessLines: { type: Array, default: () => [] },
     shifts: { type: Array, default: () => [] },
     shiftNote: { type: String, default: '' },
+    questions: { type: Array, default: () => [] },
     period: { type: Object, default: () => ({}) },
 })
 
@@ -27,6 +28,7 @@ const tabs = computed(() => [
     { value: 'period', label: __('settings.tab.period') },
     { value: 'shifts', label: __('settings.tab.shifts') },
     { value: 'information', label: __('settings.tab.information') },
+    { value: 'questions', label: __('settings.tab.questions') },
     { value: 'competences', label: __('settings.tab.competences') },
 ])
 </script>
@@ -54,6 +56,14 @@ const tabs = computed(() => [
 
             <div v-show="tab === 'information'" data-testid="panel-information" class="p-6">
                 <ShiftNoteForm :note="shiftNote" />
+            </div>
+
+            <div v-show="tab === 'questions'" data-testid="panel-questions" class="p-6">
+                <OrderedNameList
+                    :items="questions"
+                    endpoint="/settings/questions"
+                    i18n-prefix="questions"
+                />
             </div>
 
             <div v-show="tab === 'competences'" data-testid="panel-competences" class="p-6">

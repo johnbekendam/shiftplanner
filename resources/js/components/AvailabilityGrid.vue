@@ -17,7 +17,9 @@ const props = defineProps({
     showAddHint: { type: Boolean, default: false },
 })
 
-const WEEKDAYS = [1, 2, 3, 4, 5, 6, 7]
+// Monday–Friday. The team runs no weekend shifts; a weekend need is a
+// configurable question instead.
+const WEEKDAYS = [1, 2, 3, 4, 5]
 const STATES = ['available', 'not_preferred', 'unavailable']
 // available -> not_preferred -> unavailable -> available
 const CYCLE = { available: 'not_preferred', not_preferred: 'unavailable', unavailable: 'available' }

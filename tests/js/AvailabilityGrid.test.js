@@ -10,8 +10,6 @@ const en = {
     "availability.weekday.3": "Wed",
     "availability.weekday.4": "Thu",
     "availability.weekday.5": "Fri",
-    "availability.weekday.6": "Sat",
-    "availability.weekday.7": "Sun",
     "availability.state.available": "Available",
     "availability.state.not_preferred": "Not preferred",
     "availability.state.unavailable": "Unavailable",
@@ -44,12 +42,14 @@ const mountGrid = (props = {}) =>
 beforeEach(() => router.put.mockReset());
 
 describe("AvailabilityGrid", () => {
-    it("renders one row per shift and a cell for every weekday", () => {
+    it("renders one row per shift and a cell for every weekday (Mon–Fri)", () => {
         const w = mountGrid();
-        expect(w.findAll('[data-testid^="cell-"]')).toHaveLength(14);
+        expect(w.findAll('[data-testid^="cell-"]')).toHaveLength(10);
         expect(w.text()).toContain("Early");
         expect(w.text()).toContain("Late");
         expect(w.text()).toContain("06:00 – 14:00");
+        expect(w.text()).not.toContain("Sat");
+        expect(w.text()).not.toContain("Sun");
     });
 
     it("colours a stored cell by its level", () => {

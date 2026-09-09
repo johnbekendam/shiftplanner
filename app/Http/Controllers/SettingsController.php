@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AvailabilityQuestion;
 use App\Models\BusinessLine;
 use App\Models\Competence;
 use App\Models\PlanningSettings;
@@ -17,6 +18,7 @@ class SettingsController extends Controller
             'businessLines' => $this->businessLines(),
             'shifts' => Shift::all()->map->toPayload()->all(),
             'shiftNote' => PlanningSettings::current()->shift_note ?? '',
+            'questions' => $this->questions(),
             'period' => PlanningSettings::current()->toPayload(),
         ]);
     }
@@ -31,6 +33,21 @@ class SettingsController extends Controller
                 'name' => $row->name,
                 'position' => $row->position,
                 'holder_count' => $row->employees_count,
+            ])
+            ->all();
+    }
+
+    /** Questions for the config list: name is the text, plus the yes-answer count. */
+    private function questions(): array
+    {
+        return AvailabilityQuestion::query()
+            ->withCount('employees')
+            ->get()
+            ->map(fn (AvailabilityQuestion $question) => [
+                'id' => $question->id,
+                'name' => $question->text,
+                'position' => $question->position,
+                'holder_count' => $question->employees_count,
             ])
             ->all();
     }

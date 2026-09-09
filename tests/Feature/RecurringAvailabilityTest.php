@@ -137,6 +137,22 @@ class RecurringAvailabilityTest extends TestCase
         $this->assertSame(0, RecurringAvailability::count());
     }
 
+    public function test_the_weekend_is_out_of_range(): void
+    {
+        $user = User::factory()->create();
+        $employee = Employee::factory()->create();
+        $shift = $this->shift();
+
+        $this->actingAs($user)->put("/employees/{$employee->id}/availability/6/{$shift->id}", ['level' => 'unavailable'])->assertNotFound();
+        $this->actingAs($user)->put("/employees/{$employee->id}/availability/7/{$shift->id}", ['level' => 'unavailable'])->assertNotFound();
+
+        $token = $this->token($employee);
+        $this->put("/personal/{$token}/availability/6/{$shift->id}", ['level' => 'unavailable'])->assertNotFound();
+        $this->put("/personal/{$token}/availability/7/{$shift->id}", ['level' => 'unavailable'])->assertNotFound();
+
+        $this->assertSame(0, RecurringAvailability::count());
+    }
+
     public function test_edit_payload_lists_shifts_and_availability(): void
     {
         $user = User::factory()->create();

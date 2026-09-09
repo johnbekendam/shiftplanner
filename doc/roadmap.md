@@ -16,7 +16,7 @@ starts, a `plan.md` (the steps and progress).
 | 3.5 | Competences — config list on a Settings page, per-employee checkmarks | Done | `features/competences/spec.md`, `features/competences/plan.md`. Planning use is out of scope. |
 | 3.6 | Product groups | Removed | Shipped, then removed from the product. Tables dropped by `2026_09_09_000007`; the config tab, per-employee checklist, routes, and language keys are gone. |
 | 3.7 | Account management (interim auth) — admin/manager roles, password or email code, admin `/users`, account page | Done | `features/account-management/`. Entra ID, the PostgreSQL switch, and employee token hardening stay in phase 2. |
-| 4 | Availability and wishes — recurring availability, date-specific exceptions, fairness model | In progress | Holidays and the recurring availability grid shipped (`features/employee-availability/`). Fairness model still needs a design session. |
+| 4 | Availability and wishes — recurring availability, date-specific exceptions, fairness model | In progress | Holidays and the recurring availability grid shipped (`features/employee-availability/`); the grid is weekday-only and carries manager-defined yes/no questions (`features/availability-questions/`). Fairness model still needs a design session. |
 | 5 | Scheduling engine — Python OR-Tools `/solve` service, JSON contract, `GeneratePlan` job, draft review and edit | Planned | depends on phases 3 and 4 |
 | 6 | Publish and employee schedule view — publish a plan, employees see own assignments only | Planned | — |
 
@@ -167,11 +167,17 @@ Done so far — `features/employee-availability/`:
 - Per-employee holidays. Whole-day date ranges, hard blocks, no approval.
   A manager or the employee adds and removes them on a new Availability
   tab.
-- Recurring availability grid. One row per defined shift (phase 3), seven
-  weekdays. Each cell is `available`, `not_preferred` (soft), or
-  `unavailable` (hard). One table, `weekday` + `shift_id` + `level`. It
-  replaces the old shift preference. The three fixed dayparts it first
-  shipped with were superseded by the shift definitions.
+- Recurring availability grid. One row per defined shift (phase 3), five
+  weekdays (Monday–Friday). Each cell is `available`, `not_preferred`
+  (soft), or `unavailable` (hard). One table, `weekday` + `shift_id` +
+  `level`. It replaces the old shift preference. The three fixed dayparts
+  it first shipped with were superseded by the shift definitions; the
+  weekend columns were dropped by `features/availability-questions/`.
+- Availability questions (`features/availability-questions/`). A manager
+  keeps a list of yes/no questions on a Settings tab — "can we call you
+  in for a weekend?", "are you reachable in week 53?". The employee or
+  the manager answers each with a checkbox on the Availability tab. A
+  checked box is a stored pivot row; nothing else. No planner use yet.
 
 Still open: the fairness definitions and objective-term weights, and the
 `/solve` service that reads this data.

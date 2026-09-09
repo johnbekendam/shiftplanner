@@ -111,7 +111,7 @@
     "availability.tab.availability": "Availability",
     "availability.info.empty": "No information has been provided yet.",
     "availability.info.cta": "Please update your details, availability and competences on the different tabs.",
-    "availability.grid.heading": "Weekly pattern",
+    "availability.grid.heading": "Shifts",
     "availability.grid.cell": ":shift, :day: :state",
     "availability.grid.no_shifts": "No shifts are defined yet.",
     "availability.grid.no_shifts_manager": "No shifts are defined yet. Add them on the Settings page.",
@@ -120,8 +120,6 @@
     "availability.weekday.3": "Wed",
     "availability.weekday.4": "Thu",
     "availability.weekday.5": "Fri",
-    "availability.weekday.6": "Sat",
-    "availability.weekday.7": "Sun",
     "availability.state.available": "Available",
     "availability.state.not_preferred": "Not preferred",
     "availability.state.unavailable": "Unavailable",
@@ -135,6 +133,7 @@
     "availability.holidays.save_first": "Save the employee first, then add holidays.",
     "availability.flash.holiday_added": "Holiday added.",
     "availability.flash.holiday_removed": "Holiday removed.",
+    "availability.questions.heading": "Questions",
 
     "account.title": "Account",
     "account.password.heading": "Password",
@@ -178,6 +177,7 @@
     "settings.tab.business_lines": "Business lines",
     "settings.tab.shifts": "Shifts",
     "settings.tab.information": "Information",
+    "settings.tab.questions": "Questions",
     "settings.tab.period": "Period",
 
     "business_lines.abbreviation": "Abbreviation",
@@ -240,5 +240,18 @@
     "competences.error.name_taken": "A competence with this name already exists.",
     "competences.flash.added": "Competence added.",
     "competences.flash.renamed": "Competence renamed.",
-    "competences.flash.deleted": "Competence deleted."
+    "competences.flash.deleted": "Competence deleted.",
+
+    "questions.name": "Question",
+    "questions.add": "Add question",
+    "questions.add_placeholder": "New question",
+    "questions.move_up": "Move up",
+    "questions.move_down": "Move down",
+    "questions.delete": "Delete",
+    "questions.delete_confirm": "This question has been answered by :count employee(s). Delete it?",
+    "questions.list_empty": "No questions yet. Add the first one below.",
+    "questions.error.text_taken": "This question already exists.",
+    "questions.flash.added": "Question added.",
+    "questions.flash.renamed": "Question updated.",
+    "questions.flash.deleted": "Question deleted."
 }
