@@ -2,6 +2,8 @@
 
 namespace App\Services\Graph;
 
+use Composer\CaBundle\CaBundle;
+use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 
@@ -23,12 +25,14 @@ class GraphClient
         private string $tenantId,
         private string $clientId,
         private string $clientSecret,
+        private ?string $caBundle = null,
     ) {}
 
     /** POST a Graph `message` resource to `/users/{sender}/sendMail`. */
     public function sendMail(string $sender, array $message, bool $saveToSentItems = true): void
     {
-        Http::withToken($this->token())
+        $this->http()
+            ->withToken($this->token())
             ->acceptJson()
             ->post(
                 'https://graph.microsoft.com/v1.0/users/'.rawurlencode($sender).'/sendMail',
@@ -44,7 +48,8 @@ class GraphClient
             return $cached;
         }
 
-        $response = Http::asForm()
+        $response = $this->http()
+            ->asForm()
             ->post("https://login.microsoftonline.com/{$this->tenantId}/oauth2/v2.0/token", [
                 'grant_type' => 'client_credentials',
                 'client_id' => $this->clientId,
@@ -59,5 +64,17 @@ class GraphClient
         Cache::put(self::TOKEN_CACHE_KEY, $token, $ttl);
 
         return $token;
+    }
+
+    private function http(): PendingRequest
+    {
+        $request = Http::acceptJson();
+        $caBundle = $this->caBundle !== null && $this->caBundle !== ''
+            ? $this->caBundle
+            : CaBundle::getBundledCaBundlePath();
+
+        $request->withOptions(['verify' => $caBundle]);
+
+        return $request;
     }
 }
