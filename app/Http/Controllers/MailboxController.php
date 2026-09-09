@@ -79,8 +79,14 @@ class MailboxController extends Controller
             'type' => $type->value,
             'template' => MessageTemplate::forType($type)->only('subject', 'body'),
             'employees' => Employee::query()
-                ->orderBy('name')
-                ->get(['id', 'name', 'email'])
+                ->orderBy('first_name')
+                ->orderBy('last_name')
+                ->get(['id', 'first_name', 'last_name', 'email'])
+                ->map(fn (Employee $employee) => [
+                    'id' => $employee->id,
+                    'name' => $employee->name,
+                    'email' => $employee->email,
+                ])
                 ->all(),
             'preselected_employee_id' => $request->integer('employee') ?: null,
         ];

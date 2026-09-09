@@ -80,6 +80,18 @@ class MailboxTest extends TestCase
 
     // ── Compose: personal_page_link ──────────────────────────────────────
 
+    public function test_compose_tab_lists_employees_with_their_full_name(): void
+    {
+        $this->admin();
+        Employee::factory()->create(['first_name' => 'Alice', 'last_name' => 'Ng', 'email' => 'alice@example.com']);
+
+        $this->get('/mailbox?tab=compose')->assertInertia(fn ($page) => $page
+            ->component('Mailbox')
+            ->where('compose.employees.0.name', 'Alice Ng')
+            ->where('compose.employees.0.email', 'alice@example.com')
+        );
+    }
+
     public function test_compose_creates_one_draft_per_employee_with_placeholders_resolved(): void
     {
         Queue::fake();
