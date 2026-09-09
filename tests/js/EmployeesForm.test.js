@@ -24,6 +24,7 @@ const en = {
     "employees.form.edit_title": "Edit employee",
     "employees.form.create_title": "Add employee",
     "employees.action.save": "Save",
+    "employees.action.create": "Create",
     "employees.action.cancel": "Cancel",
     "employees.action.send_link": "Send link",
     "employees.action.resend_link": "Resend link",
@@ -118,16 +119,22 @@ describe("Employees/Form", () => {
         );
     });
 
-    it("on create, the Availability tab explains the employee must be saved first", () => {
+    it("on create, shows only the Details fields with a Create button and no tabs", () => {
         const w = mount(Form, {
             props: { employee: null, holidays: [] },
             global: { stubs },
         });
 
+        expect(w.findComponent(EmployeeFields).exists()).toBe(true);
+        expect(w.get('[data-testid="panel-details"]').text()).toContain("Create");
+
+        // No tab bar, no other panels.
+        expect(w.findAll("button").some((b) => b.text() === "Availability")).toBe(false);
+        expect(w.find('[data-testid="panel-information"]').exists()).toBe(false);
+        expect(w.find('[data-testid="panel-availability"]').exists()).toBe(false);
+        expect(w.find('[data-testid="panel-competences"]').exists()).toBe(false);
         expect(w.findComponent(HolidayList).exists()).toBe(false);
         expect(w.findComponent(AvailabilityGrid).exists()).toBe(false);
-        expect(w.findComponent(QuestionChecklist).exists()).toBe(false);
-        expect(w.text()).toContain("Save the employee first");
     });
 
     it("shows the questions checklist on the Availability tab, pointed at the employee endpoint", () => {
@@ -209,16 +216,17 @@ describe("Employees/Form", () => {
         expect(w.get('[data-testid="panel-details"]').text()).not.toContain("Send link");
     });
 
-    it("on create, the Competences tab asks the employee to be saved first", () => {
+    it("on create, submitting posts to the employees endpoint", async () => {
         const w = mount(Form, {
             props: { employee: null, holidays: [] },
             global: { stubs },
         });
 
         expect(w.findComponent(TagChecklist).exists()).toBe(false);
-        expect(w.get('[data-testid="panel-competences"]').text()).toContain(
-            "Save the employee first, then set competences.",
-        );
+
+        const form = w.findComponent(EmployeeFields).props("form");
+        await w.get('[data-testid="panel-details"] form').trigger("submit");
+        expect(form.post).toHaveBeenCalledWith("/employees");
     });
 
     it("puts weekly hours on the Availability tab, not on Details", () => {

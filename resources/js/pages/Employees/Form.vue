@@ -74,11 +74,15 @@ function onWeeklyHoursChange(value) {
         <Head :title="isEdit ? __('employees.form.edit_title') : __('employees.form.create_title')" />
 
         <Card class="max-w-2xl">
-            <template #header>
+            <template v-if="isEdit" #header>
                 <Tabs v-model="tab" :tabs="tabs" />
             </template>
 
-            <div v-show="tab === 'details'" data-testid="panel-details" class="p-6">
+            <div
+                v-show="!isEdit || tab === 'details'"
+                data-testid="panel-details"
+                class="p-6"
+            >
                 <form class="space-y-5" @submit.prevent="submit">
                     <EmployeeFields :form="form" :business-lines="businessLines" />
 
@@ -87,13 +91,13 @@ function onWeeklyHoursChange(value) {
                             <ButtonSecondary type="button">{{ __('employees.action.cancel') }}</ButtonSecondary>
                         </Link>
                         <ButtonPrimary type="submit" :disabled="form.processing">
-                            {{ __('employees.action.save') }}
+                            {{ isEdit ? __('employees.action.save') : __('employees.action.create') }}
                         </ButtonPrimary>
                     </div>
                 </form>
             </div>
 
-            <div v-show="tab === 'information'" data-testid="panel-information" class="p-6">
+            <div v-if="isEdit" v-show="tab === 'information'" data-testid="panel-information" class="p-6">
                 <ShiftNote v-if="shiftNoteHtml" :html="shiftNoteHtml" class="mb-6" />
                 <p v-else class="mb-6 text-sm text-(--color-text-secondary)">
                     {{ __('availability.info.empty') }}
@@ -102,67 +106,58 @@ function onWeeklyHoursChange(value) {
                 <p class="text-sm text-(--color-text-secondary)">{{ __('availability.info.cta') }}</p>
             </div>
 
-            <div v-show="tab === 'availability'" data-testid="panel-availability" class="p-6">
-                <template v-if="isEdit">
-                    <section class="mb-6 max-w-xs">
-                        <WeeklyHoursField
-                            :model-value="form.weekly_hours"
-                            :error="form.errors.weekly_hours"
-                            @update:model-value="onWeeklyHoursChange"
-                        />
-                    </section>
+            <div v-if="isEdit" v-show="tab === 'availability'" data-testid="panel-availability" class="p-6">
+                <section class="mb-6 max-w-xs">
+                    <WeeklyHoursField
+                        :model-value="form.weekly_hours"
+                        :error="form.errors.weekly_hours"
+                        @update:model-value="onWeeklyHoursChange"
+                    />
+                </section>
 
-                    <CardSeparator />
+                <CardSeparator />
 
-                    <section class="space-y-3">
-                        <AvailabilityGrid
-                            :shifts="shifts"
-                            :availability="availability"
-                            :endpoint="`/employees/${employee.id}/availability`"
-                            show-add-hint
-                        />
-                    </section>
+                <section class="space-y-3">
+                    <AvailabilityGrid
+                        :shifts="shifts"
+                        :availability="availability"
+                        :endpoint="`/employees/${employee.id}/availability`"
+                        show-add-hint
+                    />
+                </section>
 
-                    <template v-if="questions.length">
-                        <CardSeparator />
-
-                        <section class="space-y-3">
-                            <h3 class="text-sm font-semibold text-(--color-text-primary)">
-                                {{ __('availability.questions.heading') }}
-                            </h3>
-                            <QuestionChecklist
-                                :items="questions"
-                                :answered-ids="questionAnswers"
-                                :endpoint="`/employees/${employee.id}/questions`"
-                            />
-                        </section>
-                    </template>
-
+                <template v-if="questions.length">
                     <CardSeparator />
 
                     <section class="space-y-3">
                         <h3 class="text-sm font-semibold text-(--color-text-primary)">
-                            {{ __('availability.holidays.heading') }}
+                            {{ __('availability.questions.heading') }}
                         </h3>
-                        <HolidayList :holidays="holidays" :endpoint="`/employees/${employee.id}/holidays`" />
+                        <QuestionChecklist
+                            :items="questions"
+                            :answered-ids="questionAnswers"
+                            :endpoint="`/employees/${employee.id}/questions`"
+                        />
                     </section>
                 </template>
-                <p v-else class="text-sm text-(--color-text-secondary)">
-                    {{ __('availability.holidays.save_first') }}
-                </p>
+
+                <CardSeparator />
+
+                <section class="space-y-3">
+                    <h3 class="text-sm font-semibold text-(--color-text-primary)">
+                        {{ __('availability.holidays.heading') }}
+                    </h3>
+                    <HolidayList :holidays="holidays" :endpoint="`/employees/${employee.id}/holidays`" />
+                </section>
             </div>
 
-            <div v-show="tab === 'competences'" data-testid="panel-competences" class="p-6">
+            <div v-if="isEdit" v-show="tab === 'competences'" data-testid="panel-competences" class="p-6">
                 <TagChecklist
-                    v-if="isEdit"
                     :items="competences"
                     :selected-ids="competenceIds"
                     :endpoint="`/employees/${employee.id}/competences`"
                     empty-key="competences.checklist_empty"
                 />
-                <p v-else class="text-sm text-(--color-text-secondary)">
-                    {{ __('competences.save_first') }}
-                </p>
             </div>
         </Card>
     </AppLayout>

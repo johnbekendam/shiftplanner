@@ -1,6 +1,6 @@
 # Employee Details Layout — Plan
 
-Status: in progress — 2/5
+Status: in progress — 3/5
 
 Spec: `spec.md`. Business line editable on the personal page, shared
 detail fields reordered, weekly hours moved to the Availability tab,
@@ -41,7 +41,7 @@ Details tabs auto-save, admin create is a single card.
   `business_line_id` to the form and its save transform.
   Full suite green.
 
-- [ ] 3. **Admin create is a single card.**
+- [x] 3. **Admin create is a single card.**
   Tests: `EmployeesForm.test.js` — on create the component shows the
   Details fields with a Create button and no tab bar and no other
   panels; on edit the tabbed layout is unchanged.
