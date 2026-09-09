@@ -7,6 +7,7 @@
     "nav.my_details": "My details",
     "nav.account": "Account",
     "nav.users": "Users",
+    "nav.import": "Import",
     "nav.settings": "Settings",
     "nav.toggle": "Toggle navigation",
     "nav.switch_to_light": "Switch to light mode",
@@ -267,5 +268,19 @@
     "questions.error.text_taken": "This question already exists.",
     "questions.flash.added": "Question added.",
     "questions.flash.renamed": "Question updated.",
-    "questions.flash.deleted": "Question deleted."
+    "questions.flash.deleted": "Question deleted.",
+
+    "import.title": "Import employees",
+    "import.heading": "Import employees",
+    "import.intro": "Upload a CSV with two columns — name, then email. The first row is treated as a header and skipped. Existing people are matched by email and have their name updated.",
+    "import.dropzone": "Drop a CSV file here, or click to browse",
+    "import.busy": "Importing…",
+    "import.result.summary": ":created created, :updated updated",
+    "import.result.errors_heading": "Nothing was imported. Fix these rows and upload again:",
+    "import.error.file": "Upload a .csv file no larger than 2 MB.",
+    "import.error.empty": "The file has no employee rows.",
+    "import.error.columns": "Line :line: expected 2 columns, found :count.",
+    "import.error.name": "Line :line: the name is missing or too long.",
+    "import.error.email": "Line :line: the email address is missing or invalid.",
+    "import.error.duplicate": "Line :line: email :email already appears on line :first."
 }

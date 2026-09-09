@@ -9,6 +9,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EmployeeCompetenceController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\EmployeeHolidayController;
+use App\Http\Controllers\EmployeeImportController;
 use App\Http\Controllers\EmployeeQuestionController;
 use App\Http\Controllers\MailboxController;
 use App\Http\Controllers\PeriodController;
@@ -42,6 +43,9 @@ Route::middleware('auth')->group(function () {
         Route::delete('/theme-builder/save', [ThemeBuilderController::class, 'reset'])->name('theme-builder.reset');
         Route::post('/theme-builder/logo', [ThemeBuilderController::class, 'uploadLogo'])->name('theme-builder.logo.upload');
         Route::delete('/theme-builder/logo', [ThemeBuilderController::class, 'deleteLogo'])->name('theme-builder.logo.delete');
+
+        Route::get('/import', [EmployeeImportController::class, 'index'])->name('import.index');
+        Route::post('/import', [EmployeeImportController::class, 'store'])->name('import.store');
 
         Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
         Route::post('/settings/competences', [CompetenceController::class, 'store'])->name('settings.competences.store');
