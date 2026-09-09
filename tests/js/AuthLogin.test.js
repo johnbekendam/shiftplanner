@@ -13,6 +13,7 @@ const en = {
     "auth.action.request_code": "Email me a code",
     "auth.action.verify_code": "Verify",
     "auth.code_sent": "If that email matches an account, a code is on the way.",
+    "signup.login_link": "Request your personal link",
 };
 
 const form = reactive({
@@ -32,6 +33,7 @@ const form = reactive({
 
 vi.mock("@inertiajs/vue3", () => ({
     Head: { name: "Head", render: () => null },
+    Link: { name: "Link", props: ["href"], template: "<a :href='href'><slot /></a>" },
     useForm: () => form,
 }));
 
@@ -60,6 +62,13 @@ describe("Auth/Login", () => {
         const pwd = w.find('input[type="password"]');
         expect(pwd.exists()).toBe(true);
         expect(pwd.attributes("required")).toBeUndefined();
+    });
+
+    it("links to the self-signup page", () => {
+        const w = mountLogin();
+        const link = w.findAll("a").find((a) => a.text() === "Request your personal link");
+        expect(link).toBeTruthy();
+        expect(link.attributes("href")).toBe("/signup");
     });
 
     it("posts to /login on submit", async () => {

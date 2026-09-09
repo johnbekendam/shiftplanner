@@ -1,6 +1,6 @@
 # Employee Self-Signup — Plan
 
-Status: in progress — 4/6
+Status: in progress — 5/6
 
 - [x] **1. `messages.user_id` nullable.** Fold `->nullable()` into the
   `create_messages_table` migration, keeping the FK and
@@ -36,7 +36,7 @@ Status: in progress — 4/6
   Tests: the route renders the `Signup` component for a guest;
   `signup.*` keys resolve.
 
-- [ ] **5. Login-card link.** Add "Request your personal link" to
+- [x] **5. Login-card link.** Add "Request your personal link" to
   `Login.vue`, pointing at `/signup`, using a `signup.*` key. Test:
   the login page renders and the `signup.login_link` key exists.
 

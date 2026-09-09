@@ -1,6 +1,6 @@
 <script setup>
 import { ref } from 'vue'
-import { Head, useForm } from '@inertiajs/vue3'
+import { Head, Link, useForm } from '@inertiajs/vue3'
 import CenteredLayout from '@/layouts/CenteredLayout.vue'
 import LabeledInput from '@/components/LabeledInput.vue'
 import ButtonPrimary from '@/components/ui/ButtonPrimary.vue'
@@ -54,6 +54,12 @@ function verifyCode() {
                 </ButtonPrimary>
             </div>
         </form>
+
+        <p class="mt-6 text-center text-sm text-(--color-text-secondary)">
+            <Link href="/signup" class="font-medium text-(--color-text-link) hover:text-(--color-text-link-hover) hover:underline">
+                {{ __('signup.login_link') }}
+            </Link>
+        </p>
 
         <div v-if="codeRequested" data-testid="code-section" class="mt-6 space-y-4 border-t border-[var(--color-card-border)] pt-6">
             <p class="text-sm text-(--color-text-secondary)">{{ __('auth.code_sent') }}</p>
