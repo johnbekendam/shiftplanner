@@ -1,6 +1,6 @@
 # Shift Definitions — Plan
 
-Status: in progress — 1/5
+Status: in progress — 2/5
 
 Spec: `spec.md`. Roadmap phase 3. The Settings CRUD mirrors
 `BusinessLineController` without the `move` action. The grid change
@@ -27,7 +27,7 @@ swaps `recurring_availabilities.daypart` for a `shift_id` foreign key.
   `end_time` equal to or before `start_time` rejected; update; delete).
   Full PHP suite green.
 
-- [ ] 2. **Frontend: the Shifts Settings tab.** New
+- [x] 2. **Frontend: the Shifts Settings tab.** New
   `resources/js/components/ShiftList.vue`: a row per shift with a name
   `TextInput` and two `TimeInput` fields, each writing
   `PUT /settings/shifts/{id}` with the whole row on blur or `Enter`; a

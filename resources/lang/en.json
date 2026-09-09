@@ -176,6 +176,7 @@
     "settings.tab.competences": "Competences",
     "settings.tab.product_groups": "Product groups",
     "settings.tab.business_lines": "Business lines",
+    "settings.tab.shifts": "Shifts",
     "settings.tab.period": "Period",
 
     "product_groups.name": "Name",
@@ -207,6 +208,20 @@
     "business_lines.flash.added": "Business line added.",
     "business_lines.flash.updated": "Business line updated.",
     "business_lines.flash.deleted": "Business line deleted.",
+
+    "shifts.name": "Name",
+    "shifts.start_time": "Start",
+    "shifts.end_time": "End",
+    "shifts.add": "Add shift",
+    "shifts.add_name_placeholder": "New shift",
+    "shifts.delete": "Delete",
+    "shifts.delete_confirm": "Delete this shift? Any availability set for it will be lost.",
+    "shifts.list_empty": "No shifts yet. Add the first one below.",
+    "shifts.error.name_taken": "A shift with this name already exists.",
+    "shifts.error.time_range": "The end time must be after the start time.",
+    "shifts.flash.added": "Shift added.",
+    "shifts.flash.updated": "Shift updated.",
+    "shifts.flash.deleted": "Shift deleted.",
 
     "period.fte_hours": "Hours per FTE",
     "period.fte_hours_hint": "Weekly hours that count as one full-time equivalent.",

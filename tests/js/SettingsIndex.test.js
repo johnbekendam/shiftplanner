@@ -7,7 +7,12 @@ const en = {
     "settings.tab.competences": "Competences",
     "settings.tab.product_groups": "Product groups",
     "settings.tab.business_lines": "Business lines",
+    "settings.tab.shifts": "Shifts",
     "settings.tab.period": "Period",
+    "shifts.name": "Name",
+    "shifts.start_time": "Start",
+    "shifts.end_time": "End",
+    "shifts.list_empty": "No shifts yet.",
     "business_lines.abbreviation": "Abbreviation",
     "business_lines.description": "Description",
     "business_lines.target_fte": "Target FTE",
@@ -40,6 +45,7 @@ vi.mock("@inertiajs/vue3", () => ({
 import Settings from "@/pages/Settings/Index.vue";
 import OrderedNameList from "@/components/OrderedNameList.vue";
 import BusinessLineList from "@/components/BusinessLineList.vue";
+import ShiftList from "@/components/ShiftList.vue";
 import PeriodSettingsForm from "@/components/PeriodSettingsForm.vue";
 
 const stubs = { AppLayout: { template: "<div><slot /></div>" } };
@@ -50,6 +56,7 @@ const mountPage = (props = {}) =>
             competences: [],
             productGroups: [],
             businessLines: [],
+            shifts: [],
             period: { fte_hours: 40, period_start: null, period_end: null },
             ...props,
         },
@@ -57,11 +64,12 @@ const mountPage = (props = {}) =>
     });
 
 describe("Settings/Index", () => {
-    it("shows a tab for competences, product groups, business lines and the period", () => {
+    it("shows a tab for competences, product groups, business lines, shifts and the period", () => {
         const text = mountPage().text();
         expect(text).toContain("Competences");
         expect(text).toContain("Product groups");
         expect(text).toContain("Business lines");
+        expect(text).toContain("Shifts");
         expect(text).toContain("Period");
     });
 
@@ -69,6 +77,15 @@ describe("Settings/Index", () => {
         const w = mountPage({ period: { fte_hours: 32, period_start: "2026-02-01", period_end: "2026-02-28" } });
         const form = w.findComponent(PeriodSettingsForm);
         expect(form.props("period")).toMatchObject({ fte_hours: 32, period_start: "2026-02-01" });
+    });
+
+    it("mounts the Shifts list against its endpoint", () => {
+        const w = mountPage({
+            shifts: [{ id: 3, name: "Early", start_time: "06:00", end_time: "14:00" }],
+        });
+        const list = w.findComponent(ShiftList);
+        expect(list.props("endpoint")).toBe("/settings/shifts");
+        expect(list.props("items")).toHaveLength(1);
     });
 
     it("mounts the Business lines list against its endpoint", () => {

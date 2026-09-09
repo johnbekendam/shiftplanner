@@ -6,6 +6,7 @@ import Card from '@/components/ui/Card.vue'
 import Tabs from '@/components/ui/Tabs.vue'
 import OrderedNameList from '@/components/OrderedNameList.vue'
 import BusinessLineList from '@/components/BusinessLineList.vue'
+import ShiftList from '@/components/ShiftList.vue'
 import PeriodSettingsForm from '@/components/PeriodSettingsForm.vue'
 import { useI18n } from '@/composables/useI18n'
 
@@ -15,6 +16,7 @@ defineProps({
     competences: { type: Array, default: () => [] },
     productGroups: { type: Array, default: () => [] },
     businessLines: { type: Array, default: () => [] },
+    shifts: { type: Array, default: () => [] },
     period: { type: Object, default: () => ({}) },
 })
 
@@ -23,6 +25,7 @@ const tabs = computed(() => [
     { value: 'competences', label: __('settings.tab.competences') },
     { value: 'product_groups', label: __('settings.tab.product_groups') },
     { value: 'business_lines', label: __('settings.tab.business_lines') },
+    { value: 'shifts', label: __('settings.tab.shifts') },
     { value: 'period', label: __('settings.tab.period') },
 ])
 </script>
@@ -54,6 +57,10 @@ const tabs = computed(() => [
 
             <div v-show="tab === 'business_lines'" data-testid="panel-business-lines" class="p-6">
                 <BusinessLineList :items="businessLines" endpoint="/settings/business-lines" />
+            </div>
+
+            <div v-show="tab === 'shifts'" data-testid="panel-shifts" class="p-6">
+                <ShiftList :items="shifts" endpoint="/settings/shifts" />
             </div>
 
             <div v-show="tab === 'period'" data-testid="panel-period" class="p-6">
