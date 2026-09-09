@@ -6,7 +6,8 @@ use App\Models\Employee;
 
 /**
  * Resolves the :name and :link placeholders for a personal_page_link
- * message. Resolution happens once, when the message is created, so the
+ * message. :name is the employee's first name — the templates greet the
+ * recipient. Resolution happens once, when the message is created, so the
  * stored, previewed, and sent text are identical.
  */
 class PersonalLinkMessage
@@ -17,7 +18,7 @@ class PersonalLinkMessage
     public function forEmployee(Employee $employee): array
     {
         return [
-            ':name' => $employee->name,
+            ':name' => $employee->first_name,
             ':link' => $this->links->linkFor($employee),
         ];
     }

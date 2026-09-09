@@ -141,7 +141,7 @@ class ShiftNoteTest extends TestCase
             );
     }
 
-    public function test_personal_show_payload_resolves_the_name_placeholder(): void
+    public function test_personal_show_payload_resolves_the_name_placeholder_to_the_first_name(): void
     {
         PlanningSettings::current()->update(['shift_note' => 'Hi :name']);
         $employee = Employee::factory()->create(['first_name' => 'Jordan', 'last_name' => 'Lee']);
@@ -149,7 +149,21 @@ class ShiftNoteTest extends TestCase
 
         $this->get("/personal/{$token}")->assertOk()
             ->assertInertia(fn ($page) => $page
-                ->where('shiftNoteHtml', fn ($html) => str_contains((string) $html, 'Hi Jordan Lee'))
+                ->where('shiftNoteHtml', fn ($html) => str_contains((string) $html, 'Hi Jordan')
+                    && ! str_contains((string) $html, 'Jordan Lee'))
+            );
+    }
+
+    public function test_employee_edit_payload_resolves_the_name_placeholder_to_the_first_name(): void
+    {
+        $this->actingAs(User::factory()->create());
+        PlanningSettings::current()->update(['shift_note' => 'Hi :name']);
+        $employee = Employee::factory()->create(['first_name' => 'Jordan', 'last_name' => 'Lee']);
+
+        $this->get("/employees/{$employee->id}/edit")->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('shiftNoteHtml', fn ($html) => str_contains((string) $html, 'Hi Jordan')
+                    && ! str_contains((string) $html, 'Jordan Lee'))
             );
     }
 

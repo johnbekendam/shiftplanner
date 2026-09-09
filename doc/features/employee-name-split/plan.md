@@ -1,6 +1,6 @@
 # Employee Name Split — Plan
 
-Status: in progress — 2/4
+Status: in progress — 3/4
 
 Spec: `spec.md`. Replace `employees.name` with `first_name` + `last_name`,
 keep a `name` read accessor, and redefine the `:name` mail/shift-note
@@ -50,10 +50,10 @@ is changed.
   `employees.field.name`; keep `employees.column.name`.
   Full suite green.
 
-- [ ] 3. **`:name` becomes the first name.**
-  Tests: update `MailboxTest` and `ShiftNoteTest` — the personal-link
-  `:name` placeholder and `shiftNoteHtml` resolve to the first name;
-  `Message.recipient_name` still stores the full name. Confirm red.
+- [x] 3. **`:name` becomes the first name.**
+  Tests: `MailboxTest` and `ShiftNoteTest` — the personal-link `:name`
+  placeholder and `shiftNoteHtml` resolve to the first name only;
+  `Message.recipient_name` still stores the full name.
   Code: `PersonalLinkMessage` fills `:name` from `first_name`; preview
   sample uses a first name. `EmployeeController` and
   `PersonalPageController` call `shiftNoteHtml($employee->first_name)`.

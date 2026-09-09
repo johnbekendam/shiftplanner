@@ -100,7 +100,8 @@ class MailboxTest extends TestCase
         $aliceMessage = Message::where('recipient_email', 'alice@example.com')->firstOrFail();
         $this->assertSame(MessageType::PersonalPageLink, $aliceMessage->type);
         $this->assertSame('Alice Ng', $aliceMessage->recipient_name);
-        $this->assertStringContainsString('Hi Alice Ng,', $aliceMessage->body);
+        $this->assertStringContainsString('Hi Alice,', $aliceMessage->body);
+        $this->assertStringNotContainsString('Alice Ng', $aliceMessage->body);
         $token = $alice->personalLink->token;
         $this->assertStringContainsString("/personal/{$token}", $aliceMessage->body);
         $this->assertStringContainsString("/personal/{$token}", $aliceMessage->body_html);
@@ -190,7 +191,7 @@ class MailboxTest extends TestCase
         ]);
 
         $response->assertOk();
-        $response->assertJsonPath('subject', 'Hello Alice Ng');
+        $response->assertJsonPath('subject', 'Hello Alice');
         $token = $employee->personalLink->token;
         $this->assertStringContainsString("/personal/{$token}", $response->json('html'));
         $this->assertSame(0, Message::count());
