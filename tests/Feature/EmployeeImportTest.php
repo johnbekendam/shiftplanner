@@ -51,37 +51,37 @@ class EmployeeImportTest extends TestCase
     public function test_it_creates_new_employees_from_the_csv(): void
     {
         $response = $this->import(
-            "name,email\n".
-            "Jane Doe,jane@example.com\n".
-            "John Roe,john@example.com\n"
+            "first_name,last_name,email\n".
+            "Jane,Doe,jane@example.com\n".
+            "John,Roe,john@example.com\n"
         );
 
         $response->assertOk()->assertJson(['created' => 2, 'updated' => 0]);
-        $this->assertDatabaseHas('employees', ['name' => 'Jane Doe', 'email' => 'jane@example.com']);
-        $this->assertDatabaseHas('employees', ['name' => 'John Roe', 'email' => 'john@example.com']);
+        $this->assertDatabaseHas('employees', ['first_name' => 'Jane', 'last_name' => 'Doe', 'email' => 'jane@example.com']);
+        $this->assertDatabaseHas('employees', ['first_name' => 'John', 'last_name' => 'Roe', 'email' => 'john@example.com']);
     }
 
     public function test_new_employees_take_the_default_weekly_hours(): void
     {
-        $this->import("name,email\nJane Doe,jane@example.com\n")->assertOk();
+        $this->import("first_name,last_name,email\nJane,Doe,jane@example.com\n")->assertOk();
 
         $this->assertSame(20, Employee::firstWhere('email', 'jane@example.com')->weekly_hours);
     }
 
     public function test_it_updates_the_name_of_an_existing_employee_matched_by_email(): void
     {
-        Employee::factory()->create(['name' => 'Old Name', 'email' => 'jane@example.com']);
+        Employee::factory()->create(['first_name' => 'Old', 'last_name' => 'Name', 'email' => 'jane@example.com']);
 
-        $response = $this->import("name,email\nJane Doe,jane@example.com\n");
+        $response = $this->import("first_name,last_name,email\nJane,Doe,jane@example.com\n");
 
         $response->assertOk()->assertJson(['created' => 0, 'updated' => 1]);
         $this->assertDatabaseCount('employees', 1);
-        $this->assertDatabaseHas('employees', ['name' => 'Jane Doe', 'email' => 'jane@example.com']);
+        $this->assertDatabaseHas('employees', ['first_name' => 'Jane', 'last_name' => 'Doe', 'email' => 'jane@example.com']);
     }
 
     public function test_re_running_an_unchanged_file_changes_nothing(): void
     {
-        $body = "name,email\nJane Doe,jane@example.com\nJohn Roe,john@example.com\n";
+        $body = "first_name,last_name,email\nJane,Doe,jane@example.com\nJohn,Roe,john@example.com\n";
 
         $this->import($body)->assertOk()->assertJson(['created' => 2, 'updated' => 0]);
         $this->import($body)->assertOk()->assertJson(['created' => 0, 'updated' => 0]);
@@ -91,17 +91,17 @@ class EmployeeImportTest extends TestCase
 
     public function test_surrounding_whitespace_is_trimmed(): void
     {
-        $this->import("name,email\n  Jane Doe  ,  jane@example.com  \n")->assertOk();
+        $this->import("first_name,last_name,email\n  Jane , Doe ,  jane@example.com  \n")->assertOk();
 
-        $this->assertDatabaseHas('employees', ['name' => 'Jane Doe', 'email' => 'jane@example.com']);
+        $this->assertDatabaseHas('employees', ['first_name' => 'Jane', 'last_name' => 'Doe', 'email' => 'jane@example.com']);
     }
 
     public function test_a_semicolon_delimited_file_is_accepted(): void
     {
         $response = $this->import(
-            "name;email\n".
-            "Jane Doe;jane@example.com\n".
-            "John Roe;john@example.com\n"
+            "first_name;last_name;email\n".
+            "Jane;Doe;jane@example.com\n".
+            "John;Roe;john@example.com\n"
         );
 
         $response->assertOk()->assertJson(['created' => 2]);
@@ -111,32 +111,42 @@ class EmployeeImportTest extends TestCase
     public function test_an_invalid_email_rejects_the_whole_file(): void
     {
         $response = $this->import(
-            "name,email\n".
-            "Jane Doe,jane@example.com\n".
-            "Bad Row,not-an-email\n"
+            "first_name,last_name,email\n".
+            "Jane,Doe,jane@example.com\n".
+            "Bad,Row,not-an-email\n"
         );
 
         $response->assertStatus(422)->assertJsonStructure(['errors']);
         $this->assertDatabaseCount('employees', 0);
     }
 
-    public function test_a_row_without_exactly_two_columns_rejects_the_file(): void
+    public function test_a_missing_first_or_last_name_rejects_the_file(): void
     {
         $response = $this->import(
-            "name,email\n".
-            "Jane Doe,jane@example.com\n".
-            "Missing Email\n"
+            "first_name,last_name,email\n".
+            "Jane,Doe,jane@example.com\n".
+            ",Roe,john@example.com\n"
         );
 
         $response->assertStatus(422)->assertJsonStructure(['errors']);
         $this->assertDatabaseCount('employees', 0);
     }
 
-    public function test_a_row_with_three_columns_rejects_the_file(): void
+    public function test_a_row_without_exactly_three_columns_rejects_the_file(): void
+    {
+        foreach (["Missing,Email\n", "Jane\n"] as $badRow) {
+            $response = $this->import("first_name,last_name,email\nJane,Doe,jane@example.com\n{$badRow}");
+
+            $response->assertStatus(422)->assertJsonStructure(['errors']);
+            $this->assertDatabaseCount('employees', 0);
+        }
+    }
+
+    public function test_a_row_with_four_columns_rejects_the_file(): void
     {
         $response = $this->import(
-            "name,email\n".
-            "Jane Doe,jane@example.com,extra\n"
+            "first_name,last_name,email\n".
+            "Jane,Doe,jane@example.com,extra\n"
         );
 
         $response->assertStatus(422);
@@ -146,9 +156,9 @@ class EmployeeImportTest extends TestCase
     public function test_a_duplicate_email_within_the_file_rejects_it(): void
     {
         $response = $this->import(
-            "name,email\n".
-            "Jane Doe,jane@example.com\n".
-            "Jane D,JANE@example.com\n"
+            "first_name,last_name,email\n".
+            "Jane,Doe,jane@example.com\n".
+            "Jane,D,JANE@example.com\n"
         );
 
         $response->assertStatus(422)->assertJsonStructure(['errors']);
@@ -157,7 +167,7 @@ class EmployeeImportTest extends TestCase
 
     public function test_a_header_only_file_is_rejected(): void
     {
-        $this->import("name,email\n")->assertStatus(422);
+        $this->import("first_name,last_name,email\n")->assertStatus(422);
         $this->assertDatabaseCount('employees', 0);
     }
 

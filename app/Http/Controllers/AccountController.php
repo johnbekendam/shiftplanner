@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Employee;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 
 class AccountController extends Controller
@@ -36,9 +37,19 @@ class AccountController extends Controller
 
         abort_unless($user->role === User::ROLE_MANAGER && $user->employee_id === null, 403);
 
+        // The user account carries one name string. Split it on the first
+        // space; a name with no space becomes the first name alone.
+        $name = trim($user->name);
+        $firstName = Str::contains($name, ' ') ? Str::before($name, ' ') : $name;
+        $lastName = Str::contains($name, ' ') ? trim(Str::after($name, ' ')) : '';
+
         $employee = Employee::firstOrCreate(
             ['email' => $user->email],
-            ['name' => $user->name, 'weekly_hours' => Employee::MIN_WEEKLY_HOURS],
+            [
+                'first_name' => $firstName,
+                'last_name' => $lastName,
+                'weekly_hours' => Employee::MIN_WEEKLY_HOURS,
+            ],
         );
 
         abort_if($employee->user()->whereKeyNot($user->id)->exists(), 409);

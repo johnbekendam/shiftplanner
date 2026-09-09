@@ -19,11 +19,11 @@ class EmployeeController extends Controller
 {
     public function __construct(private EmployeePersonalLinkService $links) {}
 
-    /** Sortable list columns mapped to their ORDER BY expression. */
+    /** Sortable list columns mapped to their ORDER BY expression(s). */
     private const SORT_COLUMNS = [
-        'name' => 'employees.name',
-        'business_line' => 'business_lines.abbreviation',
-        'weekly_hours' => 'employees.weekly_hours',
+        'name' => ['employees.first_name', 'employees.last_name'],
+        'business_line' => ['business_lines.abbreviation'],
+        'weekly_hours' => ['employees.weekly_hours'],
     ];
 
     public function index(Request $request)
@@ -37,9 +37,15 @@ class EmployeeController extends Controller
         $query = Employee::query()
             ->select('employees.*')
             ->leftJoin('business_lines', 'business_lines.id', '=', 'employees.business_line_id')
-            ->with('businessLine')
-            ->orderBy(self::SORT_COLUMNS[$sort], $direction)
-            ->orderBy('employees.name');
+            ->with('businessLine');
+
+        foreach (self::SORT_COLUMNS[$sort] as $column) {
+            $query->orderBy($column, $direction);
+        }
+
+        if ($sort !== 'name') {
+            $query->orderBy('employees.first_name')->orderBy('employees.last_name');
+        }
 
         if ($search !== '') {
             $query->search($search);
@@ -89,7 +95,7 @@ class EmployeeController extends Controller
     {
         return Inertia::render('Employees/Form', [
             'employee' => [
-                ...$employee->only(['id', 'name', 'email', 'weekly_hours', 'business_line_id']),
+                ...$employee->only(['id', 'first_name', 'last_name', 'email', 'weekly_hours', 'business_line_id']),
                 'link_sent' => Message::query()
                     ->where('type', MessageType::PersonalPageLink)
                     ->where('status', 'sent')
@@ -123,7 +129,8 @@ class EmployeeController extends Controller
     private function validated(Request $request, ?Employee $employee = null): array
     {
         return $request->validate([
-            'name' => ['required', 'string', 'max:255'],
+            'first_name' => ['required', 'string', 'max:255'],
+            'last_name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', Rule::unique('employees', 'email')->ignore($employee?->id)],
             'weekly_hours' => ['required', 'integer', Rule::in(Employee::WEEKLY_HOURS_OPTIONS)],
             'business_line_id' => ['nullable', 'integer', 'exists:business_lines,id'],

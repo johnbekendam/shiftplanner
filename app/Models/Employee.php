@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -23,7 +24,8 @@ class Employee extends Model
     public const WEEKLY_HOURS_OPTIONS = [0, 20, 24, 28, 32, 36, 40, 44, 48];
 
     protected $fillable = [
-        'name',
+        'first_name',
+        'last_name',
         'email',
         'weekly_hours',
         'business_line_id',
@@ -34,6 +36,14 @@ class Employee extends Model
         return [
             'weekly_hours' => 'integer',
         ];
+    }
+
+    /** The full name, "First Last". Read-only; edit first_name/last_name. */
+    protected function name(): Attribute
+    {
+        return Attribute::make(
+            get: fn () => trim("{$this->first_name} {$this->last_name}"),
+        );
     }
 
     public function businessLine(): BelongsTo
@@ -75,7 +85,8 @@ class Employee extends Model
     public function scopeSearch($query, string $search)
     {
         return $query->where(function ($q) use ($search) {
-            $q->where('name', 'like', "%{$search}%")
+            $q->where('first_name', 'like', "%{$search}%")
+                ->orWhere('last_name', 'like', "%{$search}%")
                 ->orWhere('email', 'like', "%{$search}%");
         });
     }

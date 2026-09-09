@@ -84,8 +84,8 @@ class MailboxTest extends TestCase
     {
         Queue::fake();
         $this->admin();
-        $alice = Employee::factory()->create(['name' => 'Alice Ng', 'email' => 'alice@example.com']);
-        $bob = Employee::factory()->create(['name' => 'Bob Li', 'email' => 'bob@example.com']);
+        $alice = Employee::factory()->create(['first_name' => 'Alice', 'last_name' => 'Ng', 'email' => 'alice@example.com']);
+        $bob = Employee::factory()->create(['first_name' => 'Bob', 'last_name' => 'Li', 'email' => 'bob@example.com']);
 
         $this->post('/mailbox/compose', [
             'type' => MessageType::PersonalPageLink->value,
@@ -180,7 +180,7 @@ class MailboxTest extends TestCase
     public function test_preview_resolves_the_link_for_the_given_employee_without_persisting(): void
     {
         $this->admin();
-        $employee = Employee::factory()->create(['name' => 'Alice Ng']);
+        $employee = Employee::factory()->create(['first_name' => 'Alice', 'last_name' => 'Ng']);
 
         $response = $this->postJson('/mailbox/compose/preview', [
             'type' => MessageType::PersonalPageLink->value,

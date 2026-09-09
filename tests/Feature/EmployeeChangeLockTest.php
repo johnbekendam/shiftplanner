@@ -161,7 +161,7 @@ class EmployeeChangeLockTest extends TestCase
         $this->actingAsAdmin();
 
         $this->put("/employees/{$employee->id}", [
-            'name' => 'Still Editable',
+            'first_name' => 'Still', 'last_name' => 'Editable',
             'email' => $employee->email,
             'weekly_hours' => 40,
         ])->assertRedirect('/employees');

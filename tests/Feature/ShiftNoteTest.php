@@ -144,7 +144,7 @@ class ShiftNoteTest extends TestCase
     public function test_personal_show_payload_resolves_the_name_placeholder(): void
     {
         PlanningSettings::current()->update(['shift_note' => 'Hi :name']);
-        $employee = Employee::factory()->create(['name' => 'Jordan Lee']);
+        $employee = Employee::factory()->create(['first_name' => 'Jordan', 'last_name' => 'Lee']);
         $token = $employee->personalLink()->create(['token' => 'tok-name'])->token;
 
         $this->get("/personal/{$token}")->assertOk()

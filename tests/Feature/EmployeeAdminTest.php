@@ -21,8 +21,8 @@ class EmployeeAdminTest extends TestCase
     public function test_index_lists_employees_with_weekly_hours(): void
     {
         $user = User::factory()->create();
-        Employee::factory()->create(['name' => 'Aaron Able', 'weekly_hours' => 32]);
-        Employee::factory()->create(['name' => 'Zoe Zeal']);
+        Employee::factory()->create(['first_name' => 'Aaron', 'last_name' => 'Able', 'weekly_hours' => 32]);
+        Employee::factory()->create(['first_name' => 'Zoe', 'last_name' => 'Zeal']);
 
         $this->actingAs($user)->get('/employees')->assertOk()
             ->assertInertia(fn ($page) => $page
@@ -35,16 +35,20 @@ class EmployeeAdminTest extends TestCase
             );
     }
 
-    public function test_index_search_filters_by_name_or_email(): void
+    public function test_index_search_filters_by_first_name_last_name_or_email(): void
     {
         $user = User::factory()->create();
-        Employee::factory()->create(['name' => 'Findme Person', 'email' => 'a@example.com']);
-        Employee::factory()->create(['name' => 'Other Person', 'email' => 'b@example.com']);
+        Employee::factory()->create(['first_name' => 'Findme', 'last_name' => 'Jansen', 'email' => 'a@example.com']);
+        Employee::factory()->create(['first_name' => 'Other', 'last_name' => 'Findme', 'email' => 'b@example.com']);
+        Employee::factory()->create(['first_name' => 'Nomatch', 'last_name' => 'Person', 'email' => 'c@example.com']);
 
         $this->actingAs($user)->get('/employees?search=findme')->assertOk()
+            ->assertInertia(fn ($page) => $page->has('employees.data', 2));
+
+        $this->actingAs($user)->get('/employees?search=jansen')->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->has('employees.data', 1)
-                ->where('employees.data.0.name', 'Findme Person')
+                ->where('employees.data.0.name', 'Findme Jansen')
             );
     }
 
@@ -64,13 +68,16 @@ class EmployeeAdminTest extends TestCase
         $user = User::factory()->create();
 
         $response = $this->actingAs($user)->post('/employees', [
-            'name' => 'New Hire',
+            'first_name' => 'New',
+            'last_name' => 'Hire',
             'email' => 'new.hire@example.com',
             'weekly_hours' => 32,
         ]);
 
         $response->assertRedirect('/employees');
         $this->assertDatabaseHas('employees', [
+            'first_name' => 'New',
+            'last_name' => 'Hire',
             'email' => 'new.hire@example.com',
             'weekly_hours' => 32,
         ]);
@@ -81,12 +88,13 @@ class EmployeeAdminTest extends TestCase
         $user = User::factory()->create();
 
         $response = $this->actingAs($user)->post('/employees', [
-            'name' => '',
+            'first_name' => '',
+            'last_name' => '',
             'email' => 'not-an-email',
             'weekly_hours' => null,
         ]);
 
-        $response->assertSessionHasErrors(['name', 'email', 'weekly_hours']);
+        $response->assertSessionHasErrors(['first_name', 'last_name', 'email', 'weekly_hours']);
         $this->assertSame(0, Employee::count());
     }
 
@@ -96,7 +104,8 @@ class EmployeeAdminTest extends TestCase
 
         foreach ([18, 22, 52, 40.5, 'many'] as $bad) {
             $this->actingAs($user)->post('/employees', [
-                'name' => 'Bad Hours',
+                'first_name' => 'Bad',
+                'last_name' => 'Hours',
                 'email' => 'bad.hours@example.com',
                 'weekly_hours' => $bad,
             ])->assertSessionHasErrors('weekly_hours');
@@ -110,7 +119,8 @@ class EmployeeAdminTest extends TestCase
         $user = User::factory()->create();
 
         $this->actingAs($user)->post('/employees', [
-            'name' => 'Below Minimum',
+            'first_name' => 'Below',
+            'last_name' => 'Minimum',
             'email' => 'below.minimum@example.com',
             'weekly_hours' => 0,
         ])->assertRedirect('/employees')->assertSessionHasNoErrors();
@@ -124,7 +134,8 @@ class EmployeeAdminTest extends TestCase
         Employee::factory()->create(['email' => 'taken@example.com']);
 
         $this->actingAs($user)->post('/employees', [
-            'name' => 'Dup',
+            'first_name' => 'Dup',
+            'last_name' => 'Licate',
             'email' => 'taken@example.com',
             'weekly_hours' => 20,
         ])->assertSessionHasErrors('email');
@@ -133,7 +144,7 @@ class EmployeeAdminTest extends TestCase
     public function test_edit_and_update_employee(): void
     {
         $user = User::factory()->create();
-        $employee = Employee::factory()->create(['name' => 'Old Name', 'weekly_hours' => 20]);
+        $employee = Employee::factory()->create(['first_name' => 'Old', 'last_name' => 'Name', 'weekly_hours' => 20]);
 
         $this->actingAs($user)->get("/employees/{$employee->id}/edit")->assertOk()
             ->assertInertia(fn ($page) => $page
@@ -143,7 +154,8 @@ class EmployeeAdminTest extends TestCase
             );
 
         $response = $this->actingAs($user)->put("/employees/{$employee->id}", [
-            'name' => 'New Name',
+            'first_name' => 'New',
+            'last_name' => 'Name',
             'email' => $employee->email,
             'weekly_hours' => 40,
         ]);
@@ -151,7 +163,8 @@ class EmployeeAdminTest extends TestCase
         $response->assertRedirect('/employees');
         $this->assertDatabaseHas('employees', [
             'id' => $employee->id,
-            'name' => 'New Name',
+            'first_name' => 'New',
+            'last_name' => 'Name',
             'weekly_hours' => 40,
         ]);
     }
@@ -162,7 +175,8 @@ class EmployeeAdminTest extends TestCase
         $employee = Employee::factory()->create(['email' => 'mine@example.com']);
 
         $this->actingAs($user)->put("/employees/{$employee->id}", [
-            'name' => $employee->name,
+            'first_name' => $employee->first_name,
+            'last_name' => $employee->last_name,
             'email' => 'mine@example.com',
             'weekly_hours' => 24,
         ])->assertRedirect('/employees');
@@ -196,8 +210,8 @@ class EmployeeAdminTest extends TestCase
     public function test_index_marks_whether_a_personal_link_was_sent(): void
     {
         $user = User::factory()->create();
-        $sent = Employee::factory()->create(['name' => 'Aa Sent', 'email' => 'sent@example.com']);
-        Employee::factory()->create(['name' => 'Bb Fresh', 'email' => 'fresh@example.com']);
+        $sent = Employee::factory()->create(['first_name' => 'Aa', 'last_name' => 'Sent', 'email' => 'sent@example.com']);
+        Employee::factory()->create(['first_name' => 'Bb', 'last_name' => 'Fresh', 'email' => 'fresh@example.com']);
 
         Message::factory()->sent()->create([
             'type' => MessageType::PersonalPageLink,

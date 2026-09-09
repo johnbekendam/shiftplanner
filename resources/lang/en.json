@@ -272,15 +272,16 @@
 
     "import.title": "Import employees",
     "import.heading": "Import employees",
-    "import.intro": "Upload a CSV with two columns — name, then email. The first row is treated as a header and skipped. Existing people are matched by email and have their name updated.",
+    "import.intro": "Upload a CSV with three columns — first name, last name, then email. The first row is treated as a header and skipped. Existing people are matched by email and have their name updated.",
     "import.dropzone": "Drop a CSV file here, or click to browse",
     "import.busy": "Importing…",
     "import.result.summary": ":created created, :updated updated",
     "import.result.errors_heading": "Nothing was imported. Fix these rows and upload again:",
     "import.error.file": "Upload a .csv file no larger than 2 MB.",
     "import.error.empty": "The file has no employee rows.",
-    "import.error.columns": "Line :line: expected 2 columns, found :count.",
-    "import.error.name": "Line :line: the name is missing or too long.",
+    "import.error.columns": "Line :line: expected 3 columns, found :count.",
+    "import.error.first_name": "Line :line: the first name is missing or too long.",
+    "import.error.last_name": "Line :line: the last name is missing or too long.",
     "import.error.email": "Line :line: the email address is missing or invalid.",
     "import.error.duplicate": "Line :line: email :email already appears on line :first."
 }

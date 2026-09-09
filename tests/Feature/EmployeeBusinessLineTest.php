@@ -16,8 +16,8 @@ class EmployeeBusinessLineTest extends TestCase
     {
         $user = User::factory()->create();
         $line = BusinessLine::factory()->create(['abbreviation' => 'PMP']);
-        Employee::factory()->create(['name' => 'Aaron Able', 'business_line_id' => $line->id]);
-        Employee::factory()->create(['name' => 'Zoe Zeal', 'business_line_id' => null]);
+        Employee::factory()->create(['first_name' => 'Aaron', 'last_name' => 'Able', 'business_line_id' => $line->id]);
+        Employee::factory()->create(['first_name' => 'Zoe', 'last_name' => 'Zeal', 'business_line_id' => null]);
 
         $this->actingAs($user)->get('/employees')->assertOk()
             ->assertInertia(fn ($page) => $page
@@ -32,8 +32,8 @@ class EmployeeBusinessLineTest extends TestCase
         $user = User::factory()->create();
         $pmp = BusinessLine::factory()->create(['abbreviation' => 'PMP']);
         $vlv = BusinessLine::factory()->create(['abbreviation' => 'VLV']);
-        Employee::factory()->create(['name' => 'Aaron Able', 'business_line_id' => $vlv->id]);
-        Employee::factory()->create(['name' => 'Zoe Zeal', 'business_line_id' => $pmp->id]);
+        Employee::factory()->create(['first_name' => 'Aaron', 'last_name' => 'Able', 'business_line_id' => $vlv->id]);
+        Employee::factory()->create(['first_name' => 'Zoe', 'last_name' => 'Zeal', 'business_line_id' => $pmp->id]);
 
         $this->actingAs($user)->get('/employees?sort=business_line&direction=asc')->assertOk()
             ->assertInertia(fn ($page) => $page
@@ -50,7 +50,7 @@ class EmployeeBusinessLineTest extends TestCase
         $line = BusinessLine::factory()->create();
 
         $this->actingAs($user)->post('/employees', [
-            'name' => 'New Hire',
+            'first_name' => 'New', 'last_name' => 'Hire',
             'email' => 'new.hire@example.com',
             'weekly_hours' => 32,
             'business_line_id' => $line->id,
@@ -67,7 +67,7 @@ class EmployeeBusinessLineTest extends TestCase
         $user = User::factory()->create();
 
         $this->actingAs($user)->post('/employees', [
-            'name' => 'New Hire',
+            'first_name' => 'New', 'last_name' => 'Hire',
             'email' => 'new.hire@example.com',
             'weekly_hours' => 32,
             'business_line_id' => null,
@@ -84,7 +84,7 @@ class EmployeeBusinessLineTest extends TestCase
         $user = User::factory()->create();
 
         $this->actingAs($user)->post('/employees', [
-            'name' => 'New Hire',
+            'first_name' => 'New', 'last_name' => 'Hire',
             'email' => 'new.hire@example.com',
             'weekly_hours' => 32,
             'business_line_id' => 999,
@@ -100,7 +100,8 @@ class EmployeeBusinessLineTest extends TestCase
         $employee = Employee::factory()->create(['business_line_id' => $line->id]);
 
         $this->actingAs($user)->put("/employees/{$employee->id}", [
-            'name' => $employee->name,
+            'first_name' => $employee->first_name,
+            'last_name' => $employee->last_name,
             'email' => $employee->email,
             'weekly_hours' => $employee->weekly_hours,
             'business_line_id' => null,

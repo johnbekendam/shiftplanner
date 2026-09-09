@@ -21,7 +21,7 @@ class PersonalPageTest extends TestCase
     public function test_personal_page_opens_by_token_without_auth(): void
     {
         [$employee, $token] = $this->linkedEmployee([
-            'name' => 'Pat Person',
+            'first_name' => 'Pat', 'last_name' => 'Person',
             'email' => 'pat@example.com',
             'weekly_hours' => 28,
         ]);
@@ -78,8 +78,8 @@ class PersonalPageTest extends TestCase
 
     public function test_personal_page_exposes_no_other_employees(): void
     {
-        [$employee, $token] = $this->linkedEmployee(['name' => 'Only Me']);
-        Employee::factory()->create(['name' => 'Someone Else']);
+        [$employee, $token] = $this->linkedEmployee(['first_name' => 'Only', 'last_name' => 'Me']);
+        Employee::factory()->create(['first_name' => 'Someone', 'last_name' => 'Else']);
 
         $response = $this->get("/personal/{$token}");
 

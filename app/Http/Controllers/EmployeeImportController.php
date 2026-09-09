@@ -38,11 +38,13 @@ class EmployeeImportController extends Controller
         foreach ($rows as $row) {
             $employee = Employee::firstWhere('email', $row['email']);
 
+            $names = ['first_name' => $row['first_name'], 'last_name' => $row['last_name']];
+
             if ($employee === null) {
-                Employee::create(['name' => $row['name'], 'email' => $row['email']]);
+                Employee::create([...$names, 'email' => $row['email']]);
                 $created++;
-            } elseif ($employee->name !== $row['name']) {
-                $employee->update(['name' => $row['name']]);
+            } elseif ($employee->first_name !== $row['first_name'] || $employee->last_name !== $row['last_name']) {
+                $employee->update($names);
                 $updated++;
             }
         }
@@ -51,7 +53,7 @@ class EmployeeImportController extends Controller
     }
 
     /**
-     * @return array{0: list<array{name: string, email: string}>, 1: list<string>}
+     * @return array{0: list<array{first_name: string, last_name: string, email: string}>, 1: list<string>}
      */
     private function parse(string $contents): array
     {
@@ -74,26 +76,31 @@ class EmployeeImportController extends Controller
             $lineNo = $index + 2;
             $fields = str_getcsv($line, $delimiter, '"', '\\');
 
-            if (count($fields) !== 2) {
+            if (count($fields) !== 3) {
                 $errors[] = __('import.error.columns', ['line' => $lineNo, 'count' => count($fields)]);
 
                 continue;
             }
 
-            $name = trim((string) $fields[0]);
-            $email = trim((string) $fields[1]);
+            $firstName = trim((string) $fields[0]);
+            $lastName = trim((string) $fields[1]);
+            $email = trim((string) $fields[2]);
 
             $check = Validator::make(
-                ['name' => $name, 'email' => $email],
+                ['first_name' => $firstName, 'last_name' => $lastName, 'email' => $email],
                 [
-                    'name' => ['required', 'string', 'max:255'],
+                    'first_name' => ['required', 'string', 'max:255'],
+                    'last_name' => ['required', 'string', 'max:255'],
                     'email' => ['required', 'email', 'max:255'],
                 ]
             );
 
             if ($check->fails()) {
-                if ($check->errors()->has('name')) {
-                    $errors[] = __('import.error.name', ['line' => $lineNo]);
+                if ($check->errors()->has('first_name')) {
+                    $errors[] = __('import.error.first_name', ['line' => $lineNo]);
+                }
+                if ($check->errors()->has('last_name')) {
+                    $errors[] = __('import.error.last_name', ['line' => $lineNo]);
                 }
                 if ($check->errors()->has('email')) {
                     $errors[] = __('import.error.email', ['line' => $lineNo]);
@@ -111,7 +118,7 @@ class EmployeeImportController extends Controller
             }
 
             $seen[$key] = $lineNo;
-            $rows[] = ['name' => $name, 'email' => $email];
+            $rows[] = ['first_name' => $firstName, 'last_name' => $lastName, 'email' => $email];
         }
 
         if (empty($rows) && empty($errors)) {
