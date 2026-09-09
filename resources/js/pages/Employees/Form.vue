@@ -6,6 +6,7 @@ import Card from '@/components/ui/Card.vue'
 import CardSeparator from '@/components/ui/CardSeparator.vue'
 import Tabs from '@/components/ui/Tabs.vue'
 import EmployeeFields from '@/components/EmployeeFields.vue'
+import WeeklyHoursField from '@/components/WeeklyHoursField.vue'
 import AvailabilityGrid from '@/components/AvailabilityGrid.vue'
 import ShiftNote from '@/components/ShiftNote.vue'
 import HolidayList from '@/components/HolidayList.vue'
@@ -48,12 +49,23 @@ const tabs = computed(() => [
     { value: 'competences', label: __('competences.tab') },
 ])
 
+function save() {
+    form.put(`/employees/${props.employee.id}`)
+}
+
 function submit() {
     if (isEdit.value) {
-        form.put(`/employees/${props.employee.id}`)
+        save()
     } else {
         form.post('/employees')
     }
+}
+
+// Weekly hours lives on the Availability tab and auto-saves on change
+// (edit only — on create it rides along with the create submit).
+function onWeeklyHoursChange(value) {
+    form.weekly_hours = value
+    if (isEdit.value) save()
 }
 </script>
 
@@ -92,6 +104,16 @@ function submit() {
 
             <div v-show="tab === 'availability'" data-testid="panel-availability" class="p-6">
                 <template v-if="isEdit">
+                    <section class="mb-6 max-w-xs">
+                        <WeeklyHoursField
+                            :model-value="form.weekly_hours"
+                            :error="form.errors.weekly_hours"
+                            @update:model-value="onWeeklyHoursChange"
+                        />
+                    </section>
+
+                    <CardSeparator />
+
                     <section class="space-y-3">
                         <AvailabilityGrid
                             :shifts="shifts"

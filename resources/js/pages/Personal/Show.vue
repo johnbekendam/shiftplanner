@@ -5,6 +5,7 @@ import CenteredLayout from '@/layouts/CenteredLayout.vue'
 import CardSeparator from '@/components/ui/CardSeparator.vue'
 import Tabs from '@/components/ui/Tabs.vue'
 import EmployeeFields from '@/components/EmployeeFields.vue'
+import WeeklyHoursField from '@/components/WeeklyHoursField.vue'
 import AvailabilityGrid from '@/components/AvailabilityGrid.vue'
 import ShiftNote from '@/components/ShiftNote.vue'
 import HolidayList from '@/components/HolidayList.vue'
@@ -18,6 +19,7 @@ const __ = useI18n()
 const props = defineProps({
     token: { type: String, required: true },
     employee: { type: Object, required: true },
+    businessLines: { type: Array, default: () => [] },
     holidays: { type: Array, default: () => [] },
     shifts: { type: Array, default: () => [] },
     shiftNoteHtml: { type: String, default: null },
@@ -36,6 +38,7 @@ const form = useForm({
     last_name: props.employee.last_name,
     email: props.employee.email,
     weekly_hours: props.employee.weekly_hours,
+    business_line_id: props.employee.business_line_id,
 })
 
 const tab = ref('information')
@@ -49,8 +52,17 @@ const tabs = computed(() => [
 function save() {
     if (!props.editable) return
     form
-        .transform((data) => ({ weekly_hours: data.weekly_hours }))
+        .transform((data) => ({
+            weekly_hours: data.weekly_hours,
+            business_line_id: data.business_line_id,
+        }))
         .put(`/personal/${props.token}`, { preserveScroll: true })
+}
+
+// Weekly hours lives on the Availability tab and auto-saves on change.
+function onWeeklyHoursChange(value) {
+    form.weekly_hours = value
+    save()
 }
 </script>
 
@@ -81,7 +93,7 @@ function save() {
 
         <div v-show="tab === 'details'" data-testid="panel-details">
             <form class="space-y-5" @submit.prevent="save">
-                <EmployeeFields :form="form" readonly-identity :disabled="!editable" />
+                <EmployeeFields :form="form" :business-lines="businessLines" readonly-identity :disabled="!editable" />
 
                 <div v-if="editable" class="flex items-center justify-end gap-3">
                     <span v-if="form.recentlySuccessful" class="text-sm text-(--color-badge-success-text)">
@@ -95,6 +107,17 @@ function save() {
         </div>
 
         <div v-show="tab === 'availability'" data-testid="panel-availability">
+            <section class="mb-6 max-w-xs">
+                <WeeklyHoursField
+                    :model-value="form.weekly_hours"
+                    :error="form.errors.weekly_hours"
+                    :disabled="!editable"
+                    @update:model-value="onWeeklyHoursChange"
+                />
+            </section>
+
+            <CardSeparator />
+
             <section class="space-y-3">
                 <AvailabilityGrid
                     :shifts="shifts"

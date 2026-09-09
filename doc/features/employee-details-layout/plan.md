@@ -1,6 +1,6 @@
 # Employee Details Layout — Plan
 
-Status: in progress — 1/5
+Status: in progress — 2/5
 
 Spec: `spec.md`. Business line editable on the personal page, shared
 detail fields reordered, weekly hours moved to the Availability tab,
@@ -23,7 +23,7 @@ Details tabs auto-save, admin create is a single card.
   alongside `weekly_hours`.
   `php artisan test` green. `npm test` green (front end untouched).
 
-- [ ] 2. **Move weekly hours to the Availability tab; reorder the shared
+- [x] 2. **Move weekly hours to the Availability tab; reorder the shared
   fields.**
   Tests: `EmployeeFields.test.js` — no weekly-hours select. First and
   Last name share one row. The order is first/last, email, business

@@ -6,11 +6,8 @@ const en = {
     "employees.field.first_name": "First name",
     "employees.field.last_name": "Last name",
     "employees.field.email": "Email",
-    "employees.field.weekly_hours": "Weekly hours",
     "employees.field.business_line": "Business line",
     "employees.field.business_line_none": "None",
-    "employees.hours_option": ":count hours",
-    "employees.hours_below_minimum": "I can only work less than :min hours",
 };
 
 vi.mock("@inertiajs/vue3", () => ({
@@ -18,6 +15,7 @@ vi.mock("@inertiajs/vue3", () => ({
 }));
 
 import EmployeeFields from "@/components/EmployeeFields.vue";
+import LabeledInput from "@/components/LabeledInput.vue";
 import SelectInput from "@/components/ui/Input/Select.vue";
 
 function makeForm(overrides = {}) {
@@ -25,45 +23,38 @@ function makeForm(overrides = {}) {
         first_name: "Jordan",
         last_name: "Lee",
         email: "jordan@example.com",
-        weekly_hours: 32,
+        business_line_id: null,
         errors: {},
         ...overrides,
     });
 }
 
 describe("EmployeeFields", () => {
-    it("offers 20-48 hours then a below-minimum option that saves 0", () => {
-        const w = mount(EmployeeFields, { props: { form: makeForm() } });
-        const opts = w.getComponent(SelectInput).props("options");
-
-        expect(opts.map((o) => o.value)).toEqual([
-            20, 24, 28, 32, 36, 40, 44, 48, 0,
-        ]);
-        expect(opts[0].label).toBe("20 hours");
-        expect(opts[7].label).toBe("48 hours");
-        expect(opts.at(-1)).toEqual({
-            value: 0,
-            label: "I can only work less than 20 hours",
+    it("orders the fields: first/last name, email, business line", () => {
+        const w = mount(EmployeeFields, {
+            props: { form: makeForm(), businessLines: [{ id: 5, abbreviation: "PMP" }] },
         });
+        const labels = w.findAllComponents(LabeledInput).map((l) => l.props("label"));
+
+        expect(labels).toEqual(["First name", "Last name", "Email", "Business line"]);
     });
 
-    it("binds the weekly-hours select to form.weekly_hours", async () => {
-        const form = makeForm();
-        const w = mount(EmployeeFields, { props: { form } });
-        const select = w.getComponent(SelectInput);
-
-        expect(select.props("modelValue")).toBe(32);
-
-        select.vm.$emit("update:modelValue", 40);
-        await w.vm.$nextTick();
-        expect(form.weekly_hours).toBe(40);
-    });
-
-    it("shows first name, last name and email fields", () => {
+    it("puts first and last name on one row", () => {
         const w = mount(EmployeeFields, { props: { form: makeForm() } });
+        const row = w.get('[data-testid="name-row"]');
 
-        expect(w.text()).toContain("First name");
-        expect(w.text()).toContain("Last name");
+        expect(row.findAll("input")).toHaveLength(2);
+        expect(row.text()).toContain("First name");
+        expect(row.text()).toContain("Last name");
+    });
+
+    it("has no weekly-hours field", () => {
+        const w = mount(EmployeeFields, { props: { form: makeForm() } });
+        expect(w.text()).not.toContain("Weekly hours");
+    });
+
+    it("shows first name, last name and email as three inputs", () => {
+        const w = mount(EmployeeFields, { props: { form: makeForm() } });
         expect(w.findAll("input")).toHaveLength(3);
     });
 
@@ -72,9 +63,7 @@ describe("EmployeeFields", () => {
         const inputs = w.findAll("input");
 
         expect(inputs).toHaveLength(3);
-        expect(inputs.every((i) => i.attributes("disabled") === undefined)).toBe(
-            true,
-        );
+        expect(inputs.every((i) => i.attributes("disabled") === undefined)).toBe(true);
     });
 
     it("disables the identity fields when readonlyIdentity is set", () => {
@@ -84,9 +73,31 @@ describe("EmployeeFields", () => {
         const inputs = w.findAll("input");
 
         expect(inputs).toHaveLength(3);
-        expect(inputs.every((i) => i.attributes("disabled") !== undefined)).toBe(
-            true,
-        );
+        expect(inputs.every((i) => i.attributes("disabled") !== undefined)).toBe(true);
+    });
+
+    it("keeps the business line editable under readonlyIdentity", () => {
+        const w = mount(EmployeeFields, {
+            props: {
+                form: makeForm(),
+                readonlyIdentity: true,
+                businessLines: [{ id: 5, abbreviation: "PMP" }],
+            },
+        });
+
+        expect(w.getComponent(SelectInput).props("disabled")).toBe(false);
+    });
+
+    it("disables the business line when disabled is set", () => {
+        const w = mount(EmployeeFields, {
+            props: {
+                form: makeForm(),
+                disabled: true,
+                businessLines: [{ id: 5, abbreviation: "PMP" }],
+            },
+        });
+
+        expect(w.getComponent(SelectInput).props("disabled")).toBe(true);
     });
 
     it("seeds the identity inputs from the form and shows their errors", () => {
@@ -102,7 +113,7 @@ describe("EmployeeFields", () => {
     it("hides the business-line select when no lines are given", () => {
         const w = mount(EmployeeFields, { props: { form: makeForm() } });
         expect(w.text()).not.toContain("Business line");
-        expect(w.findAllComponents(SelectInput)).toHaveLength(1);
+        expect(w.findAllComponents(SelectInput)).toHaveLength(0);
     });
 
     it("offers a None option then one per business line, bound to form.business_line_id", async () => {
@@ -117,7 +128,7 @@ describe("EmployeeFields", () => {
             },
         });
 
-        const select = w.findAllComponents(SelectInput)[1];
+        const select = w.getComponent(SelectInput);
         expect(select.props("options")).toEqual([
             { value: null, label: "None" },
             { value: 5, label: "PMP" },
@@ -132,11 +143,9 @@ describe("EmployeeFields", () => {
 
     it("shows the field error messages from the form", () => {
         const w = mount(EmployeeFields, {
-            props: {
-                form: makeForm({ errors: { weekly_hours: "Pick a valid number of hours." } }),
-            },
+            props: { form: makeForm({ errors: { email: "That email is taken." } }) },
         });
 
-        expect(w.text()).toContain("Pick a valid number of hours.");
+        expect(w.text()).toContain("That email is taken.");
     });
 });

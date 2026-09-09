@@ -7,7 +7,10 @@ const en = {
     "employees.field.last_name": "Last name",
     "employees.field.email": "Email",
     "employees.field.weekly_hours": "Weekly hours",
+    "employees.field.business_line": "Business line",
+    "employees.field.business_line_none": "None",
     "employees.hours_option": ":count hours",
+    "employees.hours_below_minimum": "I can only work less than :min hours",
     "personal.title": "Your working hours",
     "personal.action.save": "Save",
     "personal.saved": "Saved",
@@ -30,9 +33,11 @@ const form = reactive({
     last_name: "",
     email: "",
     weekly_hours: null,
+    business_line_id: null,
     errors: {},
     processing: false,
     recentlySuccessful: false,
+    isDirty: false,
     _transform: null,
     transform(fn) {
         this._transform = fn;
@@ -44,6 +49,7 @@ const form = reactive({
             last_name: this.last_name,
             email: this.email,
             weekly_hours: this.weekly_hours,
+            business_line_id: this.business_line_id,
         };
         form.lastPut = { url, opts, data: this._transform ? this._transform(data) : data };
     },
@@ -61,18 +67,25 @@ vi.mock("@inertiajs/vue3", () => ({
 
 import Show from "@/pages/Personal/Show.vue";
 import EmployeeFields from "@/components/EmployeeFields.vue";
+import WeeklyHoursField from "@/components/WeeklyHoursField.vue";
 import HolidayList from "@/components/HolidayList.vue";
 import AvailabilityGrid from "@/components/AvailabilityGrid.vue";
 import ShiftNote from "@/components/ShiftNote.vue";
 import TagChecklist from "@/components/TagChecklist.vue";
 import QuestionChecklist from "@/components/QuestionChecklist.vue";
-import SelectInput from "@/components/ui/Input/Select.vue";
 
 const mountShow = (holidays = [], extra = {}) =>
     mount(Show, {
         props: {
             token: "tok-1",
-            employee: { first_name: "Jordan", last_name: "Lee", email: "jordan@example.com", weekly_hours: 24 },
+            employee: {
+                first_name: "Jordan",
+                last_name: "Lee",
+                email: "jordan@example.com",
+                weekly_hours: 24,
+                business_line_id: null,
+            },
+            businessLines: [],
             holidays,
             ...extra,
         },
@@ -97,20 +110,41 @@ describe("Personal/Show", () => {
         expect(inputs.every((i) => i.attributes("disabled") !== undefined)).toBe(true);
     });
 
-    it("seeds the form from the employee's current hours", () => {
-        mountShow();
+    it("seeds the form from the employee's current hours and business line", () => {
+        mountShow([], { employee: { first_name: "J", last_name: "L", email: "j@l.c", weekly_hours: 24, business_line_id: 5 } });
         expect(form.weekly_hours).toBe(24);
+        expect(form.business_line_id).toBe(5);
     });
 
-    it("saves only weekly_hours to the token URL", async () => {
+    it("passes the business lines to EmployeeFields", () => {
+        const lines = [{ id: 5, abbreviation: "PMP" }];
+        const w = mountShow([], { businessLines: lines });
+        expect(w.findComponent(EmployeeFields).props("businessLines")).toEqual(lines);
+    });
+
+    it("puts the weekly-hours field on the Availability tab", () => {
         const w = mountShow();
-        w.getComponent(SelectInput).vm.$emit("update:modelValue", 40);
+        expect(w.get('[data-testid="panel-details"]').findComponent(WeeklyHoursField).exists()).toBe(false);
+        expect(w.get('[data-testid="panel-availability"]').findComponent(WeeklyHoursField).exists()).toBe(true);
+    });
+
+    it("auto-saves weekly hours from the Availability tab", async () => {
+        const w = mountShow();
+        w.get('[data-testid="panel-availability"]').findComponent(WeeklyHoursField)
+            .vm.$emit("update:modelValue", 40);
         await w.vm.$nextTick();
 
-        await w.get("form").trigger("submit");
+        expect(form.weekly_hours).toBe(40);
+        expect(form.lastPut.url).toBe("/personal/tok-1");
+        expect(form.lastPut.data).toEqual({ weekly_hours: 40, business_line_id: null });
+    });
+
+    it("saves weekly hours and business line from the Details form", async () => {
+        const w = mountShow();
+        await w.get('[data-testid="panel-details"] form').trigger("submit");
 
         expect(form.lastPut.url).toBe("/personal/tok-1");
-        expect(form.lastPut.data).toEqual({ weekly_hours: 40 });
+        expect(form.lastPut.data).toEqual({ weekly_hours: 24, business_line_id: null });
     });
 
     it("mirrors the employee page tabs, Information first", () => {

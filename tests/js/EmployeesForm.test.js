@@ -41,6 +41,7 @@ vi.mock("@inertiajs/vue3", () => ({
 
 import Form from "@/pages/Employees/Form.vue";
 import EmployeeFields from "@/components/EmployeeFields.vue";
+import WeeklyHoursField from "@/components/WeeklyHoursField.vue";
 import HolidayList from "@/components/HolidayList.vue";
 import AvailabilityGrid from "@/components/AvailabilityGrid.vue";
 import ShiftNote from "@/components/ShiftNote.vue";
@@ -218,5 +219,30 @@ describe("Employees/Form", () => {
         expect(w.get('[data-testid="panel-competences"]').text()).toContain(
             "Save the employee first, then set competences.",
         );
+    });
+
+    it("puts weekly hours on the Availability tab, not on Details", () => {
+        const w = mount(Form, {
+            props: { employee: { id: 3, first_name: "A", last_name: "B", email: "a@b.c", weekly_hours: 24 }, holidays: [] },
+            global: { stubs },
+        });
+
+        expect(w.get('[data-testid="panel-details"]').findComponent(WeeklyHoursField).exists()).toBe(false);
+        expect(w.get('[data-testid="panel-availability"]').findComponent(WeeklyHoursField).exists()).toBe(true);
+    });
+
+    it("auto-saves when weekly hours changes on the Availability tab", async () => {
+        const w = mount(Form, {
+            props: { employee: { id: 3, first_name: "A", last_name: "B", email: "a@b.c", weekly_hours: 24 }, holidays: [] },
+            global: { stubs },
+        });
+
+        const hours = w.get('[data-testid="panel-availability"]').findComponent(WeeklyHoursField);
+        const form = w.findComponent(EmployeeFields).props("form");
+        hours.vm.$emit("update:modelValue", 40);
+        await w.vm.$nextTick();
+
+        expect(form.weekly_hours).toBe(40);
+        expect(form.put).toHaveBeenCalledWith("/employees/3");
     });
 });
