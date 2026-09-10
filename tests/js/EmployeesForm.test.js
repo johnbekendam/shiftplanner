@@ -129,6 +129,7 @@ describe("Employees/Form", () => {
 
         expect(w.findComponent(EmployeeFields).exists()).toBe(true);
         expect(w.get('[data-testid="panel-details"]').text()).toContain("Create");
+        expect(w.findComponent(EmployeeFields).props("form").weekly_hours).toBe(32);
 
         // No tab bar, no other panels.
         expect(w.findAll("button").some((b) => b.text() === "Availability")).toBe(false);

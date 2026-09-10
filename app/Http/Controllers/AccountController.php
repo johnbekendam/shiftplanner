@@ -48,7 +48,7 @@ class AccountController extends Controller
             [
                 'first_name' => $firstName,
                 'last_name' => $lastName,
-                'weekly_hours' => Employee::MIN_WEEKLY_HOURS,
+                'weekly_hours' => Employee::DEFAULT_WEEKLY_HOURS,
             ],
         );
 

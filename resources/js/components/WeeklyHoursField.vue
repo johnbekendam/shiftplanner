@@ -10,7 +10,7 @@ const __ = useI18n()
 // for an employee who cannot work the minimum.
 const WEEKLY_HOURS_OPTIONS = [20, 24, 28, 32, 36, 40, 44, 48]
 
-const model = defineModel({ type: Number, default: 20 })
+const model = defineModel({ type: Number, default: 32 })
 
 defineProps({
     disabled: { type: Boolean, default: false },

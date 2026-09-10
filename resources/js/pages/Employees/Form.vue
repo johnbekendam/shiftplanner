@@ -38,7 +38,7 @@ const form = useForm({
     first_name: props.employee?.first_name ?? '',
     last_name: props.employee?.last_name ?? '',
     email: props.employee?.email ?? '',
-    weekly_hours: props.employee?.weekly_hours ?? 20,
+    weekly_hours: props.employee?.weekly_hours ?? 32,
     business_line_id: props.employee?.business_line_id ?? null,
 })
 

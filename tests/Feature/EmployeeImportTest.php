@@ -65,7 +65,7 @@ class EmployeeImportTest extends TestCase
     {
         $this->import("first_name,last_name,email\nJane,Doe,jane@example.com\n")->assertOk();
 
-        $this->assertSame(20, Employee::firstWhere('email', 'jane@example.com')->weekly_hours);
+        $this->assertSame(32, Employee::firstWhere('email', 'jane@example.com')->weekly_hours);
     }
 
     public function test_it_updates_the_name_of_an_existing_employee_matched_by_email(): void
