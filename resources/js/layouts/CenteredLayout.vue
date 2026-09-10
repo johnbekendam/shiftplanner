@@ -25,7 +25,7 @@ const props = defineProps({
     },
 })
 
-const widthClass = { md: 'max-w-md', lg: 'max-w-lg' }[props.width]
+const widthClass = { md: 'max-w-md', lg: 'max-w-xl' }[props.width]
 </script>
 
 <template>
