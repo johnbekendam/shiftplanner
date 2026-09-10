@@ -143,18 +143,36 @@ function bulkDelete() {
             <template #header>
                 <div class="flex items-center justify-between gap-3 px-6 py-3">
                     <span class="text-base font-semibold">{{ __('employees.title') }}</span>
-                    <Link href="/employees/create">
-                        <ButtonPrimary type="button" icon="user-plus">{{ __('employees.action.new') }}</ButtonPrimary>
-                    </Link>
                 </div>
             </template>
 
             <div class="space-y-4 p-6">
-                <SearchInput
-                    v-model="searchTerm"
-                    class="max-w-xs"
-                    :placeholder="__('employees.search_placeholder')"
-                />
+                <div class="flex items-center justify-between gap-3">
+                    <SearchInput
+                        v-model="searchTerm"
+                        class="max-w-xs"
+                        :placeholder="__('employees.search_placeholder')"
+                    />
+
+                    <div class="ml-auto flex items-center justify-end gap-3">
+                        <ButtonDanger
+                            type="button"
+                            icon="bin"
+                            icon-class="size-5"
+                            :disabled="selectedIds.length === 0"
+                            :aria-label="__('employees.action.delete_selected') + ' ' + selectedIds.length"
+                            @click="bulkDelete"
+                        >
+                            <span v-if="selectedIds.length > 1" class="text-sm font-semibold">
+                                ({{ selectedIds.length }})
+                            </span>
+                        </ButtonDanger>
+
+                        <Link href="/employees/create">
+                            <ButtonPrimary type="button" icon="user-plus" icon-class="size-5" aria-label="Add new" />
+                        </Link>
+                    </div>
+                </div>
 
                 <table class="w-full text-sm">
                     <thead>
@@ -220,14 +238,6 @@ function bulkDelete() {
                     </tbody>
                 </table>
 
-                <ButtonDanger
-                    type="button"
-                    icon="trash"
-                    :disabled="selectedIds.length === 0"
-                    @click="bulkDelete"
-                >
-                    {{ __('employees.action.delete_selected', { count: selectedIds.length }) }}
-                </ButtonDanger>
             </div>
 
             <template v-if="employees.last_page > 1" #footer>

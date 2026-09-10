@@ -27,6 +27,21 @@ class EmployeeBusinessLineTest extends TestCase
             );
     }
 
+    public function test_index_can_sort_by_name(): void
+    {
+        $user = User::factory()->create();
+        Employee::factory()->create(['first_name' => 'Zoe', 'last_name' => 'Zeal']);
+        Employee::factory()->create(['first_name' => 'Aaron', 'last_name' => 'Able']);
+
+        $this->actingAs($user)->get('/employees?sort=name&direction=asc')->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('sort', 'name')
+                ->where('direction', 'asc')
+                ->where('employees.data.0.name', 'Aaron Able')
+                ->where('employees.data.1.name', 'Zoe Zeal')
+            );
+    }
+
     public function test_index_can_sort_by_business_line(): void
     {
         $user = User::factory()->create();
@@ -41,6 +56,21 @@ class EmployeeBusinessLineTest extends TestCase
                 ->where('direction', 'asc')
                 ->where('employees.data.0.name', 'Zoe Zeal')
                 ->where('employees.data.1.name', 'Aaron Able')
+            );
+    }
+
+    public function test_index_can_sort_by_weekly_hours(): void
+    {
+        $user = User::factory()->create();
+        Employee::factory()->create(['first_name' => 'Zoe', 'last_name' => 'Zeal', 'weekly_hours' => 40]);
+        Employee::factory()->create(['first_name' => 'Aaron', 'last_name' => 'Able', 'weekly_hours' => 24]);
+
+        $this->actingAs($user)->get('/employees?sort=weekly_hours&direction=asc')->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('sort', 'weekly_hours')
+                ->where('direction', 'asc')
+                ->where('employees.data.0.name', 'Aaron Able')
+                ->where('employees.data.1.name', 'Zoe Zeal')
             );
     }
 
