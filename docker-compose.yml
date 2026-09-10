@@ -1,13 +1,41 @@
-# ShiftPlanner container stack.
+# ShiftPlanner production container stack.
 #
-# Not used for local dev — dev runs on the host against SQLite
-# (`php artisan serve` / `composer run dev`). Roadmap phase 2 brings the
-# `postgres` service below into use. The `app` and `scheduler` services
-# are stubs: `app` gets a real PHP-FPM + nginx image when the deployment
-# story is built, `scheduler` becomes the Python OR-Tools service in
-# roadmap phase 5.
+# Build a release image with scripts/build-image.ps1. Copy its tar file,
+# this file, and a configured .env file to the server. Local development
+# continues to run on the host against SQLite.
 
 services:
+  app:
+    image: "shiftplanner:${IMAGE_TAG:?Set IMAGE_TAG in .env}"
+    env_file: .env
+    environment:
+      DB_CONNECTION: pgsql
+      DB_HOST: postgres
+      DB_PORT: 5432
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8080:80"
+    volumes:
+      - app-storage:/var/www/html/storage/app
+    restart: unless-stopped
+
+  queue:
+    image: "shiftplanner:${IMAGE_TAG:?Set IMAGE_TAG in .env}"
+    command: php artisan queue:work --sleep=3 --tries=3 --max-time=3600
+    env_file: .env
+    environment:
+      DB_CONNECTION: pgsql
+      DB_HOST: postgres
+      DB_PORT: 5432
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - app-storage:/var/www/html/storage/app
+    restart: unless-stopped
+
   postgres:
     image: postgres:17
     environment:
@@ -41,4 +69,5 @@ services:
   #     - "8080"
 
 volumes:
+  app-storage:
   postgres-data:
