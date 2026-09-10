@@ -1,8 +1,10 @@
 # ShiftPlanner production container stack.
 #
-# Build a release image with scripts/build-image.ps1. Copy its tar file,
-# this file, and a configured .env file to the server. Local development
-# continues to run on the host against SQLite.
+# Build a release with scripts/build-image.ps1 (Windows) or
+# scripts/build-image.sh (macOS/Linux). The .sh script stages this file,
+# a tar image, and an .env template together in dist/ - copy that whole
+# directory to the server. Local development continues to run on the host
+# against SQLite.
 
 services:
   app:
