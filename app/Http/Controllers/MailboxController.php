@@ -141,7 +141,7 @@ class MailboxController extends Controller
                 'recipient_name' => $employee->name,
                 'subject' => $subject,
                 'body' => $body,
-                'body_html' => $mailable->render(),
+                'body_html' => new ComposedMessage($subject, $fragment, logoSrc: ComposedMessage::browserLogoUrl())->render(),
                 'status' => $status,
             ]);
 
@@ -175,7 +175,10 @@ class MailboxController extends Controller
         $fragment = $this->composer->render($message->subject, $message->body ?? '')['body_html'];
         $mailable = new ComposedMessage($message->subject, $fragment, $owner?->email, $owner?->name);
 
-        $message->update(['status' => 'outbox', 'body_html' => $mailable->render()]);
+        $message->update([
+            'status' => 'outbox',
+            'body_html' => new ComposedMessage($message->subject, $fragment, logoSrc: ComposedMessage::browserLogoUrl())->render(),
+        ]);
 
         SendMailboxMessage::dispatch($message->id, $message->recipient_email, $mailable);
 

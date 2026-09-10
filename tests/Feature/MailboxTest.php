@@ -117,7 +117,7 @@ class MailboxTest extends TestCase
         $token = $alice->personalLink->token;
         $this->assertStringContainsString("/personal/{$token}", $aliceMessage->body);
         $this->assertStringContainsString("/personal/{$token}", $aliceMessage->body_html);
-        $this->assertStringContainsString('src="cid:shiftplanner-logo"', $aliceMessage->body_html);
+        $this->assertStringContainsString('src="'.asset('images/logo.svg').'"', $aliceMessage->body_html);
         $this->assertSame('draft', $aliceMessage->status);
         Queue::assertNothingPushed();
     }
@@ -223,6 +223,21 @@ class MailboxTest extends TestCase
         $response->assertOk();
         $response->assertJsonPath('subject', 'Hello '.__('mailbox.preview.sample_name'));
         $this->assertStringContainsString('/personal/EXAMPLE-TOKEN', $response->json('html'));
+    }
+
+    public function test_preview_uses_a_browser_resolvable_logo_url(): void
+    {
+        $this->admin();
+
+        $response = $this->postJson('/mailbox/compose/preview', [
+            'type' => MessageType::PersonalPageLink->value,
+            'subject' => 'Hello',
+            'body' => 'Open :link',
+        ]);
+
+        $response->assertOk();
+        $this->assertStringContainsString('src="'.asset('images/logo.svg').'"', $response->json('html'));
+        $this->assertStringNotContainsString('src="cid:', $response->json('html'));
     }
 
     // ── Templates ───────────────────────────────────────────────────────

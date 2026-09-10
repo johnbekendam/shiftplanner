@@ -31,11 +31,10 @@
                     <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
                         <tr>
                             <td style="background-color:{{ $colors['brand_strong'] }};padding:20px 32px;border-radius:7px 7px 0 0;">
-                                <img src="cid:{{ $logoContentId }}"
+                                <img src="{{ $logoSrc ?? asset('images/logo.svg') }}"
                                      alt="{{ config('app.name') }}"
-                                      width="108"
-                                      height="22"
-                                      style="display:inline-block;vertical-align:middle;width:auto;height:22px;margin-right:8px;">
+                                      width="112"
+                                      style="display:inline-block;vertical-align:middle;width:112px;height:auto;margin-right:8px;">
                                 <span style="font-family:sans-serif;font-size:20px;font-weight:700;color:{{ $colors['on_brand'] }};">
                                     {{ config('app.name') }}
                                 </span>

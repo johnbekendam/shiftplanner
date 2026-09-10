@@ -29,7 +29,11 @@ class MessageComposer
     public function renderForRecipient(string $subject, string $body): array
     {
         $rendered = $this->render($subject, $body);
-        $html = (new ComposedMessage($rendered['subject'], $rendered['body_html']))->render();
+        $html = (new ComposedMessage(
+            $rendered['subject'],
+            $rendered['body_html'],
+            logoSrc: ComposedMessage::browserLogoUrl(),
+        ))->render();
 
         return ['subject' => $rendered['subject'], 'html' => $html];
     }

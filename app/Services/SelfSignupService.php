@@ -74,7 +74,7 @@ class SelfSignupService
             'recipient_name' => $employee->name,
             'subject' => $subject,
             'body' => $body,
-            'body_html' => $mailable->render(),
+            'body_html' => new ComposedMessage($subject, $fragment, logoSrc: ComposedMessage::browserLogoUrl())->render(),
             'status' => 'outbox',
         ]);
 

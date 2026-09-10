@@ -1,4 +1,4 @@
-@extends('emails.layout', ['colors' => $colors])
+@extends('emails.layout', ['colors' => $colors, 'logoSrc' => $logoSrc])
 
 @section('content')
 {!! $bodyHtml !!}
