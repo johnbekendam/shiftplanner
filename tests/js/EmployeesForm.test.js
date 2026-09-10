@@ -8,6 +8,8 @@ const en = {
     "availability.tab.availability": "Availability",
     "availability.info.empty": "No information has been provided yet.",
     "availability.info.cta": "Please update your details, availability and competences on the different tabs.",
+    "availability.hours_warning.not_preferred": "You will be planned on not-preferred hours.",
+    "availability.hours_warning.insufficient": "Your available time totals :available hours per week, below your target of :target hours.",
     "availability.holidays.empty": "No holidays yet.",
     "availability.holidays.save_first": "Save the employee first, then add holidays.",
     "availability.questions.heading": "Questions",
@@ -237,6 +239,73 @@ describe("Employees/Form", () => {
 
         expect(w.get('[data-testid="panel-details"]').findComponent(WeeklyHoursField).exists()).toBe(false);
         expect(w.get('[data-testid="panel-availability"]').findComponent(WeeklyHoursField).exists()).toBe(true);
+    });
+
+    it("shows no availability-hours warning when preferred hours meet the target", () => {
+        const w = mount(Form, {
+            props: {
+                employee: { id: 3, first_name: "A", last_name: "B", email: "a@b.c", weekly_hours: 20 },
+                shifts: [{ id: 1, name: "Day", start_time: "08:00", end_time: "12:00" }],
+                holidays: [],
+            },
+            global: { stubs },
+        });
+
+        expect(w.find('[data-testid="availability-hours-warning"]').exists()).toBe(false);
+    });
+
+    it("warns when the target requires not-preferred hours", () => {
+        const w = mount(Form, {
+            props: {
+                employee: { id: 3, first_name: "A", last_name: "B", email: "a@b.c", weekly_hours: 20 },
+                shifts: [{ id: 1, name: "Day", start_time: "08:00", end_time: "12:00" }],
+                availability: [{ weekday: 1, shift_id: 1, level: "not_preferred" }],
+                holidays: [],
+            },
+            global: { stubs },
+        });
+
+        expect(w.get('[data-testid="availability-hours-warning"]').text())
+            .toContain("You will be planned on not-preferred hours.");
+    });
+
+    it("warns when all available hours are below the target", () => {
+        const w = mount(Form, {
+            props: {
+                employee: { id: 3, first_name: "A", last_name: "B", email: "a@b.c", weekly_hours: 20 },
+                shifts: [{ id: 1, name: "Day", start_time: "08:00", end_time: "12:00" }],
+                availability: [
+                    { weekday: 1, shift_id: 1, level: "unavailable" },
+                    { weekday: 2, shift_id: 1, level: "unavailable" },
+                ],
+                holidays: [],
+            },
+            global: { stubs },
+        });
+
+        expect(w.get('[data-testid="availability-hours-warning"]').text())
+            .toContain("Your available time totals 12 hours per week, below your target of 20 hours.");
+    });
+
+    it("updates the availability-hours warning after an availability-grid change", async () => {
+        const w = mount(Form, {
+            props: {
+                employee: { id: 3, first_name: "A", last_name: "B", email: "a@b.c", weekly_hours: 20 },
+                shifts: [{ id: 1, name: "Day", start_time: "08:00", end_time: "12:00" }],
+                holidays: [],
+            },
+            global: { stubs },
+        });
+
+        w.findComponent(AvailabilityGrid).vm.$emit("update:availability", {
+            weekday: 1,
+            shiftId: 1,
+            level: "unavailable",
+        });
+        await w.vm.$nextTick();
+
+        expect(w.get('[data-testid="availability-hours-warning"]').text())
+            .toContain("Your available time totals 16 hours per week, below your target of 20 hours.");
     });
 
     it("auto-saves when weekly hours changes on the Availability tab", async () => {

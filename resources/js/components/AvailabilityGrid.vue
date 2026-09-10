@@ -19,6 +19,8 @@ const props = defineProps({
     disabled: { type: Boolean, default: false },
 })
 
+const emit = defineEmits(['update:availability'])
+
 // Monday–Friday. The team runs no weekend shifts; a weekend need is a
 // configurable question instead.
 const WEEKDAYS = [1, 2, 3, 4, 5]
@@ -97,6 +99,7 @@ function choose(level) {
     const k = key(weekday, shiftId)
     if (cells[k] !== level) {
         cells[k] = level
+        emit('update:availability', { weekday, shiftId, level })
         router.put(`${props.endpoint}/${weekday}/${shiftId}`, { level }, {
             preserveScroll: true,
             preserveState: true,

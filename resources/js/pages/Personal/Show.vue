@@ -13,6 +13,7 @@ import QuestionChecklist from '@/components/QuestionChecklist.vue'
 import TagChecklist from '@/components/TagChecklist.vue'
 import ButtonPrimary from '@/components/ui/ButtonPrimary.vue'
 import { useI18n } from '@/composables/useI18n'
+import { calculateAvailabilityHours } from '@/utils/availabilityHours'
 
 const __ = useI18n()
 
@@ -49,6 +50,20 @@ const tabs = computed(() => [
     { value: 'competences', label: __('competences.tab') },
 ])
 
+const availability = ref(props.availability)
+
+watch(() => props.availability, (value) => {
+    availability.value = value
+}, { deep: true })
+
+const availabilityHours = computed(() => calculateAvailabilityHours(props.shifts, availability.value))
+
+const availabilityWarning = computed(() => {
+    if (!form.weekly_hours || availabilityHours.value.preferred >= form.weekly_hours) return null
+
+    return availabilityHours.value.available >= form.weekly_hours ? 'not_preferred' : 'insufficient'
+})
+
 function save() {
     if (!props.editable) return
     form
@@ -63,6 +78,14 @@ function save() {
 function onWeeklyHoursChange(value) {
     form.weekly_hours = value
     save()
+}
+
+function onAvailabilityChange({ weekday, shiftId, level }) {
+    availability.value = availability.value.filter((row) => row.weekday !== weekday || row.shift_id !== shiftId)
+
+    if (level !== 'available') {
+        availability.value.push({ weekday, shift_id: shiftId, level })
+    }
 }
 
 // The business line is the only editable Details field. Auto-save it on
@@ -124,6 +147,22 @@ watch(tab, (next, prev) => {
                 />
             </section>
 
+            <p
+                v-if="availabilityWarning"
+                data-testid="availability-hours-warning"
+                class="mb-6 rounded-md border border-(--color-badge-warning-border) bg-(--color-badge-warning-bg) px-3 py-2 text-sm text-(--color-badge-warning-text)"
+            >
+                <template v-if="availabilityWarning === 'not_preferred'">
+                    {{ __('availability.hours_warning.not_preferred') }}
+                </template>
+                <template v-else>
+                    {{ __('availability.hours_warning.insufficient', {
+                        available: availabilityHours.available,
+                        target: form.weekly_hours,
+                    }) }}
+                </template>
+            </p>
+
             <CardSeparator />
 
             <section class="space-y-3">
@@ -132,6 +171,7 @@ watch(tab, (next, prev) => {
                     :availability="availability"
                     :endpoint="`/personal/${token}/availability`"
                     :disabled="!editable"
+                    @update:availability="onAvailabilityChange"
                 />
             </section>
 
