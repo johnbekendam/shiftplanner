@@ -25,5 +25,7 @@ class MessageComposerTest extends TestCase
         $this->assertStringContainsString('body', $result['html']);
         $this->assertStringContainsStringIgnoringCase('<!DOCTYPE html>', $result['html']);
         $this->assertStringContainsString(config('app.name'), $result['html']);
+        $this->assertStringContainsString('src="'.asset('images/logo.svg').'"', $result['html']);
+        $this->assertStringContainsString('alt="'.config('app.name').'"', $result['html']);
     }
 }
