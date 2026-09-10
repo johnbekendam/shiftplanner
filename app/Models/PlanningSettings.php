@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
+use App\Services\MarkdownRenderer;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Str;
 
 class PlanningSettings extends Model
 {
@@ -57,10 +57,11 @@ class PlanningSettings extends Model
             $note = strtr($note, [':name' => $name]);
         }
 
-        return Str::markdown($note, [
-            'html_input' => 'allow',
-            'allow_unsafe_links' => true,
-        ]);
+        return (new MarkdownRenderer)->render(
+            $note,
+            fn (string $label, string $url): string => '<a data-shift-note-button href="'.e($url).'">'.e($label).'</a>',
+            allowUnsafeLinks: true,
+        );
     }
 
     /** The shape shared with the front end. */

@@ -19,6 +19,24 @@ class MessageComposerTest extends TestCase
         $this->assertStringContainsString('<p>', $result['body_html']);
     }
 
+    public function test_render_converts_button_syntax_to_a_branded_email_button(): void
+    {
+        $result = (new MessageComposer)->render('Hello', ':button[Open schedule](https://example.test/schedule)');
+
+        $this->assertStringContainsString('href="https://example.test/schedule"', $result['body_html']);
+        $this->assertStringContainsString('Open schedule', $result['body_html']);
+        $this->assertStringContainsString('role="presentation"', $result['body_html']);
+        $this->assertStringNotContainsString(':button', $result['body_html']);
+    }
+
+    public function test_render_keeps_regular_markdown_links_as_links(): void
+    {
+        $result = (new MessageComposer)->render('Hello', '[Open schedule](https://example.test/schedule)');
+
+        $this->assertStringContainsString('<a href="https://example.test/schedule">Open schedule</a>', $result['body_html']);
+        $this->assertStringNotContainsString('role="presentation"', $result['body_html']);
+    }
+
     public function test_render_for_recipient_wraps_in_branded_layout(): void
     {
         $result = (new MessageComposer)->renderForRecipient('Hello', 'Some *body* text');

@@ -35,6 +35,14 @@ class PersonalLinkMessage
     /** Apply a placeholder map to one string. */
     public function apply(string $text, array $map): string
     {
+        if (isset($map[':link'])) {
+            $text = str_replace(
+                ':button:link',
+                ':button['.__('mailbox.button.view_personal_page').']('.$map[':link'].')',
+                $text,
+            );
+        }
+
         return strtr($text, $map);
     }
 }

@@ -122,6 +122,46 @@ class MailboxTest extends TestCase
         Queue::assertNothingPushed();
     }
 
+    public function test_compose_renders_custom_button_text_for_a_personal_link(): void
+    {
+        $this->admin();
+        $employee = Employee::factory()->create(['first_name' => 'Alice', 'email' => 'alice@example.com']);
+
+        $this->post('/mailbox/compose', [
+            'type' => MessageType::PersonalPageLink->value,
+            'subject' => 'Your page',
+            'body' => ':button[Open your page](:link)',
+            'employee_ids' => [$employee->id],
+            'send_mode' => 'draft',
+        ])->assertRedirect();
+
+        $message = Message::firstOrFail();
+        $token = $employee->personalLink->token;
+
+        $this->assertStringContainsString('href="'.url("/personal/{$token}").'"', $message->body_html);
+        $this->assertStringContainsString('Open your page', $message->body_html);
+        $this->assertStringNotContainsString(':button', $message->body_html);
+    }
+
+    public function test_compose_supports_the_default_personal_link_button_shorthand(): void
+    {
+        $this->admin();
+        $employee = Employee::factory()->create(['email' => 'alice@example.com']);
+
+        $this->post('/mailbox/compose', [
+            'type' => MessageType::PersonalPageLink->value,
+            'subject' => 'Your page',
+            'body' => ':button:link',
+            'employee_ids' => [$employee->id],
+            'send_mode' => 'draft',
+        ])->assertRedirect();
+
+        $message = Message::firstOrFail();
+
+        $this->assertStringContainsString(__('mailbox.button.view_personal_page'), $message->body_html);
+        $this->assertStringNotContainsString(':button', $message->body_html);
+    }
+
     public function test_compose_reuses_an_existing_personal_link_token(): void
     {
         $this->admin();

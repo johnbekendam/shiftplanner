@@ -17,6 +17,12 @@ defineProps({
             [&_h3]:font-semibold [&_h3]:text-(--color-text-heading)
             [&_p]:my-1
             [&_a]:text-(--color-text-link) [&_a]:underline
+            [&_a[data-shift-note-button]]:inline-block [&_a[data-shift-note-button]]:rounded-md
+            [&_a[data-shift-note-button]]:bg-(--color-btn-primary-bg)
+            [&_a[data-shift-note-button]]:px-4 [&_a[data-shift-note-button]]:py-2
+            [&_a[data-shift-note-button]]:font-semibold [&_a[data-shift-note-button]]:text-(--color-btn-primary-text)
+            [&_a[data-shift-note-button]]:no-underline
+            [&_a[data-shift-note-button]]:hover:bg-(--color-btn-primary-hover-bg)
             [&_ul]:my-1 [&_ul]:list-disc [&_ul]:pl-5
             [&_ol]:my-1 [&_ol]:list-decimal [&_ol]:pl-5
             [&_code]:rounded [&_code]:bg-(--color-input-bg) [&_code]:px-1 [&_code]:py-0.5 [&_code]:text-xs

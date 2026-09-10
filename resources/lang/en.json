@@ -53,6 +53,7 @@
     "mailbox.type.personal_page_link.label": "Personal page link",
     "mailbox.type.personal_page_link.subject": "Your ShiftPlanner personal page",
     "mailbox.type.personal_page_link.body": "Hi :name,\n\nYou can view and update your working hours, availability and competences on your personal ShiftPlanner page:\n\n:link\n\nThis link is personal to you. Please do not share it.\n\nThank you,\nThe planning team",
+    "mailbox.button.view_personal_page": "View your personal page",
     "mailbox.compose.type": "Message type",
     "mailbox.compose.subject": "Subject",
     "mailbox.compose.body": "Message",

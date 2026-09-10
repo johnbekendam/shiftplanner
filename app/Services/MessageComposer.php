@@ -3,22 +3,20 @@
 namespace App\Services;
 
 use App\Mail\ComposedMessage;
-use League\CommonMark\Environment\Environment;
-use League\CommonMark\Extension\CommonMark\CommonMarkCoreExtension;
-use League\CommonMark\MarkdownConverter;
-
-/**
- * Converts a message's Markdown body into HTML. Placeholder resolution
- * (:name, :link) happens before this, in App\Services\PersonalLinkMessage —
- * see doc/features/mailbox/spec.md.
- */
 class MessageComposer
 {
-    private ?MarkdownConverter $converter = null;
+    public function __construct(private ?MarkdownRenderer $markdown = null) {}
 
     public function render(string $subject, string $body): array
     {
-        return ['subject' => $subject, 'body_html' => $this->toHtml($body)];
+        return ['subject' => $subject, 'body_html' => ($this->markdown ??= new MarkdownRenderer)->render(
+            $body,
+            fn (string $label, string $url): string => view('emails.components.button', [
+                'url' => $url,
+                'label' => $label,
+                'colors' => (new ThemeTokens)->emailColors(),
+            ])->render(),
+        )];
     }
 
     /**
@@ -38,14 +36,4 @@ class MessageComposer
         return ['subject' => $rendered['subject'], 'html' => $html];
     }
 
-    private function toHtml(string $markdown): string
-    {
-        if ($this->converter === null) {
-            $env = new Environment(['html_input' => 'allow', 'allow_unsafe_links' => false]);
-            $env->addExtension(new CommonMarkCoreExtension);
-            $this->converter = new MarkdownConverter($env);
-        }
-
-        return (string) $this->converter->convert($markdown);
-    }
 }

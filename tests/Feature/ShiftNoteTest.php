@@ -86,6 +86,20 @@ class ShiftNoteTest extends TestCase
         $this->assertStringContainsString('<td>Early</td>', $html);
     }
 
+    public function test_note_html_renders_a_button_with_custom_text_and_target(): void
+    {
+        PlanningSettings::current()->update([
+            'shift_note' => ':button[Open the schedule](https://example.test/schedule)',
+        ]);
+
+        $html = PlanningSettings::current()->fresh()->shiftNoteHtml();
+
+        $this->assertStringContainsString('data-shift-note-button', $html);
+        $this->assertStringContainsString('href="https://example.test/schedule"', $html);
+        $this->assertStringContainsString('Open the schedule', $html);
+        $this->assertStringNotContainsString(':button', $html);
+    }
+
     public function test_note_html_keeps_raw_html(): void
     {
         PlanningSettings::current()->update(['shift_note' => 'Call <span class="x">Bob</span> first.']);
@@ -128,6 +142,20 @@ class ShiftNoteTest extends TestCase
             );
     }
 
+    public function test_employee_edit_payload_carries_a_shift_note_button(): void
+    {
+        $this->actingAs(User::factory()->create());
+        PlanningSettings::current()->update([
+            'shift_note' => ':button[Open the schedule](https://example.test/schedule)',
+        ]);
+        $employee = Employee::factory()->create();
+
+        $this->get("/employees/{$employee->id}/edit")->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('shiftNoteHtml', fn ($html) => str_contains((string) $html, 'data-shift-note-button'))
+            );
+    }
+
     public function test_personal_show_payload_carries_the_rendered_note(): void
     {
         PlanningSettings::current()->update(['shift_note' => '**Bold** note']);
@@ -138,6 +166,20 @@ class ShiftNoteTest extends TestCase
             ->assertInertia(fn ($page) => $page
                 ->component('Personal/Show')
                 ->where('shiftNoteHtml', fn ($html) => str_contains((string) $html, '<strong>Bold</strong>'))
+            );
+    }
+
+    public function test_personal_show_payload_carries_a_shift_note_button(): void
+    {
+        PlanningSettings::current()->update([
+            'shift_note' => ':button[Open the schedule](https://example.test/schedule)',
+        ]);
+        $employee = Employee::factory()->create();
+        $token = $employee->personalLink()->create(['token' => 'tok-button'])->token;
+
+        $this->get("/personal/{$token}")->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('shiftNoteHtml', fn ($html) => str_contains((string) $html, 'data-shift-note-button'))
             );
     }
 
