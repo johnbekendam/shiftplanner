@@ -8,26 +8,30 @@ Run this command in the repository root.
 .\scripts\build-image.ps1 1.0.0
 ```
 
-The script creates `dist/shiftplanner-1.0.0.tar`. It replaces an artifact with the same version.
+On macOS or Linux, run the shell script instead.
+
+```bash
+./scripts/build-image.sh 1.0.0
+```
+
+The `.ps1` script writes `dist/shiftplanner-1.0.0.tar`. The `.sh` script writes the full server bundle to `dist/`:
+
+- `shiftplanner-1.0.0.tar` — the release image
+- `docker-compose.yml` — the production stack
+- `.env.example` — a fresh template, `IMAGE_TAG` pre-filled
+- `.env` — a working copy, created on the first run and never overwritten after
+
+Each run replaces an artifact with the same version. The `.sh` script builds for `linux/amd64` by default so the image runs on the server from an Apple Silicon Mac. Override with the `PLATFORM` environment variable.
 
 ## Prepare The Server
 
-Copy these files to one server directory.
+Copy the whole `dist/` directory to one server directory.
 
-- `dist/shiftplanner-1.0.0.tar`
-- `docker-compose.yml`
-- `.env`
-
-Set these values in the server `.env` file.
+Open `.env` and set at least these values.
 
 ```dotenv
-APP_ENV=production
-APP_DEBUG=false
-APP_URL=http://server-name:8080
 APP_KEY=base64:replace-with-a-generated-key
-IMAGE_TAG=1.0.0
-DB_DATABASE=shiftplanner
-DB_USERNAME=shiftplanner
+APP_URL=http://server-name:8080
 DB_PASSWORD=replace-with-a-strong-password
 ```
 
