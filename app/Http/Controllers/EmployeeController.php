@@ -112,6 +112,7 @@ class EmployeeController extends Controller
             'holidays' => $employee->holidays->map->toPayload()->all(),
             'shifts' => Shift::all()->map->toPayload()->all(),
             'shiftNoteHtml' => PlanningSettings::current()->shiftNoteHtml($employee->first_name),
+            'scheduleNoteHtml' => PlanningSettings::current()->scheduleNoteHtml($employee->first_name),
             'availability' => $employee->recurringAvailabilities->map->toPayload()->all(),
             'competences' => Competence::all()->map->toPayload()->all(),
             'competenceIds' => $employee->competences->pluck('id')->all(),

@@ -18,6 +18,7 @@ class SettingsController extends Controller
             'businessLines' => $this->businessLines(),
             'shifts' => Shift::all()->map->toPayload()->all(),
             'shiftNote' => PlanningSettings::current()->shift_note ?? '',
+            'scheduleNote' => PlanningSettings::current()->shift_schedule_note ?? '',
             'questions' => $this->questions(),
             'period' => PlanningSettings::current()->toPayload(),
         ]);

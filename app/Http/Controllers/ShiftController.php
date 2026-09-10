@@ -43,6 +43,19 @@ class ShiftController extends Controller
         return back()->with('success', __('shifts.flash.note_saved'));
     }
 
+    public function updateScheduleNote(Request $request)
+    {
+        $note = $request->validate([
+            'note' => ['nullable', 'string', 'max:20000'],
+        ])['note'] ?? '';
+
+        PlanningSettings::current()->update([
+            'shift_schedule_note' => trim($note) === '' ? null : $note,
+        ]);
+
+        return back()->with('success', __('shifts.flash.schedule_note_saved'));
+    }
+
     /** @return array<string, mixed> */
     private function validated(Request $request, ?Shift $ignore = null): array
     {

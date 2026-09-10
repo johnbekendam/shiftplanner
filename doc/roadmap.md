@@ -216,6 +216,11 @@ Done so far — `features/employee-availability/`:
   `features/employee-change-lock/`) closes all employee-side edits to
   this data while keeping the personal page viewable — a manager uses it
   to freeze availability during a planning round.
+- A second global Markdown note, `shift_schedule_note`, edited on the
+  Shifts settings tab and shown directly below the availability grid
+  (`features/availability-grid-note/`). It carries shift-timing facts the
+  grid cannot — a shift that ends earlier on one weekday, for example.
+  The structured per-cell time override it stands in for is still open.
 
 Still open: the fairness definitions and objective-term weights, and the
 `/solve` service that reads this data.

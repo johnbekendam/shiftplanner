@@ -63,6 +63,7 @@ Route::middleware('auth')->group(function () {
         Route::delete('/settings/business-lines/{businessLine}', [BusinessLineController::class, 'destroy'])->name('settings.business-lines.destroy');
         Route::post('/settings/shifts', [ShiftController::class, 'store'])->name('settings.shifts.store');
         Route::put('/settings/shifts/note', [ShiftController::class, 'updateNote'])->name('settings.shifts.note');
+        Route::put('/settings/shifts/schedule-note', [ShiftController::class, 'updateScheduleNote'])->name('settings.shifts.schedule-note');
         Route::put('/settings/shifts/{shift}', [ShiftController::class, 'update'])->name('settings.shifts.update');
         Route::delete('/settings/shifts/{shift}', [ShiftController::class, 'destroy'])->name('settings.shifts.destroy');
         Route::post('/settings/questions', [QuestionController::class, 'store'])->name('settings.questions.store');

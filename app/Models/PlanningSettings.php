@@ -15,6 +15,7 @@ class PlanningSettings extends Model
         'period_start',
         'period_end',
         'shift_note',
+        'shift_schedule_note',
         'allow_employee_changes',
     ];
 
@@ -48,6 +49,30 @@ class PlanningSettings extends Model
     public function shiftNoteHtml(?string $name = null): ?string
     {
         $note = (string) $this->shift_note;
+
+        if (trim($note) === '') {
+            return null;
+        }
+
+        if ($name !== null) {
+            $note = strtr($note, [':name' => $name]);
+        }
+
+        return (new MarkdownRenderer)->render(
+            $note,
+            fn (string $label, string $url): string => '<a data-shift-note-button href="'.e($url).'">'.e($label).'</a>',
+            allowUnsafeLinks: true,
+        );
+    }
+
+    /**
+     * The shift-schedule note rendered to HTML, or null when blank. Shown
+     * directly below the weekly availability grid. Same rendering as
+     * {@see shiftNoteHtml()} — `:name` is replaced with $name when given.
+     */
+    public function scheduleNoteHtml(?string $name = null): ?string
+    {
+        $note = (string) $this->shift_schedule_note;
 
         if (trim($note) === '') {
             return null;

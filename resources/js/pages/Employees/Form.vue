@@ -25,6 +25,7 @@ const props = defineProps({
     holidays: { type: Array, default: () => [] },
     shifts: { type: Array, default: () => [] },
     shiftNoteHtml: { type: String, default: null },
+    scheduleNoteHtml: { type: String, default: null },
     availability: { type: Array, default: () => [] },
     competences: { type: Array, default: () => [] },
     competenceIds: { type: Array, default: () => [] },
@@ -179,6 +180,7 @@ watch(tab, (next, prev) => {
                         show-add-hint
                         @update:availability="onAvailabilityChange"
                     />
+                    <ShiftNote v-if="scheduleNoteHtml" :html="scheduleNoteHtml" />
                 </section>
 
                 <template v-if="questions.length">
