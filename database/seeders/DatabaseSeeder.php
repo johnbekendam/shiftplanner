@@ -18,7 +18,6 @@ class DatabaseSeeder extends Seeder
             CompetenceSeeder::class,
             AvailabilityQuestionSeeder::class,
             PlanningSettingsSeeder::class,
-            EmployeeSeeder::class,
         ]);
 
         $seedUser = config('auth.seed_user');
