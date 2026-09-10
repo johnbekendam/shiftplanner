@@ -8,11 +8,12 @@ const en = {
     "employees.column.name": "Name",
     "employees.column.business_line": "Business line",
     "employees.column.weekly_hours": "Weekly hours",
+    "employees.column.flexibility": "Flexibility",
     "employees.no_business_line": "—",
     "employees.action.new": "New employee",
     "employees.action.send_link": "Send link",
     "employees.action.resend_link": "Resend link",
-    "employees.action.delete_selected": "Delete selected (:count)",
+    "employees.action.delete_selected": "Delete selected",
     "employees.confirm.delete_selected": "Permanently delete :count selected employees and their dependent scheduling data?",
     "employees.hours_option": ":count hours",
     "employees.pagination.range": ":from-:to of :total",
@@ -36,8 +37,28 @@ import Index from "@/pages/Employees/Index.vue";
 
 const employees = {
     data: [
-        { id: 1, name: "Ann Ant", business_line: "PMP", weekly_hours: 24, link_sent: false },
-        { id: 2, name: "Bo Bee", business_line: null, weekly_hours: 40, link_sent: true },
+        {
+            id: 1,
+            name: "Ann Ant",
+            business_line: "PMP",
+            weekly_hours: 24,
+            link_sent: false,
+            shift_coverage: [
+                { shift_id: 1, name: "Morning", coverage_percentage: 100 },
+                { shift_id: 2, name: "Evening", coverage_percentage: 60 },
+            ],
+        },
+        {
+            id: 2,
+            name: "Bo Bee",
+            business_line: null,
+            weekly_hours: 40,
+            link_sent: true,
+            shift_coverage: [
+                { shift_id: 1, name: "Morning", coverage_percentage: 20 },
+                { shift_id: 2, name: "Evening", coverage_percentage: 100 },
+            ],
+        },
     ],
     last_page: 1,
     current_page: 1,
@@ -59,6 +80,8 @@ const mountIndex = (props = {}) =>
         global: { stubs: { AppLayout: { template: "<div><slot /></div>" } } },
     });
 
+const deleteButton = (w, count) => w.get(`[aria-label="Delete selected ${count}"]`);
+
 beforeEach(() => {
     vi.useFakeTimers();
     router.get.mockReset();
@@ -77,8 +100,18 @@ describe("Employees/Index", () => {
         const w = mountIndex();
         const headers = w.findAll("thead th").map((th) => th.text());
 
-        expect(headers).toEqual(["", "Name", "Business line", "Weekly hours", ""]);
+        expect(headers).toEqual(["", "Name", "Business line", "Weekly hours", "Flexibility", ""]);
         expect(w.text()).not.toContain("Email");
+    });
+
+    it("renders shift coverage percentages for each employee", () => {
+        const w = mountIndex();
+        const rows = w.findAll("tbody tr");
+
+        expect(rows[0].findAll("td")[4].text()).toContain("Morning 100%");
+        expect(rows[0].findAll("td")[4].text()).toContain("Evening 60%");
+        expect(rows[1].findAll("td")[4].text()).toContain("Morning 20%");
+        expect(rows[1].findAll("td")[4].text()).toContain("Evening 100%");
     });
 
     it("renders the assigned business line, with a dash when there is none", () => {
@@ -186,10 +219,9 @@ describe("Employees/Index", () => {
     it("renders current-page selection controls and a disabled danger action", () => {
         const w = mountIndex();
         const checkboxes = w.findAll('input[type="checkbox"]');
-        const deleteButton = w.findAll("button").find((button) => button.text() === "Delete selected (0)");
 
         expect(checkboxes).toHaveLength(3);
-        expect(deleteButton.attributes("disabled")).toBeDefined();
+        expect(deleteButton(w, 0).attributes("disabled")).toBeDefined();
     });
 
     it("selects one employee without opening its row", async () => {
@@ -198,8 +230,7 @@ describe("Employees/Index", () => {
 
         await checkboxes[1].setValue(true);
 
-        const deleteButton = w.findAll("button").find((button) => button.text() === "Delete selected (1)");
-        expect(deleteButton.attributes("disabled")).toBeUndefined();
+        expect(deleteButton(w, 1).attributes("disabled")).toBeUndefined();
         expect(router.visit).not.toHaveBeenCalled();
     });
 
@@ -211,7 +242,7 @@ describe("Employees/Index", () => {
 
         expect(checkboxes[1].element.checked).toBe(true);
         expect(checkboxes[2].element.checked).toBe(true);
-        expect(w.text()).toContain("Delete selected (2)");
+        expect(deleteButton(w, 2).attributes("disabled")).toBeUndefined();
     });
 
     it("clears selection when search or sort navigation starts", async () => {
@@ -219,12 +250,12 @@ describe("Employees/Index", () => {
         await w.findAll('input[type="checkbox"]')[1].setValue(true);
 
         await w.findAll("thead th button")[1].trigger("click");
-        expect(w.text()).toContain("Delete selected (0)");
+        expect(deleteButton(w, 0).attributes("disabled")).toBeDefined();
 
         await w.findAll('input[type="checkbox"]')[1].setValue(true);
         await w.get('input[type="search"]').setValue("ann");
         vi.advanceTimersByTime(300);
-        expect(w.text()).toContain("Delete selected (0)");
+        expect(deleteButton(w, 0).attributes("disabled")).toBeDefined();
     });
 
     it("clears selection when page navigation starts", async () => {
@@ -246,7 +277,7 @@ describe("Employees/Index", () => {
         const nextButton = w.find('[aria-label="Next"]');
         await nextButton.trigger("click");
 
-        expect(w.text()).toContain("Delete selected (0)");
+        expect(deleteButton(w, 0).attributes("disabled")).toBeDefined();
         expect(router.get).toHaveBeenCalledWith(
             "/employees?page=2",
             {},
@@ -296,8 +327,7 @@ describe("Employees/Index", () => {
         const w = mountIndex();
         await w.findAll('input[type="checkbox"]')[1].setValue(true);
 
-        const deleteButton = w.findAll("button").find((button) => button.text() === "Delete selected (1)");
-        await deleteButton.trigger("click");
+        await deleteButton(w, 1).trigger("click");
 
         expect(confirm).toHaveBeenCalledWith(
             "Permanently delete 1 selected employees and their dependent scheduling data?",

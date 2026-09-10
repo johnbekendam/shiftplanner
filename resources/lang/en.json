@@ -90,6 +90,7 @@
     "employees.column.name": "Name",
     "employees.column.business_line": "Business line",
     "employees.column.weekly_hours": "Weekly hours",
+    "employees.column.flexibility": "Flexibility",
     "employees.no_business_line": "—",
     "employees.hours_option": ":count hours",
     "employees.hours_below_minimum": "I can only work less than :min hours",

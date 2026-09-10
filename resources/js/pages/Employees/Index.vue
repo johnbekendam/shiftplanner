@@ -20,9 +20,10 @@ const props = defineProps({
 })
 
 const columns = [
-    { key: 'name', label: 'employees.column.name' },
-    { key: 'business_line', label: 'employees.column.business_line' },
-    { key: 'weekly_hours', label: 'employees.column.weekly_hours' },
+    { key: 'name', label: 'employees.column.name', sortable: true },
+    { key: 'business_line', label: 'employees.column.business_line', sortable: true },
+    { key: 'weekly_hours', label: 'employees.column.weekly_hours', sortable: true },
+    { key: 'flexibility', label: 'employees.column.flexibility', sortable: false },
 ]
 
 const searchTerm = ref(props.search ?? '')
@@ -139,7 +140,7 @@ function bulkDelete() {
     <AppLayout>
         <Head :title="__('employees.title')" />
 
-        <Card class="max-w-4xl">
+        <Card class="max-w-5xl">
             <template #header>
                 <div class="flex items-center justify-between gap-3 px-6 py-3">
                     <span class="text-base font-semibold">{{ __('employees.title') }}</span>
@@ -186,6 +187,7 @@ function bulkDelete() {
                             </th>
                             <th v-for="column in columns" :key="column.key" class="px-2 py-2">
                                 <button
+                                    v-if="column.sortable"
                                     type="button"
                                     class="flex items-center gap-1 font-medium hover:text-(--color-text-primary)"
                                     @click="sortBy(column.key)"
@@ -197,6 +199,7 @@ function bulkDelete() {
                                         class="size-3.5"
                                     />
                                 </button>
+                                <span v-else class="font-medium">{{ __(column.label) }}</span>
                             </th>
                             <th class="px-2 py-2" />
                         </tr>
@@ -221,6 +224,17 @@ function bulkDelete() {
                             </td>
                             <td class="px-2 py-2 text-(--color-table-row-text)">
                                 {{ __('employees.hours_option', { count: employee.weekly_hours }) }}
+                            </td>
+                            <td class="px-2 py-2 text-(--color-table-row-text)">
+                                <div class="flex flex-wrap gap-1.5">
+                                    <span
+                                        v-for="shift in employee.shift_coverage ?? []"
+                                        :key="shift.shift_id"
+                                        class="inline-flex items-center rounded-full border border-(--color-badge-standard-border) bg-(--color-badge-standard-bg) px-2 py-0.5 text-xs font-medium text-(--color-badge-standard-text)"
+                                    >
+                                        {{ shift.name }} {{ shift.coverage_percentage }}%
+                                    </span>
+                                </div>
                             </td>
                             <td class="px-2 py-2 text-right" @click.stop>
                                 <Link :href="composeLinkUrl(employee)">

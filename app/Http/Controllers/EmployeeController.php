@@ -12,6 +12,7 @@ use App\Models\PlanningSettings;
 use App\Models\Shift;
 use App\Services\EmployeePersonalLinkService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 
@@ -26,6 +27,8 @@ class EmployeeController extends Controller
         'weekly_hours' => ['employees.weekly_hours'],
     ];
 
+    private const WEEKDAYS = [1, 2, 3, 4, 5];
+
     public function index(Request $request)
     {
         $search = trim((string) $request->input('search', ''));
@@ -37,7 +40,7 @@ class EmployeeController extends Controller
         $query = Employee::query()
             ->select('employees.*')
             ->leftJoin('business_lines', 'business_lines.id', '=', 'employees.business_line_id')
-            ->with('businessLine');
+            ->with(['businessLine', 'recurringAvailabilities']);
 
         foreach (self::SORT_COLUMNS[$sort] as $column) {
             $query->orderBy($column, $direction);
@@ -60,11 +63,14 @@ class EmployeeController extends Controller
             ->pluck('recipient_email')
             ->flip();
 
+        $shifts = Shift::all();
+
         $employees = $employees->through(fn (Employee $employee) => [
             'id' => $employee->id,
             'name' => $employee->name,
             'business_line' => $employee->businessLine?->abbreviation,
             'weekly_hours' => $employee->weekly_hours,
+            'shift_coverage' => $this->shiftCoverage($employee, $shifts),
             'link_sent' => $linkSent->has($employee->email),
         ]);
 
@@ -131,6 +137,22 @@ class EmployeeController extends Controller
         $count = Employee::query()->whereKey($data['ids'])->delete();
 
         return redirect()->back()->with('success', __('employees.flash.deleted', ['count' => $count]));
+    }
+
+    private function shiftCoverage(Employee $employee, Collection $shifts): array
+    {
+        $unavailable = $employee->recurringAvailabilities
+            ->where('level', 'unavailable')
+            ->whereIn('weekday', self::WEEKDAYS)
+            ->groupBy('shift_id');
+
+        return $shifts->map(fn (Shift $shift) => [
+            'shift_id' => $shift->id,
+            'name' => $shift->name,
+            'coverage_percentage' => (int) round(
+                ((count(self::WEEKDAYS) - ($unavailable->get($shift->id)?->count() ?? 0)) / count(self::WEEKDAYS)) * 100
+            ),
+        ])->all();
     }
 
     public function personalPage(Employee $employee)

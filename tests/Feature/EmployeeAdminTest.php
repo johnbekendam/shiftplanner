@@ -9,6 +9,7 @@ use App\Models\Employee;
 use App\Models\EmployeeHoliday;
 use App\Models\Message;
 use App\Models\RecurringAvailability;
+use App\Models\Shift;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -36,6 +37,49 @@ class EmployeeAdminTest extends TestCase
                 ->where('employees.data.0.weekly_hours', 32)
                 ->missing('employees.data.0.department')
                 ->missing('employees.data.0.shift_preference')
+            );
+    }
+
+    public function test_index_includes_shift_coverage_percentages(): void
+    {
+        $user = User::factory()->create();
+        $employee = Employee::factory()->create(['first_name' => 'Aaron', 'last_name' => 'Able']);
+        $morning = Shift::factory()->create(['name' => 'Morning', 'start_time' => '08:00', 'end_time' => '12:00']);
+        $evening = Shift::factory()->create(['name' => 'Evening', 'start_time' => '16:00', 'end_time' => '20:00']);
+
+        RecurringAvailability::factory()->create([
+            'employee_id' => $employee->id,
+            'shift_id' => $morning->id,
+            'weekday' => 1,
+            'level' => 'unavailable',
+        ]);
+        RecurringAvailability::factory()->create([
+            'employee_id' => $employee->id,
+            'shift_id' => $morning->id,
+            'weekday' => 2,
+            'level' => 'unavailable',
+        ]);
+        RecurringAvailability::factory()->create([
+            'employee_id' => $employee->id,
+            'shift_id' => $evening->id,
+            'weekday' => 1,
+            'level' => 'not_preferred',
+        ]);
+        RecurringAvailability::factory()->create([
+            'employee_id' => $employee->id,
+            'shift_id' => $evening->id,
+            'weekday' => 5,
+            'level' => 'unavailable',
+        ]);
+
+        $this->actingAs($user)->get('/employees')->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('employees.data.0.name', 'Aaron Able')
+                ->has('employees.data.0.shift_coverage', 2)
+                ->where('employees.data.0.shift_coverage.0.name', 'Morning')
+                ->where('employees.data.0.shift_coverage.0.coverage_percentage', 60)
+                ->where('employees.data.0.shift_coverage.1.name', 'Evening')
+                ->where('employees.data.0.shift_coverage.1.coverage_percentage', 80)
             );
     }
 
