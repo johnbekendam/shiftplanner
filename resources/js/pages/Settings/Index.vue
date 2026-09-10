@@ -22,14 +22,14 @@ defineProps({
     period: { type: Object, default: () => ({}) },
 })
 
-const tab = ref('business_lines')
+const tab = ref('general')
 const tabs = computed(() => [
-    { value: 'business_lines', label: __('settings.tab.business_lines') },
     { value: 'general', label: __('settings.tab.general') },
+    { value: 'business_lines', label: __('settings.tab.business_lines') },
     { value: 'shifts', label: __('settings.tab.shifts') },
-    { value: 'information', label: __('settings.tab.information') },
     { value: 'questions', label: __('settings.tab.questions') },
     { value: 'competences', label: __('settings.tab.competences') },
+    { value: 'information', label: __('settings.tab.information') },
 ])
 </script>
 
