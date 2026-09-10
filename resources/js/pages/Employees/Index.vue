@@ -177,14 +177,14 @@ function bulkDelete() {
                 <table class="w-full text-sm">
                     <thead>
                         <tr class="border-b border-(--color-table-header-separator) text-left text-(--color-table-header-text)">
-                            <th class="w-8 py-2 pr-3">
+                            <th class="w-8 px-2 py-2 pr-3">
                                 <CheckboxInput
                                     :model-value="allSelected"
                                     :aria-label="__('employees.selection.select_all')"
                                     @update:model-value="toggleSelectAll"
                                 />
                             </th>
-                            <th v-for="column in columns" :key="column.key" class="py-2">
+                            <th v-for="column in columns" :key="column.key" class="px-2 py-2">
                                 <button
                                     type="button"
                                     class="flex items-center gap-1 font-medium hover:text-(--color-text-primary)"
@@ -198,7 +198,7 @@ function bulkDelete() {
                                     />
                                 </button>
                             </th>
-                            <th class="py-2" />
+                            <th class="px-2 py-2" />
                         </tr>
                     </thead>
                     <tbody>
@@ -208,21 +208,21 @@ function bulkDelete() {
                             class="cursor-pointer border-b border-(--color-table-row-separator) hover:bg-(--color-table-row-hover-bg)"
                             @click="openEmployee(employee)"
                         >
-                            <td class="w-8 py-2 pr-3" @click.stop>
+                            <td class="w-8 px-2 py-2 pr-3" @click.stop>
                                 <CheckboxInput
                                     v-model="selectedIds"
                                     :value="employee.id"
                                     :aria-label="__('employees.selection.select_employee', { name: employee.name })"
                                 />
                             </td>
-                            <td class="py-2 text-(--color-table-row-text)">{{ employee.name }}</td>
-                            <td class="py-2 text-(--color-table-row-text)">
+                            <td class="px-2 py-2 text-(--color-table-row-text)">{{ employee.name }}</td>
+                            <td class="px-2 py-2 text-(--color-table-row-text)">
                                 {{ employee.business_line ?? __('employees.no_business_line') }}
                             </td>
-                            <td class="py-2 text-(--color-table-row-text)">
+                            <td class="px-2 py-2 text-(--color-table-row-text)">
                                 {{ __('employees.hours_option', { count: employee.weekly_hours }) }}
                             </td>
-                            <td class="py-2 text-right" @click.stop>
+                            <td class="px-2 py-2 text-right" @click.stop>
                                 <Link :href="composeLinkUrl(employee)">
                                     <ButtonSecondary type="button" icon="envelope">
                                         {{ employee.link_sent ? __('employees.action.resend_link') : __('employees.action.send_link') }}
