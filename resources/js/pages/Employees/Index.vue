@@ -3,10 +3,11 @@ import { ref, computed, watch, onBeforeUnmount } from 'vue'
 import { Head, Link, router } from '@inertiajs/vue3'
 import AppLayout from '@/layouts/AppLayout.vue'
 import Card from '@/components/ui/Card.vue'
+import ButtonDanger from '@/components/ui/ButtonDanger.vue'
 import ButtonPrimary from '@/components/ui/ButtonPrimary.vue'
 import ButtonSecondary from '@/components/ui/ButtonSecondary.vue'
 import Icon from '@/components/ui/Icon.vue'
-import { SearchInput } from '@/components/ui/Input'
+import { CheckboxInput, SearchInput } from '@/components/ui/Input'
 import { useI18n } from '@/composables/useI18n'
 
 const __ = useI18n()
@@ -25,6 +26,10 @@ const columns = [
 ]
 
 const searchTerm = ref(props.search ?? '')
+const selectedIds = ref([])
+const allSelected = computed(() =>
+    props.employees.data.length > 0 && selectedIds.value.length === props.employees.data.length,
+)
 
 const query = computed(() => {
     const q = {}
@@ -36,6 +41,7 @@ const query = computed(() => {
 })
 
 function reload(overrides) {
+    selectedIds.value = []
     router.get('/employees', { ...query.value, ...overrides }, {
         preserveState: true,
         preserveScroll: true,
@@ -50,13 +56,17 @@ function sortBy(key) {
 
 let searchTimer = null
 watch(searchTerm, () => {
+    selectedIds.value = []
     clearTimeout(searchTimer)
     searchTimer = setTimeout(() => reload(), 250)
 })
 onBeforeUnmount(() => clearTimeout(searchTimer))
 
 function goToPage(url) {
-    if (url) router.get(url, {}, { preserveState: true })
+    if (!url) return
+
+    selectedIds.value = []
+    router.get(url, {}, { preserveState: true })
 }
 
 function openEmployee(employee) {
@@ -65,6 +75,18 @@ function openEmployee(employee) {
 
 function composeLinkUrl(employee) {
     return `/mailbox?tab=compose&type=personal_page_link&employee=${employee.id}`
+}
+
+function toggleSelectAll(checked) {
+    selectedIds.value = checked ? props.employees.data.map(employee => employee.id) : []
+}
+
+function bulkDelete() {
+    if (!confirm(__('employees.confirm.delete_selected', { count: selectedIds.value.length }))) return
+
+    router.post('/employees/bulk-delete', { ids: selectedIds.value }, {
+        onSuccess: () => { selectedIds.value = [] },
+    })
 }
 </script>
 
@@ -92,6 +114,13 @@ function composeLinkUrl(employee) {
                 <table class="w-full text-sm">
                     <thead>
                         <tr class="border-b border-(--color-table-header-separator) text-left text-(--color-table-header-text)">
+                            <th class="w-8 py-2 pr-3">
+                                <CheckboxInput
+                                    :model-value="allSelected"
+                                    :aria-label="__('employees.selection.select_all')"
+                                    @update:model-value="toggleSelectAll"
+                                />
+                            </th>
                             <th v-for="column in columns" :key="column.key" class="py-2">
                                 <button
                                     type="button"
@@ -116,6 +145,13 @@ function composeLinkUrl(employee) {
                             class="cursor-pointer border-b border-(--color-table-row-separator) hover:bg-(--color-table-row-hover-bg)"
                             @click="openEmployee(employee)"
                         >
+                            <td class="w-8 py-2 pr-3" @click.stop>
+                                <CheckboxInput
+                                    v-model="selectedIds"
+                                    :value="employee.id"
+                                    :aria-label="__('employees.selection.select_employee', { name: employee.name })"
+                                />
+                            </td>
                             <td class="py-2 text-(--color-table-row-text)">{{ employee.name }}</td>
                             <td class="py-2 text-(--color-table-row-text)">
                                 {{ employee.business_line ?? __('employees.no_business_line') }}
@@ -132,12 +168,21 @@ function composeLinkUrl(employee) {
                             </td>
                         </tr>
                         <tr v-if="!employees.data.length">
-                            <td :colspan="columns.length + 1" class="py-8 text-center text-(--color-text-secondary)">
+                            <td :colspan="columns.length + 2" class="py-8 text-center text-(--color-text-secondary)">
                                 {{ __('employees.empty') }}
                             </td>
                         </tr>
                     </tbody>
                 </table>
+
+                <ButtonDanger
+                    type="button"
+                    icon="trash"
+                    :disabled="selectedIds.length === 0"
+                    @click="bulkDelete"
+                >
+                    {{ __('employees.action.delete_selected', { count: selectedIds.length }) }}
+                </ButtonDanger>
             </div>
 
             <template v-if="employees.last_page > 1" #footer>

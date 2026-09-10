@@ -99,6 +99,10 @@
     "employees.action.cancel": "Cancel",
     "employees.action.send_link": "Send link",
     "employees.action.resend_link": "Resend link",
+    "employees.action.delete_selected": "Delete selected (:count)",
+    "employees.selection.select_all": "Select all employees on this page",
+    "employees.selection.select_employee": "Select :name",
+    "employees.confirm.delete_selected": "Permanently delete :count selected employees and their dependent scheduling data?",
     "employees.pagination.prev": "Previous",
     "employees.pagination.next": "Next",
     "employees.pagination.page": "Page :current of :total",
@@ -112,6 +116,7 @@
     "employees.field.business_line_none": "None",
     "employees.flash.created": "Employee created.",
     "employees.flash.updated": "Employee updated.",
+    "employees.flash.deleted": "Deleted :count employee(s).",
 
     "personal.title": "Your working hours",
     "personal.action.save": "Save",

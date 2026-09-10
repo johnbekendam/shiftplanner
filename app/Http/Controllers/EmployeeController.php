@@ -121,6 +121,18 @@ class EmployeeController extends Controller
         return redirect("/employees/{$employee->id}/edit")->with('success', __('employees.flash.updated'));
     }
 
+    public function bulkDelete(Request $request)
+    {
+        $data = $request->validate([
+            'ids' => ['required', 'array', 'min:1'],
+            'ids.*' => ['integer', 'distinct', 'exists:employees,id'],
+        ]);
+
+        $count = Employee::query()->whereKey($data['ids'])->delete();
+
+        return redirect()->back()->with('success', __('employees.flash.deleted', ['count' => $count]));
+    }
+
     public function personalPage(Employee $employee)
     {
         return response()->json(['url' => $this->links->linkFor($employee)]);

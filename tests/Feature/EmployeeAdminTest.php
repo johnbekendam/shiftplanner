@@ -3,8 +3,12 @@
 namespace Tests\Feature;
 
 use App\Enums\MessageType;
+use App\Models\AvailabilityQuestion;
+use App\Models\Competence;
 use App\Models\Employee;
+use App\Models\EmployeeHoliday;
 use App\Models\Message;
+use App\Models\RecurringAvailability;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -244,5 +248,81 @@ class EmployeeAdminTest extends TestCase
         $this->actingAs($user)->get("/employees/{$employee->id}/edit")->assertInertia(fn ($page) => $page
             ->where('employee.link_sent', true)
         );
+    }
+
+    public function test_guest_cannot_bulk_delete_employees(): void
+    {
+        $employee = Employee::factory()->create();
+
+        $this->post('/employees/bulk-delete', ['ids' => [$employee->id]])
+            ->assertRedirect('/login');
+
+        $this->assertModelExists($employee);
+    }
+
+    public function test_manager_can_bulk_delete_only_selected_employees_and_dependent_data(): void
+    {
+        $manager = User::factory()->create();
+        $selected = Employee::factory()->create();
+        $untouched = Employee::factory()->create();
+        $holiday = EmployeeHoliday::factory()->create(['employee_id' => $selected->id]);
+        $availability = RecurringAvailability::factory()->create(['employee_id' => $selected->id]);
+        $competence = Competence::factory()->create();
+        $question = AvailabilityQuestion::factory()->create();
+        $selected->competences()->attach($competence);
+        $selected->availabilityQuestions()->attach($question);
+        $selected->personalLink()->create(['token' => 'delete-me']);
+
+        $response = $this->actingAs($manager)->post('/employees/bulk-delete', [
+            'ids' => [$selected->id],
+        ]);
+
+        $response->assertRedirect()->assertSessionHas('success');
+        $this->assertModelMissing($selected);
+        $this->assertModelExists($untouched);
+        $this->assertModelMissing($holiday);
+        $this->assertModelMissing($availability);
+        $this->assertDatabaseMissing('competence_employee', ['employee_id' => $selected->id]);
+        $this->assertDatabaseMissing('availability_question_employee', ['employee_id' => $selected->id]);
+        $this->assertDatabaseMissing('employee_personal_links', ['employee_id' => $selected->id]);
+    }
+
+    public function test_admin_can_bulk_delete_employees(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $employee = Employee::factory()->create();
+
+        $this->actingAs($admin)->post('/employees/bulk-delete', ['ids' => [$employee->id]])
+            ->assertRedirect();
+
+        $this->assertModelMissing($employee);
+    }
+
+    public function test_bulk_delete_keeps_and_unlinks_a_linked_user_account(): void
+    {
+        $manager = User::factory()->create();
+        $employee = Employee::factory()->create();
+        $linkedUser = User::factory()->create(['employee_id' => $employee->id]);
+
+        $this->actingAs($manager)->post('/employees/bulk-delete', ['ids' => [$employee->id]])
+            ->assertRedirect();
+
+        $this->assertModelExists($linkedUser);
+        $this->assertNull($linkedUser->fresh()->employee_id);
+    }
+
+    public function test_bulk_delete_requires_existing_distinct_employee_ids(): void
+    {
+        $manager = User::factory()->create();
+        $employee = Employee::factory()->create();
+
+        $this->actingAs($manager)->post('/employees/bulk-delete', ['ids' => []])
+            ->assertSessionHasErrors('ids');
+
+        $this->actingAs($manager)->post('/employees/bulk-delete', [
+            'ids' => [$employee->id, $employee->id, 999999],
+        ])->assertSessionHasErrors(['ids.1', 'ids.2']);
+
+        $this->assertModelExists($employee);
     }
 }
