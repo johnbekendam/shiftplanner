@@ -7,6 +7,7 @@ use Symfony\Component\Mailer\SentMessage;
 use Symfony\Component\Mailer\Transport\AbstractTransport;
 use Symfony\Component\Mime\Address;
 use Symfony\Component\Mime\MessageConverter;
+use Symfony\Component\Mime\Part\DataPart;
 
 /**
  * Laravel mail transport that delivers through Microsoft Graph's
@@ -41,6 +42,14 @@ class GraphTransport extends AbstractTransport
             'ccRecipients' => $this->recipients($email->getCc()),
             'bccRecipients' => $this->recipients($email->getBcc()),
             'replyTo' => $this->recipients($email->getReplyTo()),
+            'attachments' => array_map(fn (DataPart $attachment) => array_filter([
+                '@odata.type' => '#microsoft.graph.fileAttachment',
+                'name' => $attachment->getName(),
+                'contentType' => $attachment->getContentType(),
+                'contentBytes' => base64_encode($attachment->getBody()),
+                'isInline' => $attachment->hasContentId(),
+                'contentId' => $attachment->hasContentId() ? $attachment->getContentId() : null,
+            ]), $email->getAttachments()),
         ]), $this->saveToSentItems);
     }
 

@@ -61,6 +61,36 @@ class GraphTransportTest extends TestCase
         });
     }
 
+    public function test_send_includes_an_inline_image_attachment(): void
+    {
+        Http::fake([
+            'login.microsoftonline.com/*' => Http::response(['access_token' => 'tok-abc', 'expires_in' => 3600]),
+            'graph.microsoft.com/*' => Http::response(null, 202),
+        ]);
+
+        $email = $this->email();
+    $email->embedFromPath(public_path('images/logo.svg'), 'logo.svg', 'image/svg+xml');
+    $contentId = $email->getAttachments()[0]->getContentId();
+        $email->html('<img src="cid:'.$contentId.'" alt="Logo">');
+
+        $this->transport()->send($email);
+
+        Http::assertSent(function ($request) use ($contentId) {
+            if (! str_contains($request->url(), 'graph.microsoft.com')) {
+                return false;
+            }
+
+            $attachment = $request->data()['message']['attachments'][0];
+
+            return $attachment['@odata.type'] === '#microsoft.graph.fileAttachment'
+                && $attachment['name'] === 'logo.svg'
+                && $attachment['contentType'] === 'image/svg+xml'
+                && $attachment['isInline'] === true
+                && $attachment['contentId'] === $contentId
+                && base64_decode($attachment['contentBytes'], true) === file_get_contents(public_path('images/logo.svg'));
+        });
+    }
+
     public function test_token_is_reused_across_sends(): void
     {
         Http::fake([

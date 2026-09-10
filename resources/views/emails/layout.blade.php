@@ -31,7 +31,7 @@
                     <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
                         <tr>
                             <td style="background-color:{{ $colors['brand_strong'] }};padding:20px 32px;border-radius:7px 7px 0 0;">
-                                <img src="{{ asset('images/logo.svg') }}"
+                                <img src="cid:{{ $logoContentId }}"
                                      alt="{{ config('app.name') }}"
                                       width="108"
                                       height="22"

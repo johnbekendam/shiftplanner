@@ -117,7 +117,7 @@ class MailboxTest extends TestCase
         $token = $alice->personalLink->token;
         $this->assertStringContainsString("/personal/{$token}", $aliceMessage->body);
         $this->assertStringContainsString("/personal/{$token}", $aliceMessage->body_html);
-        $this->assertStringContainsString('src="'.asset('images/logo.svg').'"', $aliceMessage->body_html);
+        $this->assertStringContainsString('src="cid:shiftplanner-logo"', $aliceMessage->body_html);
         $this->assertSame('draft', $aliceMessage->status);
         Queue::assertNothingPushed();
     }
