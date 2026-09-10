@@ -37,6 +37,9 @@ COPY --from=composer /app/vendor ./vendor
 COPY --from=composer /app/bootstrap/cache ./bootstrap/cache
 COPY --from=assets /app/public/build ./public/build
 
-RUN chown -R www-data:www-data storage bootstrap/cache
+RUN mkdir -p storage/app/public \
+    && rm -rf public/storage \
+    && ln -s ../storage/app/public public/storage \
+    && chown -R www-data:www-data storage bootstrap/cache
 
 EXPOSE 80
