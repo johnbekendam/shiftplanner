@@ -51,7 +51,7 @@ class EmployeeController extends Controller
             $query->search($search);
         }
 
-        $employees = $query->paginate(20)->withQueryString();
+        $employees = $query->paginate(15)->withQueryString();
 
         $linkSent = Message::query()
             ->where('type', MessageType::PersonalPageLink)

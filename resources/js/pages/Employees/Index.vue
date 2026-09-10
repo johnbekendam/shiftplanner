@@ -40,6 +40,51 @@ const query = computed(() => {
     return q
 })
 
+const paginationRange = computed(() => {
+    const from = props.employees.from ?? 0
+    const to = props.employees.to ?? 0
+    const total = props.employees.total ?? props.employees.data.length
+
+    return __('employees.pagination.range', { from, to, total })
+})
+
+const paginationLinks = computed(() => {
+    const links = props.employees.links ?? []
+    const lastIndex = links.length - 1
+
+    return links.map((link, index) => ({
+        ...link,
+        key: `${index}-${link.label}-${link.url ?? 'disabled'}`,
+        label: index === 0 ? '‹' : index === lastIndex ? '›' : link.label,
+        ariaLabel: index === 0
+            ? __('employees.pagination.prev')
+            : index === lastIndex
+                ? __('employees.pagination.next')
+                : __('employees.pagination.page_label', { page: link.label }),
+        disabled: !link.url || link.active,
+        edge: index === 0 ? 'first' : index === lastIndex ? 'last' : null,
+    }))
+})
+
+function paginationLinkClass(link) {
+    const classes = [
+        'inline-flex min-w-9 items-center justify-center px-3 py-1.5 text-sm outline outline-1 -outline-offset-1',
+    ]
+
+    if (link.edge === 'first') classes.push('rounded-l-md')
+    if (link.edge === 'last') classes.push('rounded-r-md')
+
+    if (link.active) {
+        classes.push('bg-[var(--color-pagination-active-bg)] text-[var(--color-pagination-active-text)] outline-[var(--color-pagination-active-border)] font-semibold')
+    } else if (link.disabled) {
+        classes.push('cursor-not-allowed bg-[var(--color-pagination-bg)] text-[var(--color-pagination-muted-text)] outline-[var(--color-pagination-border)]')
+    } else {
+        classes.push('bg-[var(--color-pagination-bg)] text-[var(--color-pagination-text)] outline-[var(--color-pagination-border)] hover:bg-[var(--color-pagination-hover-bg)] hover:text-[var(--color-pagination-hover-text)] hover:outline-[var(--color-pagination-hover-border)]')
+    }
+
+    return classes
+}
+
 function reload(overrides) {
     selectedIds.value = []
     router.get('/employees', { ...query.value, ...overrides }, {
@@ -186,22 +231,22 @@ function bulkDelete() {
             </div>
 
             <template v-if="employees.last_page > 1" #footer>
-                <div class="flex items-center justify-between px-6 py-3 text-sm text-(--color-text-secondary)">
-                    <ButtonSecondary
-                        type="button"
-                        :disabled="!employees.prev_page_url"
-                        @click="goToPage(employees.prev_page_url)"
-                    >
-                        {{ __('employees.pagination.prev') }}
-                    </ButtonSecondary>
-                    <span>{{ __('employees.pagination.page', { current: employees.current_page, total: employees.last_page }) }}</span>
-                    <ButtonSecondary
-                        type="button"
-                        :disabled="!employees.next_page_url"
-                        @click="goToPage(employees.next_page_url)"
-                    >
-                        {{ __('employees.pagination.next') }}
-                    </ButtonSecondary>
+                <div data-testid="employees-pagination" class="flex items-center justify-between gap-3 px-6 py-3 text-sm">
+                    <span class="text-(--color-pagination-muted-text)">{{ paginationRange }}</span>
+                    <div class="isolate inline-flex -space-x-px rounded-md">
+                        <button
+                            v-for="link in paginationLinks"
+                            :key="link.key"
+                            type="button"
+                            :aria-label="link.ariaLabel"
+                            :aria-current="link.active ? 'page' : undefined"
+                            :disabled="link.disabled"
+                            :class="paginationLinkClass(link)"
+                            @click="goToPage(link.url)"
+                        >
+                            {{ link.label }}
+                        </button>
+                    </div>
                 </div>
             </template>
         </Card>

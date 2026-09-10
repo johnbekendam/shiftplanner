@@ -67,6 +67,20 @@ class EmployeeAdminTest extends TestCase
         }
     }
 
+    public function test_index_paginates_employees_at_fifteen_rows(): void
+    {
+        $user = User::factory()->create();
+        Employee::factory()->count(16)->create();
+
+        $this->actingAs($user)->get('/employees')->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->has('employees.data', 15)
+                ->where('employees.per_page', 15)
+                ->where('employees.total', 16)
+                ->where('employees.last_page', 2)
+            );
+    }
+
     public function test_create_employee_with_valid_data(): void
     {
         $user = User::factory()->create();

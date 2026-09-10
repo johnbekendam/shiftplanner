@@ -15,6 +15,7 @@ const en = {
     "employees.action.delete_selected": "Delete selected (:count)",
     "employees.confirm.delete_selected": "Permanently delete :count selected employees and their dependent scheduling data?",
     "employees.hours_option": ":count hours",
+    "employees.pagination.range": ":from-:to of :total",
     "employees.pagination.prev": "Previous",
     "employees.pagination.next": "Next",
     "employees.pagination.page": "Page :current of :total",
@@ -40,8 +41,16 @@ const employees = {
     ],
     last_page: 1,
     current_page: 1,
+    from: 1,
+    to: 2,
+    total: 2,
     prev_page_url: null,
     next_page_url: null,
+    links: [
+        { url: null, label: "&laquo; Previous", active: false },
+        { url: "/employees?page=1", label: "1", active: true },
+        { url: null, label: "Next &raquo;", active: false },
+    ],
 };
 
 const mountIndex = (props = {}) =>
@@ -224,16 +233,59 @@ describe("Employees/Index", () => {
                 ...employees,
                 last_page: 2,
                 next_page_url: "/employees?page=2",
+                links: [
+                    { url: null, label: "&laquo; Previous", active: false },
+                    { url: "/employees?page=1", label: "1", active: true },
+                    { url: "/employees?page=2", label: "2", active: false },
+                    { url: "/employees?page=2", label: "Next &raquo;", active: false },
+                ],
             },
         });
         await w.findAll('input[type="checkbox"]')[1].setValue(true);
 
-        const nextButton = w.findAll("button").find((button) => button.text() === "Next");
+        const nextButton = w.find('[aria-label="Next"]');
         await nextButton.trigger("click");
 
         expect(w.text()).toContain("Delete selected (0)");
         expect(router.get).toHaveBeenCalledWith(
             "/employees?page=2",
+            {},
+            { preserveState: true },
+        );
+    });
+
+    it("uses the compact card-footer paginator from the theme-builder preview", async () => {
+        const w = mountIndex({
+            employees: {
+                ...employees,
+                current_page: 2,
+                last_page: 3,
+                from: 21,
+                to: 40,
+                total: 42,
+                prev_page_url: "/employees?search=ann&page=1",
+                next_page_url: "/employees?search=ann&page=3",
+                links: [
+                    { url: "/employees?search=ann&page=1", label: "&laquo; Previous", active: false },
+                    { url: "/employees?search=ann&page=1", label: "1", active: false },
+                    { url: "/employees?search=ann&page=2", label: "2", active: true },
+                    { url: "/employees?search=ann&page=3", label: "3", active: false },
+                    { url: "/employees?search=ann&page=3", label: "Next &raquo;", active: false },
+                ],
+            },
+        });
+
+        const paginator = w.get('[data-testid="employees-pagination"]');
+        const controls = paginator.findAll("button");
+
+        expect(paginator.text()).toContain("21-40 of 42");
+        expect(controls.map((button) => button.text())).toEqual(["‹", "1", "2", "3", "›"]);
+        expect(controls[2].classes()).toContain("font-semibold");
+
+        await controls[3].trigger("click");
+
+        expect(router.get).toHaveBeenCalledWith(
+            "/employees?search=ann&page=3",
             {},
             { preserveState: true },
         );
