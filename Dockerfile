@@ -21,7 +21,7 @@ COPY vite.config.js ./
 
 RUN npm run build
 
-FROM php:8.3-apache
+FROM php:8.4-apache
 
 WORKDIR /var/www/html
 

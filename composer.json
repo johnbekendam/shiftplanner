@@ -6,7 +6,7 @@
     "keywords": ["laravel", "scheduling", "prodrive"],
     "license": "proprietary",
     "require": {
-        "php": "^8.2",
+        "php": "^8.4",
         "composer/ca-bundle": "^1.5",
         "inertiajs/inertia-laravel": "^3.0",
         "laravel/framework": "^12.0",
