@@ -9,8 +9,11 @@ import ButtonSecondary from '@/components/ui/ButtonSecondary.vue'
 import Icon from '@/components/ui/Icon.vue'
 import { CheckboxInput, SearchInput } from '@/components/ui/Input'
 import { useI18n } from '@/composables/useI18n'
+import { useAuth } from '@/composables/useAuth'
 
 const __ = useI18n()
+const { user: currentUser } = useAuth()
+const isAdmin = computed(() => currentUser.value?.role === 'admin')
 
 const props = defineProps({
     employees: { type: Object, required: true },
@@ -119,8 +122,26 @@ function openEmployee(employee) {
     router.visit(`/employees/${employee.id}/edit`)
 }
 
-function composeLinkUrl(employee) {
-    return `/mailbox?tab=compose&type=personal_page_link&employee=${employee.id}`
+// In-button feedback: which row is mid-request, and which just finished
+// (briefly shows a checkmark before reverting to the normal label).
+const sendingLinkId = ref(null)
+const linkSentId = ref(null)
+let linkSentTimeout = null
+
+function sendLink(employee) {
+    sendingLinkId.value = employee.id
+
+    router.post(`/employees/${employee.id}/send-link`, {}, {
+        preserveScroll: true,
+        onSuccess: () => {
+            linkSentId.value = employee.id
+            clearTimeout(linkSentTimeout)
+            linkSentTimeout = setTimeout(() => (linkSentId.value = null), 2000)
+        },
+        onFinish: () => {
+            sendingLinkId.value = null
+        },
+    })
 }
 
 function toggleSelectAll(checked) {
@@ -237,11 +258,23 @@ function bulkDelete() {
                                 </div>
                             </td>
                             <td class="px-2 py-2 text-right" @click.stop>
-                                <Link :href="composeLinkUrl(employee)">
-                                    <ButtonSecondary type="button" icon="envelope">
-                                        {{ employee.link_sent ? __('employees.action.resend_link') : __('employees.action.send_link') }}
-                                    </ButtonSecondary>
-                                </Link>
+                                <ButtonSecondary
+                                    v-if="isAdmin"
+                                    type="button"
+                                    :icon="linkSentId === employee.id ? 'check-circle' : 'envelope'"
+                                    :disabled="sendingLinkId === employee.id"
+                                    @click="sendLink(employee)"
+                                >
+                                    {{
+                                        sendingLinkId === employee.id
+                                            ? __('employees.action.sending_link')
+                                            : linkSentId === employee.id
+                                              ? __('employees.action.link_sent')
+                                              : employee.link_sent
+                                                ? __('employees.action.resend_link')
+                                                : __('employees.action.send_link')
+                                    }}
+                                </ButtonSecondary>
                             </td>
                         </tr>
                         <tr v-if="!employees.data.length">

@@ -3,14 +3,19 @@
 namespace App\Http\Controllers;
 
 use App\Enums\MessageType;
+use App\Jobs\SendMailboxMessage;
+use App\Mail\ComposedMessage;
 use App\Models\AvailabilityQuestion;
 use App\Models\BusinessLine;
 use App\Models\Competence;
 use App\Models\Employee;
 use App\Models\Message;
+use App\Models\MessageTemplate;
 use App\Models\PlanningSettings;
 use App\Models\Shift;
 use App\Services\EmployeePersonalLinkService;
+use App\Services\MessageComposer;
+use App\Services\PersonalLinkMessage;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\Rule;
@@ -159,6 +164,38 @@ class EmployeeController extends Controller
     public function personalPage(Employee $employee)
     {
         return response()->json(['url' => $this->links->linkFor($employee)]);
+    }
+
+    /**
+     * Queue the personal-page-link message for one employee straight to
+     * the outbox — same rendering and delivery the Compose tab uses, just
+     * without the manual form. Admin-only, matching the rest of the
+     * mailbox.
+     */
+    public function sendLink(Request $request, Employee $employee, PersonalLinkMessage $placeholders, MessageComposer $composer)
+    {
+        $template = MessageTemplate::forType(MessageType::PersonalPageLink);
+        $map = $placeholders->forEmployee($employee);
+        $subject = $placeholders->apply($template->subject, $map);
+        $body = $placeholders->apply($template->body, $map);
+        $fragment = $composer->render($subject, $body)['body_html'];
+        $user = $request->user();
+        $mailable = new ComposedMessage($subject, $fragment, $user->email, $user->name);
+
+        $message = Message::create([
+            'user_id' => $user->id,
+            'type' => MessageType::PersonalPageLink,
+            'recipient_email' => $employee->email,
+            'recipient_name' => $employee->name,
+            'subject' => $subject,
+            'body' => $body,
+            'body_html' => new ComposedMessage($subject, $fragment, logoSrc: ComposedMessage::browserLogoUrl())->render(),
+            'status' => 'outbox',
+        ]);
+
+        SendMailboxMessage::dispatch($message->id, $employee->email, $mailable);
+
+        return back()->with('success', __('employees.flash.link_queued'));
     }
 
     private function validated(Request $request, ?Employee $employee = null): array

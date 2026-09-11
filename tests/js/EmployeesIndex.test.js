@@ -13,6 +13,8 @@ const en = {
     "employees.action.new": "New employee",
     "employees.action.send_link": "Send link",
     "employees.action.resend_link": "Resend link",
+    "employees.action.sending_link": "Sending…",
+    "employees.action.link_sent": "Sent",
     "employees.action.delete_selected": "Delete selected",
     "employees.confirm.delete_selected": "Permanently delete :count selected employees and their dependent scheduling data?",
     "employees.hours_option": ":count hours",
@@ -22,6 +24,7 @@ const en = {
     "employees.pagination.page": "Page :current of :total",
 };
 
+const state = vi.hoisted(() => ({ user: { role: "admin" } }));
 const { router } = vi.hoisted(() => ({
     router: { get: vi.fn(), post: vi.fn(), visit: vi.fn() },
 }));
@@ -30,7 +33,7 @@ vi.mock("@inertiajs/vue3", () => ({
     router,
     Head: { name: "Head", render: () => null },
     Link: { name: "Link", props: ["href"], template: '<a :href="href"><slot /></a>' },
-    usePage: () => ({ props: { translations: en } }),
+    usePage: () => ({ props: { translations: en, auth: { user: state.user } } }),
 }));
 
 import Index from "@/pages/Employees/Index.vue";
@@ -84,6 +87,7 @@ const deleteButton = (w, count) => w.get(`[aria-label="Delete selected ${count}"
 
 beforeEach(() => {
     vi.useFakeTimers();
+    state.user = { role: "admin" };
     router.get.mockReset();
     router.post.mockReset();
     router.visit.mockReset();
@@ -146,17 +150,48 @@ describe("Employees/Index", () => {
         expect(router.get.mock.calls[0][1]).toEqual({ sort: undefined, direction: "desc" });
     });
 
-    it("shows a Send link / Resend link action per row pointing at compose", () => {
+    it("shows Send link / Resend link per row and posts straight to the outbox", async () => {
         const w = mountIndex();
         const rows = w.findAll("tbody tr");
 
-        const first = rows[0].find("td:last-child a");
+        const first = rows[0].find("td:last-child button");
         expect(first.text()).toBe("Send link");
-        expect(first.attributes("href")).toBe(
-            "/mailbox?tab=compose&type=personal_page_link&employee=1",
-        );
+        expect(rows[1].find("td:last-child button").text()).toBe("Resend link");
 
-        expect(rows[1].find("td:last-child a").text()).toBe("Resend link");
+        await first.trigger("click");
+
+        expect(router.post).toHaveBeenCalledWith(
+            "/employees/1/send-link",
+            {},
+            expect.objectContaining({ preserveScroll: true }),
+        );
+    });
+
+    it("shows in-button feedback while sending and briefly after success", async () => {
+        const w = mountIndex();
+        const button = () => w.find("tbody tr td:last-child button");
+
+        await button().trigger("click");
+        expect(button().text()).toBe("Sending…");
+        expect(button().attributes("disabled")).toBeDefined();
+
+        const opts = router.post.mock.calls[0][2];
+        opts.onSuccess();
+        opts.onFinish();
+        await w.vm.$nextTick();
+        expect(button().text()).toBe("Sent");
+        expect(button().attributes("disabled")).toBeUndefined();
+
+        vi.advanceTimersByTime(2000);
+        await w.vm.$nextTick();
+        expect(button().text()).toBe("Send link");
+    });
+
+    it("hides the send-link action for a manager", () => {
+        state.user = { role: "manager" };
+        const w = mountIndex();
+
+        expect(w.find("tbody tr td:last-child button").exists()).toBe(false);
     });
 
     it("does not open the employee when the row action is clicked", async () => {

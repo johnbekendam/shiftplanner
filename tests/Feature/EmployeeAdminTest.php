@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Enums\MessageType;
+use App\Jobs\SendMailboxMessage;
 use App\Models\AvailabilityQuestion;
 use App\Models\Competence;
 use App\Models\Employee;
@@ -12,6 +13,7 @@ use App\Models\RecurringAvailability;
 use App\Models\Shift;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
 class EmployeeAdminTest extends TestCase
@@ -306,6 +308,36 @@ class EmployeeAdminTest extends TestCase
         $this->actingAs($user)->get("/employees/{$employee->id}/edit")->assertInertia(fn ($page) => $page
             ->where('employee.link_sent', true)
         );
+    }
+
+    public function test_admin_sends_a_link_that_lands_straight_in_the_outbox(): void
+    {
+        Queue::fake();
+        $admin = User::factory()->admin()->create();
+        $employee = Employee::factory()->create(['email' => 'e@example.com']);
+
+        $this->actingAs($admin)
+            ->post("/employees/{$employee->id}/send-link")
+            ->assertRedirect();
+
+        $message = Message::sole();
+        $this->assertSame(MessageType::PersonalPageLink, $message->type);
+        $this->assertSame('outbox', $message->status);
+        $this->assertSame($admin->id, $message->user_id);
+        $this->assertSame('e@example.com', $message->recipient_email);
+        Queue::assertPushed(SendMailboxMessage::class, 1);
+    }
+
+    public function test_a_manager_cannot_send_a_link(): void
+    {
+        $manager = User::factory()->create();
+        $employee = Employee::factory()->create();
+
+        $this->actingAs($manager)
+            ->post("/employees/{$employee->id}/send-link")
+            ->assertForbidden();
+
+        $this->assertSame(0, Message::count());
     }
 
     public function test_guest_cannot_bulk_delete_employees(): void
