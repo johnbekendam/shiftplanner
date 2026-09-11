@@ -49,21 +49,9 @@ function addAsEmployee() {
 
             <div class="p-6">
                 <section class="space-y-4">
-                    <h3 class="text-sm font-semibold text-(--color-text-primary)">
-                        {{ __('account.email.heading') }}
-                    </h3>
-
                     <LabeledInput :label="__('account.email.label')">
                         <EmailInput :model-value="user?.email" :disabled="true" class="w-full" />
                     </LabeledInput>
-                </section>
-
-                <CardSeparator />
-
-                <section class="space-y-4">
-                    <h3 class="text-sm font-semibold text-(--color-text-primary)">
-                        {{ __('account.password.heading') }}
-                    </h3>
 
                     <p v-if="!hasPassword" class="text-sm text-(--color-text-secondary)">
                         {{ __('account.password.none_hint') }}
@@ -105,9 +93,11 @@ function addAsEmployee() {
                             {{ __('account.employee.heading') }}
                         </h3>
                         <p class="text-sm text-(--color-text-secondary)">{{ __('account.employee.hint') }}</p>
-                        <ButtonPrimary type="button" icon="user-plus" @click="addAsEmployee">
-                            {{ __('account.employee.add') }}
-                        </ButtonPrimary>
+                        <div class="flex justify-end">
+                            <ButtonPrimary type="button" icon="user-plus" @click="addAsEmployee">
+                                {{ __('account.employee.add') }}
+                            </ButtonPrimary>
+                        </div>
                     </section>
                 </template>
             </div>

@@ -4,9 +4,7 @@ import { reactive } from "vue";
 
 const en = {
     "account.title": "Account",
-    "account.email.heading": "Email",
     "account.email.label": "Email address",
-    "account.password.heading": "Password",
     "account.password.current": "Current password",
     "account.password.new": "New password",
     "account.password.confirm": "Confirm new password",
@@ -58,11 +56,15 @@ describe("Account/Show", () => {
         expect(w.vm.passwordForm.put).toHaveBeenCalledWith("/account/password", expect.anything());
     });
 
-    it("offers 'Add me as an employee' to an unlinked manager", async () => {
+    it("offers 'Add me as an employee' to an unlinked manager, right-aligned", async () => {
         const w = mountShow();
-        expect(w.find('[data-testid="link-employee"]').exists()).toBe(true);
+        const section = w.find('[data-testid="link-employee"]');
+        expect(section.exists()).toBe(true);
 
-        await w.find('[data-testid="link-employee"]').get("button").trigger("click");
+        const button = section.get("button");
+        expect(button.element.parentElement.className).toContain("justify-end");
+
+        await button.trigger("click");
         expect(router.post).toHaveBeenCalledWith("/account/employee");
     });
 

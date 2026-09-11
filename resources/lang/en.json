@@ -172,9 +172,7 @@
     "availability.questions.heading": "Questions",
 
     "account.title": "Account",
-    "account.email.heading": "Email",
     "account.email.label": "Email address",
-    "account.password.heading": "Password",
     "account.password.current": "Current password",
     "account.password.new": "New password",
     "account.password.confirm": "Confirm new password",
