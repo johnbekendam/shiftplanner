@@ -186,14 +186,19 @@ The schedule optimizer is a separate service from the start, not a deferred addi
   everything, including accounts on `/users`. A manager maintains
   employees for now. At least one active admin must exist. The seed user
   is the first admin.
-- Sign-in is one screen: email with an optional password, or a six-digit
-  code emailed on request (10-minute, single-use; the response never says
-  whether the email is an account). A new account has no password and
-  signs in with a code until it sets one on the `/account` page.
+- Sign-in is one screen: email with an optional password, or a link
+  emailed on request (15-minute, single-use; the response never says
+  whether the email is an account). The same link action covers
+  forgot-password and passwordless sign-in — it only ever signs a person
+  in, never forces a password step.
+- An admin creates a user with no password. An invite link (7-day,
+  single-use) is emailed; it opens a page to set a password, with a note
+  that a password is optional and a login link works instead. An admin
+  resends an expired or unused invite from `/users`.
 - This is the interim scheme. Managers still authenticate through the
   `AuthServiceContract` seam for the password path, so real use can add
   `EntraAuthService`: direct Microsoft Entra ID (OIDC) against Prodrive's
-  tenant. The code path is local-only and outside the seam.
+  tenant. The link path is local-only and outside the seam.
 - A manager can add itself as an employee from `/account`, linking its
   account to one employee record so the same person is also schedulable.
 - Employees never hold accounts. Each employee record is reached through a

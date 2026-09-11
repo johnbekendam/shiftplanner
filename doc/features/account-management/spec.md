@@ -3,6 +3,12 @@
 Interim authentication. Roadmap phase 3.7. Phase 2 still owns the
 PostgreSQL switch, Entra ID (OIDC), and employee token hardening.
 
+**Superseded passwordless mechanism.** The one-time email code described
+below (`login_codes`, `LoginCodeService`, "Email me a code") was
+replaced by an emailed link — see `doc/features/login-links/`. Every
+other decision on this page (roles, `/users`, `/account`, the employee
+link) still stands.
+
 ## Problem
 
 The app has one hard-coded seed account and a password-only login. Real

@@ -15,9 +15,10 @@ starts, a `plan.md` (the steps and progress).
 | 3 | Business Lines and standard day schedules — config list, per-employee assignment, FTE dashboard; then schedules and coverage | In progress | Business Lines shipped (`features/business-lines/`). Shift definitions shipped (`features/shift-definitions/`). Shift coverage (required headcount, the workcenter link) still needs a design session. |
 | 3.5 | Competences — config list on a Settings page, per-employee checkmarks | Done | `features/competences/spec.md`, `features/competences/plan.md`. Planning use is out of scope. |
 | 3.6 | Product groups | Removed | Shipped, then removed from the product. Tables dropped by `2026_09_09_000007`; the config tab, per-employee checklist, routes, and language keys are gone. |
-| 3.7 | Account management (interim auth) — admin/manager roles, password or email code, admin `/users`, account page | Done | `features/account-management/`. Entra ID, the PostgreSQL switch, and employee token hardening stay in phase 2. |
+| 3.7 | Account management (interim auth) — admin/manager roles, password or email code, admin `/users`, account page | Done | `features/account-management/`. The email-code passwordless path is superseded by phase 3.10. Entra ID, the PostgreSQL switch, and employee token hardening stay in phase 2. |
 | 3.8 | Mailbox and employee change lock — typed messages with a reusable template, one type (personal-page link), Microsoft Graph transport prepared but inert; a global switch that makes the personal page read-only | Mostly done | Both features shipped (`features/mailbox/`, `features/employee-change-lock/`). Only the Graph tenant values (Azure app registration, shared mailbox, admin consent) are pending, on a machine with tenant access. Supersedes the phase-2 `mailto:` line with a shared Graph mailbox. |
 | 3.9 | Employee self-signup — a public page where a person requests their personal-page link by first name, last name and email; creates the employee when none matches, then sends the link through the mailbox pipeline | Done | `features/employee-self-signup/`. Token hardening stays in phase 2. |
+| 3.10 | Login links — admin-created users get an emailed invite link to set a password; the login page's passwordless action emails a sign-in link, covering forgot-password too | Done | `features/login-links/`. Replaces phase 3.7's email-code path. |
 | 4 | Availability and wishes — recurring availability, date-specific exceptions, fairness model | In progress | Holidays and the recurring availability grid shipped (`features/employee-availability/`); the grid is weekday-only and carries manager-defined yes/no questions (`features/availability-questions/`). Fairness model still needs a design session. |
 | 5 | Scheduling engine — Python OR-Tools `/solve` service, JSON contract, `GeneratePlan` job, draft review and edit | Planned | depends on phases 3 and 4 |
 | 6 | Publish and employee schedule view — publish a plan, employees see own assignments only | Planned | — |
@@ -148,13 +149,14 @@ Built ahead of phase 2. See `features/account-management/`. Interim: the
 `admin` middleware gates `/settings`, `/theme-builder`, `/mailbox`, and
 `/users`. A manager reaches `/employees` only for now.
 
-Login is one screen: email, an optional password, and "Email me a code".
-The code path issues a six-digit code (hashed, 10-minute TTL, single use,
-previous code voided), mailed synchronously, silent for an unknown or
-inactive email; five wrong entries burn it. `users.password` is nullable.
+Login is one screen: email, an optional password, and a passwordless
+action. `users.password` is nullable. The passwordless action originally
+issued a six-digit email code; phase 3.10 (`features/login-links/`)
+replaced it with an emailed link.
 
-An admin manages accounts on `/users` (create with no password, edit,
-deactivate; the last active admin is protected). Every signed-in user has
+An admin manages accounts on `/users` (create with no password — an
+invite link is emailed, per phase 3.10 — edit, deactivate; the last
+active admin is protected). Every signed-in user has
 an `/account` page to set a password. A manager can add itself as an
 employee there (`users.employee_id`), which then shows a "My details"
 shortcut. Employees still reach only their personal page, by token link.

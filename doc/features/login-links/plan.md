@@ -1,6 +1,6 @@
 # Login Links — Plan
 
-Status: in progress — 3/4
+Status: done — 4/4
 
 Spec: `spec.md`. Extends `doc/features/account-management/`.
 
@@ -88,7 +88,7 @@ Spec: `spec.md`. Extends `doc/features/account-management/`.
   login link**, and posts `{ email }` to `/login/link` on click. Full
   suites and `npm run build` green.
 
-- [ ] 4. **Docs and full checks.** `doc/features/account-management/
+- [x] 4. **Docs and full checks.** `doc/features/account-management/
   spec.md` gets a short note pointing at `login-links` for the
   passwordless mechanism, so a future reader does not follow the
   superseded code-flow description. `doc/roadmap.md` and
