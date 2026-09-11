@@ -21,15 +21,13 @@ class LoginLinkController extends Controller
         return back();
     }
 
+    /** Every live link — invite or login-purpose — lands on the same set-password page. */
     public function show(string $token)
     {
         $link = $this->links->resolve($token);
 
         if ($link) {
-            return Inertia::render(
-                $link->purpose === LoginLink::PURPOSE_INVITE ? 'Auth/SetPassword' : 'Auth/SignInLink',
-                ['token' => $token],
-            );
+            return Inertia::render('Auth/SetPassword', ['token' => $token]);
         }
 
         return Inertia::render('Auth/LinkExpired', ['purpose' => $this->purposeOf($token)]);
@@ -41,27 +39,23 @@ class LoginLinkController extends Controller
 
         abort_unless($link, 404);
 
-        if ($link->purpose === LoginLink::PURPOSE_INVITE) {
-            $data = $request->validate([
-                'password' => ['required', 'string', 'min:8', 'confirmed'],
-            ]);
+        $data = $request->validate([
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
+        ]);
 
-            $this->links->consumeInvite($link, $data['password']);
-        } else {
-            $this->links->consumeLogin($link);
-        }
+        $this->links->consumeWithPassword($link, $data['password']);
 
         return redirect()->intended('/');
     }
 
-    /** Sign in on the invite link itself, without setting a password. */
+    /** Sign in on the link itself, without setting a password. */
     public function skip(string $token)
     {
         $link = $this->links->resolve($token);
 
-        abort_unless($link && $link->purpose === LoginLink::PURPOSE_INVITE, 404);
+        abort_unless($link, 404);
 
-        $this->links->consumeLogin($link);
+        $this->links->consumeWithoutPassword($link);
 
         return redirect()->intended('/');
     }

@@ -1,6 +1,6 @@
 # Login Links — Plan
 
-Status: done — 6/6
+Status: done — 7/7
 
 Spec: `spec.md`. Extends `doc/features/account-management/`.
 
@@ -136,6 +136,24 @@ Spec: `spec.md`. Extends `doc/features/account-management/`.
   read the link from the sent `ComposedMessage`'s `bodyHtml` instead of
   a `LoginLinkMail` property; `UserManagementTest` asserts the invite
   `Message.user_id` is the creating admin. Full suites, Pint, and
+  `npm run build` green.
+
+- [x] 7. **Every link lands on the set-password page.** Reverses the
+  earlier "login-purpose links never force a password step" decision:
+  the choice (set a password, or continue without one) is now offered
+  every time, on every link. `LoginLinkController::show` drops the
+  purpose branch — always renders `Auth/SetPassword`. `confirm` drops
+  the purpose branch too — always validates `password`/
+  `password_confirmation` and calls the (renamed) `consumeWithPassword`.
+  `skip` drops its invite-only `abort_unless` — any live link can skip.
+  `LoginLinkService::consumeLogin`/`consumeInvite` renamed
+  `consumeWithoutPassword`/`consumeWithPassword` (purpose-agnostic
+  already; the old names just implied otherwise). Removes
+  `Auth/SignInLink.vue` and its Vitest file — no longer routed to.
+  Tests: a login-purpose link's `GET` now renders `Auth/SetPassword`;
+  its `POST` (with a password) sets one and signs in; its `/skip`
+  signs in without touching the password; an invite-purpose link's
+  `/skip` still works (already did). Full suites, Pint, and
   `npm run build` green.
 
 ## Not done / deferred

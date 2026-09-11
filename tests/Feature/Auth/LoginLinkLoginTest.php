@@ -49,22 +49,38 @@ class LoginLinkLoginTest extends TestCase
         Mail::assertNothingSent();
     }
 
-    public function test_a_live_login_link_renders_the_sign_in_page(): void
+    public function test_a_live_login_link_renders_the_set_password_page(): void
     {
         $user = User::factory()->create();
         $token = $this->loginToken($user);
 
         $this->get("/login/link/{$token}")
             ->assertOk()
-            ->assertInertia(fn ($page) => $page->component('Auth/SignInLink')->where('token', $token));
+            ->assertInertia(fn ($page) => $page->component('Auth/SetPassword')->where('token', $token));
     }
 
-    public function test_confirming_a_login_link_signs_the_user_in(): void
+    public function test_skipping_a_login_link_signs_the_user_in_without_touching_the_password(): void
+    {
+        $user = User::factory()->create();
+        $token = $this->loginToken($user);
+        $originalPassword = $user->password;
+
+        $this->post("/login/link/{$token}/skip")->assertRedirect('/');
+
+        $this->assertAuthenticatedAs($user);
+        $this->assertNotNull($user->loginLinks()->sole()->consumed_at);
+        $this->assertSame($originalPassword, $user->fresh()->password);
+    }
+
+    public function test_submitting_a_password_on_a_login_link_sets_it_and_signs_in(): void
     {
         $user = User::factory()->create();
         $token = $this->loginToken($user);
 
-        $this->post("/login/link/{$token}")->assertRedirect('/');
+        $this->post("/login/link/{$token}", [
+            'password' => 'a-new-password',
+            'password_confirmation' => 'a-new-password',
+        ])->assertRedirect('/');
 
         $this->assertAuthenticatedAs($user);
         $this->assertNotNull($user->loginLinks()->sole()->consumed_at);
@@ -79,7 +95,7 @@ class LoginLinkLoginTest extends TestCase
 
         $this->get("/login/link/{$token}")
             ->assertInertia(fn ($page) => $page->component('Auth/LinkExpired'));
-        $this->post("/login/link/{$token}")->assertNotFound();
+        $this->post("/login/link/{$token}/skip")->assertNotFound();
         $this->assertGuest();
     }
 
@@ -89,10 +105,10 @@ class LoginLinkLoginTest extends TestCase
         $first = $this->loginToken($user);
         $second = $this->loginToken($user);
 
-        $this->post("/login/link/{$first}")->assertNotFound();
+        $this->post("/login/link/{$first}/skip")->assertNotFound();
         $this->assertGuest();
 
-        $this->post("/login/link/{$second}")->assertRedirect('/');
+        $this->post("/login/link/{$second}/skip")->assertRedirect('/');
         $this->assertAuthenticated();
     }
 

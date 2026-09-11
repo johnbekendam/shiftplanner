@@ -134,14 +134,16 @@ class LoginLinkInviteTest extends TestCase
         $this->assertGuest();
     }
 
-    public function test_skip_on_a_login_purpose_link_is_a_404(): void
+    public function test_skip_also_signs_in_a_login_purpose_link(): void
     {
         Mail::fake();
         $user = User::factory()->create();
         app(LoginLinkService::class)->requestLogin($user->email);
         $token = basename($this->sentUrl());
 
-        $this->post("/login/link/{$token}/skip")->assertNotFound();
-        $this->assertGuest();
+        $this->post("/login/link/{$token}/skip")->assertRedirect('/');
+
+        $this->assertAuthenticatedAs($user);
+        $this->assertNotNull($user->loginLinks()->sole()->consumed_at);
     }
 }

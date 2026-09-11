@@ -65,12 +65,13 @@ planning_settings`). No data to preserve either way.
   expiry), email it.
 - `resolve(string $token)` — look up by `hash('sha256', $token)`,
   `live()` only, eager-load `user`.
-- `consumeLogin(LoginLink $link)` — mark consumed, `Auth::login`,
-  regenerate the session. Called only from a `login`-purpose confirm
-  POST.
-- `consumeInvite(LoginLink $link, string $password)` — set the user's
-  password, mark consumed, `Auth::login`, regenerate the session. Called
-  only from an `invite`-purpose password POST.
+- `consumeWithoutPassword(LoginLink $link)` — mark consumed,
+  `Auth::login`, regenerate the session. Purpose-agnostic: called from
+  the **Continue without password** action on any link's landing page.
+- `consumeWithPassword(LoginLink $link, string $password)` — set the
+  user's password, mark consumed, `Auth::login`, regenerate the
+  session. Purpose-agnostic: called from the password form on any
+  link's landing page.
 - `is_active` enforced on every send and every consume, as today.
 
 ### Mail — the mailbox pipeline, not a second mailable
@@ -113,19 +114,25 @@ silently burning the token before the real person opens it; no separate
 confirmation step is needed beyond the page's own button already being a
 POST.
 
-- `login` purpose: the page shows a **Sign in** button. Its POST calls
-  `consumeLogin` and redirects to `/`.
-- `invite` purpose: the page shows the password-set form (password +
-  confirmation) and a **Continue without password** action. Its POST
-  (`/login/link/{token}`, with `password` and `password_confirmation`)
-  calls `consumeInvite` and redirects to `/`. **Continue without
-  password** posts to `/login/link/{token}/skip`, which signs the user
-  in and consumes the link immediately — no password set, no email sent.
-  Next time, the person uses the login page's **Email me a login link**.
+Every live link, invite or login-purpose, lands on the same
+set-password page — the person decides whether to set a password every
+time, not just on the invite:
+
+- The page shows the password-set form (password + confirmation) and a
+  **Continue without password** action. Its POST (`/login/link/{token}`,
+  with `password` and `password_confirmation`) calls
+  `consumeWithPassword` and redirects to `/`.
+- **Continue without password** posts to `/login/link/{token}/skip`,
+  which calls `consumeWithoutPassword` — signs the user in and consumes
+  the link immediately, no password touched, no email sent.
 - An expired or already-consumed link renders a short explanation.
   `login` purpose: a link back to the login page to request a new one.
   `invite` purpose: text to contact an admin — only an admin resends an
   invite (see below).
+
+`GET /login/link/{token}` no longer branches on purpose to choose a
+page (`Auth/SetPassword` vs. the now-removed `Auth/SignInLink`) — every
+live link renders `Auth/SetPassword`.
 
 `throttle:login-link` (renamed from `throttle:login-code`) guards
 `POST /login/link`.
@@ -165,24 +172,33 @@ copy, the notice text, button labels) and loses the code-only keys
   link to reach a set-password page. Keeping the 6-digit code alongside
   it would mean two passwordless systems to build, style, and test; the
   link replaces the code everywhere.
-- **Login-purpose links never force a password step.** A person who
-  chose "no password, always a link" should never be routed to set one.
-  Forgot-password and passwordless-login collapse into the same login
-  action for this reason — a login link only ever signs someone in. A
-  person can still add a password anytime from `/account`.
-- **Invite links can be skipped in place, not just avoided.** The
-  set-password page's **Continue without password** signs the person in
+- **Every link lands on the set-password page — superseded.** The first
+  version routed only invite-purpose links there, reasoning that a
+  person who chose "no password, always a link" should never be routed
+  to set one. Revised: every link, invite or login-purpose, lands on the
+  same page, so the choice — set a password, or continue without one —
+  is offered every time, not fixed at invite time. `Auth/SignInLink.vue`
+  (the login-purpose-only "just sign in" page) is removed; there is one
+  landing page for every link.
+- **Consume methods are named by what they do, not which purpose calls
+  them.** `consumeLogin`/`consumeInvite` renamed to
+  `consumeWithoutPassword`/`consumeWithPassword` once both ran from
+  either purpose — the old names implied a purpose binding that no
+  longer exists.
+- **Continue without password skips in place.** It signs the person in
   immediately, using the same link they already opened — no separate
-  email, no navigating to the login page first. It reuses
-  `consumeLogin`, which only ever signs in and consumes; it does not
-  care which purpose issued the link.
+  email, no navigating to the login page first. `consumeWithoutPassword`
+  only ever signs in and consumes; it does not care which purpose issued
+  the link.
 - **Different expiries by purpose.** An invite email may sit unread for
   days. A login link is requested and clicked in the same session. 7
   days versus 15 minutes matches that.
-- **Invite resend is admin-only, not self-serve.** A login-purpose link
-  cannot route to set-password (previous decision), so a stuck invite
-  has no self-serve recovery path. The admin who created the account is
-  already the one managing `/users`.
+- **Invite resend is admin-only, not self-serve.** The admin who created
+  the account is already the one managing `/users`. (Since every link now
+  lands on the set-password page, a person whose invite expired could
+  alternatively request a login link from the login page and set a
+  password there — the admin action stays as the direct, no-guessing
+  path, not the only one.)
 - **SHA-256 lookup hash, not bcrypt.** A login code is verified against a
   user the request already identifies by email. A link has to identify
   the user from the token alone, and a salted bcrypt hash cannot do that

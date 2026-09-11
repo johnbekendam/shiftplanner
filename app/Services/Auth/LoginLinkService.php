@@ -77,15 +77,21 @@ class LoginLinkService
             ->first();
     }
 
-    /** Sign the login-purpose link's user in and consume the link. */
-    public function consumeLogin(LoginLink $link): void
+    /**
+     * Sign the link's user in and consume it, without touching their
+     * password. Purpose-agnostic: every link's landing page offers this.
+     */
+    public function consumeWithoutPassword(LoginLink $link): void
     {
         $link->update(['consumed_at' => now()]);
         $this->signIn($link->user);
     }
 
-    /** Set the invite-purpose link's user's password, sign in, and consume the link. */
-    public function consumeInvite(LoginLink $link, string $password): void
+    /**
+     * Set the link's user's password, sign in, and consume the link.
+     * Purpose-agnostic: every link's landing page can set a password.
+     */
+    public function consumeWithPassword(LoginLink $link, string $password): void
     {
         $link->user->update(['password' => $password]);
         $link->update(['consumed_at' => now()]);

@@ -166,7 +166,7 @@ class LoginLinkServiceTest extends TestCase
         $this->assertNull($service->resolve($token));
     }
 
-    public function test_consume_login_signs_in_and_marks_consumed(): void
+    public function test_consume_without_password_signs_in_and_marks_consumed(): void
     {
         Mail::fake();
         $this->startSession();
@@ -176,13 +176,13 @@ class LoginLinkServiceTest extends TestCase
         $link = $service->resolve($this->tokenFromUrl($this->sentUrl()));
 
         $this->bindSessionBackedRequest();
-        app(LoginLinkService::class)->consumeLogin($link);
+        app(LoginLinkService::class)->consumeWithoutPassword($link);
 
         $this->assertAuthenticatedAs($user);
         $this->assertNotNull($link->fresh()->consumed_at);
     }
 
-    public function test_consume_invite_sets_the_password_signs_in_and_marks_consumed(): void
+    public function test_consume_with_password_sets_the_password_signs_in_and_marks_consumed(): void
     {
         Mail::fake();
         $this->startSession();
@@ -192,7 +192,7 @@ class LoginLinkServiceTest extends TestCase
         $link = $service->resolve($this->tokenFromUrl($this->sentUrl()));
 
         $this->bindSessionBackedRequest();
-        app(LoginLinkService::class)->consumeInvite($link, 'a-new-password');
+        app(LoginLinkService::class)->consumeWithPassword($link, 'a-new-password');
 
         $this->assertAuthenticatedAs($user);
         $this->assertNotNull($link->fresh()->consumed_at);
