@@ -14,7 +14,7 @@ class SignupController extends Controller
 {
     public function show()
     {
-        return Inertia::render('Signup');
+        return Inertia::render('Auth/AccessCard', ['activeTab' => 'personal-link']);
     }
 
     public function store(Request $request, SelfSignupService $signups)

@@ -17,8 +17,10 @@
     "nav.switch_to_dark": "Switch to dark mode",
     "nav.logout": "Logout",
 
-    "auth.page_title": "Sign in",
-    "auth.card_title": "Sign in to your account",
+    "auth.page_title": "ShiftPlanner",
+    "auth.card_title": "ShiftPlanner",
+    "auth.tab.signin": "Sign in",
+    "auth.tab.personal_link": "Get my link",
     "auth.field.email": "Email",
     "auth.field.password": "Password",
     "auth.action.signin": "Sign in",
@@ -271,15 +273,12 @@
     "shifts.flash.updated": "Shift updated.",
     "shifts.flash.deleted": "Shift deleted.",
 
-    "signup.page_title": "Request your personal link",
-    "signup.card_title": "Request your personal link",
     "signup.intro": "Fill in your details and we will email you the link to your personal ShiftPlanner page.",
     "signup.field.first_name": "First name",
     "signup.field.last_name": "Last name",
     "signup.field.email": "Email",
     "signup.submit": "Send me the link",
     "signup.confirmation": "If that address is valid, we sent your personal link. Check your email.",
-    "signup.login_link": "Request your personal link",
 
     "period.fte_hours": "Hours per FTE",
     "period.fte_hours_hint": "Weekly hours that count as one full-time equivalent.",

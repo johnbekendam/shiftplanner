@@ -194,6 +194,8 @@ class SelfSignupTest extends TestCase
 
     public function test_the_signup_page_renders_for_a_guest(): void
     {
-        $this->get('/signup')->assertOk()->assertInertia(fn ($page) => $page->component('Signup'));
+        $this->get('/signup')->assertOk()->assertInertia(fn ($page) => $page
+            ->component('Auth/AccessCard')
+            ->where('activeTab', 'personal-link'));
     }
 }

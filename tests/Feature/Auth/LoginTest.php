@@ -13,7 +13,11 @@ class LoginTest extends TestCase
 
     public function test_guest_can_view_login_page(): void
     {
-        $this->get('/login')->assertOk();
+        $this->get('/login')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Auth/AccessCard')
+                ->where('activeTab', 'signin'));
     }
 
     public function test_authenticated_user_visiting_login_is_redirected_home(): void
