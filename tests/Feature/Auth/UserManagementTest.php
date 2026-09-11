@@ -26,12 +26,26 @@ class UserManagementTest extends TestCase
         $this->get('/users')->assertRedirect('/login');
     }
 
-    public function test_a_manager_is_forbidden_from_users(): void
+    public function test_a_manager_can_view_but_not_write_to_users(): void
     {
-        $this->actingAs(User::factory()->create())->get('/users')->assertForbidden();
-        $this->actingAs(User::factory()->create())
+        $manager = User::factory()->create();
+        $target = User::factory()->create();
+
+        $this->actingAs($manager)->get('/users')->assertOk()
+            ->assertInertia(fn ($page) => $page->component('Users/Index'));
+        $this->actingAs($manager)->get("/users/{$target->id}/edit")->assertOk()
+            ->assertInertia(fn ($page) => $page->component('Users/Form'));
+
+        $this->actingAs($manager)->get('/users/create')->assertForbidden();
+        $this->actingAs($manager)
             ->post('/users', ['name' => 'X', 'email' => 'x@example.com', 'role' => 'manager'])
             ->assertForbidden();
+        $this->actingAs($manager)->put("/users/{$target->id}", [
+            'name' => $target->name,
+            'email' => $target->email,
+            'role' => $target->role,
+            'is_active' => $target->is_active,
+        ])->assertForbidden();
     }
 
     public function test_an_admin_sees_the_user_list(): void

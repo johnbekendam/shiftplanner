@@ -38,6 +38,8 @@ const navItems = computed(() => {
     const items = [
         { label: __('nav.dashboard'), href: '/dashboard', icon: 'chart-bar' },
         { label: __('nav.employees'), href: '/employees', icon: 'users' },
+        // Read-only for a manager; only an admin can create or edit here.
+        { label: __('nav.users'), href: '/users', icon: 'user-plus' },
     ]
 
     if (user.value?.employee_id) {
@@ -52,7 +54,6 @@ const navItems = computed(() => {
         items.push(
             { label: __('nav.mailbox'), href: '/mailbox', icon: 'envelope' },
             { label: __('nav.settings'), href: '/settings', icon: 'cog' },
-            { label: __('nav.users'), href: '/users', icon: 'user-plus' },
             { label: __('nav.import'), href: '/import', icon: 'upload' },
         )
         // Theme builder stays reachable at /theme-builder but is not in the nav.

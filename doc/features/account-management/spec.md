@@ -9,6 +9,13 @@ replaced by an emailed link — see `doc/features/login-links/`. Every
 other decision on this page (roles, `/users`, `/account`, the employee
 link) still stands.
 
+**Updated `/users` access.** A manager can now view `/users` — the list
+and each user's detail page — read-only: no create, edit, or resend
+action. `GET /users` and `GET /users/{user}/edit` need only a signed-in
+user; `role:admin` still guards every write route
+(`POST`/`PUT /users*`, `GET /users/create`). The sidebar shows **Users**
+to every signed-in user.
+
 ## Problem
 
 The app has one hard-coded seed account and a password-only login. Real

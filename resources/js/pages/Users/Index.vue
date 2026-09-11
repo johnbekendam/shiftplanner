@@ -1,12 +1,16 @@
 <script setup>
+import { computed } from 'vue'
 import { Head, Link, router } from '@inertiajs/vue3'
 import AppLayout from '@/layouts/AppLayout.vue'
 import Card from '@/components/ui/Card.vue'
 import ButtonPrimary from '@/components/ui/ButtonPrimary.vue'
 import ButtonSecondary from '@/components/ui/ButtonSecondary.vue'
 import { useI18n } from '@/composables/useI18n'
+import { useAuth } from '@/composables/useAuth'
 
 const __ = useI18n()
+const { user: currentUser } = useAuth()
+const isAdmin = computed(() => currentUser.value?.role === 'admin')
 
 defineProps({
     users: { type: Array, default: () => [] },
@@ -29,7 +33,7 @@ function resendInvite(user) {
             <template #header>
                 <div class="flex items-center justify-between gap-3 px-6 py-3">
                     <span class="text-base font-semibold">{{ __('users.title') }}</span>
-                    <Link href="/users/create">
+                    <Link v-if="isAdmin" href="/users/create">
                         <ButtonPrimary type="button" icon="user-plus">{{ __('users.action.new') }}</ButtonPrimary>
                     </Link>
                 </div>
@@ -62,7 +66,7 @@ function resendInvite(user) {
                             </td>
                             <td class="py-2 text-right">
                                 <ButtonSecondary
-                                    v-if="!user.has_password"
+                                    v-if="isAdmin && !user.has_password"
                                     type="button"
                                     data-testid="resend-invite"
                                     @click.stop="resendInvite(user)"

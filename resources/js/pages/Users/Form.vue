@@ -8,14 +8,25 @@ import { TextInput, EmailInput, SelectInput, CheckboxInput } from '@/components/
 import ButtonPrimary from '@/components/ui/ButtonPrimary.vue'
 import ButtonSecondary from '@/components/ui/ButtonSecondary.vue'
 import { useI18n } from '@/composables/useI18n'
+import { useAuth } from '@/composables/useAuth'
 
 const __ = useI18n()
+const { user: currentUser } = useAuth()
+const isAdmin = computed(() => currentUser.value?.role === 'admin')
 
 const props = defineProps({
     user: { type: Object, default: null },
 })
 
 const isEdit = computed(() => props.user !== null)
+// /users/create is admin-only at the route level, so this only ever
+// applies once editing an existing user.
+const readOnly = computed(() => isEdit.value && !isAdmin.value)
+
+const title = computed(() => {
+    if (!isEdit.value) return __('users.form.create_title')
+    return readOnly.value ? __('users.form.view_title') : __('users.form.edit_title')
+})
 
 const form = useForm({
     name: props.user?.name ?? '',
@@ -40,39 +51,39 @@ function submit() {
 
 <template>
     <AppLayout>
-        <Head :title="isEdit ? __('users.form.edit_title') : __('users.form.create_title')" />
+        <Head :title="title" />
 
         <Card class="max-w-lg">
             <template #header>
-                <div class="px-6 py-3 text-base font-semibold">
-                    {{ isEdit ? __('users.form.edit_title') : __('users.form.create_title') }}
-                </div>
+                <div class="px-6 py-3 text-base font-semibold">{{ title }}</div>
             </template>
 
             <form class="space-y-5 p-6" @submit.prevent="submit">
                 <LabeledInput :label="__('users.field.name')" :error="form.errors.name">
-                    <TextInput v-model="form.name" class="w-full" />
+                    <TextInput v-model="form.name" :disabled="readOnly" class="w-full" />
                 </LabeledInput>
 
                 <LabeledInput :label="__('users.field.email')" :error="form.errors.email">
-                    <EmailInput v-model="form.email" class="w-full" />
+                    <EmailInput v-model="form.email" :disabled="readOnly" class="w-full" />
                 </LabeledInput>
 
                 <LabeledInput :label="__('users.field.role')" :error="form.errors.role">
-                    <SelectInput v-model="form.role" :options="roleOptions" class="w-full" />
+                    <SelectInput v-model="form.role" :options="roleOptions" :disabled="readOnly" class="w-full" />
                 </LabeledInput>
 
                 <LabeledInput v-if="isEdit" :label="__('users.field.active')" :error="form.errors.is_active">
-                    <CheckboxInput v-model="form.is_active" />
+                    <CheckboxInput v-model="form.is_active" :disabled="readOnly" />
                 </LabeledInput>
 
                 <p v-else class="text-sm text-(--color-text-secondary)">{{ __('users.create_hint') }}</p>
 
                 <div class="flex justify-end gap-3">
                     <Link href="/users">
-                        <ButtonSecondary type="button">{{ __('users.action.cancel') }}</ButtonSecondary>
+                        <ButtonSecondary type="button">
+                            {{ readOnly ? __('users.action.back') : __('users.action.cancel') }}
+                        </ButtonSecondary>
                     </Link>
-                    <ButtonPrimary type="submit" :disabled="form.processing">
+                    <ButtonPrimary v-if="!readOnly" type="submit" :disabled="form.processing">
                         {{ __('users.action.save') }}
                     </ButtonPrimary>
                 </div>

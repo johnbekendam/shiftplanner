@@ -82,13 +82,15 @@ Route::middleware('auth')->group(function () {
         Route::post('/mailbox/bulk-delete', [MailboxController::class, 'bulkDelete'])->name('mailbox.bulk-delete');
         Route::delete('/mailbox/{message}', [MailboxController::class, 'destroy'])->name('mailbox.destroy');
 
-        Route::get('/users', [UserController::class, 'index'])->name('users.index');
         Route::get('/users/create', [UserController::class, 'create'])->name('users.create');
         Route::post('/users', [UserController::class, 'store'])->name('users.store');
-        Route::get('/users/{user}/edit', [UserController::class, 'edit'])->name('users.edit');
         Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update');
         Route::post('/users/{user}/resend-invite', [UserController::class, 'resendInvite'])->name('users.resend-invite');
     }); // end admin group
+
+    // Read-only for a manager; the admin group above covers create/edit/resend.
+    Route::get('/users', [UserController::class, 'index'])->name('users.index');
+    Route::get('/users/{user}/edit', [UserController::class, 'edit'])->name('users.edit');
 
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard.index');
 

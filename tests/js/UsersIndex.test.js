@@ -16,13 +16,14 @@ const en = {
     "users.action.resend_invite": "Resend invite",
 };
 
+const state = vi.hoisted(() => ({ user: { role: "admin" } }));
 const { router } = vi.hoisted(() => ({ router: { visit: vi.fn(), post: vi.fn() } }));
 
 vi.mock("@inertiajs/vue3", () => ({
     router,
     Head: { name: "Head", render: () => null },
     Link: { name: "Link", props: ["href"], template: "<a :href='href'><slot /></a>" },
-    usePage: () => ({ props: { translations: en } }),
+    usePage: () => ({ props: { translations: en, auth: { user: state.user } } }),
 }));
 
 import Index from "@/pages/Users/Index.vue";
@@ -36,6 +37,7 @@ const users = [
 
 describe("Users/Index", () => {
     beforeEach(() => {
+        state.user = { role: "admin" };
         router.visit.mockClear();
         router.post.mockClear();
     });
@@ -75,5 +77,21 @@ describe("Users/Index", () => {
 
         expect(router.post).toHaveBeenCalledWith("/users/2/resend-invite", {}, { preserveScroll: true });
         expect(router.visit).not.toHaveBeenCalled();
+    });
+
+    it("shows Add user for an admin", () => {
+        const w = mount(Index, { props: { users }, global: { stubs } });
+        expect(w.findAll("a").some((a) => a.attributes("href") === "/users/create")).toBe(true);
+    });
+
+    it("hides Add user and Resend invite for a manager, but still opens rows", async () => {
+        state.user = { role: "manager" };
+        const w = mount(Index, { props: { users }, global: { stubs } });
+
+        expect(w.findAll("a").some((a) => a.attributes("href") === "/users/create")).toBe(false);
+        expect(w.find('[data-testid="resend-invite"]').exists()).toBe(false);
+
+        await w.findAll('[data-testid="user-row"]')[1].trigger("click");
+        expect(router.visit).toHaveBeenCalledWith("/users/2/edit");
     });
 });

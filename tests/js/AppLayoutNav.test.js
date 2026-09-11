@@ -35,18 +35,18 @@ beforeEach(() => {
 });
 
 describe("AppLayout navigation", () => {
-    it("shows the Dashboard and Employees to a manager", () => {
+    it("shows Dashboard, Employees and the read-only Users to a manager", () => {
         state.user = { role: "manager" };
         const hrefs = navHrefs(mount(AppLayout, { global: { stubs } }));
 
-        expect(hrefs).toEqual(["/dashboard", "/employees"]);
+        expect(hrefs).toEqual(["/dashboard", "/employees", "/users"]);
     });
 
     it("shows Import, Mailbox, Users and Settings to an admin, but not Theme Builder", () => {
         state.user = { role: "admin" };
         const hrefs = navHrefs(mount(AppLayout, { global: { stubs } }));
 
-        expect(hrefs).toEqual(["/dashboard", "/employees", "/import", "/mailbox", "/users", "/settings"]);
+        expect(hrefs).toEqual(["/dashboard", "/employees", "/users", "/mailbox", "/settings", "/import"]);
     });
 
     it("hides Import from a manager", () => {
@@ -60,6 +60,6 @@ describe("AppLayout navigation", () => {
         state.user = { role: "manager", employee_id: 12 };
         const hrefs = navHrefs(mount(AppLayout, { global: { stubs } }));
 
-        expect(hrefs).toEqual(["/dashboard", "/employees", "/employees/12/edit"]);
+        expect(hrefs).toEqual(["/dashboard", "/employees", "/users", "/employees/12/edit"]);
     });
 });
