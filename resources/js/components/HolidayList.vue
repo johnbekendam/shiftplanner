@@ -23,6 +23,13 @@ const draft = ref(blank())
 const errors = ref({})
 const busy = ref(false)
 
+// Deleting a row: its own disappearance is the success signal, so only a
+// pending state and a failure flash are needed (same reasoning as the
+// checklists).
+const removingId = ref(null)
+const failedId = ref(null)
+let failedTimeout = null
+
 // preserveState keeps this component (and its open tab) mounted across the
 // redirect, so a holiday change never bounces the page back to the Details tab.
 const stay = { preserveScroll: true, preserveState: true }
@@ -47,7 +54,19 @@ function add() {
 
 function remove(holiday) {
     if (props.disabled) return
-    router.delete(`${props.endpoint}/${holiday.id}`, stay)
+
+    removingId.value = holiday.id
+    router.delete(`${props.endpoint}/${holiday.id}`, {
+        ...stay,
+        onError: () => {
+            failedId.value = holiday.id
+            clearTimeout(failedTimeout)
+            failedTimeout = setTimeout(() => (failedId.value = null), 2000)
+        },
+        onFinish: () => {
+            removingId.value = null
+        },
+    })
 }
 </script>
 
@@ -68,6 +87,7 @@ function remove(holiday) {
                     :key="holiday.id"
                     data-testid="holiday-row"
                     class="border-b border-(--color-table-row-separator)"
+                    :class="failedId === holiday.id ? 'outline outline-2 -outline-offset-1 outline-(--color-badge-error-border)' : ''"
                 >
                     <td class="py-2 pr-3 text-(--color-table-row-text)">{{ formatDate(holiday.start_date) }}</td>
                     <td class="py-2 pr-3 text-(--color-table-row-text)">{{ formatDate(holiday.end_date) }}</td>
@@ -76,8 +96,10 @@ function remove(holiday) {
                         <ButtonDanger
                             v-if="!disabled"
                             type="button"
-                            icon="bin"
+                            :icon="removingId === holiday.id ? 'arrow-path' : 'bin'"
+                            :icon-class="removingId === holiday.id ? 'size-4 animate-spin' : 'size-4'"
                             class="px-2.5"
+                            :disabled="removingId === holiday.id"
                             :aria-label="__('availability.holidays.delete')"
                             @click="remove(holiday)"
                         />

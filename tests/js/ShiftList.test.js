@@ -69,6 +69,18 @@ describe("ShiftList", () => {
         expect(payload).toEqual({ name: "Early bird", start_time: "06:00", end_time: "14:00" });
     });
 
+    it("briefly highlights the row once the write succeeds", async () => {
+        const w = mountList();
+        const firstRow = w.findAll('[data-testid="shift-row"]')[0];
+        firstRow.findComponent(TextInput).vm.$emit("update:modelValue", "Early bird");
+        await w.vm.$nextTick();
+
+        router.put.mock.calls[0][2].onSuccess();
+        await w.vm.$nextTick();
+
+        expect(firstRow.classes()).toContain("bg-(--color-badge-success-bg)");
+    });
+
     it("does not write when a field commits an unchanged value", async () => {
         const w = mountList();
         const firstRow = w.findAll('[data-testid="shift-row"]')[0];

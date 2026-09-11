@@ -74,4 +74,35 @@ describe("QuestionChecklist", () => {
         expect(url).toBe("/employees/7/questions/2");
         expect(data).toEqual({ answer: false });
     });
+
+    it("shows a pending spinner and disables the box while the write is in flight", async () => {
+        const w = mountList();
+        const box = w.findAllComponents(CheckboxInput)[0];
+        box.vm.$emit("update:modelValue", true);
+        await w.vm.$nextTick();
+
+        expect(box.props("disabled")).toBe(true);
+        expect(w.find('[data-testid="question-pending"]').exists()).toBe(true);
+
+        router.put.mock.calls[0][2].onFinish();
+        await w.vm.$nextTick();
+
+        expect(box.props("disabled")).toBe(false);
+        expect(w.find('[data-testid="question-pending"]').exists()).toBe(false);
+    });
+
+    it("flashes an error outline when the write fails, no spinner left behind", async () => {
+        const w = mountList();
+        const box = w.findAllComponents(CheckboxInput)[0];
+        box.vm.$emit("update:modelValue", true);
+        await w.vm.$nextTick();
+
+        const opts = router.put.mock.calls[0][2];
+        opts.onError();
+        opts.onFinish();
+        await w.vm.$nextTick();
+
+        expect(box.find("input").classes()).toContain("outline-[var(--color-badge-error-border)]");
+        expect(w.find('[data-testid="question-pending"]').exists()).toBe(false);
+    });
 });

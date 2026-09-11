@@ -84,6 +84,30 @@ describe("HolidayList", () => {
         expect(opts).toMatchObject({ preserveScroll: true, preserveState: true });
     });
 
+    it("shows a spinner and disables the button while deleting", async () => {
+        const w = mountList();
+        const button = () => w.findAll('[data-testid="holiday-row"]')[0].get("button");
+        await button().trigger("click");
+
+        expect(button().attributes("disabled")).toBeDefined();
+
+        router.delete.mock.calls[0][1].onFinish();
+        await w.vm.$nextTick();
+
+        expect(button().attributes("disabled")).toBeUndefined();
+    });
+
+    it("outlines the row red when the delete fails", async () => {
+        const w = mountList();
+        const row = () => w.findAll('[data-testid="holiday-row"]')[0];
+        await row().get("button").trigger("click");
+
+        router.delete.mock.calls[0][1].onError();
+        await w.vm.$nextTick();
+
+        expect(row().classes()).toContain("outline-(--color-badge-error-border)");
+    });
+
     it("hides the add row and the delete buttons when disabled", () => {
         const w = mountList({ disabled: true });
 

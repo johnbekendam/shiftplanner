@@ -85,6 +85,18 @@ describe("OrderedNameList", () => {
         expect(payload).toEqual({ name: "Forklift licence" });
     });
 
+    it("briefly highlights the row once the rename succeeds", async () => {
+        const w = mountList();
+        const row = w.findAll('[data-testid="ordered-name-row"]')[0];
+        rowInputs(w)[0].vm.$emit("update:modelValue", "Forklift licence");
+        await w.vm.$nextTick();
+
+        router.put.mock.calls[0][2].onSuccess();
+        await w.vm.$nextTick();
+
+        expect(row.classes()).toContain("bg-(--color-badge-success-bg)");
+    });
+
     it("does not rename when the field commits an unchanged value", async () => {
         const w = mountList();
         rowInputs(w)[0].vm.$emit("update:modelValue", "Forklift");

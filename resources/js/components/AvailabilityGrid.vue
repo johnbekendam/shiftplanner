@@ -31,6 +31,19 @@ const key = (weekday, shiftId) => `${weekday}-${shiftId}`
 // Local state for instant feedback; the server write follows.
 const cells = reactive({})
 
+// A brief ring around a cell once its write settles — success or error —
+// since the color/icon already flipped optimistically and needs a
+// separate signal that the round-trip actually finished (and, on
+// failure, the cell reverts to its previous value).
+const cellStatus = reactive({})
+const statusTimers = {}
+
+function flashStatus(k, status) {
+    cellStatus[k] = status
+    clearTimeout(statusTimers[k])
+    statusTimers[k] = setTimeout(() => delete cellStatus[k], status === 'error' ? 1500 : 700)
+}
+
 function sync() {
     for (const k of Object.keys(cells)) delete cells[k]
     for (const shift of props.shifts) {
@@ -98,11 +111,18 @@ function choose(level) {
     const { weekday, shiftId } = menu.value
     const k = key(weekday, shiftId)
     if (cells[k] !== level) {
+        const previous = cells[k]
         cells[k] = level
         emit('update:availability', { weekday, shiftId, level })
         router.put(`${props.endpoint}/${weekday}/${shiftId}`, { level }, {
             preserveScroll: true,
             preserveState: true,
+            onSuccess: () => flashStatus(k, 'success'),
+            onError: () => {
+                cells[k] = previous
+                emit('update:availability', { weekday, shiftId, level: previous })
+                flashStatus(k, 'error')
+            },
         })
     }
     closeMenu()
@@ -178,8 +198,12 @@ onBeforeUnmount(() => {
                                 day: __(`availability.weekday.${weekday}`),
                                 state: __(`availability.state.${cells[`${weekday}-${shift.id}`]}`),
                             })"
-                            class="flex h-8 w-full items-center justify-center rounded border transition-colors disabled:cursor-not-allowed disabled:opacity-60"
-                            :class="LEVEL_CLASS[cells[`${weekday}-${shift.id}`]]"
+                            class="flex h-8 w-full items-center justify-center rounded border outline-offset-2 transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+                            :class="[
+                                LEVEL_CLASS[cells[`${weekday}-${shift.id}`]],
+                                cellStatus[key(weekday, shift.id)] === 'success' ? 'outline outline-2 outline-(--color-badge-success-border)' : '',
+                                cellStatus[key(weekday, shift.id)] === 'error' ? 'outline outline-2 outline-(--color-badge-error-border)' : '',
+                            ]"
                             @click="openMenu(weekday, shift.id, $event)"
                         >
                             <Icon :name="LEVEL_ICON[cells[`${weekday}-${shift.id}`]]" class="size-4" />
