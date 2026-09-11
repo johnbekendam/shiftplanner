@@ -53,4 +53,9 @@ class User extends Authenticatable
     {
         return $this->hasMany(LoginCode::class);
     }
+
+    public function loginLinks(): HasMany
+    {
+        return $this->hasMany(LoginLink::class);
+    }
 }

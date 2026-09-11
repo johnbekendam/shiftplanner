@@ -29,6 +29,12 @@
     "auth.mail_subject": "Your ShiftPlanner sign-in code",
     "auth.mail_line": "Use this code to sign in:",
     "auth.mail_expiry": "The code is valid for 10 minutes and can be used once.",
+    "auth.mail_subject_invite": "You are invited to ShiftPlanner",
+    "auth.mail_line_invite": "Use this link to set your password and finish creating your account:",
+    "auth.mail_expiry_invite": "The link is valid for 7 days and can be used once.",
+    "auth.mail_subject_login": "Your ShiftPlanner sign-in link",
+    "auth.mail_line_login": "Use this link to sign in:",
+    "auth.mail_expiry_login": "The link is valid for 15 minutes and can be used once.",
 
     "theme.cancel": "Cancel",
     "theme.save": "Save",
