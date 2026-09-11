@@ -26,11 +26,6 @@ const rows = reactive({})
 const errors = reactive({})
 const saving = new Set()
 
-// A brief highlight on a row once its edit saves, since typing into a
-// field leaves no other visible sign the new value actually persisted.
-const savedFlash = reactive({})
-const flashTimers = {}
-
 function sync(list) {
     for (const key of Object.keys(rows)) delete rows[key]
     for (const item of list) {
@@ -63,9 +58,6 @@ function save(item) {
         ...stay,
         onSuccess: () => {
             delete errors[item.id]
-            savedFlash[item.id] = true
-            clearTimeout(flashTimers[item.id])
-            flashTimers[item.id] = setTimeout(() => delete savedFlash[item.id], 1200)
         },
         onError: (e) => {
             errors[item.id] = e
@@ -128,8 +120,7 @@ function add() {
                     v-for="(item, index) in items"
                     :key="item.id"
                     data-testid="business-line-row"
-                    class="border-b border-(--color-table-row-separator) transition-colors duration-700"
-                    :class="savedFlash[item.id] ? 'bg-(--color-badge-success-bg)' : ''"
+                    class="border-b border-(--color-table-row-separator)"
                 >
                     <td class="py-2 pr-3 align-top">
                         <TextInput

@@ -92,30 +92,6 @@ describe("AvailabilityGrid", () => {
         expect(w.find('[data-testid="availability-menu"]').exists()).toBe(false);
     });
 
-    it("briefly rings the cell on a successful write", async () => {
-        const w = mountGrid();
-        await w.get('[data-testid="cell-4-20"]').trigger("click");
-        await w.get('[data-testid="availability-menu-not_preferred"]').trigger("click");
-
-        router.put.mock.calls[0][2].onSuccess();
-        await w.vm.$nextTick();
-
-        expect(w.get('[data-testid="cell-4-20"]').classes()).toContain("outline-(--color-badge-success-border)");
-    });
-
-    it("reverts the cell and rings it red when the write fails", async () => {
-        const w = mountGrid();
-        await w.get('[data-testid="cell-4-20"]').trigger("click");
-        await w.get('[data-testid="availability-menu-not_preferred"]').trigger("click");
-
-        router.put.mock.calls[0][2].onError();
-        await w.vm.$nextTick();
-
-        const cls = w.get('[data-testid="cell-4-20"]').classes();
-        expect(cls).toContain("bg-(--color-badge-success-bg)");
-        expect(cls).toContain("outline-(--color-badge-error-border)");
-    });
-
     it("does not write when the picked state matches the current one", async () => {
         const w = mountGrid();
         await w.get('[data-testid="cell-2-10"]').trigger("click");

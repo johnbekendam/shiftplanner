@@ -1,8 +1,6 @@
 <script setup>
-import { ref } from 'vue'
 import { router } from '@inertiajs/vue3'
 import { CheckboxInput } from '@/components/ui/Input'
-import Icon from '@/components/ui/Icon.vue'
 import { useI18n } from '@/composables/useI18n'
 
 const __ = useI18n()
@@ -24,52 +22,28 @@ const props = defineProps({
 // the holiday and availability lists.
 const stay = { preserveScroll: true, preserveState: true }
 
-// See QuestionChecklist: the checked state itself confirms success, so
-// only a pending spinner and a failure outline are needed here.
-const pendingId = ref(null)
-const failedId = ref(null)
-let failedTimeout = null
-
 function toggle(item, checked) {
     if (props.disabled) return
-
     const url = `${props.endpoint}/${item.id}`
-    const opts = {
-        ...stay,
-        onError: () => {
-            failedId.value = item.id
-            clearTimeout(failedTimeout)
-            failedTimeout = setTimeout(() => (failedId.value = null), 2000)
-        },
-        onFinish: () => {
-            pendingId.value = null
-        },
-    }
-
-    pendingId.value = item.id
     if (checked) {
-        router.put(url, {}, opts)
+        router.put(url, {}, stay)
     } else {
-        router.delete(url, opts)
+        router.delete(url, stay)
     }
 }
 </script>
 
 <template>
     <div class="space-y-2">
-        <div v-for="item in items" :key="item.id" class="flex items-center gap-2">
+        <div v-for="item in items" :key="item.id">
             <CheckboxInput
                 :model-value="selectedIds.includes(item.id)"
-                :disabled="disabled || pendingId === item.id"
+                :disabled="disabled"
                 :data-testid="`tag-${item.id}`"
-                :class="failedId === item.id ? 'rounded outline outline-2 outline-offset-2 outline-[var(--color-badge-error-border)]' : ''"
                 @update:model-value="toggle(item, $event)"
             >
                 {{ item.name }}
             </CheckboxInput>
-            <span v-if="pendingId === item.id" data-testid="tag-pending">
-                <Icon name="arrow-path" class="size-3.5 shrink-0 animate-spin text-(--color-text-secondary)" />
-            </span>
         </div>
 
         <p v-if="!items.length" class="text-sm text-(--color-text-secondary)">
