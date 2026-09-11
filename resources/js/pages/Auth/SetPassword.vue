@@ -36,15 +36,7 @@ function skip() {
 
         <p class="text-sm text-(--color-text-secondary)">{{ __('auth.setpw.intro') }}</p>
 
-        <div class="mt-6 flex justify-end">
-            <ButtonSecondary type="button" :disabled="form.processing || skipping" @click="skip">
-                {{ __('auth.setpw.skip') }}
-            </ButtonSecondary>
-        </div>
-
-        <CardSeparator />
-
-        <form @submit.prevent="submit" class="space-y-5">
+        <form @submit.prevent="submit" class="mt-6 space-y-5">
             <LabeledInput :label="__('auth.setpw.field.password')" :error="form.errors.password">
                 <PasswordInput v-model="form.password" autocomplete="new-password" class="w-full" />
             </LabeledInput>
@@ -59,5 +51,13 @@ function skip() {
                 </ButtonPrimary>
             </div>
         </form>
+
+        <CardSeparator />
+
+        <div class="flex justify-end">
+            <ButtonSecondary type="button" :disabled="form.processing || skipping" @click="skip">
+                {{ __('auth.setpw.skip') }}
+            </ButtonSecondary>
+        </div>
     </CenteredLayout>
 </template>
