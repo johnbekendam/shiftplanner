@@ -14,6 +14,8 @@ const props = defineProps({
     items: { type: Array, default: () => [] },
     // Base URL for the resource, e.g. /settings/business-lines.
     endpoint: { type: String, required: true },
+    // Shared useSaveStatus() tracker for the card body's SaveStatusBadge.
+    saveStatus: { type: Object, default: null },
 })
 
 // Each write keeps this component (and the open tab) mounted across the
@@ -54,13 +56,16 @@ watch(rows, () => {
 
 function save(item) {
     saving.add(item.id)
+    props.saveStatus?.start()
     router.put(`${props.endpoint}/${item.id}`, { ...rows[item.id] }, {
         ...stay,
         onSuccess: () => {
             delete errors[item.id]
+            props.saveStatus?.succeed()
         },
         onError: (e) => {
             errors[item.id] = e
+            props.saveStatus?.fail()
         },
         onFinish: () => {
             saving.delete(item.id)
@@ -69,13 +74,23 @@ function save(item) {
 }
 
 function move(item, direction) {
-    router.put(`${props.endpoint}/${item.id}/move`, { direction }, stay)
+    props.saveStatus?.start()
+    router.put(`${props.endpoint}/${item.id}/move`, { direction }, {
+        ...stay,
+        onSuccess: () => props.saveStatus?.succeed(),
+        onError: () => props.saveStatus?.fail(),
+    })
 }
 
 function remove(item) {
     if (!window.confirm(__('business_lines.delete_confirm', { count: item.employee_count }))) return
 
-    router.delete(`${props.endpoint}/${item.id}`, stay)
+    props.saveStatus?.start()
+    router.delete(`${props.endpoint}/${item.id}`, {
+        ...stay,
+        onSuccess: () => props.saveStatus?.succeed(),
+        onError: () => props.saveStatus?.fail(),
+    })
 }
 
 const draft = reactive({ abbreviation: '', description: '', target_fte: null })
@@ -84,6 +99,7 @@ const busy = ref(false)
 
 function add() {
     busy.value = true
+    props.saveStatus?.start()
     router.post(props.endpoint, { ...draft }, {
         ...stay,
         onSuccess: () => {
@@ -91,9 +107,11 @@ function add() {
             draft.description = ''
             draft.target_fte = null
             addErrors.value = {}
+            props.saveStatus?.succeed()
         },
         onError: (e) => {
             addErrors.value = e
+            props.saveStatus?.fail()
         },
         onFinish: () => {
             busy.value = false

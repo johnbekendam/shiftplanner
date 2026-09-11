@@ -13,6 +13,8 @@ const props = defineProps({
     items: { type: Array, default: () => [] },
     // Base URL for the resource, e.g. /settings/shifts.
     endpoint: { type: String, required: true },
+    // Shared useSaveStatus() tracker for the card body's SaveStatusBadge.
+    saveStatus: { type: Object, default: null },
 })
 
 // Each write keeps this component (and the open tab) mounted across the
@@ -48,13 +50,16 @@ watch(rows, () => {
 
 function save(item) {
     saving.add(item.id)
+    props.saveStatus?.start()
     router.put(`${props.endpoint}/${item.id}`, { ...rows[item.id] }, {
         ...stay,
         onSuccess: () => {
             delete errors[item.id]
+            props.saveStatus?.succeed()
         },
         onError: (e) => {
             errors[item.id] = e
+            props.saveStatus?.fail()
         },
         onFinish: () => {
             saving.delete(item.id)
@@ -65,7 +70,12 @@ function save(item) {
 function remove(item) {
     if (!window.confirm(__('shifts.delete_confirm'))) return
 
-    router.delete(`${props.endpoint}/${item.id}`, stay)
+    props.saveStatus?.start()
+    router.delete(`${props.endpoint}/${item.id}`, {
+        ...stay,
+        onSuccess: () => props.saveStatus?.succeed(),
+        onError: () => props.saveStatus?.fail(),
+    })
 }
 
 const draft = reactive({ name: '', start_time: '', end_time: '' })
@@ -74,6 +84,7 @@ const busy = ref(false)
 
 function add() {
     busy.value = true
+    props.saveStatus?.start()
     router.post(props.endpoint, { ...draft }, {
         ...stay,
         onSuccess: () => {
@@ -81,9 +92,11 @@ function add() {
             draft.start_time = ''
             draft.end_time = ''
             addErrors.value = {}
+            props.saveStatus?.succeed()
         },
         onError: (e) => {
             addErrors.value = e
+            props.saveStatus?.fail()
         },
         onFinish: () => {
             busy.value = false

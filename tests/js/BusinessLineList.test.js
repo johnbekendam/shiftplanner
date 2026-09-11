@@ -72,6 +72,18 @@ describe("BusinessLineList", () => {
         expect(payload).toEqual({ abbreviation: "PUM", description: "Pumps", target_fte: 4 });
     });
 
+    it("reports start/succeed to the shared save-status tracker when given one", async () => {
+        const saveStatus = { start: vi.fn(), succeed: vi.fn(), fail: vi.fn() };
+        const w = mountList({ saveStatus });
+        const firstRow = w.findAll('[data-testid="business-line-row"]')[0];
+        firstRow.findComponent(TextInput).vm.$emit("update:modelValue", "PUM");
+        await w.vm.$nextTick();
+
+        expect(saveStatus.start).toHaveBeenCalledTimes(1);
+        router.put.mock.calls[0][2].onSuccess();
+        expect(saveStatus.succeed).toHaveBeenCalledTimes(1);
+    });
+
     it("does not write when a field commits an unchanged value", async () => {
         const w = mountList();
         const firstRow = w.findAll('[data-testid="business-line-row"]')[0];

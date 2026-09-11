@@ -16,6 +16,8 @@ const props = defineProps({
     // Read-only: the list shows but the add row and delete buttons are hidden
     // (employee change lock).
     disabled: { type: Boolean, default: false },
+    // Shared useSaveStatus() tracker for the card body's SaveStatusBadge.
+    saveStatus: { type: Object, default: null },
 })
 
 const blank = () => ({ start_date: '', end_date: '', note: '' })
@@ -30,14 +32,17 @@ const stay = { preserveScroll: true, preserveState: true }
 function add() {
     if (props.disabled) return
     busy.value = true
+    props.saveStatus?.start()
     router.post(props.endpoint, { ...draft.value }, {
         ...stay,
         onSuccess: () => {
             draft.value = blank()
             errors.value = {}
+            props.saveStatus?.succeed()
         },
         onError: (e) => {
             errors.value = e
+            props.saveStatus?.fail()
         },
         onFinish: () => {
             busy.value = false
@@ -47,7 +52,12 @@ function add() {
 
 function remove(holiday) {
     if (props.disabled) return
-    router.delete(`${props.endpoint}/${holiday.id}`, stay)
+    props.saveStatus?.start()
+    router.delete(`${props.endpoint}/${holiday.id}`, {
+        ...stay,
+        onSuccess: () => props.saveStatus?.succeed(),
+        onError: () => props.saveStatus?.fail(),
+    })
 }
 </script>
 

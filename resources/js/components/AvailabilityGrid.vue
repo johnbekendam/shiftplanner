@@ -17,6 +17,8 @@ const props = defineProps({
     showAddHint: { type: Boolean, default: false },
     // Read-only: cells render but do not cycle (employee change lock).
     disabled: { type: Boolean, default: false },
+    // Shared useSaveStatus() tracker for the card body's SaveStatusBadge.
+    saveStatus: { type: Object, default: null },
 })
 
 const emit = defineEmits(['update:availability'])
@@ -98,11 +100,19 @@ function choose(level) {
     const { weekday, shiftId } = menu.value
     const k = key(weekday, shiftId)
     if (cells[k] !== level) {
+        const previous = cells[k]
         cells[k] = level
         emit('update:availability', { weekday, shiftId, level })
+        props.saveStatus?.start()
         router.put(`${props.endpoint}/${weekday}/${shiftId}`, { level }, {
             preserveScroll: true,
             preserveState: true,
+            onSuccess: () => props.saveStatus?.succeed(),
+            onError: () => {
+                cells[k] = previous
+                emit('update:availability', { weekday, shiftId, level: previous })
+                props.saveStatus?.fail()
+            },
         })
     }
     closeMenu()

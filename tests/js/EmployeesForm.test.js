@@ -31,9 +31,12 @@ const en = {
     "employees.action.saved": "Saved",
     "employees.action.cancel": "Cancel",
     "employees.action.send_link": "Send link",
+    "app.saving": "Saving…",
+    "app.saved": "Saved",
+    "app.save_failed": "Could not save",
 };
 
-const { router } = vi.hoisted(() => ({ router: { post: vi.fn(), delete: vi.fn() } }));
+const { router } = vi.hoisted(() => ({ router: { post: vi.fn(), put: vi.fn(), delete: vi.fn() } }));
 
 vi.mock("@inertiajs/vue3", () => ({
     router,
@@ -165,6 +168,26 @@ describe("Employees/Form", () => {
         expect(checklist.props("endpoint")).toBe("/employees/3/questions");
         expect(checklist.props("answeredIds")).toEqual([5]);
         expect(w.get('[data-testid="panel-availability"]').text()).toContain("Questions");
+    });
+
+    it("shows the shared save-status badge on the Availability panel when a question toggles", async () => {
+        const w = mount(Form, {
+            props: {
+                employee: { id: 3, name: "A", email: "a@b.c", weekly_hours: 24 },
+                holidays: [],
+                questions: [{ id: 5, text: "Can we contact you to work in the weekend?" }],
+                questionAnswers: [],
+            },
+            global: { stubs },
+        });
+
+        const checklist = w.findComponent(QuestionChecklist);
+        expect(checklist.props("saveStatus")).toBeTruthy();
+
+        checklist.props("saveStatus").start();
+        await w.vm.$nextTick();
+
+        expect(w.get('[data-testid="panel-availability"]').text()).toContain("Saving…");
     });
 
     it("omits the questions section when no question is configured", () => {

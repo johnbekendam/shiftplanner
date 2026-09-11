@@ -16,6 +16,8 @@ const props = defineProps({
     emptyKey: { type: String, required: true },
     // Read-only: boxes render but do not toggle (employee change lock).
     disabled: { type: Boolean, default: false },
+    // Shared useSaveStatus() tracker for the card body's SaveStatusBadge.
+    saveStatus: { type: Object, default: null },
 })
 
 // Each write keeps the component and the open tab mounted, the same as
@@ -24,11 +26,19 @@ const stay = { preserveScroll: true, preserveState: true }
 
 function toggle(item, checked) {
     if (props.disabled) return
+
     const url = `${props.endpoint}/${item.id}`
+    const opts = {
+        ...stay,
+        onSuccess: () => props.saveStatus?.succeed(),
+        onError: () => props.saveStatus?.fail(),
+    }
+
+    props.saveStatus?.start()
     if (checked) {
-        router.put(url, {}, stay)
+        router.put(url, {}, opts)
     } else {
-        router.delete(url, stay)
+        router.delete(url, opts)
     }
 }
 </script>

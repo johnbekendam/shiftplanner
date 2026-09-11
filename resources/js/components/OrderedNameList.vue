@@ -17,6 +17,8 @@ const props = defineProps({
     // i18n key namespace: `${i18nPrefix}.name`, `.add`, `.add_placeholder`,
     // `.move_up`, `.move_down`, `.delete`, `.delete_confirm`, `.list_empty`.
     i18nPrefix: { type: String, required: true },
+    // Shared useSaveStatus() tracker for the card body's SaveStatusBadge.
+    saveStatus: { type: Object, default: null },
 })
 
 const t = computed(() => (key, replace) => __(`${props.i18nPrefix}.${key}`, replace))
@@ -48,13 +50,16 @@ watch(names, () => {
 
 function rename(item, next) {
     renaming.add(item.id)
+    props.saveStatus?.start()
     router.put(`${props.endpoint}/${item.id}`, { name: next }, {
         ...stay,
         onSuccess: () => {
             delete errors[item.id]
+            props.saveStatus?.succeed()
         },
         onError: (e) => {
             errors[item.id] = e.name
+            props.saveStatus?.fail()
         },
         onFinish: () => {
             renaming.delete(item.id)
@@ -63,13 +68,23 @@ function rename(item, next) {
 }
 
 function move(item, direction) {
-    router.put(`${props.endpoint}/${item.id}/move`, { direction }, stay)
+    props.saveStatus?.start()
+    router.put(`${props.endpoint}/${item.id}/move`, { direction }, {
+        ...stay,
+        onSuccess: () => props.saveStatus?.succeed(),
+        onError: () => props.saveStatus?.fail(),
+    })
 }
 
 function remove(item) {
     if (!window.confirm(t.value('delete_confirm', { count: item.holder_count }))) return
 
-    router.delete(`${props.endpoint}/${item.id}`, stay)
+    props.saveStatus?.start()
+    router.delete(`${props.endpoint}/${item.id}`, {
+        ...stay,
+        onSuccess: () => props.saveStatus?.succeed(),
+        onError: () => props.saveStatus?.fail(),
+    })
 }
 
 const draft = ref('')
@@ -78,14 +93,17 @@ const busy = ref(false)
 
 function add() {
     busy.value = true
+    props.saveStatus?.start()
     router.post(props.endpoint, { name: draft.value }, {
         ...stay,
         onSuccess: () => {
             draft.value = ''
             addError.value = ''
+            props.saveStatus?.succeed()
         },
         onError: (e) => {
             addError.value = e.name
+            props.saveStatus?.fail()
         },
         onFinish: () => {
             busy.value = false

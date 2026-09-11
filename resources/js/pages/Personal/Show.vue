@@ -12,10 +12,13 @@ import HolidayList from '@/components/HolidayList.vue'
 import QuestionChecklist from '@/components/QuestionChecklist.vue'
 import TagChecklist from '@/components/TagChecklist.vue'
 import ButtonPrimary from '@/components/ui/ButtonPrimary.vue'
+import SaveStatusBadge from '@/components/ui/SaveStatusBadge.vue'
 import { useI18n } from '@/composables/useI18n'
+import { useSaveStatus } from '@/composables/useSaveStatus'
 import { calculateAvailabilityHours } from '@/utils/availabilityHours'
 
 const __ = useI18n()
+const saveStatus = useSaveStatus()
 
 const props = defineProps({
     token: { type: String, required: true },
@@ -67,12 +70,18 @@ const availabilityWarning = computed(() => {
 
 function save() {
     if (!props.editable) return
+    saveStatus.start()
     form
         .transform((data) => ({
             weekly_hours: data.weekly_hours,
             business_line_id: data.business_line_id,
         }))
-        .put(`/personal/${props.token}`, { preserveScroll: true, preserveState: true })
+        .put(`/personal/${props.token}`, {
+            preserveScroll: true,
+            preserveState: true,
+            onSuccess: () => saveStatus.succeed(),
+            onError: () => saveStatus.fail(),
+        })
 }
 
 // Weekly hours lives on the Availability tab and auto-saves on change.
@@ -145,7 +154,9 @@ watch(tab, (next, prev) => {
             </form>
         </div>
 
-        <div v-show="tab === 'availability'" data-testid="panel-availability">
+        <div v-show="tab === 'availability'" data-testid="panel-availability" class="relative">
+            <SaveStatusBadge :status="saveStatus.status.value" />
+
             <section class="mb-6 max-w-xs">
                 <WeeklyHoursField
                     :model-value="form.weekly_hours"
@@ -179,6 +190,7 @@ watch(tab, (next, prev) => {
                     :availability="availability"
                     :endpoint="`/personal/${token}/availability`"
                     :disabled="!editable"
+                    :save-status="saveStatus"
                     @update:availability="onAvailabilityChange"
                 />
                 <ShiftNote v-if="scheduleNoteHtml" :html="scheduleNoteHtml" />
@@ -196,6 +208,7 @@ watch(tab, (next, prev) => {
                         :answered-ids="questionAnswers"
                         :endpoint="`/personal/${token}/questions`"
                         :disabled="!editable"
+                        :save-status="saveStatus"
                     />
                 </section>
             </template>
@@ -206,17 +219,25 @@ watch(tab, (next, prev) => {
                 <h3 class="text-sm font-semibold text-(--color-text-primary)">
                     {{ __('availability.holidays.heading') }}
                 </h3>
-                <HolidayList :holidays="holidays" :endpoint="`/personal/${token}/holidays`" :disabled="!editable" />
+                <HolidayList
+                    :holidays="holidays"
+                    :endpoint="`/personal/${token}/holidays`"
+                    :disabled="!editable"
+                    :save-status="saveStatus"
+                />
             </section>
         </div>
 
-        <div v-show="tab === 'competences'" data-testid="panel-competences">
+        <div v-show="tab === 'competences'" data-testid="panel-competences" class="relative">
+            <SaveStatusBadge :status="saveStatus.status.value" />
+
             <TagChecklist
                 :items="competences"
                 :selected-ids="competenceIds"
                 :endpoint="`/personal/${token}/competences`"
                 empty-key="competences.checklist_empty"
                 :disabled="!editable"
+                :save-status="saveStatus"
             />
         </div>
     </CenteredLayout>

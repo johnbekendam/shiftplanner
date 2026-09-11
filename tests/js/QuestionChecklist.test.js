@@ -74,4 +74,20 @@ describe("QuestionChecklist", () => {
         expect(url).toBe("/employees/7/questions/2");
         expect(data).toEqual({ answer: false });
     });
+
+    it("reports start/succeed/fail to the shared save-status tracker when given one", async () => {
+        const saveStatus = { start: vi.fn(), succeed: vi.fn(), fail: vi.fn() };
+        const w = mountList({ saveStatus });
+        w.findAllComponents(CheckboxInput)[0].vm.$emit("update:modelValue", true);
+        await w.vm.$nextTick();
+
+        expect(saveStatus.start).toHaveBeenCalledTimes(1);
+
+        const opts = router.put.mock.calls[0][2];
+        opts.onSuccess();
+        expect(saveStatus.succeed).toHaveBeenCalledTimes(1);
+
+        opts.onError();
+        expect(saveStatus.fail).toHaveBeenCalledTimes(1);
+    });
 });

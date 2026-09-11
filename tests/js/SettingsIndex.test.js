@@ -34,6 +34,9 @@ const en = {
     "questions.name": "Question",
     "questions.list_empty": "No questions yet.",
     "questions.add_placeholder": "New question",
+    "app.saving": "Saving…",
+    "app.saved": "Saved",
+    "app.save_failed": "Could not save",
 };
 
 const { router } = vi.hoisted(() => ({
@@ -112,6 +115,21 @@ describe("Settings/Index", () => {
         const list = w.findComponent(BusinessLineList);
         expect(list.props("endpoint")).toBe("/settings/business-lines");
         expect(list.props("items")).toHaveLength(1);
+    });
+
+    it("shows the shared save-status badge on the Business lines panel while a row saves", async () => {
+        const w = mountPage({
+            businessLines: [
+                { id: 3, abbreviation: "PMP", description: "Pumps", target_fte: 4, employee_count: 2 },
+            ],
+        });
+        const list = w.findComponent(BusinessLineList);
+        expect(list.props("saveStatus")).toBeTruthy();
+
+        list.props("saveStatus").start();
+        await w.vm.$nextTick();
+
+        expect(w.get('[data-testid="panel-business-lines"]').text()).toContain("Saving…");
     });
 
     it("mounts the competences list against its endpoint and prefix", () => {

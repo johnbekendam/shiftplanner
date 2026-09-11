@@ -1,5 +1,8 @@
 {
     "app.close": "Close",
+    "app.saving": "Saving…",
+    "app.saved": "Saved",
+    "app.save_failed": "Could not save",
 
     "nav.dashboard": "Dashboard",
     "nav.mailbox": "Mailbox",

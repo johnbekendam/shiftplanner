@@ -11,9 +11,12 @@ import ShiftList from '@/components/ShiftList.vue'
 import ShiftNoteForm from '@/components/ShiftNoteForm.vue'
 import ScheduleNoteForm from '@/components/ScheduleNoteForm.vue'
 import PeriodSettingsForm from '@/components/PeriodSettingsForm.vue'
+import SaveStatusBadge from '@/components/ui/SaveStatusBadge.vue'
 import { useI18n } from '@/composables/useI18n'
+import { useSaveStatus } from '@/composables/useSaveStatus'
 
 const __ = useI18n()
+const saveStatus = useSaveStatus()
 
 defineProps({
     competences: { type: Array, default: () => [] },
@@ -45,16 +48,18 @@ const tabs = computed(() => [
                 <Tabs v-model="tab" :tabs="tabs" />
             </template>
 
-            <div v-show="tab === 'business_lines'" data-testid="panel-business-lines" class="p-6">
-                <BusinessLineList :items="businessLines" endpoint="/settings/business-lines" />
+            <div v-show="tab === 'business_lines'" data-testid="panel-business-lines" class="relative p-6">
+                <SaveStatusBadge :status="saveStatus.status.value" />
+                <BusinessLineList :items="businessLines" endpoint="/settings/business-lines" :save-status="saveStatus" />
             </div>
 
             <div v-show="tab === 'general'" data-testid="panel-general" class="p-6">
                 <PeriodSettingsForm :period="period" />
             </div>
 
-            <div v-show="tab === 'shifts'" data-testid="panel-shifts" class="space-y-6 p-6">
-                <ShiftList :items="shifts" endpoint="/settings/shifts" />
+            <div v-show="tab === 'shifts'" data-testid="panel-shifts" class="relative space-y-6 p-6">
+                <SaveStatusBadge :status="saveStatus.status.value" />
+                <ShiftList :items="shifts" endpoint="/settings/shifts" :save-status="saveStatus" />
                 <CardSeparator />
                 <ScheduleNoteForm :note="scheduleNote" />
             </div>
@@ -63,19 +68,23 @@ const tabs = computed(() => [
                 <ShiftNoteForm :note="shiftNote" />
             </div>
 
-            <div v-show="tab === 'questions'" data-testid="panel-questions" class="p-6">
+            <div v-show="tab === 'questions'" data-testid="panel-questions" class="relative p-6">
+                <SaveStatusBadge :status="saveStatus.status.value" />
                 <OrderedNameList
                     :items="questions"
                     endpoint="/settings/questions"
                     i18n-prefix="questions"
+                    :save-status="saveStatus"
                 />
             </div>
 
-            <div v-show="tab === 'competences'" data-testid="panel-competences" class="p-6">
+            <div v-show="tab === 'competences'" data-testid="panel-competences" class="relative p-6">
+                <SaveStatusBadge :status="saveStatus.status.value" />
                 <OrderedNameList
                     :items="competences"
                     endpoint="/settings/competences"
                     i18n-prefix="competences"
+                    :save-status="saveStatus"
                 />
             </div>
         </Card>

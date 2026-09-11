@@ -14,10 +14,13 @@ import QuestionChecklist from '@/components/QuestionChecklist.vue'
 import TagChecklist from '@/components/TagChecklist.vue'
 import ButtonPrimary from '@/components/ui/ButtonPrimary.vue'
 import ButtonSecondary from '@/components/ui/ButtonSecondary.vue'
+import SaveStatusBadge from '@/components/ui/SaveStatusBadge.vue'
 import { useI18n } from '@/composables/useI18n'
+import { useSaveStatus } from '@/composables/useSaveStatus'
 import { calculateAvailabilityHours } from '@/utils/availabilityHours'
 
 const __ = useI18n()
+const saveStatus = useSaveStatus()
 
 const props = defineProps({
     employee: { type: Object, default: null },
@@ -66,7 +69,13 @@ const availabilityWarning = computed(() => {
 })
 
 function save() {
-    form.put(`/employees/${props.employee.id}`, { preserveScroll: true, preserveState: true })
+    saveStatus.start()
+    form.put(`/employees/${props.employee.id}`, {
+        preserveScroll: true,
+        preserveState: true,
+        onSuccess: () => saveStatus.succeed(),
+        onError: () => saveStatus.fail(),
+    })
 }
 
 function submit() {
@@ -157,7 +166,9 @@ watch(tab, (next, prev) => {
                 <p class="text-sm text-(--color-text-secondary)">{{ __('availability.info.cta') }}</p>
             </div>
 
-            <div v-if="isEdit" v-show="tab === 'availability'" data-testid="panel-availability" class="p-6">
+            <div v-if="isEdit" v-show="tab === 'availability'" data-testid="panel-availability" class="relative p-6">
+                <SaveStatusBadge :status="saveStatus.status.value" />
+
                 <section class="mb-6 max-w-xs">
                     <WeeklyHoursField
                         :model-value="form.weekly_hours"
@@ -189,6 +200,7 @@ watch(tab, (next, prev) => {
                         :shifts="shifts"
                         :availability="availability"
                         :endpoint="`/employees/${employee.id}/availability`"
+                        :save-status="saveStatus"
                         show-add-hint
                         @update:availability="onAvailabilityChange"
                     />
@@ -206,6 +218,7 @@ watch(tab, (next, prev) => {
                             :items="questions"
                             :answered-ids="questionAnswers"
                             :endpoint="`/employees/${employee.id}/questions`"
+                            :save-status="saveStatus"
                         />
                     </section>
                 </template>
@@ -216,15 +229,22 @@ watch(tab, (next, prev) => {
                     <h3 class="text-sm font-semibold text-(--color-text-primary)">
                         {{ __('availability.holidays.heading') }}
                     </h3>
-                    <HolidayList :holidays="holidays" :endpoint="`/employees/${employee.id}/holidays`" />
+                    <HolidayList
+                        :holidays="holidays"
+                        :endpoint="`/employees/${employee.id}/holidays`"
+                        :save-status="saveStatus"
+                    />
                 </section>
             </div>
 
-            <div v-if="isEdit" v-show="tab === 'competences'" data-testid="panel-competences" class="p-6">
+            <div v-if="isEdit" v-show="tab === 'competences'" data-testid="panel-competences" class="relative p-6">
+                <SaveStatusBadge :status="saveStatus.status.value" />
+
                 <TagChecklist
                     :items="competences"
                     :selected-ids="competenceIds"
                     :endpoint="`/employees/${employee.id}/competences`"
+                    :save-status="saveStatus"
                     empty-key="competences.checklist_empty"
                 />
             </div>
