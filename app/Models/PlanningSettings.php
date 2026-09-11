@@ -60,7 +60,7 @@ class PlanningSettings extends Model
 
         return (new MarkdownRenderer)->render(
             $note,
-            fn (string $label, string $url): string => '<a data-shift-note-button href="'.e($url).'">'.e($label).'</a>',
+            fn (string $label, string $url): string => '<a data-shift-note-button href="'.e($url).'" target="_blank" rel="noopener noreferrer">'.e($label).'</a>',
             allowUnsafeLinks: true,
         );
     }
@@ -84,7 +84,7 @@ class PlanningSettings extends Model
 
         return (new MarkdownRenderer)->render(
             $note,
-            fn (string $label, string $url): string => '<a data-shift-note-button href="'.e($url).'">'.e($label).'</a>',
+            fn (string $label, string $url): string => '<a data-shift-note-button href="'.e($url).'" target="_blank" rel="noopener noreferrer">'.e($label).'</a>',
             allowUnsafeLinks: true,
         );
     }
