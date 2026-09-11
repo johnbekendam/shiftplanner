@@ -49,11 +49,6 @@ class User extends Authenticatable
         return $this->belongsTo(Employee::class);
     }
 
-    public function loginCodes(): HasMany
-    {
-        return $this->hasMany(LoginCode::class);
-    }
-
     public function loginLinks(): HasMany
     {
         return $this->hasMany(LoginLink::class);

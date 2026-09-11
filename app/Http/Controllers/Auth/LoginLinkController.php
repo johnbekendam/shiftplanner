@@ -12,12 +12,24 @@ class LoginLinkController extends Controller
 {
     public function __construct(private LoginLinkService $links) {}
 
+    public function request(Request $request)
+    {
+        $email = $request->validate(['email' => ['required', 'email']])['email'];
+
+        $this->links->requestLogin($email);
+
+        return back();
+    }
+
     public function show(string $token)
     {
         $link = $this->links->resolve($token);
 
-        if ($link && $link->purpose === LoginLink::PURPOSE_INVITE) {
-            return Inertia::render('Auth/SetPassword', ['token' => $token]);
+        if ($link) {
+            return Inertia::render(
+                $link->purpose === LoginLink::PURPOSE_INVITE ? 'Auth/SetPassword' : 'Auth/SignInLink',
+                ['token' => $token],
+            );
         }
 
         return Inertia::render('Auth/LinkExpired', ['purpose' => $this->purposeOf($token)]);
@@ -27,13 +39,17 @@ class LoginLinkController extends Controller
     {
         $link = $this->links->resolve($token);
 
-        abort_unless($link && $link->purpose === LoginLink::PURPOSE_INVITE, 404);
+        abort_unless($link, 404);
 
-        $data = $request->validate([
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
-        ]);
+        if ($link->purpose === LoginLink::PURPOSE_INVITE) {
+            $data = $request->validate([
+                'password' => ['required', 'string', 'min:8', 'confirmed'],
+            ]);
 
-        $this->links->consumeInvite($link, $data['password']);
+            $this->links->consumeInvite($link, $data['password']);
+        } else {
+            $this->links->consumeLogin($link);
+        }
 
         return redirect()->intended('/');
     }

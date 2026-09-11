@@ -1,7 +1,6 @@
 <?php
 
 use App\Http\Controllers\AccountController;
-use App\Http\Controllers\Auth\LoginCodeController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\LoginLinkController;
 use App\Http\Controllers\BusinessLineController;
@@ -32,8 +31,7 @@ Route::redirect('/', '/dashboard');
 
 Route::get('/login', [LoginController::class, 'showForm'])->name('login');
 Route::post('/login', [LoginController::class, 'store'])->middleware('throttle:6,1');
-Route::post('/login/code', [LoginCodeController::class, 'request'])->middleware('throttle:login-code')->name('login.code.request');
-Route::post('/login/code/verify', [LoginCodeController::class, 'verify'])->middleware('throttle:login-code')->name('login.code.verify');
+Route::post('/login/link', [LoginLinkController::class, 'request'])->middleware('throttle:login-link')->name('login.link.request');
 Route::get('/login/link/{token}', [LoginLinkController::class, 'show'])->name('login.link.show');
 Route::post('/login/link/{token}', [LoginLinkController::class, 'confirm'])->name('login.link.confirm');
 Route::post('/logout', [LoginController::class, 'destroy'])->name('logout');

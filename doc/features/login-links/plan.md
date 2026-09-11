@@ -1,6 +1,6 @@
 # Login Links — Plan
 
-Status: in progress — 2/4
+Status: in progress — 3/4
 
 Spec: `spec.md`. Extends `doc/features/account-management/`.
 
@@ -60,7 +60,7 @@ Spec: `spec.md`. Extends `doc/features/account-management/`.
   LinkExpired` renders the purpose-specific message. Full suites and
   `npm run build` green.
 
-- [ ] 3. **Login-purpose link: request from the login page, sign-in
+- [x] 3. **Login-purpose link: request from the login page, sign-in
   landing page.** Route `POST /login/link` (`LoginLinkController::
   request`, email only, `throttle:login-link` renamed from
   `throttle:login-code`) calls `requestLogin`. `show`/`confirm` extend

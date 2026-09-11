@@ -34,9 +34,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // Its own bucket so code attempts do not consume the password
-        // login throttle. Per-email limiting lives in LoginCodeService.
-        RateLimiter::for('login-code', fn (Request $request) => Limit::perMinute(10)->by($request->ip()));
+        // Its own bucket so link requests do not consume the password
+        // login throttle. Per-email limiting lives in LoginLinkService.
+        RateLimiter::for('login-link', fn (Request $request) => Limit::perMinute(10)->by($request->ip()));
 
         // The `graph` mailer — inert until MAIL_MAILER=graph and GRAPH_* are set.
         Mail::extend('graph', fn (array $config) => new GraphTransport(

@@ -7,19 +7,16 @@ const en = {
     "auth.card_title": "Sign in to your account",
     "auth.field.email": "Email",
     "auth.field.password": "Password",
-    "auth.field.code": "Sign-in code",
     "auth.action.signin": "Sign in",
     "auth.action.signing_in": "Signing in…",
-    "auth.action.request_code": "Email me a code",
-    "auth.action.verify_code": "Verify",
-    "auth.code_sent": "If that email matches an account, a code is on the way.",
+    "auth.action.request_link": "Email me a login link",
+    "auth.link_sent": "If that email matches an account, a link is on the way.",
     "signup.login_link": "Request your personal link",
 };
 
 const form = reactive({
     email: "",
     password: "",
-    code: "",
     errors: {},
     processing: false,
     calls: [],
@@ -51,17 +48,17 @@ beforeEach(() => {
     form.errors = {};
     form.email = "";
     form.password = "";
-    form.code = "";
 });
 
 describe("Auth/Login", () => {
-    it("shows email, password, Sign in, and Email me a code", () => {
+    it("shows email, password, Sign in, and Email me a login link — no code field", () => {
         const w = mountLogin();
         expect(w.text()).toContain("Sign in to your account");
-        expect(w.text()).toContain("Email me a code");
+        expect(w.text()).toContain("Email me a login link");
         const pwd = w.find('input[type="password"]');
         expect(pwd.exists()).toBe(true);
         expect(pwd.attributes("required")).toBeUndefined();
+        expect(w.find('[data-testid="code-section"]').exists()).toBe(false);
     });
 
     it("links to the self-signup page", () => {
@@ -77,23 +74,15 @@ describe("Auth/Login", () => {
         expect(form.calls).toContain("/login");
     });
 
-    it("requests a code, then reveals the code field and the notice", async () => {
+    it("requests a login link and shows the notice", async () => {
         const w = mountLogin();
-        expect(w.find('[data-testid="code-section"]').exists()).toBe(false);
+        expect(w.find('[data-testid="link-notice"]').exists()).toBe(false);
 
-        const codeBtn = w.findAll("button").find((b) => b.text() === "Email me a code");
-        await codeBtn.trigger("click");
+        const btn = w.findAll("button").find((b) => b.text() === "Email me a login link");
+        await btn.trigger("click");
 
-        expect(form.calls).toContain("/login/code");
-        expect(w.find('[data-testid="code-section"]').exists()).toBe(true);
+        expect(form.calls).toContain("/login/link");
+        expect(w.find('[data-testid="link-notice"]').exists()).toBe(true);
         expect(w.text()).toContain("If that email matches an account");
-    });
-
-    it("verifies the code against /login/code/verify", async () => {
-        const w = mountLogin();
-        await w.findAll("button").find((b) => b.text() === "Email me a code").trigger("click");
-        await w.get('[data-testid="code-section"]').get("form").trigger("submit");
-
-        expect(form.calls).toContain("/login/code/verify");
     });
 });
