@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import { Head, router, useForm } from '@inertiajs/vue3'
 import CenteredLayout from '@/layouts/CenteredLayout.vue'
+import CardSeparator from '@/components/ui/CardSeparator.vue'
 import LabeledInput from '@/components/LabeledInput.vue'
 import { PasswordInput } from '@/components/ui/Input'
 import ButtonPrimary from '@/components/ui/ButtonPrimary.vue'
@@ -33,7 +34,15 @@ function skip() {
 
         <template #title>{{ __('auth.setpw.title') }}</template>
 
-        <p class="mb-6 text-sm text-(--color-text-secondary)">{{ __('auth.setpw.intro') }}</p>
+        <p class="text-sm text-(--color-text-secondary)">{{ __('auth.setpw.intro') }}</p>
+
+        <div class="mt-6 flex justify-end">
+            <ButtonSecondary type="button" :disabled="form.processing || skipping" @click="skip">
+                {{ __('auth.setpw.skip') }}
+            </ButtonSecondary>
+        </div>
+
+        <CardSeparator />
 
         <form @submit.prevent="submit" class="space-y-5">
             <LabeledInput :label="__('auth.setpw.field.password')" :error="form.errors.password">
@@ -44,10 +53,7 @@ function skip() {
                 <PasswordInput v-model="form.password_confirmation" autocomplete="new-password" class="w-full" />
             </LabeledInput>
 
-            <div class="flex items-center justify-between gap-3">
-                <ButtonSecondary type="button" :disabled="form.processing || skipping" @click="skip">
-                    {{ __('auth.setpw.skip') }}
-                </ButtonSecondary>
+            <div class="flex justify-end">
                 <ButtonPrimary type="submit" :disabled="form.processing || skipping">
                     {{ __('auth.setpw.submit') }}
                 </ButtonPrimary>
