@@ -4,6 +4,10 @@ A public page where a person requests the link to their own personal
 page. The request creates the employee if none exists yet, then sends the
 link.
 
+`Signup.vue`, named in this document, is now the "Get my link" tab of
+`Auth/AccessCard.vue`. See `doc/features/auth-tabbed-card/spec.md` for
+the current page layout.
+
 ## Problem
 
 Today an admin creates every employee by hand, or by CSV import, and

@@ -1,6 +1,6 @@
 # Auth Tabbed Card — Plan
 
-Status: in progress — 1/2
+Status: done — 2/2
 
 Spec: `spec.md`.
 
@@ -37,7 +37,7 @@ Spec: `spec.md`.
   works. Run the full PHP and JS suites and `npm run build`. All must
   pass.
 
-- [ ] 2. **Docs.** Add a one-line note to
+- [x] 2. **Docs.** Add a one-line note to
   `doc/features/login-links/spec.md` and
   `doc/features/employee-self-signup/spec.md`, each pointing at
   `auth-tabbed-card` for the current page layout. This stops a future

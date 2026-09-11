@@ -3,6 +3,10 @@
 Replaces the account-management login code with an emailed link. Extends
 `doc/features/account-management/`.
 
+`Auth/Login.vue`, named in this document, is now the "Sign in" tab of
+`Auth/AccessCard.vue`. See `doc/features/auth-tabbed-card/spec.md` for
+the current page layout.
+
 ## Problem
 
 `account-management` shipped `/users` create with no password and no
