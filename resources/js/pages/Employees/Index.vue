@@ -266,9 +266,7 @@ function bulkDelete() {
                                             ? __('employees.action.sending_link')
                                             : linkSentId === employee.id
                                               ? __('employees.action.link_sent')
-                                              : employee.link_sent
-                                                ? __('employees.action.resend_link')
-                                                : __('employees.action.send_link')
+                                              : __('employees.action.send_link')
                                     }}
                                 </ButtonSecondary>
                             </td>

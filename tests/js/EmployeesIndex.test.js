@@ -12,7 +12,6 @@ const en = {
     "employees.no_business_line": "—",
     "employees.action.new": "New employee",
     "employees.action.send_link": "Send link",
-    "employees.action.resend_link": "Resend link",
     "employees.action.sending_link": "Sending…",
     "employees.action.link_sent": "Sent",
     "employees.action.delete_selected": "Delete selected",
@@ -45,7 +44,6 @@ const employees = {
             name: "Ann Ant",
             business_line: "PMP",
             weekly_hours: 24,
-            link_sent: false,
             shift_coverage: [
                 { shift_id: 1, name: "Morning", coverage_percentage: 100 },
                 { shift_id: 2, name: "Evening", coverage_percentage: 60 },
@@ -56,7 +54,6 @@ const employees = {
             name: "Bo Bee",
             business_line: null,
             weekly_hours: 40,
-            link_sent: true,
             shift_coverage: [
                 { shift_id: 1, name: "Morning", coverage_percentage: 20 },
                 { shift_id: 2, name: "Evening", coverage_percentage: 100 },
@@ -150,13 +147,13 @@ describe("Employees/Index", () => {
         expect(router.get.mock.calls[0][1]).toEqual({ sort: undefined, direction: "desc" });
     });
 
-    it("shows Send link / Resend link per row and posts straight to the outbox", async () => {
+    it("shows Send link for every row and posts straight to the outbox", async () => {
         const w = mountIndex();
         const rows = w.findAll("tbody tr");
 
         const first = rows[0].find("td:last-child button");
         expect(first.text()).toBe("Send link");
-        expect(rows[1].find("td:last-child button").text()).toBe("Resend link");
+        expect(rows[1].find("td:last-child button").text()).toBe("Send link");
 
         await first.trigger("click");
 

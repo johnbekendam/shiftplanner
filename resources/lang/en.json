@@ -113,7 +113,6 @@
     "employees.action.create": "Create",
     "employees.action.cancel": "Cancel",
     "employees.action.send_link": "Send link",
-    "employees.action.resend_link": "Resend link",
     "employees.action.sending_link": "Sending…",
     "employees.action.link_sent": "Sent",
     "employees.action.delete_selected": "Delete",

@@ -272,30 +272,6 @@ class EmployeeAdminTest extends TestCase
         $this->assertSame(1, $employee->personalLink()->count());
     }
 
-    public function test_index_marks_whether_a_personal_link_was_sent(): void
-    {
-        $user = User::factory()->create();
-        $sent = Employee::factory()->create(['first_name' => 'Aa', 'last_name' => 'Sent', 'email' => 'sent@example.com']);
-        Employee::factory()->create(['first_name' => 'Bb', 'last_name' => 'Fresh', 'email' => 'fresh@example.com']);
-
-        Message::factory()->sent()->create([
-            'type' => MessageType::PersonalPageLink,
-            'recipient_email' => 'sent@example.com',
-        ]);
-        // A draft to the same address does not count.
-        Message::factory()->create([
-            'type' => MessageType::PersonalPageLink,
-            'recipient_email' => 'fresh@example.com',
-            'status' => 'draft',
-        ]);
-
-        $this->actingAs($user)->get('/employees')->assertInertia(fn ($page) => $page
-            ->where('employees.data.0.name', 'Aa Sent')
-            ->where('employees.data.0.link_sent', true)
-            ->where('employees.data.1.link_sent', false)
-        );
-    }
-
     public function test_edit_payload_carries_link_sent(): void
     {
         $user = User::factory()->create();

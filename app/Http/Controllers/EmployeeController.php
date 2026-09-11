@@ -61,13 +61,6 @@ class EmployeeController extends Controller
 
         $employees = $query->paginate(15)->withQueryString();
 
-        $linkSent = Message::query()
-            ->where('type', MessageType::PersonalPageLink)
-            ->where('status', 'sent')
-            ->whereIn('recipient_email', $employees->pluck('email'))
-            ->pluck('recipient_email')
-            ->flip();
-
         $shifts = Shift::all();
 
         $employees = $employees->through(fn (Employee $employee) => [
@@ -76,7 +69,6 @@ class EmployeeController extends Controller
             'business_line' => $employee->businessLine?->abbreviation,
             'weekly_hours' => $employee->weekly_hours,
             'shift_coverage' => $this->shiftCoverage($employee, $shifts),
-            'link_sent' => $linkSent->has($employee->email),
         ]);
 
         return Inertia::render('Employees/Index', [
