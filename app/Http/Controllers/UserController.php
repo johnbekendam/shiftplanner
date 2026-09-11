@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Services\Auth\LoginLinkService;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -10,6 +11,8 @@ use Inertia\Inertia;
 
 class UserController extends Controller
 {
+    public function __construct(private LoginLinkService $links) {}
+
     public function index()
     {
         $users = User::query()->orderBy('name')->get()->map(fn (User $user) => [
@@ -31,13 +34,24 @@ class UserController extends Controller
 
     public function store(Request $request)
     {
-        User::create($request->validate([
+        $user = User::create($request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')],
             'role' => ['required', Rule::in(User::ROLES)],
         ]));
 
+        $this->links->sendInvite($user);
+
         return redirect('/users')->with('success', __('users.flash.created'));
+    }
+
+    public function resendInvite(User $user)
+    {
+        abort_if($user->password !== null, 404);
+
+        $this->links->sendInvite($user);
+
+        return back()->with('success', __('users.flash.invite_resent'));
     }
 
     public function edit(User $user)

@@ -1,6 +1,6 @@
 # Login Links — Plan
 
-Status: in progress — 1/4
+Status: in progress — 2/4
 
 Spec: `spec.md`. Extends `doc/features/account-management/`.
 
@@ -33,7 +33,7 @@ Spec: `spec.md`. Extends `doc/features/account-management/`.
   service-level tests only — nothing is wired to a route yet. Full PHP
   suite green, including the untouched `LoginCodeTest`.
 
-- [ ] 2. **Invite flow: create, resend, and the set-password landing
+- [x] 2. **Invite flow: create, resend, and the set-password landing
   page.** `UserController::store` calls `sendInvite` after creating the
   row. New `POST /users/{user}/resend-invite` (admin-only, `abort_if`
   when `has_password` is true) calling `sendInvite` again. `Users/

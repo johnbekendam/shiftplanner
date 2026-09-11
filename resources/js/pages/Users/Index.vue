@@ -3,6 +3,7 @@ import { Head, Link, router } from '@inertiajs/vue3'
 import AppLayout from '@/layouts/AppLayout.vue'
 import Card from '@/components/ui/Card.vue'
 import ButtonPrimary from '@/components/ui/ButtonPrimary.vue'
+import ButtonSecondary from '@/components/ui/ButtonSecondary.vue'
 import { useI18n } from '@/composables/useI18n'
 
 const __ = useI18n()
@@ -13,6 +14,10 @@ defineProps({
 
 function openUser(user) {
     router.visit(`/users/${user.id}/edit`)
+}
+
+function resendInvite(user) {
+    router.post(`/users/${user.id}/resend-invite`, {}, { preserveScroll: true })
 }
 </script>
 
@@ -38,6 +43,7 @@ function openUser(user) {
                             <th class="py-2">{{ __('users.column.email') }}</th>
                             <th class="py-2">{{ __('users.column.role') }}</th>
                             <th class="py-2">{{ __('users.column.status') }}</th>
+                            <th class="py-2"></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -54,9 +60,19 @@ function openUser(user) {
                             <td class="py-2 text-(--color-text-secondary)">
                                 {{ user.is_active ? __('users.status.active') : __('users.status.inactive') }}
                             </td>
+                            <td class="py-2 text-right">
+                                <ButtonSecondary
+                                    v-if="!user.has_password"
+                                    type="button"
+                                    data-testid="resend-invite"
+                                    @click.stop="resendInvite(user)"
+                                >
+                                    {{ __('users.action.resend_invite') }}
+                                </ButtonSecondary>
+                            </td>
                         </tr>
                         <tr v-if="!users.length">
-                            <td colspan="4" class="py-8 text-center text-(--color-text-secondary)">
+                            <td colspan="5" class="py-8 text-center text-(--color-text-secondary)">
                                 {{ __('users.empty') }}
                             </td>
                         </tr>

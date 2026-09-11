@@ -3,6 +3,7 @@
 use App\Http\Controllers\AccountController;
 use App\Http\Controllers\Auth\LoginCodeController;
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\Auth\LoginLinkController;
 use App\Http\Controllers\BusinessLineController;
 use App\Http\Controllers\CompetenceController;
 use App\Http\Controllers\DashboardController;
@@ -33,6 +34,8 @@ Route::get('/login', [LoginController::class, 'showForm'])->name('login');
 Route::post('/login', [LoginController::class, 'store'])->middleware('throttle:6,1');
 Route::post('/login/code', [LoginCodeController::class, 'request'])->middleware('throttle:login-code')->name('login.code.request');
 Route::post('/login/code/verify', [LoginCodeController::class, 'verify'])->middleware('throttle:login-code')->name('login.code.verify');
+Route::get('/login/link/{token}', [LoginLinkController::class, 'show'])->name('login.link.show');
+Route::post('/login/link/{token}', [LoginLinkController::class, 'confirm'])->name('login.link.confirm');
 Route::post('/logout', [LoginController::class, 'destroy'])->name('logout');
 
 // Public employee self-signup — features/employee-self-signup/.
@@ -85,6 +88,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/users', [UserController::class, 'store'])->name('users.store');
         Route::get('/users/{user}/edit', [UserController::class, 'edit'])->name('users.edit');
         Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update');
+        Route::post('/users/{user}/resend-invite', [UserController::class, 'resendInvite'])->name('users.resend-invite');
     }); // end admin group
 
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard.index');

@@ -2,8 +2,12 @@
 
 namespace Tests\Feature\Auth;
 
+use App\Mail\LoginLinkMail;
+use App\Models\LoginLink;
 use App\Models\User;
+use App\Services\Auth\LoginLinkService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
 
 class UserManagementTest extends TestCase
@@ -46,6 +50,8 @@ class UserManagementTest extends TestCase
 
     public function test_admin_creates_a_password_less_user(): void
     {
+        Mail::fake();
+
         $this->actingAs($this->admin())
             ->post('/users', ['name' => 'Mel', 'email' => 'mel@example.com', 'role' => 'manager'])
             ->assertRedirect('/users');
@@ -54,6 +60,58 @@ class UserManagementTest extends TestCase
         $this->assertNull($user->password);
         $this->assertSame(User::ROLE_MANAGER, $user->role);
         $this->assertTrue($user->is_active);
+    }
+
+    public function test_creating_a_user_sends_an_invite_link(): void
+    {
+        Mail::fake();
+
+        $this->actingAs($this->admin())
+            ->post('/users', ['name' => 'Mel', 'email' => 'mel@example.com', 'role' => 'manager']);
+
+        $user = User::whereEmail('mel@example.com')->sole();
+        Mail::assertSent(LoginLinkMail::class, fn (LoginLinkMail $mail) => $mail->purpose === LoginLink::PURPOSE_INVITE);
+        $this->assertSame(1, $user->loginLinks()->live()->count());
+    }
+
+    // ── Resend invite ───────────────────────────────────────────────────
+
+    public function test_a_manager_cannot_resend_an_invite(): void
+    {
+        Mail::fake();
+        $target = User::factory()->passwordless()->create();
+
+        $this->actingAs(User::factory()->create())
+            ->post("/users/{$target->id}/resend-invite")
+            ->assertForbidden();
+    }
+
+    public function test_resend_invite_is_refused_once_the_user_has_a_password(): void
+    {
+        Mail::fake();
+        $target = User::factory()->create();
+
+        $this->actingAs($this->admin())
+            ->post("/users/{$target->id}/resend-invite")
+            ->assertNotFound();
+
+        Mail::assertNothingSent();
+    }
+
+    public function test_admin_resends_an_invite_and_voids_the_previous_link(): void
+    {
+        Mail::fake();
+        $target = User::factory()->passwordless()->create();
+        app(LoginLinkService::class)->sendInvite($target);
+        $first = $target->loginLinks()->sole();
+
+        $this->actingAs($this->admin())
+            ->post("/users/{$target->id}/resend-invite")
+            ->assertRedirect();
+
+        $this->assertNotNull($first->fresh()->consumed_at);
+        $this->assertSame(1, $target->loginLinks()->live()->count());
+        Mail::assertSent(LoginLinkMail::class, 2);
     }
 
     public function test_a_duplicate_email_is_rejected(): void
