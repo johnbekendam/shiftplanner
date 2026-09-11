@@ -111,6 +111,8 @@
     "employees.action.new": "Add new",
     "employees.action.save": "Save",
     "employees.action.create": "Create",
+    "employees.action.saving": "Saving…",
+    "employees.action.saved": "Saved",
     "employees.action.cancel": "Cancel",
     "employees.action.send_link": "Send link",
     "employees.action.sending_link": "Sending…",
@@ -139,6 +141,7 @@
 
     "personal.title": "Your working hours",
     "personal.action.save": "Save",
+    "personal.action.saving": "Saving…",
     "personal.saved": "Saved",
     "personal.flash.saved": "Hours saved.",
     "personal.locked_notice": "Changes are currently closed by your planner. You can still view your details.",

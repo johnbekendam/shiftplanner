@@ -13,6 +13,7 @@ const en = {
     "employees.hours_below_minimum": "I can only work less than :min hours",
     "personal.title": "Your working hours",
     "personal.action.save": "Save",
+    "personal.action.saving": "Saving…",
     "personal.saved": "Saved",
     "personal.locked_notice": "Changes are currently closed by your planner.",
     "availability.tab.information": "Information",
@@ -208,6 +209,25 @@ describe("Personal/Show", () => {
 
         expect(form.lastPut.url).toBe("/personal/tok-1");
         expect(form.lastPut.data).toEqual({ weekly_hours: 24, business_line_id: null });
+    });
+
+    it("shows Saving… while processing and Saved right after success", async () => {
+        const w = mountShow();
+        const button = () => w.get('[data-testid="panel-details"] button[type="submit"]');
+
+        expect(button().text()).toBe("Save");
+
+        form.processing = true;
+        await w.vm.$nextTick();
+        expect(button().text()).toBe("Saving…");
+
+        form.processing = false;
+        form.recentlySuccessful = true;
+        await w.vm.$nextTick();
+        expect(button().text()).toBe("Saved");
+
+        // Reset shared form state so it does not leak into later tests.
+        form.recentlySuccessful = false;
     });
 
     it("auto-saves when the business line changes, and keeps the Save button", async () => {

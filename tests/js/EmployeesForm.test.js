@@ -27,9 +27,10 @@ const en = {
     "employees.form.create_title": "Add employee",
     "employees.action.save": "Save",
     "employees.action.create": "Create",
+    "employees.action.saving": "Saving…",
+    "employees.action.saved": "Saved",
     "employees.action.cancel": "Cancel",
     "employees.action.send_link": "Send link",
-    "employees.action.resend_link": "Resend link",
 };
 
 const { router } = vi.hoisted(() => ({ router: { post: vi.fn(), delete: vi.fn() } }));
@@ -39,7 +40,15 @@ vi.mock("@inertiajs/vue3", () => ({
     Head: { name: "Head", render: () => null },
     Link: { name: "Link", props: ["href"], template: '<a :href="href"><slot /></a>' },
     usePage: () => ({ props: { translations: en } }),
-    useForm: (initial) => reactive({ ...initial, errors: {}, processing: false, isDirty: false, put: vi.fn(), post: vi.fn() }),
+    useForm: (initial) => reactive({
+        ...initial,
+        errors: {},
+        processing: false,
+        recentlySuccessful: false,
+        isDirty: false,
+        put: vi.fn(),
+        post: vi.fn(),
+    }),
 }));
 
 import Form from "@/pages/Employees/Form.vue";
@@ -367,5 +376,25 @@ describe("Employees/Form", () => {
         await w.vm.$nextTick();
 
         expect(form.put).not.toHaveBeenCalled();
+    });
+
+    it("shows Saving… while processing and Saved right after success", async () => {
+        const w = mount(Form, {
+            props: { employee: { id: 3, first_name: "A", last_name: "B", email: "a@b.c", weekly_hours: 24 }, holidays: [] },
+            global: { stubs },
+        });
+        const form = w.findComponent(EmployeeFields).props("form");
+        const button = () => w.get('[data-testid="panel-details"] button[type="submit"]');
+
+        expect(button().text()).toBe("Save");
+
+        form.processing = true;
+        await w.vm.$nextTick();
+        expect(button().text()).toBe("Saving…");
+
+        form.processing = false;
+        form.recentlySuccessful = true;
+        await w.vm.$nextTick();
+        expect(button().text()).toBe("Saved");
     });
 });

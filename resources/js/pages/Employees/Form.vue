@@ -129,8 +129,20 @@ watch(tab, (next, prev) => {
                         <Link href="/employees">
                             <ButtonSecondary type="button">{{ __('employees.action.cancel') }}</ButtonSecondary>
                         </Link>
-                        <ButtonPrimary type="submit" :disabled="form.processing">
-                            {{ isEdit ? __('employees.action.save') : __('employees.action.create') }}
+                        <ButtonPrimary
+                            type="submit"
+                            :disabled="form.processing"
+                            :icon="form.recentlySuccessful ? 'check-circle' : null"
+                        >
+                            {{
+                                form.processing
+                                    ? __('employees.action.saving')
+                                    : form.recentlySuccessful
+                                      ? __('employees.action.saved')
+                                      : isEdit
+                                        ? __('employees.action.save')
+                                        : __('employees.action.create')
+                            }}
                         </ButtonPrimary>
                     </div>
                 </form>

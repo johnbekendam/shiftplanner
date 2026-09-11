@@ -128,11 +128,18 @@ watch(tab, (next, prev) => {
                 <EmployeeFields :form="form" :business-lines="businessLines" readonly-identity :disabled="!editable" />
 
                 <div v-if="editable" class="flex items-center justify-end gap-3">
-                    <span v-if="form.recentlySuccessful" class="text-sm text-(--color-badge-success-text)">
-                        {{ __('personal.saved') }}
-                    </span>
-                    <ButtonPrimary type="submit" :disabled="form.processing">
-                        {{ __('personal.action.save') }}
+                    <ButtonPrimary
+                        type="submit"
+                        :disabled="form.processing"
+                        :icon="form.recentlySuccessful ? 'check-circle' : null"
+                    >
+                        {{
+                            form.processing
+                                ? __('personal.action.saving')
+                                : form.recentlySuccessful
+                                  ? __('personal.saved')
+                                  : __('personal.action.save')
+                        }}
                     </ButtonPrimary>
                 </div>
             </form>
