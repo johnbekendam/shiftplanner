@@ -155,11 +155,11 @@ describe("Settings/Index", () => {
         expect(byEndpoint["/settings/questions"].props("items")).toHaveLength(1);
     });
 
-    it("opens on the Business lines panel and switches on a tab click", async () => {
+    it("opens on the General panel and switches on a tab click", async () => {
         const w = mountPage();
         const hidden = (sel) => (w.get(sel).attributes("style") ?? "").includes("display: none");
 
-        expect(hidden('[data-testid="panel-business-lines"]')).toBe(false);
+        expect(hidden('[data-testid="panel-general"]')).toBe(false);
         expect(hidden('[data-testid="panel-shifts"]')).toBe(true);
 
         const tab = w.findAll("button").find((b) => b.text() === "Shifts");
@@ -167,6 +167,6 @@ describe("Settings/Index", () => {
         await w.vm.$nextTick();
 
         expect(hidden('[data-testid="panel-shifts"]')).toBe(false);
-        expect(hidden('[data-testid="panel-business-lines"]')).toBe(true);
+        expect(hidden('[data-testid="panel-general"]')).toBe(true);
     });
 });
