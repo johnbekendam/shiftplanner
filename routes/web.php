@@ -34,6 +34,7 @@ Route::post('/login', [LoginController::class, 'store'])->middleware('throttle:6
 Route::post('/login/link', [LoginLinkController::class, 'request'])->middleware('throttle:login-link')->name('login.link.request');
 Route::get('/login/link/{token}', [LoginLinkController::class, 'show'])->name('login.link.show');
 Route::post('/login/link/{token}', [LoginLinkController::class, 'confirm'])->name('login.link.confirm');
+Route::post('/login/link/{token}/skip', [LoginLinkController::class, 'skip'])->name('login.link.skip');
 Route::post('/logout', [LoginController::class, 'destroy'])->name('logout');
 
 // Public employee self-signup — features/employee-self-signup/.

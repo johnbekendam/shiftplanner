@@ -54,6 +54,18 @@ class LoginLinkController extends Controller
         return redirect()->intended('/');
     }
 
+    /** Sign in on the invite link itself, without setting a password. */
+    public function skip(string $token)
+    {
+        $link = $this->links->resolve($token);
+
+        abort_unless($link && $link->purpose === LoginLink::PURPOSE_INVITE, 404);
+
+        $this->links->consumeLogin($link);
+
+        return redirect()->intended('/');
+    }
+
     /** The purpose of a token that did not resolve live, for the expired page's copy. Null when the token is unknown. */
     private function purposeOf(string $token): ?string
     {

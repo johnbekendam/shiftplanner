@@ -4,10 +4,11 @@ import { reactive } from "vue";
 
 const en = {
     "auth.setpw.title": "Set your password",
-    "auth.setpw.intro": "A password is optional. You can also sign in from the login page with a link sent to your email, with no password to remember.",
+    "auth.setpw.intro": "A password is optional. Set one below, or continue without one.",
     "auth.setpw.field.password": "Password",
     "auth.setpw.field.confirm": "Confirm password",
     "auth.setpw.submit": "Set password and sign in",
+    "auth.setpw.skip": "Continue without password",
 };
 
 const form = reactive({
@@ -21,8 +22,11 @@ const form = reactive({
     },
 });
 
+const { router } = vi.hoisted(() => ({ router: { post: vi.fn((url, data, opts) => opts?.onFinish?.()) } }));
+
 vi.mock("@inertiajs/vue3", () => ({
     Head: { name: "Head", render: () => null },
+    router,
     useForm: () => form,
 }));
 
@@ -40,6 +44,7 @@ beforeEach(() => {
     form.errors = {};
     form.password = "";
     form.password_confirmation = "";
+    router.post.mockClear();
 });
 
 describe("Auth/SetPassword", () => {
@@ -53,5 +58,16 @@ describe("Auth/SetPassword", () => {
         await w.find("form").trigger("submit");
 
         expect(form.calls).toContain("/login/link/abc123");
+    });
+
+    it("shows Continue without password and posts to the skip route", async () => {
+        const w = mountPage();
+        const btn = w.findAll("button").find((b) => b.text() === "Continue without password");
+        expect(btn).toBeTruthy();
+
+        await btn.trigger("click");
+
+        expect(router.post).toHaveBeenCalledWith("/login/link/abc123/skip", {}, expect.anything());
+        expect(form.calls).toEqual([]);
     });
 });

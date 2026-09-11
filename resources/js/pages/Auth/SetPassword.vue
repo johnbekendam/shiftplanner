@@ -1,9 +1,11 @@
 <script setup>
-import { Head, useForm } from '@inertiajs/vue3'
+import { ref } from 'vue'
+import { Head, router, useForm } from '@inertiajs/vue3'
 import CenteredLayout from '@/layouts/CenteredLayout.vue'
 import LabeledInput from '@/components/LabeledInput.vue'
 import { PasswordInput } from '@/components/ui/Input'
 import ButtonPrimary from '@/components/ui/ButtonPrimary.vue'
+import ButtonSecondary from '@/components/ui/ButtonSecondary.vue'
 import { useI18n } from '@/composables/useI18n'
 
 const __ = useI18n()
@@ -13,9 +15,15 @@ const props = defineProps({
 })
 
 const form = useForm({ password: '', password_confirmation: '' })
+const skipping = ref(false)
 
 function submit() {
     form.post(`/login/link/${props.token}`)
+}
+
+function skip() {
+    skipping.value = true
+    router.post(`/login/link/${props.token}/skip`, {}, { onFinish: () => (skipping.value = false) })
 }
 </script>
 
@@ -36,8 +44,11 @@ function submit() {
                 <PasswordInput v-model="form.password_confirmation" autocomplete="new-password" class="w-full" />
             </LabeledInput>
 
-            <div class="flex justify-end">
-                <ButtonPrimary type="submit" :disabled="form.processing">
+            <div class="flex items-center justify-between gap-3">
+                <ButtonSecondary type="button" :disabled="form.processing || skipping" @click="skip">
+                    {{ __('auth.setpw.skip') }}
+                </ButtonSecondary>
+                <ButtonPrimary type="submit" :disabled="form.processing || skipping">
                     {{ __('auth.setpw.submit') }}
                 </ButtonPrimary>
             </div>

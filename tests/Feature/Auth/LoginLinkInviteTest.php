@@ -102,4 +102,39 @@ class LoginLinkInviteTest extends TestCase
             'password_confirmation' => 'a-new-password',
         ])->assertNotFound();
     }
+
+    // ── Skip password ───────────────────────────────────────────────────
+
+    public function test_skip_signs_in_and_consumes_the_link_without_a_password(): void
+    {
+        $user = User::factory()->passwordless()->create();
+        $token = $this->inviteToken($user);
+
+        $this->post("/login/link/{$token}/skip")->assertRedirect('/');
+
+        $this->assertAuthenticatedAs($user);
+        $this->assertNull($user->fresh()->password);
+        $this->assertNotNull($user->loginLinks()->sole()->consumed_at);
+    }
+
+    public function test_skip_on_an_expired_invite_link_is_a_404(): void
+    {
+        $user = User::factory()->passwordless()->create();
+        $token = $this->inviteToken($user);
+        $user->loginLinks()->sole()->update(['expires_at' => now()->subMinute()]);
+
+        $this->post("/login/link/{$token}/skip")->assertNotFound();
+        $this->assertGuest();
+    }
+
+    public function test_skip_on_a_login_purpose_link_is_a_404(): void
+    {
+        Mail::fake();
+        $user = User::factory()->create();
+        app(LoginLinkService::class)->requestLogin($user->email);
+        $token = basename(Mail::sent(LoginLinkMail::class)->last()->url);
+
+        $this->post("/login/link/{$token}/skip")->assertNotFound();
+        $this->assertGuest();
+    }
 }

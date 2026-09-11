@@ -1,6 +1,6 @@
 # Login Links — Plan
 
-Status: done — 4/4
+Status: done — 5/5
 
 Spec: `spec.md`. Extends `doc/features/account-management/`.
 
@@ -97,6 +97,24 @@ Spec: `spec.md`. Extends `doc/features/account-management/`.
   code. Set this `plan.md` header to `4/4`. Run Pint, `php artisan
   test`, `npm run test`, `npm run build`, and `php artisan migrate` on
   the dev database — all green.
+
+- [x] 5. **Continue without password on the set-password page.** The
+  page's copy pointed at the login page's link action but gave no way to
+  act on it there, and the form's `required` password fields made the
+  page unskippable. Route `POST /login/link/{token}/skip`
+  (`LoginLinkController::skip`): resolve the token, `abort_unless`
+  purpose is `invite`, call `consumeLogin($link)` (already
+  purpose-agnostic — sign in and consume, no password touched),
+  redirect to `/`. `Auth/SetPassword.vue`: drop the login-page mention
+  from the intro; add a **Continue without password** `ButtonSecondary`
+  next to the submit button, posting to the skip route. `auth.setpw.*`
+  i18n: replace the intro line, add `auth.setpw.skip`. Tests: skip on a
+  live invite link signs in, consumes the link, and sets no password;
+  skip on an expired/consumed link is a 404; skip on a login-purpose
+  link is a 404 (only invite links expose this). Vitest: `Auth/
+  SetPassword` shows **Continue without password** and posts to
+  `/login/link/{token}/skip` on click, without touching the password
+  fields. Full suites and `npm run build` green.
 
 ## Not done / deferred
 

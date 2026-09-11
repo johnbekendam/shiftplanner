@@ -96,10 +96,12 @@ POST.
 - `login` purpose: the page shows a **Sign in** button. Its POST calls
   `consumeLogin` and redirects to `/`.
 - `invite` purpose: the page shows the password-set form (password +
-  confirmation), plus a line explaining a password is optional and a
-  login link can be requested from the login page instead. Its POST
+  confirmation) and a **Continue without password** action. Its POST
   (`/login/link/{token}`, with `password` and `password_confirmation`)
-  calls `consumeInvite` and redirects to `/`.
+  calls `consumeInvite` and redirects to `/`. **Continue without
+  password** posts to `/login/link/{token}/skip`, which signs the user
+  in and consumes the link immediately — no password set, no email sent.
+  Next time, the person uses the login page's **Email me a login link**.
 - An expired or already-consumed link renders a short explanation.
   `login` purpose: a link back to the login page to request a new one.
   `invite` purpose: text to contact an admin — only an admin resends an
@@ -148,6 +150,12 @@ copy, the notice text, button labels) and loses the code-only keys
   Forgot-password and passwordless-login collapse into the same login
   action for this reason — a login link only ever signs someone in. A
   person can still add a password anytime from `/account`.
+- **Invite links can be skipped in place, not just avoided.** The
+  set-password page's **Continue without password** signs the person in
+  immediately, using the same link they already opened — no separate
+  email, no navigating to the login page first. It reuses
+  `consumeLogin`, which only ever signs in and consumes; it does not
+  care which purpose issued the link.
 - **Different expiries by purpose.** An invite email may sit unread for
   days. A login link is requested and clicked in the same session. 7
   days versus 15 minutes matches that.
