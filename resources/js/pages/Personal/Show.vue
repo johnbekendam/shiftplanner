@@ -154,7 +154,7 @@ watch(tab, (next, prev) => {
             </form>
         </div>
 
-        <div v-show="tab === 'availability'" data-testid="panel-availability" class="relative">
+        <div v-show="tab === 'availability'" data-testid="panel-availability" class="relative -mx-10 -mt-8 px-10 pt-8">
             <SaveStatusBadge :status="saveStatus.status.value" />
 
             <section class="mb-6 max-w-xs">
@@ -228,7 +228,7 @@ watch(tab, (next, prev) => {
             </section>
         </div>
 
-        <div v-show="tab === 'competences'" data-testid="panel-competences" class="relative">
+        <div v-show="tab === 'competences'" data-testid="panel-competences" class="relative -mx-10 -mt-8 px-10 pt-8">
             <SaveStatusBadge :status="saveStatus.status.value" />
 
             <TagChecklist
