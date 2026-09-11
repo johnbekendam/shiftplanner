@@ -15,7 +15,8 @@ defineProps({
             [&_h1]:mt-1 [&_h1]:text-base [&_h1]:font-semibold [&_h1]:text-(--color-text-heading)
             [&_h2]:mt-1 [&_h2]:text-sm [&_h2]:font-semibold [&_h2]:text-(--color-text-heading)
             [&_h3]:font-semibold [&_h3]:text-(--color-text-heading)
-            [&_p]:my-1
+            [&_p]:my-2
+            [&_[data-note-spacer]]:block [&_[data-note-spacer]]:h-4
             [&_a]:text-(--color-text-link) [&_a]:underline
             [&_a[data-shift-note-button]]:inline-block [&_a[data-shift-note-button]]:rounded-md
             [&_a[data-shift-note-button]]:bg-(--color-btn-primary-bg)

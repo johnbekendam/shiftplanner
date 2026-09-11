@@ -100,6 +100,25 @@ class ShiftNoteTest extends TestCase
         $this->assertStringNotContainsString(':button', $html);
     }
 
+    public function test_note_html_renders_a_spacer_marker(): void
+    {
+        PlanningSettings::current()->update(['shift_note' => "First paragraph.\n\n:---\n\nSecond paragraph."]);
+
+        $html = PlanningSettings::current()->fresh()->shiftNoteHtml();
+
+        $this->assertStringContainsString('data-note-spacer', $html);
+        $this->assertStringNotContainsString(':---', $html);
+    }
+
+    public function test_note_html_stacks_repeated_spacer_markers(): void
+    {
+        PlanningSettings::current()->update(['shift_note' => "First paragraph.\n\n:---\n\n:---\n\nSecond paragraph."]);
+
+        $html = PlanningSettings::current()->fresh()->shiftNoteHtml();
+
+        $this->assertSame(2, substr_count($html, 'data-note-spacer'));
+    }
+
     public function test_note_html_keeps_raw_html(): void
     {
         PlanningSettings::current()->update(['shift_note' => 'Call <span class="x">Bob</span> first.']);

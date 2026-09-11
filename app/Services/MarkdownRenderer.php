@@ -20,11 +20,17 @@ class MarkdownRenderer
     public function render(string $markdown, callable $buttonRenderer, bool $allowUnsafeLinks = false): string
     {
         [$markdown, $buttons] = $this->extractButtons($markdown, $buttonRenderer);
+        [$markdown, $spacers] = $this->extractSpacers($markdown);
         $html = $this->toHtml($markdown, $allowUnsafeLinks);
 
         foreach ($buttons as $marker => $button) {
             $html = str_replace('<p>'.$marker.'</p>', $button, $html);
             $html = str_replace($marker, $button, $html);
+        }
+
+        foreach ($spacers as $marker => $spacer) {
+            $html = str_replace('<p>'.$marker.'</p>', $spacer, $html);
+            $html = str_replace($marker, $spacer, $html);
         }
 
         return $html;
@@ -43,6 +49,27 @@ class MarkdownRenderer
         }
 
         return (string) $this->converter->convert($markdown);
+    }
+
+    /**
+     * Replace each standalone `:---` line with a unique marker, to be
+     * swapped for a spacer element after conversion. Each occurrence
+     * becomes its own marker, so repeating the marker stacks the space.
+     *
+     * @return array{string, array<string, string>}
+     */
+    private function extractSpacers(string $markdown): array
+    {
+        $spacers = [];
+
+        $markdown = preg_replace_callback('/^:---[ \t]*$/m', function () use (&$spacers): string {
+            $marker = 'SHIFTPLANNER_SPACER_'.count($spacers);
+            $spacers[$marker] = '<div data-note-spacer aria-hidden="true"></div>';
+
+            return $marker;
+        }, $markdown);
+
+        return [$markdown, $spacers];
     }
 
     /** @return array{string, array<string, string>} */
