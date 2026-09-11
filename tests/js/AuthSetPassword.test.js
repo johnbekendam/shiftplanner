@@ -4,11 +4,11 @@ import { reactive } from "vue";
 
 const en = {
     "auth.setpw.title": "Set your password",
-    "auth.setpw.intro": "A password is optional. Set one below, or continue without one.",
     "auth.setpw.field.password": "Password",
     "auth.setpw.field.confirm": "Confirm password",
     "auth.setpw.submit": "Set password and sign in",
     "auth.setpw.skip": "Continue without password",
+    "auth.setpw.skip_intro": "A password is a convenience, not a requirement. Prefer not to set one? Continue below, and we will email you a fresh login link each time you want to sign in.",
 };
 
 const form = reactive({
@@ -48,9 +48,9 @@ beforeEach(() => {
 });
 
 describe("Auth/SetPassword", () => {
-    it("shows the intro explaining a password is optional", () => {
+    it("shows the intro explaining a password is a convenience, not a requirement", () => {
         const w = mountPage();
-        expect(w.text()).toContain("A password is optional");
+        expect(w.text()).toContain("A password is a convenience, not a requirement");
     });
 
     it("submits password and confirmation to the token URL", async () => {
