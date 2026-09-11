@@ -4,6 +4,8 @@ import { reactive } from "vue";
 
 const en = {
     "account.title": "Account",
+    "account.email.heading": "Email",
+    "account.email.label": "Email address",
     "account.password.heading": "Password",
     "account.password.current": "Current password",
     "account.password.new": "New password",
@@ -15,7 +17,7 @@ const en = {
     "account.employee.add": "Add me as an employee",
 };
 
-const state = vi.hoisted(() => ({ user: { role: "manager", employee_id: null } }));
+const state = vi.hoisted(() => ({ user: { role: "manager", employee_id: null, email: "mel@example.com" } }));
 const { router } = vi.hoisted(() => ({ router: { post: vi.fn() } }));
 
 vi.mock("@inertiajs/vue3", () => ({
@@ -31,11 +33,20 @@ const stubs = { AppLayout: { template: "<div><slot /></div>" } };
 const mountShow = (props = {}) => mount(Show, { props, global: { stubs } });
 
 beforeEach(() => {
-    state.user = { role: "manager", employee_id: null };
+    state.user = { role: "manager", employee_id: null, email: "mel@example.com" };
     router.post.mockReset();
 });
 
 describe("Account/Show", () => {
+    it("shows the registered email address, disabled", () => {
+        const w = mountShow();
+        const emailField = w.find('input[inputmode="email"]');
+
+        expect(emailField.exists()).toBe(true);
+        expect(emailField.element.value).toBe("mel@example.com");
+        expect(emailField.attributes("disabled")).toBeDefined();
+    });
+
     it("shows the current-password field only when the account has a password", () => {
         expect(mountShow({ hasPassword: false }).text()).not.toContain("Current password");
         expect(mountShow({ hasPassword: true }).text()).toContain("Current password");

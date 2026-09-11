@@ -5,7 +5,7 @@ import AppLayout from '@/layouts/AppLayout.vue'
 import Card from '@/components/ui/Card.vue'
 import CardSeparator from '@/components/ui/CardSeparator.vue'
 import LabeledInput from '@/components/LabeledInput.vue'
-import { PasswordInput } from '@/components/ui/Input'
+import { EmailInput, PasswordInput } from '@/components/ui/Input'
 import ButtonPrimary from '@/components/ui/ButtonPrimary.vue'
 import { useI18n } from '@/composables/useI18n'
 import { useAuth } from '@/composables/useAuth'
@@ -48,6 +48,18 @@ function addAsEmployee() {
             </template>
 
             <div class="p-6">
+                <section class="space-y-4">
+                    <h3 class="text-sm font-semibold text-(--color-text-primary)">
+                        {{ __('account.email.heading') }}
+                    </h3>
+
+                    <LabeledInput :label="__('account.email.label')">
+                        <EmailInput :model-value="user?.email" :disabled="true" class="w-full" />
+                    </LabeledInput>
+                </section>
+
+                <CardSeparator />
+
                 <section class="space-y-4">
                     <h3 class="text-sm font-semibold text-(--color-text-primary)">
                         {{ __('account.password.heading') }}
