@@ -4,7 +4,6 @@ import { reactive } from "vue";
 
 const en = {
     "auth.page_title": "ShiftPlanner",
-    "auth.card_title": "ShiftPlanner",
     "auth.tab.signin": "Sign in",
     "auth.tab.personal_link": "Get my link",
     "auth.field.email": "Email",
@@ -68,7 +67,7 @@ vi.mock("@/composables/useI18n", () => ({
 import AccessCard from "@/pages/Auth/AccessCard.vue";
 
 const stubs = {
-    CenteredLayout: { template: "<div><slot name='title' /><slot /></div>" },
+    CenteredLayout: { template: "<div><slot name='header' /><slot /></div>" },
 };
 const mountCard = (activeTab = "signin") => {
     formIndex = 0;
@@ -92,7 +91,6 @@ beforeEach(() => {
 describe("Auth/AccessCard — signin tab", () => {
     it("shows email, password, Sign in, and Email me a login link", () => {
         const w = mountCard("signin");
-        expect(w.text()).toContain("ShiftPlanner");
         expect(w.text()).toContain("Email me a login link");
         const pwd = w.find('input[type="password"]');
         expect(pwd.exists()).toBe(true);

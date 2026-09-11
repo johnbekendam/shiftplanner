@@ -66,9 +66,9 @@ watch(tab, (value, previous) => {
     <CenteredLayout align="top">
         <Head :title="__('auth.page_title')" />
 
-        <template #title>{{ __('auth.card_title') }}</template>
-
-        <Tabs :tabs="tabs" v-model="tab" class="-mx-10 mb-6" />
+        <template #header>
+            <Tabs :tabs="tabs" v-model="tab" />
+        </template>
 
         <template v-if="tab === 'signin'">
             <form @submit.prevent="login" class="space-y-5">

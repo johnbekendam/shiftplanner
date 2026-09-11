@@ -4,7 +4,6 @@ import { reactive } from "vue";
 
 const en = {
     "auth.page_title": "ShiftPlanner",
-    "auth.card_title": "ShiftPlanner",
     "auth.tab.signin": "Sign in",
     "auth.tab.personal_link": "Get my link",
     "auth.field.email": "Email",
@@ -66,7 +65,7 @@ vi.mock("@/composables/useI18n", () => ({
 import AccessCard from "@/pages/Auth/AccessCard.vue";
 
 const stubs = {
-    CenteredLayout: { template: "<div><slot name='title' /><slot /></div>" },
+    CenteredLayout: { template: "<div><slot name='header' /><slot /></div>" },
 };
 const mountCard = () => {
     formIndex = 0;

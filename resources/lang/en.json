@@ -18,7 +18,6 @@
     "nav.logout": "Logout",
 
     "auth.page_title": "ShiftPlanner",
-    "auth.card_title": "ShiftPlanner",
     "auth.tab.signin": "Sign in",
     "auth.tab.personal_link": "Get my link",
     "auth.field.email": "Email",
