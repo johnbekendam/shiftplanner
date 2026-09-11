@@ -132,6 +132,102 @@ class SelfSignupTest extends TestCase
         Queue::assertPushed(SendMailboxMessage::class, 1);
     }
 
+    // ── Revision: resend() — email-only, never creates ──────────────────
+
+    public function test_resend_sends_the_existing_link_for_a_known_email(): void
+    {
+        Queue::fake();
+        Employee::factory()->create(['email' => 'ada@example.com']);
+
+        $this->service()->resend('ada@example.com');
+
+        $this->assertSame(1, Employee::count());
+        $this->assertSame(1, Message::count());
+        Queue::assertPushed(SendMailboxMessage::class, 1);
+    }
+
+    public function test_resend_creates_nothing_and_sends_nothing_for_an_unknown_email(): void
+    {
+        Queue::fake();
+
+        $this->service()->resend('ghost@example.com');
+
+        $this->assertSame(0, Employee::count());
+        $this->assertSame(0, Message::count());
+        Queue::assertNothingPushed();
+    }
+
+    public function test_resend_match_is_case_insensitive(): void
+    {
+        Queue::fake();
+        Employee::factory()->create(['email' => 'ada@example.com']);
+
+        $this->service()->resend('ADA@example.com');
+
+        $this->assertSame(1, Message::count());
+    }
+
+    public function test_resend_is_silent_on_a_second_call_within_the_window(): void
+    {
+        Queue::fake();
+        Employee::factory()->create(['email' => 'ada@example.com']);
+
+        $this->service()->resend('ada@example.com');
+        $this->service()->resend('ada@example.com');
+
+        $this->assertSame(1, Message::count());
+    }
+
+    public function test_resend_shares_the_per_email_throttle_window_with_register(): void
+    {
+        Queue::fake();
+        Employee::factory()->create(['email' => 'ada@example.com']);
+
+        $this->service()->register('Ada', 'Lin', 'ada@example.com');
+        $this->service()->resend('ada@example.com');
+
+        $this->assertSame(1, Message::count());
+    }
+
+    // ── Revision: POST /personal-link ────────────────────────────────────
+
+    public function test_personal_link_resends_for_a_known_email(): void
+    {
+        Queue::fake();
+        Employee::factory()->create(['email' => 'ada@example.com']);
+
+        $this->post('/personal-link', ['email' => 'ada@example.com'])->assertRedirect();
+
+        Queue::assertPushed(SendMailboxMessage::class, 1);
+    }
+
+    public function test_personal_link_is_silent_for_an_unknown_email(): void
+    {
+        Queue::fake();
+
+        $this->post('/personal-link', ['email' => 'ghost@example.com'])->assertRedirect();
+
+        $this->assertSame(0, Employee::count());
+        Queue::assertNothingPushed();
+    }
+
+    public function test_personal_link_requires_a_valid_email(): void
+    {
+        $this->post('/personal-link', ['email' => 'not-an-email'])
+            ->assertSessionHasErrors('email');
+    }
+
+    public function test_personal_link_throttles_a_burst_of_requests(): void
+    {
+        Queue::fake();
+
+        for ($i = 0; $i < 5; $i++) {
+            $this->post('/personal-link', ['email' => "a{$i}@example.com"])->assertRedirect();
+        }
+
+        $this->post('/personal-link', ['email' => 'a5@example.com'])->assertStatus(429);
+    }
+
     // ── Step 3: POST /signup ────────────────────────────────────────────
 
     public function test_a_valid_request_registers_and_flashes_the_confirmation(): void
@@ -194,8 +290,6 @@ class SelfSignupTest extends TestCase
 
     public function test_the_signup_page_renders_for_a_guest(): void
     {
-        $this->get('/signup')->assertOk()->assertInertia(fn ($page) => $page
-            ->component('Auth/AccessCard')
-            ->where('activeTab', 'personal-link'));
+        $this->get('/signup')->assertOk()->assertInertia(fn ($page) => $page->component('Signup'));
     }
 }

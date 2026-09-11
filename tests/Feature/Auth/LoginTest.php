@@ -15,9 +15,7 @@ class LoginTest extends TestCase
     {
         $this->get('/login')
             ->assertOk()
-            ->assertInertia(fn ($page) => $page
-                ->component('Auth/AccessCard')
-                ->where('activeTab', 'signin'));
+            ->assertInertia(fn ($page) => $page->component('Auth/AccessCard'));
     }
 
     public function test_authenticated_user_visiting_login_is_redirected_home(): void

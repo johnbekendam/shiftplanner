@@ -15,6 +15,7 @@ use App\Http\Controllers\MailboxController;
 use App\Http\Controllers\PeriodController;
 use App\Http\Controllers\PersonalCompetenceController;
 use App\Http\Controllers\PersonalHolidayController;
+use App\Http\Controllers\PersonalLinkController;
 use App\Http\Controllers\PersonalPageController;
 use App\Http\Controllers\PersonalQuestionController;
 use App\Http\Controllers\PersonalRecurringAvailabilityController;
@@ -35,6 +36,7 @@ Route::post('/login/link', [LoginLinkController::class, 'request'])->middleware(
 Route::get('/login/link/{token}', [LoginLinkController::class, 'show'])->name('login.link.show');
 Route::post('/login/link/{token}', [LoginLinkController::class, 'confirm'])->name('login.link.confirm');
 Route::post('/login/link/{token}/skip', [LoginLinkController::class, 'skip'])->name('login.link.skip');
+Route::post('/personal-link', [PersonalLinkController::class, 'request'])->middleware('throttle:5,1')->name('personal-link.request');
 Route::post('/logout', [LoginController::class, 'destroy'])->name('logout');
 
 // Public employee self-signup — features/employee-self-signup/.

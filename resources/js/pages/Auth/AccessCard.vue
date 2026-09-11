@@ -1,22 +1,17 @@
 <script setup>
-import { computed, ref, watch } from 'vue'
-import { Head, useForm, usePage } from '@inertiajs/vue3'
+import { ref, watch } from 'vue'
+import { Head, Link, useForm } from '@inertiajs/vue3'
 import CenteredLayout from '@/layouts/CenteredLayout.vue'
 import Tabs from '@/components/ui/Tabs.vue'
 import LabeledInput from '@/components/LabeledInput.vue'
 import ButtonPrimary from '@/components/ui/ButtonPrimary.vue'
 import ButtonSecondary from '@/components/ui/ButtonSecondary.vue'
-import { EmailInput, PasswordInput, TextInput } from '@/components/ui/Input'
+import { EmailInput, PasswordInput } from '@/components/ui/Input'
 import { useI18n } from '@/composables/useI18n'
 
 const __ = useI18n()
-const page = usePage()
 
-const props = defineProps({
-    activeTab: { type: String, default: 'signin', validator: (v) => ['signin', 'personal-link'].includes(v) },
-})
-
-const tab = ref(props.activeTab)
+const tab = ref('signin')
 const tabs = [
     { value: 'signin', label: __('auth.tab.signin') },
     { value: 'personal-link', label: __('auth.tab.personal_link') },
@@ -38,17 +33,19 @@ function requestLink() {
     })
 }
 
-// Get my link
-const signupForm = useForm({ first_name: '', last_name: '', email: '' })
-const signupConfirmation = computed(() => page.props.flash?.success ?? null)
+// Get my link — resends an existing employee's personal-page link. Never creates one.
+const personalLinkForm = useForm({ email: '' })
+const personalLinkRequested = ref(false)
 
 function requestPersonalLink() {
-    signupForm.post('/signup', {
-        onFinish: () => signupForm.reset('first_name', 'last_name', 'email'),
+    personalLinkForm.post('/personal-link', {
+        onSuccess: () => {
+            personalLinkRequested.value = true
+        },
     })
 }
 
-// Leaving a tab resets its form, matching a fresh page load of either route.
+// Leaving a tab resets its form, matching a fresh page load.
 watch(tab, (value, previous) => {
     if (previous === 'signin') {
         loginForm.reset()
@@ -56,8 +53,9 @@ watch(tab, (value, previous) => {
         linkRequested.value = false
     }
     if (previous === 'personal-link') {
-        signupForm.reset()
-        signupForm.clearErrors()
+        personalLinkForm.reset()
+        personalLinkForm.clearErrors()
+        personalLinkRequested.value = false
     }
 })
 </script>
@@ -96,31 +94,36 @@ watch(tab, (value, previous) => {
         </template>
 
         <template v-else>
-            <p v-if="signupConfirmation" data-testid="signup-confirmation" class="text-sm text-(--color-text-secondary)">
-                {{ signupConfirmation }}
-            </p>
+            <form @submit.prevent="requestPersonalLink" class="space-y-5">
+                <p class="text-sm text-(--color-text-secondary)">{{ __('auth.personal_link.intro') }}</p>
 
-            <form v-else @submit.prevent="requestPersonalLink" class="space-y-5">
-                <p class="text-sm text-(--color-text-secondary)">{{ __('signup.intro') }}</p>
-
-                <LabeledInput :label="__('signup.field.first_name')" :error="signupForm.errors.first_name">
-                    <TextInput v-model="signupForm.first_name" autocomplete="given-name" required class="w-full" />
-                </LabeledInput>
-
-                <LabeledInput :label="__('signup.field.last_name')" :error="signupForm.errors.last_name">
-                    <TextInput v-model="signupForm.last_name" autocomplete="family-name" required class="w-full" />
-                </LabeledInput>
-
-                <LabeledInput :label="__('signup.field.email')" :error="signupForm.errors.email">
-                    <EmailInput v-model="signupForm.email" autocomplete="email" required class="w-full" />
+                <LabeledInput :label="__('auth.personal_link.field.email')" :error="personalLinkForm.errors.email">
+                    <EmailInput v-model="personalLinkForm.email" autocomplete="email" required class="w-full" />
                 </LabeledInput>
 
                 <div class="flex justify-end">
-                    <ButtonPrimary type="submit" :disabled="signupForm.processing">
-                        {{ __('signup.submit') }}
+                    <ButtonPrimary type="submit" :disabled="personalLinkForm.processing">
+                        {{ __('auth.personal_link.submit') }}
                     </ButtonPrimary>
                 </div>
             </form>
+
+            <p
+                v-if="personalLinkRequested"
+                data-testid="personal-link-notice"
+                class="mt-6 text-sm text-(--color-text-secondary)"
+            >
+                {{ __('auth.personal_link.sent') }}
+            </p>
+
+            <p class="mt-6 text-center text-sm text-(--color-text-secondary)">
+                <Link
+                    href="/signup"
+                    class="font-medium text-(--color-text-link) hover:text-(--color-text-link-hover) hover:underline"
+                >
+                    {{ __('auth.personal_link.new_employee') }}
+                </Link>
+            </p>
         </template>
     </CenteredLayout>
 </template>

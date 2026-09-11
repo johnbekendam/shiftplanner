@@ -57,6 +57,34 @@ class SelfSignupService
         $this->send($employee);
     }
 
+    /**
+     * Match an employee by email (case-insensitive) and resend their
+     * personal-page link. Creates nothing on a miss. Shares register()'s
+     * per-email rate limit, so alternating between the two forms cannot
+     * double the send rate for one address.
+     */
+    public function resend(string $email): void
+    {
+        $email = trim($email);
+        $key = 'self-signup:'.Str::lower($email);
+
+        if (RateLimiter::tooManyAttempts($key, self::REQUEST_MAX)) {
+            return;
+        }
+
+        $employee = Employee::query()
+            ->whereRaw('lower(email) = ?', [Str::lower($email)])
+            ->first();
+
+        if (! $employee) {
+            return;
+        }
+
+        RateLimiter::hit($key, self::REQUEST_WINDOW_SECONDS);
+
+        $this->send($employee);
+    }
+
     /** Build the outbox Message from the stored template and dispatch it. */
     private function send(Employee $employee): void
     {

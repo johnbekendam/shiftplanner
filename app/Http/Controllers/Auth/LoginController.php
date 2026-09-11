@@ -17,7 +17,7 @@ class LoginController extends Controller
             return redirect('/');
         }
 
-        return Inertia::render('Auth/AccessCard', ['activeTab' => 'signin']);
+        return Inertia::render('Auth/AccessCard');
     }
 
     public function store(Request $request)
