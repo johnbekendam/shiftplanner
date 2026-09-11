@@ -14,7 +14,7 @@ const message = computed(() => __(`auth.expired.${props.purpose ?? 'unknown'}`))
 </script>
 
 <template>
-    <CenteredLayout>
+    <CenteredLayout align="top">
         <Head :title="__('auth.expired.title')" />
 
         <template #title>{{ __('auth.expired.title') }}</template>

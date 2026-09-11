@@ -29,7 +29,7 @@ function skip() {
 </script>
 
 <template>
-    <CenteredLayout>
+    <CenteredLayout align="top">
         <Head :title="__('auth.setpw.title')" />
 
         <template #title>{{ __('auth.setpw.title') }}</template>

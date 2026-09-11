@@ -25,7 +25,7 @@ function submit() {
 </script>
 
 <template>
-    <CenteredLayout>
+    <CenteredLayout align="top">
         <Head :title="__('signup.page_title')" />
 
         <template #title>{{ __('signup.card_title') }}</template>
