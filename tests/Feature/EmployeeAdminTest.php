@@ -328,14 +328,26 @@ class EmployeeAdminTest extends TestCase
         Queue::assertPushed(SendMailboxMessage::class, 1);
     }
 
-    public function test_a_manager_cannot_send_a_link(): void
+    public function test_a_manager_can_also_send_a_link(): void
     {
+        Queue::fake();
         $manager = User::factory()->create();
-        $employee = Employee::factory()->create();
+        $employee = Employee::factory()->create(['email' => 'e@example.com']);
 
         $this->actingAs($manager)
             ->post("/employees/{$employee->id}/send-link")
-            ->assertForbidden();
+            ->assertRedirect();
+
+        $message = Message::sole();
+        $this->assertSame('outbox', $message->status);
+        $this->assertSame($manager->id, $message->user_id);
+    }
+
+    public function test_a_guest_cannot_send_a_link(): void
+    {
+        $employee = Employee::factory()->create();
+
+        $this->post("/employees/{$employee->id}/send-link")->assertRedirect('/login');
 
         $this->assertSame(0, Message::count());
     }

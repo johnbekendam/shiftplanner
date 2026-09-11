@@ -187,11 +187,11 @@ describe("Employees/Index", () => {
         expect(button().text()).toBe("Send link");
     });
 
-    it("hides the send-link action for a manager", () => {
+    it("also shows the send-link action for a manager", () => {
         state.user = { role: "manager" };
         const w = mountIndex();
 
-        expect(w.find("tbody tr td:last-child button").exists()).toBe(false);
+        expect(w.find("tbody tr td:last-child button").text()).toBe("Send link");
     });
 
     it("does not open the employee when the row action is clicked", async () => {

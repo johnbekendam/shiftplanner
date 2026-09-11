@@ -169,8 +169,8 @@ class EmployeeController extends Controller
     /**
      * Queue the personal-page-link message for one employee straight to
      * the outbox — same rendering and delivery the Compose tab uses, just
-     * without the manual form. Admin-only, matching the rest of the
-     * mailbox.
+     * without the manual form. Open to any signed-in user, like the rest
+     * of `/employees` — unlike the mailbox itself, which stays admin-only.
      */
     public function sendLink(Request $request, Employee $employee, PersonalLinkMessage $placeholders, MessageComposer $composer)
     {

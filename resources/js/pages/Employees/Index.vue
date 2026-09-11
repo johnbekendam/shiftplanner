@@ -9,11 +9,8 @@ import ButtonSecondary from '@/components/ui/ButtonSecondary.vue'
 import Icon from '@/components/ui/Icon.vue'
 import { CheckboxInput, SearchInput } from '@/components/ui/Input'
 import { useI18n } from '@/composables/useI18n'
-import { useAuth } from '@/composables/useAuth'
 
 const __ = useI18n()
-const { user: currentUser } = useAuth()
-const isAdmin = computed(() => currentUser.value?.role === 'admin')
 
 const props = defineProps({
     employees: { type: Object, required: true },
@@ -259,7 +256,6 @@ function bulkDelete() {
                             </td>
                             <td class="px-2 py-2 text-right" @click.stop>
                                 <ButtonSecondary
-                                    v-if="isAdmin"
                                     type="button"
                                     :icon="linkSentId === employee.id ? 'check-circle' : 'envelope'"
                                     :disabled="sendingLinkId === employee.id"
