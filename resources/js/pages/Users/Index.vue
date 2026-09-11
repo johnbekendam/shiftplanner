@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { Head, Link, router } from '@inertiajs/vue3'
 import AppLayout from '@/layouts/AppLayout.vue'
 import Card from '@/components/ui/Card.vue'
@@ -20,8 +20,26 @@ function openUser(user) {
     router.visit(`/users/${user.id}/edit`)
 }
 
+// In-button feedback: which row is mid-request, and which just finished
+// (briefly shows a checkmark before reverting to the normal label).
+const sendingUserId = ref(null)
+const sentUserId = ref(null)
+let sentTimeout = null
+
 function resendInvite(user) {
-    router.post(`/users/${user.id}/resend-invite`, {}, { preserveScroll: true })
+    sendingUserId.value = user.id
+
+    router.post(`/users/${user.id}/resend-invite`, {}, {
+        preserveScroll: true,
+        onSuccess: () => {
+            sentUserId.value = user.id
+            clearTimeout(sentTimeout)
+            sentTimeout = setTimeout(() => (sentUserId.value = null), 2000)
+        },
+        onFinish: () => {
+            sendingUserId.value = null
+        },
+    })
 }
 </script>
 
@@ -69,9 +87,17 @@ function resendInvite(user) {
                                     v-if="isAdmin && !user.has_password"
                                     type="button"
                                     data-testid="resend-invite"
+                                    :icon="sentUserId === user.id ? 'check-circle' : null"
+                                    :disabled="sendingUserId === user.id"
                                     @click.stop="resendInvite(user)"
                                 >
-                                    {{ __('users.action.resend_invite') }}
+                                    {{
+                                        sendingUserId === user.id
+                                            ? __('users.action.resending_invite')
+                                            : sentUserId === user.id
+                                              ? __('users.action.invite_sent')
+                                              : __('users.action.resend_invite')
+                                    }}
                                 </ButtonSecondary>
                             </td>
                         </tr>

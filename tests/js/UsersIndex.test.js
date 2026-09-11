@@ -14,6 +14,8 @@ const en = {
     "users.status.inactive": "Inactive",
     "users.empty": "No users yet.",
     "users.action.resend_invite": "Resend invite",
+    "users.action.resending_invite": "Sending…",
+    "users.action.invite_sent": "Sent",
 };
 
 const state = vi.hoisted(() => ({ user: { role: "admin" } }));
@@ -75,8 +77,36 @@ describe("Users/Index", () => {
         const w = mount(Index, { props: { users }, global: { stubs } });
         await w.findAll('[data-testid="user-row"]')[1].find('[data-testid="resend-invite"]').trigger("click");
 
-        expect(router.post).toHaveBeenCalledWith("/users/2/resend-invite", {}, { preserveScroll: true });
+        expect(router.post).toHaveBeenCalledWith(
+            "/users/2/resend-invite",
+            {},
+            expect.objectContaining({ preserveScroll: true }),
+        );
         expect(router.visit).not.toHaveBeenCalled();
+    });
+
+    it("shows in-button feedback while sending and briefly after success", async () => {
+        vi.useFakeTimers();
+        const w = mount(Index, { props: { users }, global: { stubs } });
+        const button = () => w.find('[data-testid="resend-invite"]');
+
+        await button().trigger("click");
+        expect(button().text()).toBe("Sending…");
+        expect(button().attributes("disabled")).toBeDefined();
+
+        // Inertia always calls onFinish right after onSuccess/onError.
+        const opts = router.post.mock.calls[0][2];
+        opts.onSuccess();
+        opts.onFinish();
+        await w.vm.$nextTick();
+        expect(button().text()).toBe("Sent");
+        expect(button().attributes("disabled")).toBeUndefined();
+
+        vi.advanceTimersByTime(2000);
+        await w.vm.$nextTick();
+        expect(button().text()).toBe("Resend invite");
+
+        vi.useRealTimers();
     });
 
     it("shows Add user for an admin", () => {

@@ -207,6 +207,8 @@
     "users.empty": "No users yet.",
     "users.create_hint": "An invite email is sent to the user with a link to set their password.",
     "users.action.resend_invite": "Resend invite",
+    "users.action.resending_invite": "Sending…",
+    "users.action.invite_sent": "Sent",
     "users.error.last_admin": "There must be at least one active admin.",
     "users.flash.created": "User created and invited.",
     "users.flash.updated": "User updated.",
