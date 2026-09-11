@@ -118,6 +118,11 @@ class LoginLinkService
         $type = $purpose === LoginLink::PURPOSE_INVITE ? MessageType::UserInvite : MessageType::UserLoginLink;
         $template = MessageTemplate::forType($type);
         $map = [':name' => $user->name, ':link' => $url];
+
+        if ($type === MessageType::UserInvite) {
+            $map[':sender_name'] = Str::before($composedBy?->name ?? config('app.name'), ' ');
+        }
+
         $subject = strtr($template->subject, $map);
         $body = strtr($template->body, $map);
         $fragment = $this->composer->render($subject, $body)['body_html'];

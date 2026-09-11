@@ -22,7 +22,9 @@ enum MessageType: string
     public function placeholders(): array
     {
         return match ($this) {
-            self::PersonalPageLink, self::UserInvite, self::UserLoginLink => [':name', ':link'],
+            self::PersonalPageLink, self::UserLoginLink => [':name', ':link'],
+            // :sender_name is the inviting admin's first name.
+            self::UserInvite => [':name', ':link', ':sender_name'],
         };
     }
 

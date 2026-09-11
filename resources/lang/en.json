@@ -63,7 +63,7 @@
     "mailbox.button.view_personal_page": "View your personal page",
     "mailbox.type.user_invite.label": "Account invite",
     "mailbox.type.user_invite.subject": "You are invited to ShiftPlanner",
-    "mailbox.type.user_invite.body": "Hi :name,\n\nAn account was created for you on ShiftPlanner. Use the link below to set your password and sign in:\n\n:button[Set your password](:link)\n\nThe link is valid for 7 days and can be used once.\n\nThank you,\nThe planning team",
+    "mailbox.type.user_invite.body": "Hi :name,\n\nAn account was created for you on ShiftPlanner. Use the link below to sign in:\n\n:button[Sign in](:link)\n\nRegards,\n:sender_name",
     "mailbox.type.user_login_link.label": "Sign-in link",
     "mailbox.type.user_login_link.subject": "Your ShiftPlanner sign-in link",
     "mailbox.type.user_login_link.body": "Hi :name,\n\nUse the link below to sign in to ShiftPlanner:\n\n:button[Sign in](:link)\n\nThe link is valid for 15 minutes and can be used once.\n\nThank you,\nThe planning team",

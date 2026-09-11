@@ -95,6 +95,18 @@ class UserManagementTest extends TestCase
         $this->assertSame($admin->id, $message->user_id);
     }
 
+    public function test_the_invite_email_signs_off_with_the_admins_first_name(): void
+    {
+        Mail::fake();
+        $admin = $this->admin();
+        $admin->update(['name' => 'Alice Admin']);
+
+        $this->actingAs($admin)
+            ->post('/users', ['name' => 'Mel', 'email' => 'mel@example.com', 'role' => 'manager']);
+
+        $this->assertStringContainsString("Regards,\nAlice", Message::sole()->body);
+    }
+
     // ── Resend invite ───────────────────────────────────────────────────
 
     public function test_a_manager_cannot_resend_an_invite(): void
