@@ -71,6 +71,7 @@ class MailboxController extends Controller
 
         return [
             'types' => collect(MessageType::cases())
+                ->filter(fn (MessageType $case) => $case->needsEmployees())
                 ->map(fn (MessageType $case) => [
                     'value' => $case->value,
                     'label' => __($case->langKey().'.label'),

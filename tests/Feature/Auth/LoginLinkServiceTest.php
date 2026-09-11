@@ -2,8 +2,10 @@
 
 namespace Tests\Feature\Auth;
 
-use App\Mail\LoginLinkMail;
+use App\Enums\MessageType;
+use App\Mail\ComposedMessage;
 use App\Models\LoginLink;
+use App\Models\Message;
 use App\Models\User;
 use App\Services\Auth\LoginLinkService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -18,7 +20,10 @@ class LoginLinkServiceTest extends TestCase
 
     private function sentUrl(): string
     {
-        return Mail::sent(LoginLinkMail::class)->last()->url;
+        $mail = Mail::sent(ComposedMessage::class)->last();
+        preg_match('#href="([^"]+)"#', $mail->bodyHtml, $matches);
+
+        return $matches[1];
     }
 
     private function tokenFromUrl(string $url): string
@@ -41,11 +46,26 @@ class LoginLinkServiceTest extends TestCase
 
         app(LoginLinkService::class)->sendInvite($user);
 
-        Mail::assertSent(LoginLinkMail::class, fn (LoginLinkMail $mail) => $mail->purpose === LoginLink::PURPOSE_INVITE);
+        Mail::assertSent(ComposedMessage::class);
         $link = $user->loginLinks()->sole();
         $this->assertSame(LoginLink::PURPOSE_INVITE, $link->purpose);
         $this->assertTrue($link->expires_at->isBetween(now()->addDays(6), now()->addDays(8)));
         $this->assertNotSame($this->tokenFromUrl($this->sentUrl()), $link->token_hash);
+    }
+
+    public function test_send_invite_records_a_sent_message_in_the_mailbox(): void
+    {
+        Mail::fake();
+        $user = User::factory()->passwordless()->create(['name' => 'Mel Manager']);
+
+        app(LoginLinkService::class)->sendInvite($user);
+
+        $message = Message::sole();
+        $this->assertSame(MessageType::UserInvite, $message->type);
+        $this->assertSame('sent', $message->status);
+        $this->assertNotNull($message->sent_at);
+        $this->assertSame($user->email, $message->recipient_email);
+        $this->assertStringContainsString('/login/link/', $message->body_html);
     }
 
     public function test_a_second_invite_voids_the_first(): void
@@ -71,6 +91,7 @@ class LoginLinkServiceTest extends TestCase
 
         Mail::assertNothingSent();
         $this->assertSame(0, LoginLink::count());
+        $this->assertSame(0, Message::count());
     }
 
     public function test_requesting_a_login_link_for_an_inactive_account_sends_nothing(): void
@@ -91,8 +112,11 @@ class LoginLinkServiceTest extends TestCase
 
         app(LoginLinkService::class)->requestLogin('user@example.com');
 
-        Mail::assertSent(LoginLinkMail::class, fn (LoginLinkMail $mail) => $mail->purpose === LoginLink::PURPOSE_LOGIN);
+        Mail::assertSent(ComposedMessage::class);
         $this->assertSame(1, LoginLink::count());
+        $message = Message::sole();
+        $this->assertSame(MessageType::UserLoginLink, $message->type);
+        $this->assertNull($message->user_id);
     }
 
     public function test_the_sixth_login_link_request_within_the_window_is_dropped(): void
@@ -105,7 +129,8 @@ class LoginLinkServiceTest extends TestCase
             $service->requestLogin('user@example.com');
         }
 
-        Mail::assertSent(LoginLinkMail::class, 5);
+        Mail::assertSent(ComposedMessage::class, 5);
+        $this->assertSame(5, Message::count());
     }
 
     public function test_resolve_finds_a_live_link_and_misses_an_expired_or_consumed_one(): void

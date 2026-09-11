@@ -1,6 +1,6 @@
 # Login Links — Plan
 
-Status: done — 5/5
+Status: done — 6/6
 
 Spec: `spec.md`. Extends `doc/features/account-management/`.
 
@@ -115,6 +115,28 @@ Spec: `spec.md`. Extends `doc/features/account-management/`.
   SetPassword` shows **Continue without password** and posts to
   `/login/link/{token}/skip` on click, without touching the password
   fields. Full suites and `npm run build` green.
+
+- [x] 6. **Send through the mailbox pipeline, not a bespoke mailable.**
+  `MessageType::UserInvite` and `UserLoginLink`, `needsEmployees()`
+  false for both — filtered out of `MailboxController::composePayload`'s
+  Compose type list, the first real use of that method. `mailbox.type.
+  user_invite.*` and `mailbox.type.user_login_link.*` i18n (label,
+  subject, Markdown body with a `:button[Label](:link)` call to
+  action), seeding their `MessageTemplate` rows. `LoginLinkService`
+  resolves the template, renders through `MessageComposer`, and sends
+  the `ComposedMessage` inline (`Mail::to(...)->send(...)`, still no
+  queue) instead of `LoginLinkMail`; creates a `Message` row alongside
+  it with `status: 'sent'`, `sent_at: now()`, `user_id` the acting
+  admin for an invite or null for a self-requested login link. Removes
+  `LoginLinkMail`, `emails/login-link.blade.php`, and the now-unused
+  `auth.mail_*` i18n keys. Tests: `sendInvite`/`requestLogin` each
+  create a `Message` with the right `type`, `status`, `user_id`, and a
+  `body_html` containing the link; existing token-extraction helpers in
+  `LoginLinkServiceTest`, `LoginLinkInviteTest`, and `LoginLinkLoginTest`
+  read the link from the sent `ComposedMessage`'s `bodyHtml` instead of
+  a `LoginLinkMail` property; `UserManagementTest` asserts the invite
+  `Message.user_id` is the creating admin. Full suites, Pint, and
+  `npm run build` green.
 
 ## Not done / deferred
 

@@ -2,7 +2,7 @@
 
 namespace Tests\Feature\Auth;
 
-use App\Mail\LoginLinkMail;
+use App\Mail\ComposedMessage;
 use App\Models\LoginLink;
 use App\Models\User;
 use App\Services\Auth\LoginLinkService;
@@ -20,9 +20,16 @@ class LoginLinkInviteTest extends TestCase
     {
         Mail::fake();
         app(LoginLinkService::class)->sendInvite($user);
-        $mail = Mail::sent(LoginLinkMail::class)->last();
 
-        return basename($mail->url);
+        return basename($this->sentUrl());
+    }
+
+    private function sentUrl(): string
+    {
+        $mail = Mail::sent(ComposedMessage::class)->last();
+        preg_match('#href="([^"]+)"#', $mail->bodyHtml, $matches);
+
+        return $matches[1];
     }
 
     public function test_a_live_invite_link_renders_the_set_password_page(): void
@@ -132,7 +139,7 @@ class LoginLinkInviteTest extends TestCase
         Mail::fake();
         $user = User::factory()->create();
         app(LoginLinkService::class)->requestLogin($user->email);
-        $token = basename(Mail::sent(LoginLinkMail::class)->last()->url);
+        $token = basename($this->sentUrl());
 
         $this->post("/login/link/{$token}/skip")->assertNotFound();
         $this->assertGuest();

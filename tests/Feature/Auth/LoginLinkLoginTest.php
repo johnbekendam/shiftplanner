@@ -2,7 +2,7 @@
 
 namespace Tests\Feature\Auth;
 
-use App\Mail\LoginLinkMail;
+use App\Mail\ComposedMessage;
 use App\Models\LoginLink;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -17,9 +17,16 @@ class LoginLinkLoginTest extends TestCase
     {
         Mail::fake();
         $this->post('/login/link', ['email' => $user->email]);
-        $mail = Mail::sent(LoginLinkMail::class)->last();
 
-        return basename($mail->url);
+        return basename($this->sentUrl());
+    }
+
+    private function sentUrl(): string
+    {
+        $mail = Mail::sent(ComposedMessage::class)->last();
+        preg_match('#href="([^"]+)"#', $mail->bodyHtml, $matches);
+
+        return $matches[1];
     }
 
     public function test_requesting_a_link_for_an_unknown_email_sends_nothing_but_still_responds_ok(): void
@@ -98,6 +105,6 @@ class LoginLinkLoginTest extends TestCase
             $this->post('/login/link', ['email' => 'user@example.com'])->assertRedirect();
         }
 
-        Mail::assertSent(LoginLinkMail::class, 5);
+        Mail::assertSent(ComposedMessage::class, 5);
     }
 }

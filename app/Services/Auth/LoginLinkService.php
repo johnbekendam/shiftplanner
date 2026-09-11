@@ -2,9 +2,13 @@
 
 namespace App\Services\Auth;
 
-use App\Mail\LoginLinkMail;
+use App\Enums\MessageType;
+use App\Mail\ComposedMessage;
 use App\Models\LoginLink;
+use App\Models\Message;
+use App\Models\MessageTemplate;
 use App\Models\User;
+use App\Services\MessageComposer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
@@ -26,12 +30,12 @@ class LoginLinkService
 
     public const REQUEST_WINDOW_SECONDS = 900;
 
-    public function __construct(private Request $request) {}
+    public function __construct(private Request $request, private MessageComposer $composer) {}
 
     /** Void any live invite link for the user, issue one, and email it. */
     public function sendInvite(User $user): void
     {
-        $this->issue($user, LoginLink::PURPOSE_INVITE, now()->addDays(self::INVITE_TTL_DAYS));
+        $this->issue($user, LoginLink::PURPOSE_INVITE, now()->addDays(self::INVITE_TTL_DAYS), $this->request->user());
     }
 
     /**
@@ -55,7 +59,8 @@ class LoginLinkService
             return;
         }
 
-        $this->issue($user, LoginLink::PURPOSE_LOGIN, now()->addMinutes(self::LOGIN_TTL_MINUTES));
+        // No composing admin: the recipient requested this themselves.
+        $this->issue($user, LoginLink::PURPOSE_LOGIN, now()->addMinutes(self::LOGIN_TTL_MINUTES), null);
     }
 
     /**
@@ -87,7 +92,7 @@ class LoginLinkService
         $this->signIn($link->user);
     }
 
-    private function issue(User $user, string $purpose, \DateTimeInterface $expiresAt): void
+    private function issue(User $user, string $purpose, \DateTimeInterface $expiresAt, ?User $composedBy): void
     {
         $user->loginLinks()->where('purpose', $purpose)->whereNull('consumed_at')->update(['consumed_at' => now()]);
 
@@ -99,7 +104,38 @@ class LoginLinkService
             'expires_at' => $expiresAt,
         ]);
 
-        Mail::to($user->email)->send(new LoginLinkMail(url("/login/link/{$token}"), $purpose));
+        $this->send($user, $purpose, url("/login/link/{$token}"), $composedBy);
+    }
+
+    /**
+     * Render through the mailbox pipeline (branded HTML, admin-editable
+     * template) and send synchronously — matching account-management's
+     * no-queued-mail decision. The row lands straight in the mailbox
+     * Sent tab, since delivery already happened.
+     */
+    private function send(User $user, string $purpose, string $url, ?User $composedBy): void
+    {
+        $type = $purpose === LoginLink::PURPOSE_INVITE ? MessageType::UserInvite : MessageType::UserLoginLink;
+        $template = MessageTemplate::forType($type);
+        $map = [':name' => $user->name, ':link' => $url];
+        $subject = strtr($template->subject, $map);
+        $body = strtr($template->body, $map);
+        $fragment = $this->composer->render($subject, $body)['body_html'];
+        $mailable = new ComposedMessage($subject, $fragment, $composedBy?->email, $composedBy?->name);
+
+        Mail::to($user->email)->send($mailable);
+
+        Message::create([
+            'user_id' => $composedBy?->id,
+            'type' => $type,
+            'recipient_email' => $user->email,
+            'recipient_name' => $user->name,
+            'subject' => $subject,
+            'body' => $body,
+            'body_html' => new ComposedMessage($subject, $fragment, logoSrc: ComposedMessage::browserLogoUrl())->render(),
+            'status' => 'sent',
+            'sent_at' => now(),
+        ]);
     }
 
     private function signIn(User $user): void

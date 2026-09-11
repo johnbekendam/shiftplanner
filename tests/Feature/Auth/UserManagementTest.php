@@ -2,8 +2,9 @@
 
 namespace Tests\Feature\Auth;
 
-use App\Mail\LoginLinkMail;
-use App\Models\LoginLink;
+use App\Enums\MessageType;
+use App\Mail\ComposedMessage;
+use App\Models\Message;
 use App\Models\User;
 use App\Services\Auth\LoginLinkService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -79,13 +80,19 @@ class UserManagementTest extends TestCase
     public function test_creating_a_user_sends_an_invite_link(): void
     {
         Mail::fake();
+        $admin = $this->admin();
 
-        $this->actingAs($this->admin())
+        $this->actingAs($admin)
             ->post('/users', ['name' => 'Mel', 'email' => 'mel@example.com', 'role' => 'manager']);
 
         $user = User::whereEmail('mel@example.com')->sole();
-        Mail::assertSent(LoginLinkMail::class, fn (LoginLinkMail $mail) => $mail->purpose === LoginLink::PURPOSE_INVITE);
+        Mail::assertSent(ComposedMessage::class);
         $this->assertSame(1, $user->loginLinks()->live()->count());
+
+        $message = Message::sole();
+        $this->assertSame(MessageType::UserInvite, $message->type);
+        $this->assertSame('sent', $message->status);
+        $this->assertSame($admin->id, $message->user_id);
     }
 
     // ── Resend invite ───────────────────────────────────────────────────
@@ -125,7 +132,8 @@ class UserManagementTest extends TestCase
 
         $this->assertNotNull($first->fresh()->consumed_at);
         $this->assertSame(1, $target->loginLinks()->live()->count());
-        Mail::assertSent(LoginLinkMail::class, 2);
+        Mail::assertSent(ComposedMessage::class, 2);
+        $this->assertSame(2, Message::count());
     }
 
     public function test_a_duplicate_email_is_rejected(): void

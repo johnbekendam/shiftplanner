@@ -73,10 +73,30 @@ planning_settings`). No data to preserve either way.
   only from an `invite`-purpose password POST.
 - `is_active` enforced on every send and every consume, as today.
 
-One mailable, `LoginLinkMail`, takes the URL and the purpose; the
-subject and body copy branch on purpose through `auth.*` i18n keys.
-Sent synchronously — the `log` mailer locally — matching
-`account-management`'s no-queued-mail decision.
+### Mail — the mailbox pipeline, not a second mailable
+
+Two new `MessageType` cases, `UserInvite` and `UserLoginLink`, each with
+its own `MessageTemplate` (subject + Markdown body, `:name` / `:link`
+placeholders, a `:button[Label](:link)` call to action) — the same
+mechanism `personal_page_link` uses, so the invite and sign-in emails
+get the branded HTML layout every other ShiftPlanner email uses instead
+of a plain-text one-off. `needsEmployees()` is `false` for both: they
+carry no employee concept, and this also excludes them from the
+mailbox's Compose tab — nothing manually composes an account link, only
+`LoginLinkService` issues one.
+
+`LoginLinkService` resolves the template, renders it through
+`MessageComposer`, and sends the resulting `ComposedMessage` — the same
+mailable `MailboxController` and self-signup send — **synchronously**
+(`Mail::to(...)->send(...)`, not `SendMailboxMessage::dispatch()`,
+which queues on this app's database queue driver). A `Message` row is
+created alongside it with `status: 'sent'` and `sent_at: now()`, so it
+appears in the mailbox's **Sent** tab immediately — there is no
+`outbox` interval, because delivery already happened by the time the
+row exists. An invite's `Message.user_id` is the admin who created (or
+resent) the invite, shown as normal on the **Composed by** column; a
+login-purpose link's is null, like a self-signup send, since no admin
+composed it.
 
 ### Routes and the link-landing page
 
@@ -176,6 +196,20 @@ copy, the notice text, button labels) and loses the code-only keys
 - **One token table, a purpose column.** Two tables would duplicate the
   hash/expiry/consume machinery for no gain; the two purposes differ only
   in TTL and what the landing page's POST does.
+- **The mailbox pipeline, not a bespoke mailable.** An early version sent
+  a plain-text `LoginLinkMail` directly and left no record anywhere. That
+  meant no branded styling and no way for an admin to see or audit that
+  an invite went out. Two new `MessageType` cases reuse the exact
+  machinery `personal_page_link` already proved out — template, branded
+  HTML, a `Message` row — while `needsEmployees() === false` keeps them
+  out of the Compose tab, since nothing about an account link needs
+  employee selection.
+- **Still synchronous, just recorded as sent.** The no-queued-mail
+  decision above still holds — `SendMailboxMessage::dispatch()` would
+  queue on this app's database driver and could sit unsent with no
+  worker running. Sending inline and writing the `Message` row with
+  `status: 'sent'` gets both branded delivery and outbox visibility
+  without taking on a queue dependency.
 
 ## Non-goals
 
