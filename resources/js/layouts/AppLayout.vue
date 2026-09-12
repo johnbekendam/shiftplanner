@@ -98,9 +98,9 @@ function isActive(href) {
                     </button>
                     <div class="lg:hidden flex items-center gap-2">
                         <AppLogo />
-                        <span class="text-base font-medium text-(--color-header-text)">{{ page.props.appName }}</span>
+                        <span class="text-lg font-medium text-(--color-header-text)">{{ page.props.appName }}</span>
                     </div>
-                    <span class="hidden lg:inline text-lg font-medium text-(--color-header-text)">
+                    <span class="hidden lg:inline text-xl font-medium text-(--color-header-text)">
                         {{ page.props.appName }}
                     </span>
                     <div class="hidden lg:flex items-center gap-1.5 text-xl font-medium text-(--color-header-text)">
