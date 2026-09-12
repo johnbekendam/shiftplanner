@@ -1,6 +1,6 @@
 <script setup>
 import { computed, reactive, ref } from 'vue'
-import { Head, useForm } from '@inertiajs/vue3'
+import { Head, router, useForm } from '@inertiajs/vue3'
 import CenteredLayout from '@/layouts/CenteredLayout.vue'
 import CardSeparator from '@/components/ui/CardSeparator.vue'
 import Tabs from '@/components/ui/Tabs.vue'
@@ -13,6 +13,8 @@ import QuestionChecklist from '@/components/QuestionChecklist.vue'
 import TagChecklist from '@/components/TagChecklist.vue'
 import ButtonPrimary from '@/components/ui/ButtonPrimary.vue'
 import ButtonSecondary from '@/components/ui/ButtonSecondary.vue'
+import ButtonDanger from '@/components/ui/ButtonDanger.vue'
+import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 import { useI18n } from '@/composables/useI18n'
 import { useSaveRegistry } from '@/composables/useSaveRegistry'
 import { useUnsavedChangesGuard } from '@/composables/useUnsavedChangesGuard'
@@ -278,6 +280,13 @@ function onCancelClick() {
     pendingCompetenceIds.value = [...savedCompetenceIds.value]
     competencesVersion.value++
 }
+
+// ── Sign off: self-service, permanent account deletion ────────────────
+const signOffDialogOpen = ref(false)
+
+function onSignOffConfirm() {
+    router.delete(`/personal/${props.token}`)
+}
 </script>
 
 <template>
@@ -391,29 +400,48 @@ function onCancelClick() {
             />
         </div>
 
-        <CardSeparator />
+        <template v-if="editable">
+            <CardSeparator />
 
-        <div class="flex items-center justify-end gap-3">
-            <ButtonSecondary
-                type="button"
-                :disabled="!editable || !registry.anyDirty.value || registry.saving.value"
-                @click="onCancelClick"
-            >
-                {{ __('personal.action.cancel') }}
-            </ButtonSecondary>
-            <ButtonPrimary
-                :disabled="!editable || !registry.anyDirty.value || registry.saving.value"
-                :icon="justSaved ? 'check-circle' : null"
-                @click="onSaveClick"
-            >
-                {{
-                    registry.saving.value
-                        ? __('personal.action.saving')
-                        : justSaved
-                          ? __('personal.saved')
-                          : __('personal.action.save')
-                }}
-            </ButtonPrimary>
-        </div>
+            <div class="flex items-center justify-between gap-3">
+                <ButtonDanger type="button" @click="signOffDialogOpen = true">
+                    {{ __('personal.action.signoff') }}
+                </ButtonDanger>
+
+                <div class="flex items-center gap-3">
+                    <ButtonSecondary
+                        type="button"
+                        :disabled="!registry.anyDirty.value || registry.saving.value"
+                        @click="onCancelClick"
+                    >
+                        {{ __('personal.action.cancel') }}
+                    </ButtonSecondary>
+                    <ButtonPrimary
+                        :disabled="!registry.anyDirty.value || registry.saving.value"
+                        :icon="justSaved ? 'check-circle' : null"
+                        @click="onSaveClick"
+                    >
+                        {{
+                            registry.saving.value
+                                ? __('personal.action.saving')
+                                : justSaved
+                                  ? __('personal.saved')
+                                  : __('personal.action.save')
+                        }}
+                    </ButtonPrimary>
+                </div>
+            </div>
+        </template>
+
+        <ConfirmDialog
+            :open="signOffDialogOpen"
+            :title="__('personal.signoff.title')"
+            :confirm-label="__('personal.signoff.confirm')"
+            variant="danger"
+            @confirm="onSignOffConfirm"
+            @cancel="signOffDialogOpen = false"
+        >
+            {{ __('personal.signoff.body') }}
+        </ConfirmDialog>
     </CenteredLayout>
 </template>

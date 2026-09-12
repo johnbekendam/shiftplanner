@@ -136,4 +136,5 @@ Route::middleware('employee.changes')->group(function () {
     Route::put('/personal/{token}/competences/{competence}', [PersonalCompetenceController::class, 'update'])->name('personal.competences.update');
     Route::delete('/personal/{token}/competences/{competence}', [PersonalCompetenceController::class, 'destroy'])->name('personal.competences.destroy');
     Route::put('/personal/{token}/questions/{question}', [PersonalQuestionController::class, 'update'])->name('personal.questions.update');
+    Route::delete('/personal/{token}', [PersonalPageController::class, 'destroy'])->name('personal.destroy');
 });

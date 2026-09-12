@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\BusinessLine;
 use App\Models\Employee;
+use App\Models\PlanningSettings;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -136,5 +137,44 @@ class PersonalPageTest extends TestCase
 
         $response->assertOk();
         $response->assertDontSee('Someone Else');
+    }
+
+    // ── Sign-off: self-service permanent deletion ────────────────────────
+
+    public function test_employee_can_sign_off_and_is_redirected_to_signup(): void
+    {
+        [$employee, $token] = $this->linkedEmployee();
+
+        $this->delete("/personal/{$token}")
+            ->assertRedirect('/signup')
+            ->assertSessionHas('success');
+
+        $this->assertModelMissing($employee);
+    }
+
+    public function test_sign_off_removes_dependent_records(): void
+    {
+        [$employee, $token] = $this->linkedEmployee();
+        $employee->holidays()->create(['start_date' => '2026-01-01', 'end_date' => '2026-01-02']);
+
+        $this->delete("/personal/{$token}");
+
+        $this->assertSame(0, $employee->holidays()->count());
+        $this->assertSame(0, $employee->personalLink()->count());
+    }
+
+    public function test_sign_off_is_blocked_when_a_manager_has_closed_employee_changes(): void
+    {
+        PlanningSettings::current()->update(['allow_employee_changes' => false]);
+        [$employee, $token] = $this->linkedEmployee();
+
+        $this->delete("/personal/{$token}")->assertForbidden();
+
+        $this->assertModelExists($employee);
+    }
+
+    public function test_sign_off_with_a_malformed_token_is_not_found(): void
+    {
+        $this->delete('/personal/definitely-not-a-real-token')->assertNotFound();
     }
 }

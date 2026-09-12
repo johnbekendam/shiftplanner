@@ -63,6 +63,20 @@ class PersonalPageController extends Controller
         return redirect("/personal/{$token}")->with('success', __('personal.flash.saved'));
     }
 
+    /**
+     * Employee-initiated sign-off: permanently deletes their own employee
+     * record. Existing foreign-key cascades remove holidays, availability,
+     * competence and question assignments, and the personal link itself —
+     * the same cascade the admin bulk-delete relies on.
+     */
+    public function destroy(string $token)
+    {
+        $employee = $this->resolveOrFail($token);
+        $employee->delete();
+
+        return redirect('/signup')->with('success', __('personal.signoff.flash'));
+    }
+
     private function resolveOrFail(string $token): Employee
     {
         return $this->links->resolve($token) ?? abort(404);

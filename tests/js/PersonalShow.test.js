@@ -15,6 +15,11 @@ const en = {
     "personal.action.save": "Save",
     "personal.action.saving": "Saving…",
     "personal.action.cancel": "Cancel",
+    "personal.action.signoff": "Sign off",
+    "personal.signoff.title": "Sign off?",
+    "personal.signoff.body": "This permanently removes your details from ShiftPlanner.",
+    "personal.signoff.confirm": "Yes, sign me off",
+    "app.cancel": "Cancel",
     "personal.saved": "Saved",
     "personal.locked_notice": "Changes are currently closed by your planner.",
     "availability.tab.information": "Information",
@@ -51,7 +56,7 @@ const { routerCalls, failUrlsRef, router, useFormMock } = vi.hoisted(() => {
         },
         delete: (url, opts) => {
             routerCalls.push(["delete", url]);
-            failUrlsRef.current.includes(url) ? opts.onError() : opts.onSuccess();
+            failUrlsRef.current.includes(url) ? opts?.onError?.() : opts?.onSuccess?.();
         },
         on: () => () => {},
     };
@@ -139,6 +144,7 @@ const mountShow = (holidays = [], extra = {}) =>
                 CenteredLayout: {
                     template: "<div><slot name='header' /><slot /><slot name='footer' /></div>",
                 },
+                teleport: true,
             },
         },
     });
@@ -146,6 +152,7 @@ const mountShow = (holidays = [], extra = {}) =>
 const hidden = (w, sel) => (w.get(sel).attributes("style") ?? "").includes("display: none");
 const findSaveButton = (w) => w.findAll("button").find((b) => ["Save", "Saving…", "Saved"].includes(b.text()));
 const findCancelButton = (w) => w.findAll("button").find((b) => b.text() === "Cancel");
+const findSignOffButton = (w) => w.findAll("button").find((b) => b.text() === "Sign off");
 
 beforeEach(() => {
     routerCalls.length = 0;
@@ -200,12 +207,49 @@ describe("Personal/Show", () => {
             .toContain("Your available time totals 16 hours per week, below your target of 20 hours.");
     });
 
-    it("the Save button is disabled with nothing changed, and disabled outright when not editable", () => {
+    it("the Save button is disabled with nothing changed", () => {
         const w = mountShow();
         expect(findSaveButton(w).attributes("disabled")).toBeDefined();
+    });
 
+    it("hides Sign off, Cancel, and Save entirely when not editable", () => {
         const locked = mountShow([], { editable: false });
-        expect(findSaveButton(locked).attributes("disabled")).toBeDefined();
+        expect(findSaveButton(locked)).toBeUndefined();
+        expect(findCancelButton(locked)).toBeUndefined();
+        expect(findSignOffButton(locked)).toBeUndefined();
+    });
+
+    it("clicking Sign off opens the confirmation dialog without deleting anything yet", async () => {
+        const w = mountShow();
+        expect(w.text()).not.toContain("Sign off?");
+
+        await findSignOffButton(w).trigger("click");
+
+        expect(w.text()).toContain("Sign off?");
+        expect(w.text()).toContain("This permanently removes your details from ShiftPlanner.");
+        expect(routerCalls).toEqual([]);
+    });
+
+    it("dismissing the sign-off dialog does not delete anything", async () => {
+        const w = mountShow();
+        await findSignOffButton(w).trigger("click");
+
+        const dialogCancel = w.findAll("button").filter((b) => b.text() === "Cancel").at(-1);
+        await dialogCancel.trigger("click");
+        await w.vm.$nextTick();
+
+        expect(w.text()).not.toContain("Sign off?");
+        expect(routerCalls).toEqual([]);
+    });
+
+    it("confirming sign-off deletes the personal record", async () => {
+        const w = mountShow();
+        await findSignOffButton(w).trigger("click");
+
+        const dialogConfirm = w.findAll("button").find((b) => b.text() === "Yes, sign me off");
+        await dialogConfirm.trigger("click");
+
+        expect(routerCalls).toContainEqual(["delete", "/personal/tok-1"]);
     });
 
     it("enables Save when weekly hours change, and saves via the personal endpoint on click", async () => {
