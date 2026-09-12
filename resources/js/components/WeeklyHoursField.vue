@@ -18,14 +18,14 @@ defineProps({
 })
 
 const options = computed(() => [
-    ...WEEKLY_HOURS_OPTIONS.map((hours) => ({
-        value: hours,
-        label: __('employees.hours_option', { count: hours }),
-    })),
     {
         value: 0,
         label: __('employees.hours_below_minimum', { min: WEEKLY_HOURS_OPTIONS[0] }),
     },
+    ...WEEKLY_HOURS_OPTIONS.map((hours) => ({
+        value: hours,
+        label: __('employees.hours_option', { count: hours }),
+    })),
 ])
 </script>
 

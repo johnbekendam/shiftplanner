@@ -15,17 +15,17 @@ import WeeklyHoursField from "@/components/WeeklyHoursField.vue";
 import SelectInput from "@/components/ui/Input/Select.vue";
 
 describe("WeeklyHoursField", () => {
-    it("offers 20-48 in steps of 4 then a below-minimum option that saves 0", () => {
+    it("offers a below-minimum option first, then 20-48 in steps of 4", () => {
         const w = mount(WeeklyHoursField, { props: { modelValue: 32 } });
         const opts = w.getComponent(SelectInput).props("options");
 
-        expect(opts.map((o) => o.value)).toEqual([20, 24, 28, 32, 36, 40, 44, 48, 0]);
-        expect(opts[0].label).toBe("20 hours");
-        expect(opts[7].label).toBe("48 hours");
-        expect(opts.at(-1)).toEqual({
+        expect(opts.map((o) => o.value)).toEqual([0, 20, 24, 28, 32, 36, 40, 44, 48]);
+        expect(opts[0]).toEqual({
             value: 0,
             label: "I can only work less than 20 hours",
         });
+        expect(opts[1].label).toBe("20 hours");
+        expect(opts.at(-1).label).toBe("48 hours");
     });
 
     it("binds the select to modelValue and emits on change", async () => {
