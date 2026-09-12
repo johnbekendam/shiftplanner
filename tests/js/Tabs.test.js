@@ -32,4 +32,16 @@ describe("Tabs", () => {
 
         expect(w.emitted("update:modelValue")).toEqual([["availability"]]);
     });
+
+    it("renders an error dot only for a tab with hasError: true", () => {
+        const withError = [
+            { value: "details", label: "Details" },
+            { value: "availability", label: "Availability", hasError: true },
+        ];
+        const w = mount(Tabs, { props: { tabs: withError, modelValue: "details" } });
+        const [details, availability] = w.findAll("button");
+
+        expect(details.find('[data-testid="tab-error-dot"]').exists()).toBe(false);
+        expect(availability.find('[data-testid="tab-error-dot"]').exists()).toBe(true);
+    });
 });

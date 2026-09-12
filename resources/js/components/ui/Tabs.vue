@@ -21,6 +21,11 @@ defineEmits(['update:modelValue'])
             @click="$emit('update:modelValue', t.value)"
         >
             {{ t.label }}
+            <span
+                v-if="t.hasError"
+                data-testid="tab-error-dot"
+                class="ml-1 inline-block size-1.5 rounded-full bg-(--color-badge-error-bg)"
+            />
         </button>
     </div>
 </template>
