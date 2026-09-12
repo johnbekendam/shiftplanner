@@ -90,11 +90,15 @@ function onWeeklyHoursChange(value) {
 }
 
 // ── Availability grid: one PUT per changed cell ──────────────────────────
+const availabilityVersion = ref(0)
+// The last-saved rows — the Cancel reset target. Not just props.availability,
+// since a save earlier this visit may have moved the true baseline forward.
+const committedAvailability = ref(props.availability)
 const availability = ref(props.availability)
 const pendingAvailability = reactive({})
 
-function originalAvailabilityLevel(weekday, shiftId) {
-    const row = props.availability.find((r) => r.weekday === weekday && r.shift_id === shiftId)
+function committedAvailabilityLevel(weekday, shiftId) {
+    const row = committedAvailability.value.find((r) => r.weekday === weekday && r.shift_id === shiftId)
     return row ? row.level : 'available'
 }
 
@@ -105,7 +109,7 @@ function onAvailabilityChange({ weekday, shiftId, level }) {
     }
 
     const key = `${weekday}-${shiftId}`
-    if (level === originalAvailabilityLevel(weekday, shiftId)) {
+    if (level === committedAvailabilityLevel(weekday, shiftId)) {
         delete pendingAvailability[key]
     } else {
         pendingAvailability[key] = level
@@ -120,7 +124,17 @@ if (isEdit.value) {
             const results = await Promise.allSettled(entries.map(([key, level]) => {
                 const [weekday, shiftId] = key.split('-')
                 return putAsync(`/employees/${props.employee.id}/availability/${weekday}/${shiftId}`, { level })
-                    .then(() => { delete pendingAvailability[key] })
+                    .then(() => {
+                        delete pendingAvailability[key]
+                        committedAvailability.value = committedAvailability.value
+                            .filter((row) => row.weekday !== Number(weekday) || row.shift_id !== Number(shiftId))
+                        if (level !== 'available') {
+                            committedAvailability.value = [
+                                ...committedAvailability.value,
+                                { weekday: Number(weekday), shift_id: Number(shiftId), level },
+                            ]
+                        }
+                    })
             }))
             return results.every((r) => r.status === 'fulfilled')
         },
@@ -179,6 +193,7 @@ if (isEdit.value) {
 }
 
 // ── Questions and competences: id-set toggles, both idempotent to retry ──
+const questionsVersion = ref(0)
 const pendingAnsweredIds = ref([...props.questionAnswers])
 const savedAnsweredIds = ref([...props.questionAnswers])
 
@@ -210,6 +225,7 @@ if (isEdit.value) {
     })
 }
 
+const competencesVersion = ref(0)
 const pendingCompetenceIds = ref([...props.competenceIds])
 const savedCompetenceIds = ref([...props.competenceIds])
 
@@ -241,7 +257,7 @@ if (isEdit.value) {
     })
 }
 
-// ── Footer Save button (edit mode only) ──────────────────────────────────
+// ── Save / Cancel (edit mode only) ────────────────────────────────────
 const justSaved = ref(false)
 
 async function onSaveClick() {
@@ -250,6 +266,28 @@ async function onSaveClick() {
         justSaved.value = true
         setTimeout(() => { justSaved.value = false }, 2000)
     }
+}
+
+// Discards every pending edit across every tab, back to the last-saved
+// state (not necessarily the state the page loaded with, if something
+// already saved successfully earlier this visit). Bumping each :key
+// forces that child to re-seed from the restored data.
+function onCancelClick() {
+    form.reset()
+    form.clearErrors()
+
+    for (const key of Object.keys(pendingAvailability)) delete pendingAvailability[key]
+    availability.value = committedAvailability.value
+    availabilityVersion.value++
+
+    currentHolidayRows.value = committedHolidays.value
+    holidaysVersion.value++
+
+    pendingAnsweredIds.value = [...savedAnsweredIds.value]
+    questionsVersion.value++
+
+    pendingCompetenceIds.value = [...savedCompetenceIds.value]
+    competencesVersion.value++
 }
 </script>
 
@@ -321,8 +359,9 @@ async function onSaveClick() {
 
                 <section class="space-y-3">
                     <AvailabilityGrid
+                        :key="availabilityVersion"
                         :shifts="shifts"
-                        :availability="availability"
+                        :availability="committedAvailability"
                         show-add-hint
                         @update:availability="onAvailabilityChange"
                     />
@@ -337,8 +376,9 @@ async function onSaveClick() {
                             {{ __('availability.questions.heading') }}
                         </h3>
                         <QuestionChecklist
+                            :key="questionsVersion"
                             :items="questions"
-                            :answered-ids="questionAnswers"
+                            :answered-ids="savedAnsweredIds"
                             @update:answered-ids="onAnsweredIdsChange"
                         />
                     </section>
@@ -360,15 +400,25 @@ async function onSaveClick() {
 
             <div v-if="isEdit" v-show="tab === 'competences'" data-testid="panel-competences" class="p-6">
                 <TagChecklist
+                    :key="competencesVersion"
                     :items="competences"
-                    :selected-ids="competenceIds"
+                    :selected-ids="savedCompetenceIds"
                     empty-key="competences.checklist_empty"
                     @update:selected-ids="onSelectedCompetenceIdsChange"
                 />
             </div>
 
-            <template v-if="isEdit" #footer>
-                <div class="flex justify-end px-6 py-4">
+            <div v-if="isEdit" class="p-6 pt-0">
+                <CardSeparator />
+
+                <div class="flex items-center justify-end gap-3">
+                    <ButtonSecondary
+                        type="button"
+                        :disabled="!registry.anyDirty.value || registry.saving.value"
+                        @click="onCancelClick"
+                    >
+                        {{ __('employees.action.cancel') }}
+                    </ButtonSecondary>
                     <ButtonPrimary
                         :disabled="!registry.anyDirty.value || registry.saving.value"
                         :icon="justSaved ? 'check-circle' : null"
@@ -383,7 +433,7 @@ async function onSaveClick() {
                         }}
                     </ButtonPrimary>
                 </div>
-            </template>
+            </div>
         </Card>
     </AppLayout>
 </template>

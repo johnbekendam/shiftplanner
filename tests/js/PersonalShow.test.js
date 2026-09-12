@@ -14,6 +14,7 @@ const en = {
     "personal.title": "Your working hours",
     "personal.action.save": "Save",
     "personal.action.saving": "Saving…",
+    "personal.action.cancel": "Cancel",
     "personal.saved": "Saved",
     "personal.locked_notice": "Changes are currently closed by your planner.",
     "availability.tab.information": "Information",
@@ -83,6 +84,13 @@ const form = reactive({
     defaults() {
         this._defaults = { weekly_hours: this.weekly_hours, business_line_id: this.business_line_id };
     },
+    reset() {
+        this.weekly_hours = this._defaults.weekly_hours;
+        this.business_line_id = this._defaults.business_line_id;
+    },
+    clearErrors() {
+        this.errors = {};
+    },
     transform(fn) {
         this._transform = fn;
         return this;
@@ -137,12 +145,14 @@ const mountShow = (holidays = [], extra = {}) =>
 
 const hidden = (w, sel) => (w.get(sel).attributes("style") ?? "").includes("display: none");
 const findSaveButton = (w) => w.findAll("button").find((b) => ["Save", "Saving…", "Saved"].includes(b.text()));
+const findCancelButton = (w) => w.findAll("button").find((b) => b.text() === "Cancel");
 
 beforeEach(() => {
     routerCalls.length = 0;
     failUrlsRef.current = [];
     form.errors = {};
     form.recentlySuccessful = false;
+    form.lastPut = undefined;
 });
 
 describe("Personal/Show", () => {
@@ -212,6 +222,42 @@ describe("Personal/Show", () => {
         expect(form.lastPut.url).toBe("/personal/tok-1");
         expect(form.lastPut.data).toEqual({ weekly_hours: 40, business_line_id: null });
         expect(findSaveButton(w).attributes("disabled")).toBeDefined();
+    });
+
+    it("Cancel is disabled with nothing changed", () => {
+        const w = mountShow();
+        expect(findCancelButton(w).attributes("disabled")).toBeDefined();
+    });
+
+    it("Cancel restores weekly hours and disables both buttons, without saving", async () => {
+        const w = mountShow();
+        w.get('[data-testid="panel-availability"]').findComponent(WeeklyHoursField)
+            .vm.$emit("update:modelValue", 40);
+        await w.vm.$nextTick();
+
+        expect(findCancelButton(w).attributes("disabled")).toBeUndefined();
+        await findCancelButton(w).trigger("click");
+        await w.vm.$nextTick();
+
+        expect(form.weekly_hours).toBe(24);
+        expect(findSaveButton(w).attributes("disabled")).toBeDefined();
+        expect(findCancelButton(w).attributes("disabled")).toBeDefined();
+        expect(form.lastPut).toBeUndefined();
+    });
+
+    it("Cancel discards a pending availability-grid change", async () => {
+        const w = mountShow([], { shifts: [{ id: 1, name: "Day", start_time: "08:00", end_time: "12:00" }] });
+        w.findComponent(AvailabilityGrid).vm.$emit("update:availability", { weekday: 1, shiftId: 1, level: "unavailable" });
+        await w.vm.$nextTick();
+        expect(findSaveButton(w).attributes("disabled")).toBeUndefined();
+
+        await findCancelButton(w).trigger("click");
+        await w.vm.$nextTick();
+
+        expect(findSaveButton(w).attributes("disabled")).toBeDefined();
+        await findSaveButton(w).trigger("click");
+        await flushPromises();
+        expect(routerCalls).toEqual([]);
     });
 
     it("enables Save when the business line changes, from the Details tab", async () => {

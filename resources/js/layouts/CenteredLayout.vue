@@ -56,10 +56,6 @@ const widthClass = { md: 'max-w-md', lg: 'max-w-xl' }[props.width]
                 <div class="px-10 pt-8 pb-6">
                     <slot />
                 </div>
-
-                <template v-if="$slots.footer" #footer>
-                    <slot name="footer" />
-                </template>
             </Card>
         </div>
 

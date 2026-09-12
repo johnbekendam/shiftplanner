@@ -63,6 +63,12 @@ vi.mock("@inertiajs/vue3", () => ({
             defaults() {
                 this._defaults = Object.fromEntries(Object.keys(initial).map((k) => [k, this[k]]));
             },
+            reset() {
+                Object.assign(this, this._defaults);
+            },
+            clearErrors() {
+                this.errors = {};
+            },
             put: vi.fn((url, opts) => {
                 failUrlsRef.current.includes(`FORM:${url}`) ? opts.onError() : opts.onSuccess();
             }),
@@ -83,6 +89,7 @@ import QuestionChecklist from "@/components/QuestionChecklist.vue";
 
 const stubs = { AppLayout: { template: "<div><slot /></div>" } };
 const findSaveButton = (w) => w.findAll("button").find((b) => ["Save", "Saving…", "Saved"].includes(b.text()));
+const findCancelButton = (w) => w.findAll("button").find((b) => b.text() === "Cancel");
 
 beforeEach(() => {
     routerCalls.length = 0;
@@ -273,6 +280,49 @@ describe("Employees/Form", () => {
             global: { stubs },
         });
         expect(findSaveButton(w).attributes("disabled")).toBeDefined();
+        expect(findCancelButton(w).attributes("disabled")).toBeDefined();
+    });
+
+    it("Cancel restores weekly hours and disables both buttons, without saving", async () => {
+        const w = mount(Form, {
+            props: { employee: { id: 3, first_name: "A", last_name: "B", email: "a@b.c", weekly_hours: 24 }, holidays: [] },
+            global: { stubs },
+        });
+        const hours = w.get('[data-testid="panel-availability"]').findComponent(WeeklyHoursField);
+        const form = w.findComponent(EmployeeFields).props("form");
+        hours.vm.$emit("update:modelValue", 40);
+        await w.vm.$nextTick();
+
+        expect(findCancelButton(w).attributes("disabled")).toBeUndefined();
+        await findCancelButton(w).trigger("click");
+        await w.vm.$nextTick();
+
+        expect(form.weekly_hours).toBe(24);
+        expect(findSaveButton(w).attributes("disabled")).toBeDefined();
+        expect(findCancelButton(w).attributes("disabled")).toBeDefined();
+        expect(form.put).not.toHaveBeenCalled();
+    });
+
+    it("Cancel discards a pending availability-grid change", async () => {
+        const w = mount(Form, {
+            props: {
+                employee: { id: 3, first_name: "A", last_name: "B", email: "a@b.c", weekly_hours: 24 },
+                shifts: [{ id: 1, name: "Day", start_time: "08:00", end_time: "12:00" }],
+                holidays: [],
+            },
+            global: { stubs },
+        });
+        w.findComponent(AvailabilityGrid).vm.$emit("update:availability", { weekday: 1, shiftId: 1, level: "unavailable" });
+        await w.vm.$nextTick();
+        expect(findSaveButton(w).attributes("disabled")).toBeUndefined();
+
+        await findCancelButton(w).trigger("click");
+        await w.vm.$nextTick();
+
+        expect(findSaveButton(w).attributes("disabled")).toBeDefined();
+        await findSaveButton(w).trigger("click");
+        await flushPromises();
+        expect(routerCalls).toEqual([]);
     });
 
     it("enables Save when weekly hours change, and saves via the employee endpoint on click", async () => {
