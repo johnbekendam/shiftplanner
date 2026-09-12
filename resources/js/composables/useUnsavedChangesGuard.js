@@ -14,7 +14,13 @@ export function useUnsavedChangesGuard(isDirty) {
         event.returnValue = ''
     }
 
-    function handleInertiaBefore() {
+    function handleInertiaBefore(event) {
+        // Our own Save button fires its requests as async visits (see
+        // inertiaAsync.js) specifically so several can run at once without
+        // Inertia cancelling one another. A real navigation away from the
+        // page — a Link click, a redirect — is never async, so this is
+        // also what tells the two apart here.
+        if (event?.detail?.visit?.async) return true
         if (!isDirty()) return true
 
         return window.confirm('You have unsaved changes. Leave anyway?')

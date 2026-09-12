@@ -15,6 +15,9 @@ vi.mock("@inertiajs/vue3", () => ({
     },
 }));
 
+const syncVisitEvent = { detail: { visit: { async: false } } };
+const asyncVisitEvent = { detail: { visit: { async: true } } };
+
 let wrappers = [];
 
 function mountGuard(dirty) {
@@ -62,28 +65,37 @@ describe("useUnsavedChangesGuard", () => {
         expect(event.defaultPrevented).toBe(false);
     });
 
-    it("cancels an Inertia visit when dirty and the user declines to leave", () => {
+    it("cancels a sync Inertia visit when dirty and the user declines to leave", () => {
         const dirty = ref(true);
         mountGuard(dirty);
         vi.spyOn(window, "confirm").mockReturnValue(false);
 
-        expect(beforeCallback()).toBe(false);
+        expect(beforeCallback(syncVisitEvent)).toBe(false);
     });
 
-    it("allows an Inertia visit when dirty and the user confirms leaving", () => {
+    it("allows a sync Inertia visit when dirty and the user confirms leaving", () => {
         const dirty = ref(true);
         mountGuard(dirty);
         vi.spyOn(window, "confirm").mockReturnValue(true);
 
-        expect(beforeCallback()).toBe(true);
+        expect(beforeCallback(syncVisitEvent)).toBe(true);
     });
 
-    it("allows an Inertia visit without prompting when not dirty", () => {
+    it("allows a sync Inertia visit without prompting when not dirty", () => {
         const dirty = ref(false);
         mountGuard(dirty);
         const confirmSpy = vi.spyOn(window, "confirm");
 
-        expect(beforeCallback()).toBe(true);
+        expect(beforeCallback(syncVisitEvent)).toBe(true);
+        expect(confirmSpy).not.toHaveBeenCalled();
+    });
+
+    it("never prompts for an async visit, even while dirty (that's our own Save request)", () => {
+        const dirty = ref(true);
+        mountGuard(dirty);
+        const confirmSpy = vi.spyOn(window, "confirm");
+
+        expect(beforeCallback(asyncVisitEvent)).toBe(true);
         expect(confirmSpy).not.toHaveBeenCalled();
     });
 
