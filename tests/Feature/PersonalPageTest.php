@@ -139,9 +139,9 @@ class PersonalPageTest extends TestCase
         $response->assertDontSee('Someone Else');
     }
 
-    // ── Sign-off: self-service permanent deletion ────────────────────────
+    // ── Withdraw: self-service permanent deletion ─────────────────────────
 
-    public function test_employee_can_sign_off_and_is_redirected_to_signup(): void
+    public function test_employee_can_withdraw_and_is_redirected_to_signup(): void
     {
         [$employee, $token] = $this->linkedEmployee();
 
@@ -152,7 +152,7 @@ class PersonalPageTest extends TestCase
         $this->assertModelMissing($employee);
     }
 
-    public function test_sign_off_removes_dependent_records(): void
+    public function test_withdrawing_removes_dependent_records(): void
     {
         [$employee, $token] = $this->linkedEmployee();
         $employee->holidays()->create(['start_date' => '2026-01-01', 'end_date' => '2026-01-02']);
@@ -163,7 +163,7 @@ class PersonalPageTest extends TestCase
         $this->assertSame(0, $employee->personalLink()->count());
     }
 
-    public function test_sign_off_is_blocked_when_a_manager_has_closed_employee_changes(): void
+    public function test_withdrawing_is_blocked_when_a_manager_has_closed_employee_changes(): void
     {
         PlanningSettings::current()->update(['allow_employee_changes' => false]);
         [$employee, $token] = $this->linkedEmployee();
@@ -173,7 +173,7 @@ class PersonalPageTest extends TestCase
         $this->assertModelExists($employee);
     }
 
-    public function test_sign_off_with_a_malformed_token_is_not_found(): void
+    public function test_withdrawing_with_a_malformed_token_is_not_found(): void
     {
         $this->delete('/personal/definitely-not-a-real-token')->assertNotFound();
     }

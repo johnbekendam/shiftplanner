@@ -15,10 +15,10 @@ const en = {
     "personal.action.save": "Save",
     "personal.action.saving": "Saving…",
     "personal.action.cancel": "Cancel",
-    "personal.action.signoff": "Sign off",
-    "personal.signoff.title": "Sign off?",
-    "personal.signoff.body": "This permanently removes your details from ShiftPlanner.",
-    "personal.signoff.confirm": "Yes, sign me off",
+    "personal.action.withdraw": "Withdraw",
+    "personal.withdraw.title": "Withdraw?",
+    "personal.withdraw.body": "This permanently removes your details from ShiftPlanner.",
+    "personal.withdraw.confirm": "Yes, withdraw",
     "app.cancel": "Cancel",
     "personal.saved": "Saved",
     "personal.locked_notice": "Changes are currently closed by your planner.",
@@ -152,7 +152,7 @@ const mountShow = (holidays = [], extra = {}) =>
 const hidden = (w, sel) => (w.get(sel).attributes("style") ?? "").includes("display: none");
 const findSaveButton = (w) => w.findAll("button").find((b) => ["Save", "Saving…", "Saved"].includes(b.text()));
 const findCancelButton = (w) => w.findAll("button").find((b) => b.text() === "Cancel");
-const findSignOffButton = (w) => w.findAll("button").find((b) => b.text() === "Sign off");
+const findWithdrawButton = (w) => w.findAll("button").find((b) => b.text() === "Withdraw");
 
 beforeEach(() => {
     routerCalls.length = 0;
@@ -212,41 +212,41 @@ describe("Personal/Show", () => {
         expect(findSaveButton(w).attributes("disabled")).toBeDefined();
     });
 
-    it("hides Sign off, Cancel, and Save entirely when not editable", () => {
+    it("hides Withdraw, Cancel, and Save entirely when not editable", () => {
         const locked = mountShow([], { editable: false });
         expect(findSaveButton(locked)).toBeUndefined();
         expect(findCancelButton(locked)).toBeUndefined();
-        expect(findSignOffButton(locked)).toBeUndefined();
+        expect(findWithdrawButton(locked)).toBeUndefined();
     });
 
-    it("clicking Sign off opens the confirmation dialog without deleting anything yet", async () => {
+    it("clicking Withdraw opens the confirmation dialog without deleting anything yet", async () => {
         const w = mountShow();
-        expect(w.text()).not.toContain("Sign off?");
+        expect(w.text()).not.toContain("Withdraw?");
 
-        await findSignOffButton(w).trigger("click");
+        await findWithdrawButton(w).trigger("click");
 
-        expect(w.text()).toContain("Sign off?");
+        expect(w.text()).toContain("Withdraw?");
         expect(w.text()).toContain("This permanently removes your details from ShiftPlanner.");
         expect(routerCalls).toEqual([]);
     });
 
-    it("dismissing the sign-off dialog does not delete anything", async () => {
+    it("dismissing the withdraw dialog does not delete anything", async () => {
         const w = mountShow();
-        await findSignOffButton(w).trigger("click");
+        await findWithdrawButton(w).trigger("click");
 
         const dialogCancel = w.findAll("button").filter((b) => b.text() === "Cancel").at(-1);
         await dialogCancel.trigger("click");
         await w.vm.$nextTick();
 
-        expect(w.text()).not.toContain("Sign off?");
+        expect(w.text()).not.toContain("Withdraw?");
         expect(routerCalls).toEqual([]);
     });
 
-    it("confirming sign-off deletes the personal record", async () => {
+    it("confirming withdrawal deletes the personal record", async () => {
         const w = mountShow();
-        await findSignOffButton(w).trigger("click");
+        await findWithdrawButton(w).trigger("click");
 
-        const dialogConfirm = w.findAll("button").find((b) => b.text() === "Yes, sign me off");
+        const dialogConfirm = w.findAll("button").find((b) => b.text() === "Yes, withdraw");
         await dialogConfirm.trigger("click");
 
         expect(routerCalls).toContainEqual(["delete", "/personal/tok-1"]);

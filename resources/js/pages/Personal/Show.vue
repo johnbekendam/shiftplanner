@@ -281,10 +281,10 @@ function onCancelClick() {
     competencesVersion.value++
 }
 
-// ── Sign off: self-service, permanent account deletion ────────────────
-const signOffDialogOpen = ref(false)
+// ── Withdraw: self-service, permanent account deletion ─────────────────
+const withdrawDialogOpen = ref(false)
 
-function onSignOffConfirm() {
+function onWithdrawConfirm() {
     router.delete(`/personal/${props.token}`)
 }
 </script>
@@ -404,8 +404,8 @@ function onSignOffConfirm() {
             <CardSeparator />
 
             <div class="flex items-center justify-between gap-3">
-                <ButtonDanger type="button" @click="signOffDialogOpen = true">
-                    {{ __('personal.action.signoff') }}
+                <ButtonDanger type="button" @click="withdrawDialogOpen = true">
+                    {{ __('personal.action.withdraw') }}
                 </ButtonDanger>
 
                 <div class="flex items-center gap-3">
@@ -434,14 +434,14 @@ function onSignOffConfirm() {
         </template>
 
         <ConfirmDialog
-            :open="signOffDialogOpen"
-            :title="__('personal.signoff.title')"
-            :confirm-label="__('personal.signoff.confirm')"
+            :open="withdrawDialogOpen"
+            :title="__('personal.withdraw.title')"
+            :confirm-label="__('personal.withdraw.confirm')"
             variant="danger"
-            @confirm="onSignOffConfirm"
-            @cancel="signOffDialogOpen = false"
+            @confirm="onWithdrawConfirm"
+            @cancel="withdrawDialogOpen = false"
         >
-            {{ __('personal.signoff.body') }}
+            {{ __('personal.withdraw.body') }}
         </ConfirmDialog>
     </CenteredLayout>
 </template>
