@@ -403,4 +403,42 @@ class EmployeeAdminTest extends TestCase
 
         $this->assertModelExists($employee);
     }
+
+    public function test_guest_cannot_delete_an_employee(): void
+    {
+        $employee = Employee::factory()->create();
+
+        $this->delete("/employees/{$employee->id}")->assertRedirect('/login');
+
+        $this->assertModelExists($employee);
+    }
+
+    public function test_manager_can_delete_an_employee_and_its_dependent_data(): void
+    {
+        $manager = User::factory()->create();
+        $employee = Employee::factory()->create();
+        $holiday = EmployeeHoliday::factory()->create(['employee_id' => $employee->id]);
+        $availability = RecurringAvailability::factory()->create(['employee_id' => $employee->id]);
+        $employee->personalLink()->create(['token' => 'delete-me-too']);
+
+        $this->actingAs($manager)->delete("/employees/{$employee->id}")
+            ->assertRedirect('/employees')
+            ->assertSessionHas('success');
+
+        $this->assertModelMissing($employee);
+        $this->assertModelMissing($holiday);
+        $this->assertModelMissing($availability);
+        $this->assertDatabaseMissing('employee_personal_links', ['employee_id' => $employee->id]);
+    }
+
+    public function test_admin_can_delete_an_employee(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $employee = Employee::factory()->create();
+
+        $this->actingAs($admin)->delete("/employees/{$employee->id}")
+            ->assertRedirect('/employees');
+
+        $this->assertModelMissing($employee);
+    }
 }

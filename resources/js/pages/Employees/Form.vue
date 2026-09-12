@@ -1,6 +1,6 @@
 <script setup>
 import { computed, reactive, ref } from 'vue'
-import { Head, Link, useForm } from '@inertiajs/vue3'
+import { Head, Link, router, useForm } from '@inertiajs/vue3'
 import AppLayout from '@/layouts/AppLayout.vue'
 import Card from '@/components/ui/Card.vue'
 import CardSeparator from '@/components/ui/CardSeparator.vue'
@@ -14,6 +14,8 @@ import QuestionChecklist from '@/components/QuestionChecklist.vue'
 import TagChecklist from '@/components/TagChecklist.vue'
 import ButtonPrimary from '@/components/ui/ButtonPrimary.vue'
 import ButtonSecondary from '@/components/ui/ButtonSecondary.vue'
+import ButtonDanger from '@/components/ui/ButtonDanger.vue'
+import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 import { useI18n } from '@/composables/useI18n'
 import { useSaveRegistry } from '@/composables/useSaveRegistry'
 import { useUnsavedChangesGuard } from '@/composables/useUnsavedChangesGuard'
@@ -289,6 +291,14 @@ function onCancelClick() {
     pendingCompetenceIds.value = [...savedCompetenceIds.value]
     competencesVersion.value++
 }
+
+// ── Delete: admin/manager counterpart of the employee's own Withdraw ────
+const deleteDialogOpen = ref(false)
+const employeeName = computed(() => [props.employee?.first_name, props.employee?.last_name].filter(Boolean).join(' '))
+
+function onDeleteConfirm() {
+    router.delete(`/employees/${props.employee.id}`)
+}
 </script>
 
 <template>
@@ -411,29 +421,47 @@ function onCancelClick() {
             <div v-if="isEdit" class="p-6 pt-0">
                 <CardSeparator />
 
-                <div class="flex items-center justify-end gap-3">
-                    <ButtonSecondary
-                        type="button"
-                        :disabled="!registry.anyDirty.value || registry.saving.value"
-                        @click="onCancelClick"
-                    >
-                        {{ __('employees.action.cancel') }}
-                    </ButtonSecondary>
-                    <ButtonPrimary
-                        :disabled="!registry.anyDirty.value || registry.saving.value"
-                        :icon="justSaved ? 'check-circle' : null"
-                        @click="onSaveClick"
-                    >
-                        {{
-                            registry.saving.value
-                                ? __('employees.action.saving')
-                                : justSaved
-                                  ? __('employees.action.saved')
-                                  : __('employees.action.save')
-                        }}
-                    </ButtonPrimary>
+                <div class="flex items-center justify-between gap-3">
+                    <ButtonDanger type="button" @click="deleteDialogOpen = true">
+                        {{ __('employees.action.delete') }}
+                    </ButtonDanger>
+
+                    <div class="flex items-center gap-3">
+                        <ButtonSecondary
+                            type="button"
+                            :disabled="!registry.anyDirty.value || registry.saving.value"
+                            @click="onCancelClick"
+                        >
+                            {{ __('employees.action.cancel') }}
+                        </ButtonSecondary>
+                        <ButtonPrimary
+                            :disabled="!registry.anyDirty.value || registry.saving.value"
+                            :icon="justSaved ? 'check-circle' : null"
+                            @click="onSaveClick"
+                        >
+                            {{
+                                registry.saving.value
+                                    ? __('employees.action.saving')
+                                    : justSaved
+                                      ? __('employees.action.saved')
+                                      : __('employees.action.save')
+                            }}
+                        </ButtonPrimary>
+                    </div>
                 </div>
             </div>
         </Card>
+
+        <ConfirmDialog
+            v-if="isEdit"
+            :open="deleteDialogOpen"
+            :title="__('employees.delete.title')"
+            :confirm-label="__('employees.delete.confirm')"
+            variant="danger"
+            @confirm="onDeleteConfirm"
+            @cancel="deleteDialogOpen = false"
+        >
+            {{ __('employees.delete.body', { name: employeeName }) }}
+        </ConfirmDialog>
     </AppLayout>
 </template>

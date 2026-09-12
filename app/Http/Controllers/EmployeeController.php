@@ -137,6 +137,14 @@ class EmployeeController extends Controller
         return redirect()->back()->with('success', __('employees.flash.deleted', ['count' => $count]));
     }
 
+    /** Single-employee delete from the edit page. Same cascade as bulkDelete. */
+    public function destroy(Employee $employee)
+    {
+        $employee->delete();
+
+        return redirect('/employees')->with('success', __('employees.flash.deleted_one'));
+    }
+
     private function shiftCoverage(Employee $employee, Collection $shifts): array
     {
         $unavailable = $employee->recurringAvailabilities

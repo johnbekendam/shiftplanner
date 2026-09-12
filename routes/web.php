@@ -106,6 +106,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/employees/bulk-delete', [EmployeeController::class, 'bulkDelete'])->name('employees.bulk-delete');
     Route::get('/employees/{employee}/edit', [EmployeeController::class, 'edit'])->name('employees.edit');
     Route::put('/employees/{employee}', [EmployeeController::class, 'update'])->name('employees.update');
+    Route::delete('/employees/{employee}', [EmployeeController::class, 'destroy'])->name('employees.destroy');
     Route::get('/employees/{employee}/personal-page', [EmployeeController::class, 'personalPage'])->name('employees.personal-page');
     // Queues the personal-page-link message straight to the outbox — no Compose UI.
     Route::post('/employees/{employee}/send-link', [EmployeeController::class, 'sendLink'])->name('employees.send-link');

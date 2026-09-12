@@ -128,6 +128,10 @@
     "employees.action.sending_link": "Sending…",
     "employees.action.link_sent": "Sent",
     "employees.action.delete_selected": "Delete",
+    "employees.action.delete": "Delete",
+    "employees.delete.title": "Delete this employee?",
+    "employees.delete.body": "This permanently removes :name's details, availability, holidays, and competences from ShiftPlanner. This cannot be undone.",
+    "employees.delete.confirm": "Yes, delete",
     "employees.selection.select_all": "Select all employees on this page",
     "employees.selection.select_employee": "Select :name",
     "employees.confirm.delete_selected": "Permanently delete :count selected employees and their dependent scheduling data?",
@@ -147,6 +151,7 @@
     "employees.flash.created": "Employee created.",
     "employees.flash.updated": "Employee updated.",
     "employees.flash.deleted": "Deleted :count employee(s).",
+    "employees.flash.deleted_one": "Employee deleted.",
     "employees.flash.link_queued": "Personal page link queued for sending.",
 
     "personal.title": "Your working hours",

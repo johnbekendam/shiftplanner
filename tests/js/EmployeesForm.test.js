@@ -28,6 +28,11 @@ const en = {
     "employees.action.saving": "Saving…",
     "employees.action.saved": "Saved",
     "employees.action.cancel": "Cancel",
+    "employees.action.delete": "Delete",
+    "employees.delete.title": "Delete this employee?",
+    "employees.delete.body": "This permanently removes :name's details from ShiftPlanner.",
+    "employees.delete.confirm": "Yes, delete",
+    "app.cancel": "Cancel",
 };
 
 // Requests fired by putAsync/postAsync/deleteAsync (availability, holidays,
@@ -36,10 +41,12 @@ const { routerCalls, failUrlsRef, router } = vi.hoisted(() => {
     const routerCalls = [];
     const failUrlsRef = { current: [] };
     const respond = (name) => (...args) => {
-        const opts = args.at(-1);
-        const rest = args.slice(0, -1);
+        const last = args.at(-1);
+        const hasOpts = last && typeof last === "object" && (last.onSuccess || last.onError);
+        const opts = hasOpts ? last : undefined;
+        const rest = hasOpts ? args.slice(0, -1) : args;
         routerCalls.push([name, ...rest]);
-        failUrlsRef.current.includes(rest[0]) ? opts.onError() : opts.onSuccess();
+        failUrlsRef.current.includes(rest[0]) ? opts?.onError?.() : opts?.onSuccess?.();
     };
     const router = { put: respond("put"), post: respond("post"), delete: respond("delete"), on: () => () => {} };
     return { routerCalls, failUrlsRef, router };
@@ -87,9 +94,10 @@ import ShiftNote from "@/components/ShiftNote.vue";
 import TagChecklist from "@/components/TagChecklist.vue";
 import QuestionChecklist from "@/components/QuestionChecklist.vue";
 
-const stubs = { AppLayout: { template: "<div><slot /></div>" } };
+const stubs = { AppLayout: { template: "<div><slot /></div>" }, teleport: true };
 const findSaveButton = (w) => w.findAll("button").find((b) => ["Save", "Saving…", "Saved"].includes(b.text()));
 const findCancelButton = (w) => w.findAll("button").find((b) => b.text() === "Cancel");
+const findDeleteButton = (w) => w.findAll("button").find((b) => b.text() === "Delete");
 
 beforeEach(() => {
     routerCalls.length = 0;
@@ -468,5 +476,58 @@ describe("Employees/Form", () => {
         expect(findSaveButton(w).attributes("disabled")).toBeUndefined();
         const availabilityTab = w.findAll("button").find((b) => b.text().includes("Availability"));
         expect(availabilityTab.find('[data-testid="tab-error-dot"]').exists()).toBe(true);
+    });
+
+    it("shows a left-aligned Delete button in edit mode, none on create", () => {
+        const edit = mount(Form, {
+            props: { employee: { id: 3, first_name: "A", last_name: "B", email: "a@b.c", weekly_hours: 24 }, holidays: [] },
+            global: { stubs },
+        });
+        expect(findDeleteButton(edit)).toBeTruthy();
+
+        const create = mount(Form, { props: { employee: null, holidays: [] }, global: { stubs } });
+        expect(findDeleteButton(create)).toBeUndefined();
+    });
+
+    it("clicking Delete opens the confirmation dialog naming the employee, without deleting anything yet", async () => {
+        const w = mount(Form, {
+            props: { employee: { id: 3, first_name: "A", last_name: "B", email: "a@b.c", weekly_hours: 24 }, holidays: [] },
+            global: { stubs },
+        });
+        expect(w.text()).not.toContain("Delete this employee?");
+
+        await findDeleteButton(w).trigger("click");
+
+        expect(w.text()).toContain("Delete this employee?");
+        expect(w.text()).toContain("This permanently removes A B's details from ShiftPlanner.");
+        expect(routerCalls).toEqual([]);
+    });
+
+    it("dismissing the delete dialog does not delete anything", async () => {
+        const w = mount(Form, {
+            props: { employee: { id: 3, first_name: "A", last_name: "B", email: "a@b.c", weekly_hours: 24 }, holidays: [] },
+            global: { stubs },
+        });
+        await findDeleteButton(w).trigger("click");
+
+        const dialogCancel = w.findAll("button").filter((b) => b.text() === "Cancel").at(-1);
+        await dialogCancel.trigger("click");
+        await w.vm.$nextTick();
+
+        expect(w.text()).not.toContain("Delete this employee?");
+        expect(routerCalls).toEqual([]);
+    });
+
+    it("confirming deletion deletes the employee", async () => {
+        const w = mount(Form, {
+            props: { employee: { id: 3, first_name: "A", last_name: "B", email: "a@b.c", weekly_hours: 24 }, holidays: [] },
+            global: { stubs },
+        });
+        await findDeleteButton(w).trigger("click");
+
+        const dialogConfirm = w.findAll("button").find((b) => b.text() === "Yes, delete");
+        await dialogConfirm.trigger("click");
+
+        expect(routerCalls).toContainEqual(["delete", "/employees/3"]);
     });
 });
