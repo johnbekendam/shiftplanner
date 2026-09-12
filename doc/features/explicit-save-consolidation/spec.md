@@ -1,7 +1,26 @@
 # Explicit Save Consolidation — Spec
 
-Replaces autosave and mixed save patterns on three pages with one
-footer Save button per page.
+Replaces autosave and mixed save patterns on two employee-facing pages
+with one footer Save button per page.
+
+## Revision note
+
+The original scope covered three pages: `Personal/Show.vue`,
+`Employees/Form.vue`, and `Settings/Index.vue`. `Settings/Index.vue`
+is dropped after `Personal/Show.vue` and `Employees/Form.vue` shipped.
+Its three list components (`BusinessLineList`, `ShiftList`,
+`OrderedNameList`) support step-by-step reordering through a
+one-step "move up/down" endpoint. Deferring a reorder to a batched
+Save means replaying it as a sequence of one-step moves computed
+against the list's pre-edit order, and that sequence breaks if a
+row was also added or deleted in the same edit session, since
+deleting a row changes what "the next neighbor" means for every
+move after it. That is a real amount of new logic for a page only
+admins use, occasionally, for a task (reordering business lines) that
+was never the source of the original complaint. `Personal/Show.vue`
+and `Employees/Form.vue` reach every goal in the Problem section
+below on their own. Settings/Index keeps its current per-row autosave
+and `SaveStatusBadge`, unchanged.
 
 ## Problem
 
@@ -11,14 +30,14 @@ personal page mixes an explicit Save button (Details tab) with silent
 autosave on every click (Availability, Holidays, Questions,
 Competences tabs). The only feedback for an autosave is a small badge
 in the corner of the card, `SaveStatusBadge`, that fades out after 1.5
-seconds. `Employees/Form.vue` and `Settings/Index.vue` share the same
-autosaving components, so they carry the identical mix.
+seconds. `Employees/Form.vue` shares the same autosaving components,
+so it carries the identical mix.
 
 ## Solution
 
-`Personal/Show.vue`, `Employees/Form.vue`, and `Settings/Index.vue`
-each move to one save mechanism: edit freely across every tab, then
-click one Save button to persist everything at once.
+`Personal/Show.vue` and `Employees/Form.vue` each move to one save
+mechanism: edit freely across every tab, then click one Save button
+to persist everything at once.
 
 ### One footer button per page
 
@@ -42,26 +61,26 @@ only changes local state:
 - `AvailabilityGrid`, `TagChecklist`, `QuestionChecklist`: a click
   changes the local selection. Nothing saves until the footer button
   is clicked.
-- `BusinessLineList`, `ShiftList`, `OrderedNameList`: add, edit,
-  reorder, and delete all change a local array. No row shows a
-  "pending" mark. The footer button's enabled state is the only
-  unsaved-changes signal.
+- `HolidayList`: add and delete both change a local array. No row
+  shows a "pending" mark. The footer button's enabled state is the
+  only unsaved-changes signal.
 - The `business_line_id` and `weekly_hours` watchers that called
   `save()` on change are removed.
-- The existing inline Save buttons are removed: the Details tab on
-  `Personal/Show.vue` and `Employees/Form.vue`, and the General and
-  Information tabs' forms on `Settings/Index.vue`. Their fields join the same
-  dirty-tracking and the same footer button, so each page ends with
-  exactly one save mechanism, not two.
+- The existing inline Save buttons on the Details tab of
+  `Personal/Show.vue` and `Employees/Form.vue` are removed. Their
+  fields join the same dirty-tracking and the same footer button, so
+  each page ends with exactly one save mechanism, not two.
 
-`useSaveStatus` and `SaveStatusBadge` are retired wherever they were
+`useSaveStatus` and `SaveStatusBadge` drop out of both pages and every
+converted component. The composable and component files themselves
+stay in the codebase: `Settings/Index.vue` still uses both.
 used, since there is no autosave left to report on.
 
 ### Saving: one request per dirty resource
 
 Each tab still has its own backend endpoint (availability, holidays,
-questions, competences, business lines, shifts, details/general). A
-Save click fires one request per resource that is dirty, independent
+questions, competences, details). A Save click fires one request per
+resource that is dirty, independent
 of the others. A resource that succeeds clears its own dirty flag. A
 resource that fails keeps its dirty flag, so a second Save click
 retries only what is still outstanding. No new combined endpoint, and
@@ -116,6 +135,7 @@ persists across tab switches already, so no guard is needed there.
 
 - `ThemeBuilder.vue`, `Mailbox.vue`, `Account/Show.vue` — already
   fully explicit-button-driven, untouched by this feature.
+- `Settings/Index.vue` — dropped from scope, see the Revision note.
 - Any new combined or atomic backend endpoint.
 - Any change to a resource's validation rules.
 - Any change to the `editable`/locked-by-manager concept on

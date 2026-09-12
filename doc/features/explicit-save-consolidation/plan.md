@@ -1,8 +1,9 @@
 # Explicit Save Consolidation — Plan
 
-Status: in progress — 2/4
+Status: done (reduced scope) — 2/2
 
-Spec: `spec.md`.
+Spec: `spec.md`. Steps 3 and 4 (Settings/Index and the useSaveStatus /
+SaveStatusBadge cleanup) are dropped — see the spec's Revision note.
 
 - [x] 1. **Shared building blocks: tab error markers and a leave-guard.**
   `Tabs.vue` gains an optional per-tab `hasError` flag: each entry in
@@ -75,40 +76,9 @@ Spec: `spec.md`.
   timing of the calls changes. Full PHP and JS suites, `npm run
   build`, green.
 
-- [ ] 3. **Settings/Index.vue moves to one footer Save.**
-  `BusinessLineList`, `ShiftList`, `OrderedNameList` drop their
-  `watch(rows/names, ...)`-driven autosave, their immediate
-  move/delete/add requests, and the `saveStatus` prop, becoming local
-  array/map state with the same emit-based contract as step 2's
-  components (an `update:items`-style emit carrying the full pending
-  list, including local-only rows for a pending add and omitting
-  locally-deleted ones). `PeriodSettingsForm`, `ShiftNoteForm`, and
-  `ScheduleNoteForm` drop their own `useForm`/submit button and instead
-  expose their editable fields to the page (`v-model`-style) so the
-  page's dirty registry covers them too.
+## Dropped
 
-  `Settings/Index.vue` gains the same footer-button-in-`Card`, dirty
-  registry (one entry per: business lines, shifts, questions,
-  competences, general/period, shift note, schedule note), and
-  `useUnsavedChangesGuard` wiring as step 2, plus `hasError` tab
-  markers on failure.
-
-  Tests: rewrite `BusinessLineList`/`ShiftList`/`OrderedNameList` specs
-  around the new emit contract (add/edit/reorder/delete change local
-  state and emit, no immediate request). Rewrite
-  `PeriodSettingsForm`/`ShiftNoteForm`/`ScheduleNoteForm` specs: they
-  no longer submit themselves, they emit changes for the parent to
-  save. Rewrite `SettingsIndex.test.js`: editing any tab enables the
-  footer button. Save fires one request group per dirty resource. A
-  failed group keeps its tab marked. Full PHP and JS suites, `npm run
-  build`, green.
-
-- [ ] 4. **Retire `useSaveStatus` and `SaveStatusBadge`.** Confirm no
-  remaining `import` of either (steps 2 and 3 removed every call
-  site). Delete `resources/js/composables/useSaveStatus.js`,
-  `resources/js/components/ui/SaveStatusBadge.vue`, and their Vitest
-  specs. `doc/features/employee-availability/spec.md` (and any other
-  feature doc that describes the corner-badge autosave behavior) gets
-  a short note pointing at this feature for the current save model.
-  Set this `plan.md` header to `4/4`. Full PHP and JS suites, `npm run
-  build`, green.
+Step 3 (Settings/Index.vue) and step 4 (retiring `useSaveStatus` and
+`SaveStatusBadge`) are dropped by choice, not by discovery of a
+blocker. See the spec's Revision note for the reasoning. Settings/Index
+keeps its current per-row autosave and `SaveStatusBadge`, unchanged.
