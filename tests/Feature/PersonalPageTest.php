@@ -147,7 +147,7 @@ class PersonalPageTest extends TestCase
 
         $this->delete("/personal/{$token}")
             ->assertRedirect('/signup')
-            ->assertSessionHas('success');
+            ->assertSessionHas('warning');
 
         $this->assertModelMissing($employee);
     }

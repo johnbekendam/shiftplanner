@@ -74,7 +74,7 @@ class PersonalPageController extends Controller
         $employee = $this->resolveOrFail($token);
         $employee->delete();
 
-        return redirect('/signup')->with('success', __('personal.withdraw.flash'));
+        return redirect('/signup')->with('warning', __('personal.withdraw.flash'));
     }
 
     private function resolveOrFail(string $token): Employee

@@ -15,6 +15,11 @@ const page = usePage()
 // so the page never reveals who is registered.
 const confirmation = computed(() => page.props.flash?.success ?? null)
 
+// Set when this page was reached right after withdrawing from the
+// personal page — shown as a banner above the card, not in place of it,
+// since the person still needs the form to request a fresh link.
+const warning = computed(() => page.props.flash?.warning ?? null)
+
 const form = useForm({ first_name: '', last_name: '', email: '' })
 
 function submit() {
@@ -29,6 +34,15 @@ function submit() {
         <Head :title="__('signup.page_title')" />
 
         <template #title>{{ __('signup.card_title') }}</template>
+
+        <template v-if="warning" #banner>
+            <p
+                data-testid="signup-warning"
+                class="rounded-md border border-(--color-badge-warning-border) bg-(--color-badge-warning-bg) px-3 py-2 text-sm text-(--color-badge-warning-text)"
+            >
+                {{ warning }}
+            </p>
+        </template>
 
         <p
             v-if="confirmation"

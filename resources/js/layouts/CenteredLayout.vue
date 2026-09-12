@@ -44,6 +44,10 @@ const widthClass = { md: 'max-w-md', lg: 'max-w-xl' }[props.width]
             class="flex flex-col items-center min-h-full px-4"
             :class="align === 'top' ? 'justify-start pt-8 pb-12' : 'justify-center py-12'"
         >
+            <div v-if="$slots.banner" class="w-full mb-4" :class="widthClass">
+                <slot name="banner" />
+            </div>
+
             <Card class="w-full" :class="widthClass">
                 <template v-if="$slots.header || $slots.title" #header>
                     <slot name="header">

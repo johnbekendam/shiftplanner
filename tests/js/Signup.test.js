@@ -40,7 +40,7 @@ vi.mock("@/composables/useI18n", () => ({
 
 import Signup from "@/pages/Signup.vue";
 
-const stubs = { CenteredLayout: { template: "<div><slot name='title' /><slot /></div>" } };
+const stubs = { CenteredLayout: { template: "<div><slot name='banner' /><slot name='title' /><slot /></div>" } };
 const mountSignup = () => mount(Signup, { global: { stubs } });
 
 beforeEach(() => {
@@ -72,5 +72,18 @@ describe("Signup", () => {
         const w = mountSignup();
         expect(w.find("form").exists()).toBe(false);
         expect(w.text()).toContain("If that address is valid");
+    });
+
+    it("shows a warning banner above the form without replacing it, when flash.warning is set", () => {
+        pageProps.props.flash = { warning: "You have withdrawn. You can request a new personal link anytime below." };
+        const w = mountSignup();
+
+        expect(w.find("form").exists()).toBe(true);
+        expect(w.get('[data-testid="signup-warning"]').text()).toContain("You have withdrawn");
+    });
+
+    it("shows no banner when flash.warning is absent", () => {
+        const w = mountSignup();
+        expect(w.find('[data-testid="signup-warning"]').exists()).toBe(false);
     });
 });
