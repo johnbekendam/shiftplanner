@@ -11,5 +11,5 @@ const src = computed(() => props.src ?? page.props.logoUrl ?? '/images/logo.svg'
 </script>
 
 <template>
-    <img :src="src" alt="Logo" class="h-7 sm:h-10 w-auto" />
+    <img :src="src" alt="Logo" class="h-6 sm:h-8 w-auto" />
 </template>

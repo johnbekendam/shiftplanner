@@ -21,7 +21,7 @@ useBrandCss(props.brandCss)
             <!-- Logo area — same width as sidebar, desktop only -->
             <div
                 v-if="showSidebar"
-                class="hidden lg:flex w-64 flex-shrink-0 items-center px-8 bg-(--color-logo-bg)"
+                class="hidden lg:flex w-64 flex-shrink-0 items-center justify-center px-8 bg-(--color-logo-bg)"
             >
                 <slot name="logo" />
             </div>
