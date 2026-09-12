@@ -1,6 +1,6 @@
 # Explicit Save Consolidation — Plan
 
-Status: in progress — 1/4
+Status: in progress — 2/4
 
 Spec: `spec.md`.
 
@@ -20,7 +20,7 @@ Spec: `spec.md`.
   callback cancels a visit only when `isDirty()` is true and the
   confirm is declined. Full JS suite and `npm run build` green.
 
-- [ ] 2. **Personal/Show.vue and Employees/Form.vue move to one footer
+- [x] 2. **Personal/Show.vue and Employees/Form.vue move to one footer
   Save.** These two pages share `AvailabilityGrid`, `HolidayList`,
   `QuestionChecklist`, and `TagChecklist`, so they convert together.
 

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { mount } from "@vue/test-utils";
 
 const en = {
@@ -10,11 +10,12 @@ const en = {
     "availability.holidays.delete": "Remove",
 };
 
-const { router } = vi.hoisted(() => ({ router: { post: vi.fn(), delete: vi.fn() } }));
-
 vi.mock("@inertiajs/vue3", () => ({
-    router,
     usePage: () => ({ props: { translations: en } }),
+}));
+
+vi.mock("@/composables/useI18n", () => ({
+    useI18n: () => (key) => en[key] ?? key,
 }));
 
 import HolidayList from "@/components/HolidayList.vue";
@@ -25,15 +26,7 @@ const holidays = [
     { id: 2, start_date: "2026-09-01", end_date: "2026-09-03", note: null },
 ];
 
-const mountList = (props = {}) =>
-    mount(HolidayList, {
-        props: { holidays, endpoint: "/employees/7/holidays", ...props },
-    });
-
-beforeEach(() => {
-    router.post.mockReset();
-    router.delete.mockReset();
-});
+const mountList = (props = {}) => mount(HolidayList, { props: { holidays, ...props } });
 
 describe("HolidayList", () => {
     it("renders a row per holiday", () => {
@@ -58,7 +51,7 @@ describe("HolidayList", () => {
         expect(w.findAll("table")).toHaveLength(1);
     });
 
-    it("posts a new holiday to the endpoint and stays on the page", async () => {
+    it("adds the new holiday to the list locally and emits update:holidays, without a network call", async () => {
         const w = mountList({ holidays: [] });
         const dates = w.findAllComponents(DateInput);
         dates[0].vm.$emit("update:modelValue", "2026-07-01");
@@ -67,21 +60,21 @@ describe("HolidayList", () => {
 
         await w.get("form").trigger("submit");
 
-        expect(router.post).toHaveBeenCalledTimes(1);
-        const [url, payload, opts] = router.post.mock.calls[0];
-        expect(url).toBe("/employees/7/holidays");
-        expect(payload).toMatchObject({ start_date: "2026-07-01", end_date: "2026-07-14" });
-        expect(opts).toMatchObject({ preserveScroll: true, preserveState: true });
+        expect(w.findAll('[data-testid="holiday-row"]')).toHaveLength(1);
+        expect(w.text()).toContain("01-07-2026");
+        const emitted = w.emitted("update:holidays");
+        expect(emitted).toHaveLength(1);
+        expect(emitted[0][0]).toMatchObject([{ id: null, start_date: "2026-07-01", end_date: "2026-07-14" }]);
     });
 
-    it("deletes a row through the endpoint and stays on the page", async () => {
+    it("removes a row locally and emits update:holidays, without a network call", async () => {
         const w = mountList();
         await w.findAll('[data-testid="holiday-row"]')[0].get("button").trigger("click");
 
-        expect(router.delete).toHaveBeenCalledTimes(1);
-        const [url, opts] = router.delete.mock.calls[0];
-        expect(url).toBe("/employees/7/holidays/1");
-        expect(opts).toMatchObject({ preserveScroll: true, preserveState: true });
+        expect(w.findAll('[data-testid="holiday-row"]')).toHaveLength(1);
+        const emitted = w.emitted("update:holidays");
+        expect(emitted).toHaveLength(1);
+        expect(emitted[0][0]).toEqual([holidays[1]]);
     });
 
     it("hides the add row and the delete buttons when disabled", () => {

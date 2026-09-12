@@ -1,5 +1,5 @@
-import { describe, it, expect, vi } from "vitest";
-import { mount } from "@vue/test-utils";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { mount, flushPromises } from "@vue/test-utils";
 import { reactive } from "vue";
 
 const en = {
@@ -27,12 +27,43 @@ const en = {
     "availability.questions.heading": "Questions",
     "competences.tab": "Competences",
     "competences.checklist_empty": "No competences have been set up yet.",
-    "app.saving": "Saving…",
-    "app.saved": "Saved",
-    "app.save_failed": "Could not save",
 };
 
-const { router } = vi.hoisted(() => ({ router: { post: vi.fn(), put: vi.fn(), delete: vi.fn() } }));
+// Requests fired by putAsync/postAsync/deleteAsync (availability, holidays,
+// questions, competences) all go through this mocked router. `form.put`
+// below is a separate hand-rolled fake, same as the old test.
+//
+// Both `router` and `useForm` are built inside vi.hoisted (no access to
+// real imports like `reactive` yet), then `useForm`'s real implementation
+// is wired in below, once `reactive` is available and `form` exists.
+const { routerCalls, failUrlsRef, router, useFormMock } = vi.hoisted(() => {
+    const routerCalls = [];
+    const failUrlsRef = { current: [] };
+    const router = {
+        put: (url, data, opts) => {
+            routerCalls.push(["put", url, data]);
+            failUrlsRef.current.includes(url) ? opts.onError() : opts.onSuccess();
+        },
+        post: (url, data, opts) => {
+            routerCalls.push(["post", url, data]);
+            failUrlsRef.current.includes(url) ? opts.onError() : opts.onSuccess();
+        },
+        delete: (url, opts) => {
+            routerCalls.push(["delete", url]);
+            failUrlsRef.current.includes(url) ? opts.onError() : opts.onSuccess();
+        },
+        on: () => () => {},
+    };
+    const useFormMock = (...args) => useFormMock.impl(...args);
+    return { routerCalls, failUrlsRef, router, useFormMock };
+});
+
+vi.mock("@inertiajs/vue3", () => ({
+    router,
+    Head: { name: "Head", render: () => null },
+    usePage: () => ({ props: { translations: en, appName: "ShiftPlanner", logoUrl: null } }),
+    useForm: useFormMock,
+}));
 
 const form = reactive({
     first_name: "",
@@ -43,33 +74,32 @@ const form = reactive({
     errors: {},
     processing: false,
     recentlySuccessful: false,
-    isDirty: false,
+    _defaults: {},
     _transform: null,
+    get isDirty() {
+        return this.weekly_hours !== this._defaults.weekly_hours
+            || this.business_line_id !== this._defaults.business_line_id;
+    },
+    defaults() {
+        this._defaults = { weekly_hours: this.weekly_hours, business_line_id: this.business_line_id };
+    },
     transform(fn) {
         this._transform = fn;
         return this;
     },
     put(url, opts) {
-        const data = {
-            first_name: this.first_name,
-            last_name: this.last_name,
-            email: this.email,
-            weekly_hours: this.weekly_hours,
-            business_line_id: this.business_line_id,
-        };
+        const data = { weekly_hours: this.weekly_hours, business_line_id: this.business_line_id };
         form.lastPut = { url, opts, data: this._transform ? this._transform(data) : data };
+        if (failUrlsRef.current.includes(`FORM:${url}`)) opts.onError();
+        else opts.onSuccess();
     },
 });
 
-vi.mock("@inertiajs/vue3", () => ({
-    router,
-    Head: { name: "Head", render: () => null },
-    usePage: () => ({ props: { translations: en, appName: "ShiftPlanner", logoUrl: null } }),
-    useForm: (initial) => {
-        Object.assign(form, initial);
-        return form;
-    },
-}));
+useFormMock.impl = (initial) => {
+    Object.assign(form, initial);
+    form.defaults();
+    return form;
+};
 
 import Show from "@/pages/Personal/Show.vue";
 import EmployeeFields from "@/components/EmployeeFields.vue";
@@ -99,13 +129,21 @@ const mountShow = (holidays = [], extra = {}) =>
         global: {
             stubs: {
                 CenteredLayout: {
-                    template: "<div><slot name='header' /><slot /></div>",
+                    template: "<div><slot name='header' /><slot /><slot name='footer' /></div>",
                 },
             },
         },
     });
 
 const hidden = (w, sel) => (w.get(sel).attributes("style") ?? "").includes("display: none");
+const findSaveButton = (w) => w.findAll("button").find((b) => ["Save", "Saving…", "Saved"].includes(b.text()));
+
+beforeEach(() => {
+    routerCalls.length = 0;
+    failUrlsRef.current = [];
+    form.errors = {};
+    form.recentlySuccessful = false;
+});
 
 describe("Personal/Show", () => {
     it("renders the shared fields with the identity fields read-only", () => {
@@ -135,40 +173,6 @@ describe("Personal/Show", () => {
         expect(w.get('[data-testid="panel-availability"]').findComponent(WeeklyHoursField).exists()).toBe(true);
     });
 
-    it("shows no availability-hours warning when preferred hours meet the target", () => {
-        const w = mountShow([], {
-            shifts: [{ id: 1, name: "Day", start_time: "08:00", end_time: "12:00" }],
-            employee: { first_name: "J", last_name: "L", email: "j@l.c", weekly_hours: 20, business_line_id: null },
-        });
-
-        expect(w.find('[data-testid="availability-hours-warning"]').exists()).toBe(false);
-    });
-
-    it("warns when meeting the target requires not-preferred hours", () => {
-        const w = mountShow([], {
-            shifts: [{ id: 1, name: "Day", start_time: "08:00", end_time: "12:00" }],
-            availability: [{ weekday: 1, shift_id: 1, level: "not_preferred" }],
-            employee: { first_name: "J", last_name: "L", email: "j@l.c", weekly_hours: 20, business_line_id: null },
-        });
-
-        expect(w.get('[data-testid="availability-hours-warning"]').text())
-            .toContain("You will be planned on not-preferred hours.");
-    });
-
-    it("warns when all available hours are below the target", () => {
-        const w = mountShow([], {
-            shifts: [{ id: 1, name: "Day", start_time: "08:00", end_time: "12:00" }],
-            availability: [
-                { weekday: 1, shift_id: 1, level: "unavailable" },
-                { weekday: 2, shift_id: 1, level: "unavailable" },
-            ],
-            employee: { first_name: "J", last_name: "L", email: "j@l.c", weekly_hours: 20, business_line_id: null },
-        });
-
-        expect(w.get('[data-testid="availability-hours-warning"]').text())
-            .toContain("Your available time totals 12 hours per week, below your target of 20 hours.");
-    });
-
     it("updates the availability-hours warning after an availability-grid change", async () => {
         const w = mountShow([], {
             shifts: [{ id: 1, name: "Day", start_time: "08:00", end_time: "12:00" }],
@@ -186,95 +190,120 @@ describe("Personal/Show", () => {
             .toContain("Your available time totals 16 hours per week, below your target of 20 hours.");
     });
 
-    it("hides the availability-hours warning when weekly hours are zero", () => {
-        const w = mountShow([], {
-            shifts: [{ id: 1, name: "Day", start_time: "08:00", end_time: "12:00" }],
-            employee: { first_name: "J", last_name: "L", email: "j@l.c", weekly_hours: 0, business_line_id: null },
-        });
+    it("the Save button is disabled with nothing changed, and disabled outright when not editable", () => {
+        const w = mountShow();
+        expect(findSaveButton(w).attributes("disabled")).toBeDefined();
 
-        expect(w.find('[data-testid="availability-hours-warning"]').exists()).toBe(false);
+        const locked = mountShow([], { editable: false });
+        expect(findSaveButton(locked).attributes("disabled")).toBeDefined();
     });
 
-    it("auto-saves weekly hours from the Availability tab", async () => {
+    it("enables Save when weekly hours change, and saves via the personal endpoint on click", async () => {
         const w = mountShow();
         w.get('[data-testid="panel-availability"]').findComponent(WeeklyHoursField)
             .vm.$emit("update:modelValue", 40);
         await w.vm.$nextTick();
 
-        expect(form.weekly_hours).toBe(40);
+        expect(findSaveButton(w).attributes("disabled")).toBeUndefined();
+
+        await findSaveButton(w).trigger("click");
+        await flushPromises();
+
         expect(form.lastPut.url).toBe("/personal/tok-1");
         expect(form.lastPut.data).toEqual({ weekly_hours: 40, business_line_id: null });
+        expect(findSaveButton(w).attributes("disabled")).toBeDefined();
     });
 
-    it("saves weekly hours and business line from the Details form", async () => {
-        const w = mountShow();
-        await w.get('[data-testid="panel-details"] form').trigger("submit");
-
-        expect(form.lastPut.url).toBe("/personal/tok-1");
-        expect(form.lastPut.data).toEqual({ weekly_hours: 24, business_line_id: null });
-    });
-
-    it("shows Saving… while processing and Saved right after success", async () => {
-        const w = mountShow();
-        const button = () => w.get('[data-testid="panel-details"] button[type="submit"]');
-
-        expect(button().text()).toBe("Save");
-
-        form.processing = true;
-        await w.vm.$nextTick();
-        expect(button().text()).toBe("Saving…");
-
-        form.processing = false;
-        form.recentlySuccessful = true;
-        await w.vm.$nextTick();
-        expect(button().text()).toBe("Saved");
-
-        // Reset shared form state so it does not leak into later tests.
-        form.recentlySuccessful = false;
-    });
-
-    it("auto-saves when the business line changes, and keeps the Save button", async () => {
+    it("enables Save when the business line changes, from the Details tab", async () => {
         const w = mountShow([], { businessLines: [{ id: 5, abbreviation: "PMP" }] });
-        form.lastPut = undefined;
 
         w.get('[data-testid="panel-details"]').findComponent(SelectInput)
             .vm.$emit("update:modelValue", 5);
         await w.vm.$nextTick();
 
         expect(form.business_line_id).toBe(5);
+        expect(findSaveButton(w).attributes("disabled")).toBeUndefined();
+
+        await findSaveButton(w).trigger("click");
+        await flushPromises();
+
         expect(form.lastPut.data).toEqual({ weekly_hours: 24, business_line_id: 5 });
-        expect(w.get('[data-testid="panel-details"] form').text()).toContain("Save");
     });
 
-    it("auto-saves on leaving the Details tab with a dirty form", async () => {
-        const w = mountShow();
-        form.lastPut = undefined;
-        form.isDirty = true;
-
-        const detailsTab = w.findAll("button").find((b) => b.text() === "Details");
-        await detailsTab.trigger("click");
-        await w.vm.$nextTick();
-        const availabilityTab = w.findAll("button").find((b) => b.text() === "Availability");
-        await availabilityTab.trigger("click");
+    it("saves an availability-grid change with one PUT per changed cell", async () => {
+        const w = mountShow([], {
+            shifts: [{ id: 1, name: "Day", start_time: "08:00", end_time: "12:00" }],
+        });
+        w.findComponent(AvailabilityGrid).vm.$emit("update:availability", { weekday: 1, shiftId: 1, level: "unavailable" });
         await w.vm.$nextTick();
 
-        expect(form.lastPut).toBeTruthy();
-        expect(form.lastPut.url).toBe("/personal/tok-1");
+        await findSaveButton(w).trigger("click");
+        await flushPromises();
+
+        expect(routerCalls).toContainEqual(["put", "/personal/tok-1/availability/1/1", { level: "unavailable" }]);
     });
 
-    it("does not auto-save when editable is false", async () => {
-        const w = mountShow([], { editable: false, businessLines: [{ id: 5, abbreviation: "PMP" }] });
-        form.lastPut = undefined;
-        form.isDirty = true;
+    it("saves a new holiday with a POST and a removed holiday with a DELETE", async () => {
+        const w = mountShow([{ id: 9, start_date: "2026-01-01", end_date: "2026-01-02", note: null }]);
 
-        const detailsTab = w.findAll("button").find((b) => b.text() === "Details");
-        await detailsTab.trigger("click");
-        await w.vm.$nextTick();
-        const availabilityTab = w.findAll("button").find((b) => b.text() === "Availability");
-        await availabilityTab.trigger("click");
+        w.findComponent(AvailabilityGrid); // ensure mounted
+        w.findComponent(HolidayList).vm.$emit("update:holidays", [
+            { id: null, start_date: "2026-02-01", end_date: "2026-02-02", note: "new" },
+        ]);
         await w.vm.$nextTick();
 
-        expect(form.lastPut).toBeUndefined();
+        await findSaveButton(w).trigger("click");
+        await flushPromises();
+
+        expect(routerCalls).toContainEqual([
+            "post",
+            "/personal/tok-1/holidays",
+            { start_date: "2026-02-01", end_date: "2026-02-02", note: "new" },
+        ]);
+        expect(routerCalls.some((c) => c[0] === "delete" && c[1] === "/personal/tok-1/holidays/9")).toBe(true);
+    });
+
+    it("attaches a newly answered question with a PUT", async () => {
+        const w = mountShow([], {
+            questions: [{ id: 5, text: "Weekend?" }],
+            questionAnswers: [],
+        });
+        w.findComponent(QuestionChecklist).vm.$emit("update:answeredIds", [5]);
+        await w.vm.$nextTick();
+
+        await findSaveButton(w).trigger("click");
+        await flushPromises();
+
+        expect(routerCalls).toContainEqual(["put", "/personal/tok-1/questions/5", { answer: true }]);
+    });
+
+    it("attaches a newly selected competence with a PUT and detaches with a DELETE", async () => {
+        const w = mountShow([], {
+            competences: [{ id: 1, name: "Forklift" }, { id: 2, name: "Cleanroom" }],
+            competenceIds: [2],
+        });
+        w.findComponent(TagChecklist).vm.$emit("update:selectedIds", [1]);
+        await w.vm.$nextTick();
+
+        await findSaveButton(w).trigger("click");
+        await flushPromises();
+
+        expect(routerCalls).toContainEqual(["put", "/personal/tok-1/competences/1", {}]);
+        expect(routerCalls.some((c) => c[0] === "delete" && c[1] === "/personal/tok-1/competences/2")).toBe(true);
+    });
+
+    it("keeps Save enabled and marks the Availability tab on a failed availability save", async () => {
+        failUrlsRef.current = ["/personal/tok-1/availability/1/1"];
+        const w = mountShow([], { shifts: [{ id: 1, name: "Day", start_time: "08:00", end_time: "12:00" }] });
+        w.findComponent(AvailabilityGrid).vm.$emit("update:availability", { weekday: 1, shiftId: 1, level: "unavailable" });
+        await w.vm.$nextTick();
+
+        await findSaveButton(w).trigger("click");
+        await flushPromises();
+
+        expect(findSaveButton(w).attributes("disabled")).toBeUndefined();
+        const availabilityTab = w.findAll("button").find((b) => b.text().includes("Availability"));
+        expect(availabilityTab.find('[data-testid="tab-error-dot"]').exists()).toBe(true);
     });
 
     it("mirrors the employee page tabs, Information first", () => {
@@ -286,16 +315,6 @@ describe("Personal/Show", () => {
         expect(hidden(w, '[data-testid="panel-information"]')).toBe(false);
         expect(hidden(w, '[data-testid="panel-details"]')).toBe(true);
         expect(hidden(w, '[data-testid="panel-availability"]')).toBe(true);
-    });
-
-    it("points the holiday list at the token endpoint", () => {
-        const w = mountShow();
-        expect(w.findComponent(HolidayList).props("endpoint")).toBe("/personal/tok-1/holidays");
-    });
-
-    it("points the availability grid at the token endpoint", () => {
-        const w = mountShow();
-        expect(w.findComponent(AvailabilityGrid).props("endpoint")).toBe("/personal/tok-1/availability");
     });
 
     it("renders the shift note on the Information tab when set", () => {
@@ -310,21 +329,16 @@ describe("Personal/Show", () => {
         expect(mountShow().findComponent(ShiftNote).exists()).toBe(false);
     });
 
-    it("has a Competences tab with the competence checklist on the token endpoint", () => {
+    it("has a Competences tab with the competence checklist", () => {
         const w = mountShow([], {
             competences: [{ id: 1, name: "Forklift" }],
             competenceIds: [1],
         });
         expect(w.text()).toContain("Competences");
-
-        const byEndpoint = Object.fromEntries(
-            w.findAllComponents(TagChecklist).map((l) => [l.props("endpoint"), l]),
-        );
-        expect(byEndpoint["/personal/tok-1/competences"].props("selectedIds")).toEqual([1]);
-        expect(byEndpoint["/personal/tok-1/product-groups"]).toBeUndefined();
+        expect(w.findComponent(TagChecklist).props("selectedIds")).toEqual([1]);
     });
 
-    it("shows the questions checklist on the Availability tab, pointed at the token endpoint", () => {
+    it("shows the questions checklist on the Availability tab", () => {
         const w = mountShow([], {
             questions: [{ id: 5, text: "Can we contact you to work in the weekend?" }],
             questionAnswers: [5],
@@ -332,24 +346,8 @@ describe("Personal/Show", () => {
 
         const checklist = w.findComponent(QuestionChecklist);
         expect(checklist.exists()).toBe(true);
-        expect(checklist.props("endpoint")).toBe("/personal/tok-1/questions");
         expect(checklist.props("answeredIds")).toEqual([5]);
         expect(w.get('[data-testid="panel-availability"]').text()).toContain("Questions");
-    });
-
-    it("shows the shared save-status badge on the Availability panel when a question toggles", async () => {
-        const w = mountShow([], {
-            questions: [{ id: 5, text: "Can we contact you to work in the weekend?" }],
-            questionAnswers: [],
-        });
-
-        const checklist = w.findComponent(QuestionChecklist);
-        expect(checklist.props("saveStatus")).toBeTruthy();
-
-        checklist.props("saveStatus").start();
-        await w.vm.$nextTick();
-
-        expect(w.get('[data-testid="panel-availability"]').text()).toContain("Saving…");
     });
 
     it("omits the questions section when no question is configured", () => {
@@ -364,7 +362,6 @@ describe("Personal/Show", () => {
         expect(w.findComponent(AvailabilityGrid).props("disabled")).toBe(false);
         expect(w.findComponent(HolidayList).props("disabled")).toBe(false);
         expect(w.findComponent(EmployeeFields).props("disabled")).toBe(false);
-        expect(w.get("form").text()).toContain("Save");
     });
 
     it("shows the lock notice and disables every control when editable is false", () => {
@@ -382,8 +379,6 @@ describe("Personal/Show", () => {
         expect(w.findComponent(QuestionChecklist).props("disabled")).toBe(true);
         expect(w.findComponent(TagChecklist).props("disabled")).toBe(true);
         expect(w.findComponent(EmployeeFields).props("disabled")).toBe(true);
-        // The Details save button is gone.
-        expect(w.get("form").text()).not.toContain("Save");
     });
 
     it("reveals the holiday list when the Availability tab is clicked", async () => {

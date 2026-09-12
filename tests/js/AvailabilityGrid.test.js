@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect } from "vitest";
 import { mount } from "@vue/test-utils";
 
 const en = {
@@ -15,11 +15,15 @@ const en = {
     "availability.state.unavailable": "Unavailable",
 };
 
-const { router } = vi.hoisted(() => ({ router: { put: vi.fn() } }));
+import { useI18n } from "@/composables/useI18n";
+import { vi } from "vitest";
 
-vi.mock("@inertiajs/vue3", () => ({
-    router,
-    usePage: () => ({ props: { translations: en } }),
+vi.mock("@/composables/useI18n", () => ({
+    useI18n: () => (key, params) => {
+        let s = en[key] ?? key;
+        for (const [k, v] of Object.entries(params ?? {})) s = s.replaceAll(`:${k}`, v);
+        return s;
+    },
 }));
 
 import AvailabilityGrid from "@/components/AvailabilityGrid.vue";
@@ -34,13 +38,10 @@ const mountGrid = (props = {}) =>
         props: {
             shifts,
             availability: [{ weekday: 2, shift_id: 10, level: "unavailable" }],
-            endpoint: "/employees/7/availability",
             ...props,
         },
         global: { stubs: { teleport: true } },
     });
-
-beforeEach(() => router.put.mockReset());
 
 describe("AvailabilityGrid", () => {
     it("renders one row per shift and a cell for every weekday (Mon–Fri)", () => {
@@ -65,39 +66,35 @@ describe("AvailabilityGrid", () => {
         expect(cls).toContain("bg-(--color-badge-success-bg)");
     });
 
-    it("opens a menu on click without writing", async () => {
+    it("opens a menu on click", async () => {
         const w = mountGrid();
         expect(w.find('[data-testid="availability-menu"]').exists()).toBe(false);
 
         await w.get('[data-testid="cell-4-20"]').trigger("click");
 
         expect(w.get('[data-testid="availability-menu"]').exists()).toBe(true);
-        expect(router.put).not.toHaveBeenCalled();
     });
 
-    it("writes the picked state to the shift cell endpoint", async () => {
+    it("updates the cell locally and emits update:availability, without any network call", async () => {
         const w = mountGrid();
         await w.get('[data-testid="cell-4-20"]').trigger("click");
         await w.get('[data-testid="availability-menu-not_preferred"]').trigger("click");
 
-        expect(router.put).toHaveBeenCalledTimes(1);
-        const [url, payload, opts] = router.put.mock.calls[0];
-        expect(url).toBe("/employees/7/availability/4/20");
-        expect(payload).toEqual({ level: "not_preferred" });
-        expect(opts).toMatchObject({ preserveScroll: true, preserveState: true });
-
+        expect(w.emitted("update:availability")).toEqual([
+            [{ weekday: 4, shiftId: 20, level: "not_preferred" }],
+        ]);
         expect(w.get('[data-testid="cell-4-20"]').classes().join(" ")).toContain(
             "bg-(--color-badge-warning-bg)",
         );
         expect(w.find('[data-testid="availability-menu"]').exists()).toBe(false);
     });
 
-    it("does not write when the picked state matches the current one", async () => {
+    it("does not emit when the picked state matches the current one", async () => {
         const w = mountGrid();
         await w.get('[data-testid="cell-2-10"]').trigger("click");
         await w.get('[data-testid="availability-menu-unavailable"]').trigger("click");
 
-        expect(router.put).not.toHaveBeenCalled();
+        expect(w.emitted("update:availability")).toBeUndefined();
     });
 
     it("does not open the menu and marks cells disabled when disabled", async () => {
@@ -105,7 +102,6 @@ describe("AvailabilityGrid", () => {
         await w.get('[data-testid="cell-2-10"]').trigger("click");
 
         expect(w.find('[data-testid="availability-menu"]').exists()).toBe(false);
-        expect(router.put).not.toHaveBeenCalled();
         expect(w.get('[data-testid="cell-2-10"]').attributes("disabled")).toBeDefined();
     });
 

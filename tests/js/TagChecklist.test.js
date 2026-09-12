@@ -1,14 +1,11 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { mount } from "@vue/test-utils";
 
 const en = {
     "tags.empty": "No tags have been set up yet.",
 };
 
-const { router } = vi.hoisted(() => ({ router: { put: vi.fn(), delete: vi.fn() } }));
-
 vi.mock("@inertiajs/vue3", () => ({
-    router,
     usePage: () => ({ props: { translations: en } }),
 }));
 
@@ -22,20 +19,7 @@ const items = [
 ];
 
 const mountList = (props = {}) =>
-    mount(TagChecklist, {
-        props: {
-            items,
-            selectedIds: [2],
-            endpoint: "/employees/7/competences",
-            emptyKey: "tags.empty",
-            ...props,
-        },
-    });
-
-beforeEach(() => {
-    router.put.mockReset();
-    router.delete.mockReset();
-});
+    mount(TagChecklist, { props: { items, selectedIds: [2], emptyKey: "tags.empty", ...props } });
 
 describe("TagChecklist", () => {
     it("renders a checkbox per item with its name", () => {
@@ -58,20 +42,16 @@ describe("TagChecklist", () => {
         expect(w.text()).toContain("No tags have been set up yet.");
     });
 
-    it("attaches with a PUT when an item is checked on", async () => {
+    it("checks the box locally and emits update:selectedIds, without a network call", async () => {
         const w = mountList();
         w.findAllComponents(CheckboxInput)[0].vm.$emit("update:modelValue", true);
         await w.vm.$nextTick();
 
-        expect(router.put).toHaveBeenCalledTimes(1);
-        const [url, data, opts] = router.put.mock.calls[0];
-        expect(url).toBe("/employees/7/competences/1");
-        expect(data).toEqual({});
-        expect(opts).toMatchObject({ preserveScroll: true, preserveState: true });
-        expect(router.delete).not.toHaveBeenCalled();
+        expect(w.findAllComponents(CheckboxInput)[0].props("modelValue")).toBe(true);
+        expect(w.emitted("update:selectedIds").at(-1)[0]).toEqual([2, 1]);
     });
 
-    it("does not write and disables the boxes when disabled", async () => {
+    it("does not toggle and disables the boxes when disabled", async () => {
         const w = mountList({ disabled: true });
         const boxes = w.findAllComponents(CheckboxInput);
         expect(boxes.every((b) => b.props("disabled") === true)).toBe(true);
@@ -79,19 +59,14 @@ describe("TagChecklist", () => {
         boxes[0].vm.$emit("update:modelValue", true);
         await w.vm.$nextTick();
 
-        expect(router.put).not.toHaveBeenCalled();
-        expect(router.delete).not.toHaveBeenCalled();
+        expect(w.emitted("update:selectedIds")).toBeUndefined();
     });
 
-    it("detaches with a DELETE when an item is checked off", async () => {
+    it("unchecks the box locally and emits update:selectedIds", async () => {
         const w = mountList();
         w.findAllComponents(CheckboxInput)[1].vm.$emit("update:modelValue", false);
         await w.vm.$nextTick();
 
-        expect(router.delete).toHaveBeenCalledTimes(1);
-        const [url, opts] = router.delete.mock.calls[0];
-        expect(url).toBe("/employees/7/competences/2");
-        expect(opts).toMatchObject({ preserveScroll: true, preserveState: true });
-        expect(router.put).not.toHaveBeenCalled();
+        expect(w.emitted("update:selectedIds").at(-1)[0]).toEqual([]);
     });
 });

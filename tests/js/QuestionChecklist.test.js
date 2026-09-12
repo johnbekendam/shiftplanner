@@ -1,12 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect } from "vitest";
 import { mount } from "@vue/test-utils";
-
-const { router } = vi.hoisted(() => ({ router: { put: vi.fn() } }));
-
-vi.mock("@inertiajs/vue3", () => ({
-    router,
-    usePage: () => ({ props: { translations: {} } }),
-}));
 
 import QuestionChecklist from "@/components/QuestionChecklist.vue";
 import { CheckboxInput } from "@/components/ui/Input";
@@ -17,16 +10,7 @@ const items = [
 ];
 
 const mountList = (props = {}) =>
-    mount(QuestionChecklist, {
-        props: {
-            items,
-            answeredIds: [2],
-            endpoint: "/employees/7/questions",
-            ...props,
-        },
-    });
-
-beforeEach(() => router.put.mockReset());
+    mount(QuestionChecklist, { props: { items, answeredIds: [2], ...props } });
 
 describe("QuestionChecklist", () => {
     it("renders a checkbox per question with its text", () => {
@@ -42,19 +26,24 @@ describe("QuestionChecklist", () => {
         expect(boxes[1].props("modelValue")).toBe(true);
     });
 
-    it("writes answer:true when a question is checked on", async () => {
+    it("checks the box locally and emits update:answeredIds, without a network call", async () => {
         const w = mountList();
         w.findAllComponents(CheckboxInput)[0].vm.$emit("update:modelValue", true);
         await w.vm.$nextTick();
 
-        expect(router.put).toHaveBeenCalledTimes(1);
-        const [url, data, opts] = router.put.mock.calls[0];
-        expect(url).toBe("/employees/7/questions/1");
-        expect(data).toEqual({ answer: true });
-        expect(opts).toMatchObject({ preserveScroll: true, preserveState: true });
+        expect(w.findAllComponents(CheckboxInput)[0].props("modelValue")).toBe(true);
+        expect(w.emitted("update:answeredIds").at(-1)[0]).toEqual([2, 1]);
     });
 
-    it("does not write and disables the boxes when disabled", async () => {
+    it("unchecks the box locally and emits update:answeredIds", async () => {
+        const w = mountList();
+        w.findAllComponents(CheckboxInput)[1].vm.$emit("update:modelValue", false);
+        await w.vm.$nextTick();
+
+        expect(w.emitted("update:answeredIds").at(-1)[0]).toEqual([]);
+    });
+
+    it("does not toggle and disables the boxes when disabled", async () => {
         const w = mountList({ disabled: true });
         const boxes = w.findAllComponents(CheckboxInput);
         expect(boxes.every((b) => b.props("disabled") === true)).toBe(true);
@@ -62,32 +51,6 @@ describe("QuestionChecklist", () => {
         boxes[0].vm.$emit("update:modelValue", true);
         await w.vm.$nextTick();
 
-        expect(router.put).not.toHaveBeenCalled();
-    });
-
-    it("writes answer:false when a question is checked off", async () => {
-        const w = mountList();
-        w.findAllComponents(CheckboxInput)[1].vm.$emit("update:modelValue", false);
-        await w.vm.$nextTick();
-
-        const [url, data] = router.put.mock.calls[0];
-        expect(url).toBe("/employees/7/questions/2");
-        expect(data).toEqual({ answer: false });
-    });
-
-    it("reports start/succeed/fail to the shared save-status tracker when given one", async () => {
-        const saveStatus = { start: vi.fn(), succeed: vi.fn(), fail: vi.fn() };
-        const w = mountList({ saveStatus });
-        w.findAllComponents(CheckboxInput)[0].vm.$emit("update:modelValue", true);
-        await w.vm.$nextTick();
-
-        expect(saveStatus.start).toHaveBeenCalledTimes(1);
-
-        const opts = router.put.mock.calls[0][2];
-        opts.onSuccess();
-        expect(saveStatus.succeed).toHaveBeenCalledTimes(1);
-
-        opts.onError();
-        expect(saveStatus.fail).toHaveBeenCalledTimes(1);
+        expect(w.emitted("update:answeredIds")).toBeUndefined();
     });
 });

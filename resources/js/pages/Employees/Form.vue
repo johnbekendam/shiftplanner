@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed, reactive, ref } from 'vue'
 import { Head, Link, useForm } from '@inertiajs/vue3'
 import AppLayout from '@/layouts/AppLayout.vue'
 import Card from '@/components/ui/Card.vue'
@@ -14,13 +14,13 @@ import QuestionChecklist from '@/components/QuestionChecklist.vue'
 import TagChecklist from '@/components/TagChecklist.vue'
 import ButtonPrimary from '@/components/ui/ButtonPrimary.vue'
 import ButtonSecondary from '@/components/ui/ButtonSecondary.vue'
-import SaveStatusBadge from '@/components/ui/SaveStatusBadge.vue'
 import { useI18n } from '@/composables/useI18n'
-import { useSaveStatus } from '@/composables/useSaveStatus'
+import { useSaveRegistry } from '@/composables/useSaveRegistry'
+import { useUnsavedChangesGuard } from '@/composables/useUnsavedChangesGuard'
+import { putAsync, postAsync, deleteAsync } from '@/utils/inertiaAsync'
 import { calculateAvailabilityHours } from '@/utils/availabilityHours'
 
 const __ = useI18n()
-const saveStatus = useSaveStatus()
 
 const props = defineProps({
     employee: { type: Object, default: null },
@@ -38,6 +38,9 @@ const props = defineProps({
 
 const isEdit = computed(() => props.employee !== null)
 
+const registry = useSaveRegistry()
+useUnsavedChangesGuard(() => isEdit.value && registry.anyDirty.value)
+
 const form = useForm({
     first_name: props.employee?.first_name ?? '',
     last_name: props.employee?.last_name ?? '',
@@ -49,16 +52,80 @@ const form = useForm({
 const tab = ref('information')
 const tabs = computed(() => [
     { value: 'information', label: __('availability.tab.information') },
-    { value: 'details', label: __('availability.tab.details') },
-    { value: 'availability', label: __('availability.tab.availability') },
-    { value: 'competences', label: __('competences.tab') },
+    { value: 'details', label: __('availability.tab.details'), hasError: registry.hasError('personal') },
+    {
+        value: 'availability',
+        label: __('availability.tab.availability'),
+        hasError: registry.hasError('personal') || registry.hasError('availability')
+            || registry.hasError('holidays') || registry.hasError('questions'),
+    },
+    { value: 'competences', label: __('competences.tab'), hasError: registry.hasError('competences') },
 ])
 
-const availability = ref(props.availability)
+function submit() {
+    if (!isEdit.value) form.post('/employees')
+}
 
-watch(() => props.availability, (value) => {
-    availability.value = value
-}, { deep: true })
+if (isEdit.value) {
+    // ── Details + weekly hours: one backend resource (PUT /employees/{id}) ──
+    registry.register('personal', {
+        isDirty: () => form.isDirty,
+        save: () => new Promise((resolve) => {
+            form.put(`/employees/${props.employee.id}`, {
+                preserveScroll: true,
+                preserveState: true,
+                async: true,
+                onSuccess: () => {
+                    form.defaults()
+                    resolve(true)
+                },
+                onError: () => resolve(false),
+            })
+        }),
+    })
+}
+
+function onWeeklyHoursChange(value) {
+    form.weekly_hours = value
+}
+
+// ── Availability grid: one PUT per changed cell ──────────────────────────
+const availability = ref(props.availability)
+const pendingAvailability = reactive({})
+
+function originalAvailabilityLevel(weekday, shiftId) {
+    const row = props.availability.find((r) => r.weekday === weekday && r.shift_id === shiftId)
+    return row ? row.level : 'available'
+}
+
+function onAvailabilityChange({ weekday, shiftId, level }) {
+    availability.value = availability.value.filter((row) => row.weekday !== weekday || row.shift_id !== shiftId)
+    if (level !== 'available') {
+        availability.value.push({ weekday, shift_id: shiftId, level })
+    }
+
+    const key = `${weekday}-${shiftId}`
+    if (level === originalAvailabilityLevel(weekday, shiftId)) {
+        delete pendingAvailability[key]
+    } else {
+        pendingAvailability[key] = level
+    }
+}
+
+if (isEdit.value) {
+    registry.register('availability', {
+        isDirty: () => Object.keys(pendingAvailability).length > 0,
+        save: async () => {
+            const entries = Object.entries(pendingAvailability)
+            const results = await Promise.allSettled(entries.map(([key, level]) => {
+                const [weekday, shiftId] = key.split('-')
+                return putAsync(`/employees/${props.employee.id}/availability/${weekday}/${shiftId}`, { level })
+                    .then(() => { delete pendingAvailability[key] })
+            }))
+            return results.every((r) => r.status === 'fulfilled')
+        },
+    })
+}
 
 const availabilityHours = computed(() => calculateAvailabilityHours(props.shifts, availability.value))
 
@@ -68,53 +135,122 @@ const availabilityWarning = computed(() => {
     return availabilityHours.value.available >= form.weekly_hours ? 'not_preferred' : 'insufficient'
 })
 
-function save() {
-    saveStatus.start()
-    form.put(`/employees/${props.employee.id}`, {
-        preserveScroll: true,
-        preserveState: true,
-        onSuccess: () => saveStatus.succeed(),
-        onError: () => saveStatus.fail(),
+// ── Holidays: POST is not idempotent, so a failed save leaves the whole
+// resource dirty rather than retrying only the still-pending items — a
+// partial retry could double-create an already-saved holiday. ──────────
+const holidaysVersion = ref(0)
+const committedHolidays = ref(props.holidays)
+const currentHolidayRows = ref(props.holidays)
+
+function onHolidaysChange(rows) {
+    currentHolidayRows.value = rows
+}
+
+if (isEdit.value) {
+    registry.register('holidays', {
+        isDirty: () => {
+            const savedIds = committedHolidays.value.map((h) => h.id)
+            return currentHolidayRows.value.some((r) => r.id === null)
+                || savedIds.some((id) => !currentHolidayRows.value.some((r) => r.id === id))
+        },
+        save: async () => {
+            const toAdd = currentHolidayRows.value.filter((r) => r.id === null)
+            const savedIds = committedHolidays.value.map((h) => h.id)
+            const toDeleteIds = savedIds.filter((id) => !currentHolidayRows.value.some((r) => r.id === id))
+
+            const results = await Promise.allSettled([
+                ...toAdd.map((r) => postAsync(`/employees/${props.employee.id}/holidays`, {
+                    start_date: r.start_date,
+                    end_date: r.end_date,
+                    note: r.note,
+                })),
+                ...toDeleteIds.map((id) => deleteAsync(`/employees/${props.employee.id}/holidays/${id}`)),
+            ])
+
+            const ok = results.every((r) => r.status === 'fulfilled')
+            if (ok) {
+                committedHolidays.value = props.holidays
+                currentHolidayRows.value = props.holidays
+                holidaysVersion.value++
+            }
+            return ok
+        },
     })
 }
 
-function submit() {
-    if (isEdit.value) {
-        save()
-    } else {
-        form.post('/employees')
+// ── Questions and competences: id-set toggles, both idempotent to retry ──
+const pendingAnsweredIds = ref([...props.questionAnswers])
+const savedAnsweredIds = ref([...props.questionAnswers])
+
+function onAnsweredIdsChange(ids) {
+    pendingAnsweredIds.value = ids
+}
+
+if (isEdit.value) {
+    registry.register('questions', {
+        isDirty: () => {
+            const before = new Set(savedAnsweredIds.value)
+            const after = new Set(pendingAnsweredIds.value)
+            return before.size !== after.size || [...after].some((id) => !before.has(id))
+        },
+        save: async () => {
+            const before = new Set(savedAnsweredIds.value)
+            const after = new Set(pendingAnsweredIds.value)
+            const toAttach = [...after].filter((id) => !before.has(id))
+            const toDetach = [...before].filter((id) => !after.has(id))
+
+            const results = await Promise.allSettled([
+                ...toAttach.map((id) => putAsync(`/employees/${props.employee.id}/questions/${id}`, { answer: true })
+                    .then(() => { savedAnsweredIds.value = [...savedAnsweredIds.value, id] })),
+                ...toDetach.map((id) => putAsync(`/employees/${props.employee.id}/questions/${id}`, { answer: false })
+                    .then(() => { savedAnsweredIds.value = savedAnsweredIds.value.filter((x) => x !== id) })),
+            ])
+            return results.every((r) => r.status === 'fulfilled')
+        },
+    })
+}
+
+const pendingCompetenceIds = ref([...props.competenceIds])
+const savedCompetenceIds = ref([...props.competenceIds])
+
+function onSelectedCompetenceIdsChange(ids) {
+    pendingCompetenceIds.value = ids
+}
+
+if (isEdit.value) {
+    registry.register('competences', {
+        isDirty: () => {
+            const before = new Set(savedCompetenceIds.value)
+            const after = new Set(pendingCompetenceIds.value)
+            return before.size !== after.size || [...after].some((id) => !before.has(id))
+        },
+        save: async () => {
+            const before = new Set(savedCompetenceIds.value)
+            const after = new Set(pendingCompetenceIds.value)
+            const toAttach = [...after].filter((id) => !before.has(id))
+            const toDetach = [...before].filter((id) => !after.has(id))
+
+            const results = await Promise.allSettled([
+                ...toAttach.map((id) => putAsync(`/employees/${props.employee.id}/competences/${id}`, {})
+                    .then(() => { savedCompetenceIds.value = [...savedCompetenceIds.value, id] })),
+                ...toDetach.map((id) => deleteAsync(`/employees/${props.employee.id}/competences/${id}`)
+                    .then(() => { savedCompetenceIds.value = savedCompetenceIds.value.filter((x) => x !== id) })),
+            ])
+            return results.every((r) => r.status === 'fulfilled')
+        },
+    })
+}
+
+// ── Footer Save button (edit mode only) ──────────────────────────────────
+const justSaved = ref(false)
+
+async function onSaveClick() {
+    const ok = await registry.saveAll()
+    if (ok) {
+        justSaved.value = true
+        setTimeout(() => { justSaved.value = false }, 2000)
     }
 }
-
-// Weekly hours lives on the Availability tab and auto-saves on change
-// (edit only — on create it rides along with the create submit).
-function onWeeklyHoursChange(value) {
-    form.weekly_hours = value
-    if (isEdit.value) save()
-}
-
-function onAvailabilityChange({ weekday, shiftId, level }) {
-    availability.value = availability.value.filter((row) => row.weekday !== weekday || row.shift_id !== shiftId)
-
-    if (level !== 'available') {
-        availability.value.push({ weekday, shift_id: shiftId, level })
-    }
-}
-
-// Auto-save the Details fields on edit. Text inputs emit on commit
-// (blur / Enter / Tab) and selects on change, so this fires at the
-// right moment without a debounce.
-watch(
-    () => [form.first_name, form.last_name, form.email, form.business_line_id],
-    () => {
-        if (isEdit.value) save()
-    },
-)
-
-// Flush a dirty Details form when the user moves to another tab.
-watch(tab, (next, prev) => {
-    if (isEdit.value && prev === 'details' && form.isDirty) save()
-})
 </script>
 
 <template>
@@ -131,27 +267,17 @@ watch(tab, (next, prev) => {
                 data-testid="panel-details"
                 class="p-6"
             >
-                <form class="space-y-5" @submit.prevent="submit">
+                <EmployeeFields v-if="isEdit" :form="form" :business-lines="businessLines" />
+
+                <form v-else class="space-y-5" @submit.prevent="submit">
                     <EmployeeFields :form="form" :business-lines="businessLines" />
 
                     <div class="flex items-center justify-end gap-3">
                         <Link href="/employees">
                             <ButtonSecondary type="button">{{ __('employees.action.cancel') }}</ButtonSecondary>
                         </Link>
-                        <ButtonPrimary
-                            type="submit"
-                            :disabled="form.processing"
-                            :icon="form.recentlySuccessful ? 'check-circle' : null"
-                        >
-                            {{
-                                form.processing
-                                    ? __('employees.action.saving')
-                                    : form.recentlySuccessful
-                                      ? __('employees.action.saved')
-                                      : isEdit
-                                        ? __('employees.action.save')
-                                        : __('employees.action.create')
-                            }}
+                        <ButtonPrimary type="submit" :disabled="form.processing">
+                            {{ form.processing ? __('employees.action.saving') : __('employees.action.create') }}
                         </ButtonPrimary>
                     </div>
                 </form>
@@ -166,9 +292,7 @@ watch(tab, (next, prev) => {
                 <p class="text-sm text-(--color-text-secondary)">{{ __('availability.info.cta') }}</p>
             </div>
 
-            <div v-if="isEdit" v-show="tab === 'availability'" data-testid="panel-availability" class="relative p-6">
-                <SaveStatusBadge :status="saveStatus.status.value" />
-
+            <div v-if="isEdit" v-show="tab === 'availability'" data-testid="panel-availability" class="p-6">
                 <section class="mb-6 max-w-xs">
                     <WeeklyHoursField
                         :model-value="form.weekly_hours"
@@ -199,8 +323,6 @@ watch(tab, (next, prev) => {
                     <AvailabilityGrid
                         :shifts="shifts"
                         :availability="availability"
-                        :endpoint="`/employees/${employee.id}/availability`"
-                        :save-status="saveStatus"
                         show-add-hint
                         @update:availability="onAvailabilityChange"
                     />
@@ -217,8 +339,7 @@ watch(tab, (next, prev) => {
                         <QuestionChecklist
                             :items="questions"
                             :answered-ids="questionAnswers"
-                            :endpoint="`/employees/${employee.id}/questions`"
-                            :save-status="saveStatus"
+                            @update:answered-ids="onAnsweredIdsChange"
                         />
                     </section>
                 </template>
@@ -230,24 +351,39 @@ watch(tab, (next, prev) => {
                         {{ __('availability.holidays.heading') }}
                     </h3>
                     <HolidayList
-                        :holidays="holidays"
-                        :endpoint="`/employees/${employee.id}/holidays`"
-                        :save-status="saveStatus"
+                        :key="holidaysVersion"
+                        :holidays="committedHolidays"
+                        @update:holidays="onHolidaysChange"
                     />
                 </section>
             </div>
 
-            <div v-if="isEdit" v-show="tab === 'competences'" data-testid="panel-competences" class="relative p-6">
-                <SaveStatusBadge :status="saveStatus.status.value" />
-
+            <div v-if="isEdit" v-show="tab === 'competences'" data-testid="panel-competences" class="p-6">
                 <TagChecklist
                     :items="competences"
                     :selected-ids="competenceIds"
-                    :endpoint="`/employees/${employee.id}/competences`"
-                    :save-status="saveStatus"
                     empty-key="competences.checklist_empty"
+                    @update:selected-ids="onSelectedCompetenceIdsChange"
                 />
             </div>
+
+            <template v-if="isEdit" #footer>
+                <div class="flex justify-end px-6 py-4">
+                    <ButtonPrimary
+                        :disabled="!registry.anyDirty.value || registry.saving.value"
+                        :icon="justSaved ? 'check-circle' : null"
+                        @click="onSaveClick"
+                    >
+                        {{
+                            registry.saving.value
+                                ? __('employees.action.saving')
+                                : justSaved
+                                  ? __('employees.action.saved')
+                                  : __('employees.action.save')
+                        }}
+                    </ButtonPrimary>
+                </div>
+            </template>
         </Card>
     </AppLayout>
 </template>

@@ -1,6 +1,5 @@
 <script setup>
 import { ref } from 'vue'
-import { router } from '@inertiajs/vue3'
 import ButtonPrimary from '@/components/ui/ButtonPrimary.vue'
 import ButtonDanger from '@/components/ui/ButtonDanger.vue'
 import { DateInput, TextInput } from '@/components/ui/Input'
@@ -11,53 +10,34 @@ const __ = useI18n()
 
 const props = defineProps({
     holidays: { type: Array, default: () => [] },
-    // Base URL for the holiday sub-resource, e.g. /employees/7/holidays.
-    endpoint: { type: String, required: true },
     // Read-only: the list shows but the add row and delete buttons are hidden
     // (employee change lock).
     disabled: { type: Boolean, default: false },
-    // Shared useSaveStatus() tracker for the card body's SaveStatusBadge.
-    saveStatus: { type: Object, default: null },
 })
+
+const emit = defineEmits(['update:holidays'])
 
 const blank = () => ({ start_date: '', end_date: '', note: '' })
 const draft = ref(blank())
-const errors = ref({})
-const busy = ref(false)
 
-// preserveState keeps this component (and its open tab) mounted across the
-// redirect, so a holiday change never bounces the page back to the Details tab.
-const stay = { preserveScroll: true, preserveState: true }
+// A row with `id: null` is a pending add; a row present in `holidays` but
+// missing here is a pending delete. Both stay purely local until Save.
+// Seeded once — the parent forces a fresh seed by remounting this
+// component (a :key bump) after its own successful save.
+let nextLocalKey = -1
+const rows = ref(props.holidays.map((h) => ({ ...h })))
 
 function add() {
     if (props.disabled) return
-    busy.value = true
-    props.saveStatus?.start()
-    router.post(props.endpoint, { ...draft.value }, {
-        ...stay,
-        onSuccess: () => {
-            draft.value = blank()
-            errors.value = {}
-            props.saveStatus?.succeed()
-        },
-        onError: (e) => {
-            errors.value = e
-            props.saveStatus?.fail()
-        },
-        onFinish: () => {
-            busy.value = false
-        },
-    })
+    rows.value.push({ id: null, _key: nextLocalKey--, ...draft.value })
+    draft.value = blank()
+    emit('update:holidays', rows.value)
 }
 
 function remove(holiday) {
     if (props.disabled) return
-    props.saveStatus?.start()
-    router.delete(`${props.endpoint}/${holiday.id}`, {
-        ...stay,
-        onSuccess: () => props.saveStatus?.succeed(),
-        onError: () => props.saveStatus?.fail(),
-    })
+    rows.value = rows.value.filter((r) => r !== holiday)
+    emit('update:holidays', rows.value)
 }
 </script>
 
@@ -74,8 +54,8 @@ function remove(holiday) {
             </thead>
             <tbody>
                 <tr
-                    v-for="holiday in holidays"
-                    :key="holiday.id"
+                    v-for="holiday in rows"
+                    :key="holiday.id ?? holiday._key"
                     data-testid="holiday-row"
                     class="border-b border-(--color-table-row-separator)"
                 >
@@ -94,7 +74,7 @@ function remove(holiday) {
                     </td>
                 </tr>
 
-                <tr v-if="!holidays.length">
+                <tr v-if="!rows.length">
                     <td colspan="3" class="py-6 text-center text-(--color-text-secondary)">
                         {{ __('availability.holidays.empty') }}
                     </td>
@@ -104,28 +84,18 @@ function remove(holiday) {
                 <tr v-if="!disabled" data-testid="holiday-add-row" class="border-t border-(--color-table-row-separator)">
                     <td class="w-36 py-2 pr-3 align-top">
                         <DateInput v-model="draft.start_date" class="w-full" />
-                        <p v-if="errors.start_date" class="mt-1 text-xs text-[var(--color-badge-error-text)]">
-                            {{ errors.start_date }}
-                        </p>
                     </td>
                     <td class="w-36 py-2 pr-3 align-top">
                         <DateInput v-model="draft.end_date" class="w-full" />
-                        <p v-if="errors.end_date" class="mt-1 text-xs text-[var(--color-badge-error-text)]">
-                            {{ errors.end_date }}
-                        </p>
                     </td>
                     <td class="py-2 pr-3 align-top">
                         <TextInput v-model="draft.note" class="w-full" />
-                        <p v-if="errors.note" class="mt-1 text-xs text-[var(--color-badge-error-text)]">
-                            {{ errors.note }}
-                        </p>
                     </td>
                     <td class="py-2 text-right align-top">
                         <ButtonPrimary
                             type="submit"
                             icon="plus-circle"
                             class="px-2.5"
-                            :disabled="busy"
                             :aria-label="__('availability.holidays.add')"
                         />
                     </td>
