@@ -17,8 +17,12 @@ use Inertia\Inertia;
  * The employee personal page, reached by an opaque preview token.
  *
  * PROTOTYPE ONLY — no authentication. See EmployeePersonalLinkService and
- * roadmap phase 2. A missing token is a 404; the page never reveals
- * whether a token "could" exist.
+ * roadmap phase 2. A missing token on `show` (a stale or reused link,
+ * e.g. after withdrawing) redirects to /signup with an error banner
+ * instead of a 404, so the employee can immediately request a new one.
+ * A missing token on every write action still 404s — those are only
+ * ever reached from within an already-loaded page, never by following
+ * a link, so there's nothing to redirect to.
  */
 class PersonalPageController extends Controller
 {
@@ -26,7 +30,11 @@ class PersonalPageController extends Controller
 
     public function show(string $token)
     {
-        $employee = $this->resolveOrFail($token);
+        $employee = $this->links->resolve($token);
+
+        if (! $employee) {
+            return redirect('/signup')->with('error', __('personal.link_invalid'));
+        }
 
         return Inertia::render('Personal/Show', [
             'token' => $token,

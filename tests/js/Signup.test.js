@@ -79,11 +79,23 @@ describe("Signup", () => {
         const w = mountSignup();
 
         expect(w.find("form").exists()).toBe(true);
-        expect(w.get('[data-testid="signup-warning"]').text()).toContain("You have withdrawn");
+        const banner = w.get('[data-testid="signup-banner"]');
+        expect(banner.text()).toContain("You have withdrawn");
+        expect(banner.classes().join(" ")).toContain("--color-badge-warning-bg");
     });
 
-    it("shows no banner when flash.warning is absent", () => {
+    it("shows an error banner above the form without replacing it, when flash.error is set", () => {
+        pageProps.props.flash = { error: "This personal link is no longer valid. Request a new one below." };
         const w = mountSignup();
-        expect(w.find('[data-testid="signup-warning"]').exists()).toBe(false);
+
+        expect(w.find("form").exists()).toBe(true);
+        const banner = w.get('[data-testid="signup-banner"]');
+        expect(banner.text()).toContain("no longer valid");
+        expect(banner.classes().join(" ")).toContain("--color-badge-error-bg");
+    });
+
+    it("shows no banner when neither flash.warning nor flash.error is set", () => {
+        const w = mountSignup();
+        expect(w.find('[data-testid="signup-banner"]').exists()).toBe(false);
     });
 });

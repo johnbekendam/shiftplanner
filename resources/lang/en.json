@@ -161,6 +161,7 @@
     "personal.withdraw.body": "This permanently removes your details, availability, holidays, and competences from ShiftPlanner. You can sign up again anytime — just visit the signup page and request a new personal link.",
     "personal.withdraw.confirm": "Yes, withdraw",
     "personal.withdraw.flash": "You have withdrawn. You can request a new personal link anytime below.",
+    "personal.link_invalid": "This personal link is no longer valid. Request a new one below.",
 
     "availability.tab.information": "Information",
     "availability.tab.details": "Details",

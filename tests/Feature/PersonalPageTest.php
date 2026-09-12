@@ -88,12 +88,28 @@ class PersonalPageTest extends TestCase
         $this->assertSame(40, $employee->fresh()->weekly_hours);
     }
 
-    public function test_malformed_token_does_not_resolve(): void
+    public function test_a_write_route_with_a_malformed_token_does_not_resolve(): void
     {
-        $this->get('/personal/definitely-not-a-real-token')->assertNotFound();
         $this->put('/personal/definitely-not-a-real-token', [
             'weekly_hours' => 40,
         ])->assertNotFound();
+    }
+
+    public function test_visiting_an_invalid_token_redirects_to_signup_with_an_error(): void
+    {
+        $this->get('/personal/definitely-not-a-real-token')
+            ->assertRedirect('/signup')
+            ->assertSessionHas('error');
+    }
+
+    public function test_visiting_a_withdrawn_employees_old_link_redirects_to_signup(): void
+    {
+        [, $token] = $this->linkedEmployee();
+        $this->delete("/personal/{$token}");
+
+        $this->get("/personal/{$token}")
+            ->assertRedirect('/signup')
+            ->assertSessionHas('error');
     }
 
     public function test_employee_can_save_new_weekly_hours(): void

@@ -15,10 +15,20 @@ const page = usePage()
 // so the page never reveals who is registered.
 const confirmation = computed(() => page.props.flash?.success ?? null)
 
-// Set when this page was reached right after withdrawing from the
-// personal page — shown as a banner above the card, not in place of it,
-// since the person still needs the form to request a fresh link.
-const warning = computed(() => page.props.flash?.warning ?? null)
+// Set when this page was reached right after withdrawing (warning) or
+// following a stale/reused personal-page link (error) — shown as a
+// banner above the card, not in place of it, since the person still
+// needs the form right there to request a fresh link.
+const banner = computed(() => {
+    if (page.props.flash?.error) return { tone: 'error', text: page.props.flash.error }
+    if (page.props.flash?.warning) return { tone: 'warning', text: page.props.flash.warning }
+    return null
+})
+
+const BANNER_CLASSES = {
+    error: 'border-(--color-badge-error-border) bg-(--color-badge-error-bg) text-(--color-badge-error-text)',
+    warning: 'border-(--color-badge-warning-border) bg-(--color-badge-warning-bg) text-(--color-badge-warning-text)',
+}
 
 const form = useForm({ first_name: '', last_name: '', email: '' })
 
@@ -35,12 +45,13 @@ function submit() {
 
         <template #title>{{ __('signup.card_title') }}</template>
 
-        <template v-if="warning" #banner>
+        <template v-if="banner" #banner>
             <p
-                data-testid="signup-warning"
-                class="rounded-md border border-(--color-badge-warning-border) bg-(--color-badge-warning-bg) px-3 py-2 text-sm text-(--color-badge-warning-text)"
+                data-testid="signup-banner"
+                class="rounded-md border px-3 py-2 text-sm"
+                :class="BANNER_CLASSES[banner.tone]"
             >
-                {{ warning }}
+                {{ banner.text }}
             </p>
         </template>
 
