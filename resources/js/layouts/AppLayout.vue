@@ -79,7 +79,10 @@ function isActive(href) {
 
         <!-- Logo area (desktop left column) -->
         <template #logo>
-            <AppLogo />
+            <div class="flex items-center gap-3">
+                <AppLogo />
+                <span class="text-lg font-medium text-(--color-logo-text)">{{ page.props.appName }}</span>
+            </div>
         </template>
 
         <!-- TopBar -->
@@ -96,8 +99,9 @@ function isActive(href) {
                         <Icon v-if="sidebarOpen" name="x-mark" class="w-6 h-6" />
                         <Icon v-else name="bars" class="w-6 h-6" />
                     </button>
-                    <div class="lg:hidden">
+                    <div class="lg:hidden flex items-center gap-2">
                         <AppLogo />
+                        <span class="text-base font-medium text-(--color-header-text)">{{ page.props.appName }}</span>
                     </div>
                     <div class="hidden lg:flex items-center gap-1.5 text-xl font-medium text-(--color-header-text)">
                         <template v-for="(crumb, index) in breadcrumbs" :key="index">
