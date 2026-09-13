@@ -45,13 +45,11 @@ const en = {
     "business_lines.add_description_placeholder": "New business line",
     "settings.tab.workcenters": "Workcenters",
     "workcenters.name": "Name",
-    "workcenters.description": "Description",
     "workcenters.list_empty": "No workcenters yet.",
     "workcenters.drag_handle": "Drag to reorder",
     "workcenters.delete": "Delete",
     "workcenters.archived": "Archived",
     "workcenters.add_name_placeholder": "New workcenter",
-    "workcenters.add_description_placeholder": "New workcenter",
 };
 
 // Requests fired by putAsync/postAsync/deleteAsync go through this mocked
@@ -368,7 +366,7 @@ describe("Settings/Index", () => {
 
     it("mounts the Workcenters list with its items", () => {
         const w = mountPage({
-            workcenters: [{ id: 3, name: "Line 1", description: "Assembly", position: 1, archived_at: null, shifts: [] }],
+            workcenters: [{ id: 3, name: "Line 1", position: 1, archived_at: null, shifts: [] }],
         });
         const list = w.findComponent(WorkcenterList);
         expect(list.props("items")).toHaveLength(1);
@@ -376,7 +374,7 @@ describe("Settings/Index", () => {
 
     it("the Workcenters Save/Cancel are disabled with nothing changed", () => {
         const w = mountPage({
-            workcenters: [{ id: 3, name: "Line 1", description: "Assembly", position: 1, archived_at: null, shifts: [] }],
+            workcenters: [{ id: 3, name: "Line 1", position: 1, archived_at: null, shifts: [] }],
         });
         const bar = w.get('[data-testid="panel-workcenters"]');
         expect(bar.findAll("button").find((b) => b.text() === "Save").attributes("disabled")).toBeDefined();
@@ -385,10 +383,10 @@ describe("Settings/Index", () => {
 
     it("enables Save when a workcenter field changes, and saves via a PUT on click", async () => {
         const w = mountPage({
-            workcenters: [{ id: 3, name: "Line 1", description: "Assembly", position: 1, archived_at: null, shifts: [] }],
+            workcenters: [{ id: 3, name: "Line 1", position: 1, archived_at: null, shifts: [] }],
         });
         w.findComponent(WorkcenterList).vm.$emit("update:items", [
-            { id: 3, name: "Line 1A", description: "Assembly", position: 1, archived_at: null, shifts: [] },
+            { id: 3, name: "Line 1A", position: 1, archived_at: null, shifts: [] },
         ]);
         await w.vm.$nextTick();
 
@@ -401,16 +399,16 @@ describe("Settings/Index", () => {
         expect(routerCalls).toContainEqual([
             "put",
             "/settings/workcenters/3",
-            { name: "Line 1A", description: "Assembly", archived: false },
+            { name: "Line 1A", archived: false },
         ]);
     });
 
     it("saves a new workcenter with a POST and a removed one with a DELETE", async () => {
         const w = mountPage({
-            workcenters: [{ id: 3, name: "Line 1", description: "Assembly", position: 1, archived_at: null, shifts: [] }],
+            workcenters: [{ id: 3, name: "Line 1", position: 1, archived_at: null, shifts: [] }],
         });
         w.findComponent(WorkcenterList).vm.$emit("update:items", [
-            { id: null, name: "Line 2", description: "Packaging", archived_at: null, shifts: [] },
+            { id: null, name: "Line 2", archived_at: null, shifts: [] },
         ]);
         await w.vm.$nextTick();
 
@@ -421,7 +419,7 @@ describe("Settings/Index", () => {
         expect(routerCalls).toContainEqual([
             "post",
             "/settings/workcenters",
-            { name: "Line 2", description: "Packaging", archived: false },
+            { name: "Line 2", archived: false },
         ]);
         expect(routerCalls.some((c) => c[0] === "delete" && c[1] === "/settings/workcenters/3")).toBe(true);
     });
@@ -429,13 +427,13 @@ describe("Settings/Index", () => {
     it("saves a workcenter reorder with one PUT to the reorder endpoint", async () => {
         const w = mountPage({
             workcenters: [
-                { id: 3, name: "Line 1", description: "", position: 1, archived_at: null, shifts: [] },
-                { id: 4, name: "Line 2", description: "", position: 2, archived_at: null, shifts: [] },
+                { id: 3, name: "Line 1", position: 1, archived_at: null, shifts: [] },
+                { id: 4, name: "Line 2", position: 2, archived_at: null, shifts: [] },
             ],
         });
         w.findComponent(WorkcenterList).vm.$emit("update:items", [
-            { id: 4, name: "Line 2", description: "", position: 2, archived_at: null, shifts: [] },
-            { id: 3, name: "Line 1", description: "", position: 1, archived_at: null, shifts: [] },
+            { id: 4, name: "Line 2", position: 2, archived_at: null, shifts: [] },
+            { id: 3, name: "Line 1", position: 1, archived_at: null, shifts: [] },
         ]);
         await w.vm.$nextTick();
 
@@ -448,10 +446,10 @@ describe("Settings/Index", () => {
 
     it("saves archived: true for a workcenter with the Archived checkbox on", async () => {
         const w = mountPage({
-            workcenters: [{ id: 3, name: "Line 1", description: "", position: 1, archived_at: null, shifts: [{ id: 9 }] }],
+            workcenters: [{ id: 3, name: "Line 1", position: 1, archived_at: null, shifts: [{ id: 9 }] }],
         });
         w.findComponent(WorkcenterList).vm.$emit("update:items", [
-            { id: 3, name: "Line 1", description: "", position: 1, archived_at: "2026-09-13T00:00:00Z", shifts: [{ id: 9 }] },
+            { id: 3, name: "Line 1", position: 1, archived_at: "2026-09-13T00:00:00Z", shifts: [{ id: 9 }] },
         ]);
         await w.vm.$nextTick();
 
@@ -462,16 +460,16 @@ describe("Settings/Index", () => {
         expect(routerCalls).toContainEqual([
             "put",
             "/settings/workcenters/3",
-            { name: "Line 1", description: "", archived: true },
+            { name: "Line 1", archived: true },
         ]);
     });
 
     it("Cancel reverts workcenters to the last-saved state without saving", async () => {
         const w = mountPage({
-            workcenters: [{ id: 3, name: "Line 1", description: "", position: 1, archived_at: null, shifts: [] }],
+            workcenters: [{ id: 3, name: "Line 1", position: 1, archived_at: null, shifts: [] }],
         });
         w.findComponent(WorkcenterList).vm.$emit("update:items", [
-            { id: 3, name: "Line 1A", description: "", position: 1, archived_at: null, shifts: [] },
+            { id: 3, name: "Line 1A", position: 1, archived_at: null, shifts: [] },
         ]);
         await w.vm.$nextTick();
 
@@ -483,101 +481,6 @@ describe("Settings/Index", () => {
 
         expect(bar.findAll("button").find((b) => ["Save", "Saving…", "Saved"].includes(b.text())).attributes("disabled")).toBeDefined();
         expect(routerCalls).toEqual([]);
-    });
-
-    it("passes the shifts list to WorkcenterList as allShifts", () => {
-        const w = mountPage({
-            shifts: [{ id: 9, name: "Early", start_time: "06:00", end_time: "14:00" }],
-            workcenters: [],
-        });
-        expect(w.findComponent(WorkcenterList).props("allShifts")).toHaveLength(1);
-    });
-
-    it("saves a changed shift-id set with a PUT to the shifts endpoint", async () => {
-        const w = mountPage({
-            workcenters: [{ id: 3, name: "Line 1", description: "", position: 1, archived_at: null, shifts: [] }],
-        });
-        w.findComponent(WorkcenterList).vm.$emit("update:items", [
-            { id: 3, name: "Line 1", description: "", position: 1, archived_at: null, shifts: [{ id: 9, name: "Early", weekday_capacities: [0, 0, 0, 0, 0, 0, 0] }] },
-        ]);
-        await w.vm.$nextTick();
-
-        const bar = w.get('[data-testid="panel-workcenters"]');
-        await bar.findAll("button").find((b) => ["Save", "Saving…", "Saved"].includes(b.text())).trigger("click");
-        await flushPromises();
-
-        expect(routerCalls).toContainEqual([
-            "put",
-            "/settings/workcenters/3/shifts",
-            { shift_ids: [9] },
-        ]);
-    });
-
-    it("saves changed weekday capacities with a PUT to the capacity endpoint, for an already-attached shift", async () => {
-        const w = mountPage({
-            workcenters: [{
-                id: 3,
-                name: "Line 1",
-                description: "",
-                position: 1,
-                archived_at: null,
-                shifts: [{ id: 9, name: "Early", weekday_capacities: [0, 0, 0, 0, 0, 0, 0] }],
-            }],
-        });
-        w.findComponent(WorkcenterList).vm.$emit("update:items", [
-            {
-                id: 3,
-                name: "Line 1",
-                description: "",
-                position: 1,
-                archived_at: null,
-                shifts: [{ id: 9, name: "Early", weekday_capacities: [4, 4, 4, 4, 2, 0, 0] }],
-            },
-        ]);
-        await w.vm.$nextTick();
-
-        const bar = w.get('[data-testid="panel-workcenters"]');
-        await bar.findAll("button").find((b) => ["Save", "Saving…", "Saved"].includes(b.text())).trigger("click");
-        await flushPromises();
-
-        expect(routerCalls).toContainEqual([
-            "put",
-            "/settings/workcenters/3/shifts/9/capacity",
-            { spots: [4, 4, 4, 4, 2, 0, 0] },
-        ]);
-        expect(routerCalls.some((c) => c[0] === "put" && c[1] === "/settings/workcenters/3/shifts")).toBe(false);
-    });
-
-    it("skips the shift-list and capacity requests for an unchanged workcenter", async () => {
-        const w = mountPage({
-            workcenters: [{
-                id: 3,
-                name: "Line 1",
-                description: "",
-                position: 1,
-                archived_at: null,
-                shifts: [{ id: 9, name: "Early", weekday_capacities: [1, 1, 1, 1, 1, 0, 0] }],
-            }],
-        });
-        // Touch an unrelated field so Save is enabled, leaving shifts untouched.
-        w.findComponent(WorkcenterList).vm.$emit("update:items", [
-            {
-                id: 3,
-                name: "Line 1A",
-                description: "",
-                position: 1,
-                archived_at: null,
-                shifts: [{ id: 9, name: "Early", weekday_capacities: [1, 1, 1, 1, 1, 0, 0] }],
-            },
-        ]);
-        await w.vm.$nextTick();
-
-        const bar = w.get('[data-testid="panel-workcenters"]');
-        await bar.findAll("button").find((b) => ["Save", "Saving…", "Saved"].includes(b.text())).trigger("click");
-        await flushPromises();
-
-        expect(routerCalls.some((c) => c[1] === "/settings/workcenters/3/shifts")).toBe(false);
-        expect(routerCalls.some((c) => c[1] === "/settings/workcenters/3/shifts/9/capacity")).toBe(false);
     });
 
     it("mounts the competences list against its prefix", () => {

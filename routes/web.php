@@ -27,7 +27,7 @@ use App\Http\Controllers\SignupController;
 use App\Http\Controllers\ThemeBuilderController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\WorkcenterController;
-use App\Http\Controllers\WorkcenterShiftController;
+use App\Http\Controllers\WorkcenterShiftAssignmentController;
 use Illuminate\Support\Facades\Route;
 
 Route::redirect('/', '/dashboard');
@@ -81,8 +81,11 @@ Route::middleware('auth')->group(function () {
         Route::put('/settings/workcenters/reorder', [WorkcenterController::class, 'reorder'])->name('settings.workcenters.reorder');
         Route::put('/settings/workcenters/{workcenter}', [WorkcenterController::class, 'update'])->name('settings.workcenters.update');
         Route::delete('/settings/workcenters/{workcenter}', [WorkcenterController::class, 'destroy'])->name('settings.workcenters.destroy');
-        Route::put('/settings/workcenters/{workcenter}/shifts', [WorkcenterShiftController::class, 'update'])->name('settings.workcenters.shifts.update');
-        Route::put('/settings/workcenters/{workcenter}/shifts/{shift}/capacity', [WorkcenterShiftController::class, 'updateCapacity'])->name('settings.workcenters.shifts.capacity');
+
+        Route::get('/workcenter-shifts', [WorkcenterShiftAssignmentController::class, 'index'])->name('workcenter-shifts.index');
+        Route::post('/workcenter-shifts', [WorkcenterShiftAssignmentController::class, 'store'])->name('workcenter-shifts.store');
+        Route::put('/workcenter-shifts/{workcenter}/{shift}', [WorkcenterShiftAssignmentController::class, 'update'])->name('workcenter-shifts.update');
+        Route::delete('/workcenter-shifts/{workcenter}/{shift}', [WorkcenterShiftAssignmentController::class, 'destroy'])->name('workcenter-shifts.destroy');
 
         Route::get('/mailbox', [MailboxController::class, 'index'])->name('mailbox.index');
         Route::post('/mailbox/compose', [MailboxController::class, 'store'])->name('mailbox.compose');

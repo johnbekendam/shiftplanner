@@ -8,7 +8,6 @@ use App\Models\Competence;
 use App\Models\PlanningSettings;
 use App\Models\Shift;
 use App\Models\Workcenter;
-use App\Models\WorkcenterShiftCapacity;
 use Inertia\Inertia;
 
 class SettingsController extends Controller
@@ -68,6 +67,7 @@ class SettingsController extends Controller
             ->all();
     }
 
+    /** Each workcenter's attached-shift ids/names, read-only here — used only for the bin/archive gate. */
     private function workcenters(): array
     {
         return Workcenter::all()
@@ -76,20 +76,8 @@ class SettingsController extends Controller
                 'shifts' => $workcenter->shifts->map(fn (Shift $shift) => [
                     'id' => $shift->id,
                     'name' => $shift->name,
-                    'weekday_capacities' => $this->weekdayCapacities($workcenter, $shift),
                 ])->all(),
             ])
             ->all();
-    }
-
-    /** Spots for weekdays 1 (Monday) through 7 (Sunday), 0 where no row exists yet. */
-    private function weekdayCapacities(Workcenter $workcenter, Shift $shift): array
-    {
-        $capacities = WorkcenterShiftCapacity::query()
-            ->where('workcenter_id', $workcenter->id)
-            ->where('shift_id', $shift->id)
-            ->pluck('spots', 'weekday');
-
-        return collect(range(1, 7))->map(fn ($weekday) => $capacities->get($weekday, 0))->all();
     }
 }

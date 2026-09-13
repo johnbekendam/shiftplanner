@@ -10,7 +10,6 @@ class WorkcenterFactory extends Factory
     {
         return [
             'name' => fake()->unique()->words(2, true),
-            'description' => fake()->optional()->sentence(),
             'position' => fake()->unique()->numberBetween(1, 100000),
             'archived_at' => null,
         ];

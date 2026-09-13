@@ -73,21 +73,25 @@ page. Only an admin edits it.
 ### Workcenters
 
 A workcenter is where shifts and headcount live: the place a schedule
-actually covers. It has a name, a description, and a manual order.
-Managers maintain the list on the Workcenters Settings tab, along with
-each workcenter's attached shifts and per-weekday open-spot capacity.
+actually covers. It has a name and a manual order — nothing else.
+Managers maintain the list on the Workcenters Settings tab.
 
 A workcenter is independent of Business Line. No schema link exists
 between the two. A planning rule may later use Business Line as a soft
 preference signal, for example scheduling an employee toward their own
 line, but that is future, rule-engine work.
 
-Attaching a shift to a workcenter sets a default open-spot count per ISO
-weekday, Monday through Sunday. A per-date override replaces the
-default for one calendar day, for example a holiday eve. A workcenter
-with an attached shift archives instead of deleting, to keep that
-history intact. Employee assignment against these open spots, manual and
-automatic, is a later phase (see the roadmap).
+Relating workcenters to shifts is a separate page, not a Settings tab:
+`/workcenter-shifts`, off the sidebar. Settings defines elements; this
+page relates them, in one flat table across every workcenter (workcenter,
+shift, and a spot count per weekday). Attaching a shift to a workcenter
+there sets a default open-spot count per ISO weekday, Monday through
+Sunday. A per-date override replaces the default for one calendar day,
+for example a holiday eve — not edited on this page; a later calendar
+view owns that. A workcenter with an attached shift archives instead of
+deleting, to keep that history intact. Employee assignment against
+these open spots, manual and automatic, is a later phase (see the
+roadmap).
 
 ### Dashboard
 

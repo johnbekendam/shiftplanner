@@ -106,28 +106,18 @@ class WorkcenterConfigTest extends TestCase
         $this->assertSame(1, Workcenter::count());
     }
 
-    public function test_description_is_optional(): void
-    {
-        $this->actingAsAdmin();
-
-        $this->post('/settings/workcenters', $this->validPayload(['description' => null]))
-            ->assertSessionHasNoErrors();
-        $this->assertSame(1, Workcenter::count());
-    }
-
     // ── Update ─────────────────────────────────────────────────────────
 
     public function test_admin_updates_a_workcenter(): void
     {
         $this->actingAsAdmin();
-        $workcenter = Workcenter::factory()->create(['name' => 'Assembly', 'description' => 'Old']);
+        $workcenter = Workcenter::factory()->create(['name' => 'Assembly']);
 
         $this->put("/settings/workcenters/{$workcenter->id}", [
-            'name' => 'Assembly',
-            'description' => 'New',
+            'name' => 'Assembly Line',
         ])->assertRedirect();
 
-        $this->assertDatabaseHas('workcenters', ['id' => $workcenter->id, 'description' => 'New']);
+        $this->assertDatabaseHas('workcenters', ['id' => $workcenter->id, 'name' => 'Assembly Line']);
     }
 
     public function test_updating_to_another_workcenters_name_is_rejected(): void
@@ -254,7 +244,6 @@ class WorkcenterConfigTest extends TestCase
     {
         return array_merge([
             'name' => 'Assembly',
-            'description' => 'Main assembly line',
         ], $overrides);
     }
 }

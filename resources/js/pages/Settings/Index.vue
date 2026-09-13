@@ -207,10 +207,10 @@ function cancelShifts() {
     shiftsVersion.value++
 }
 
-// ── Workcenters: local edit/add/delete/reorder/shift-attach/capacity,
-// one Save/Cancel. A newly added row has no id yet, so its shift list
-// can't be edited until it exists — WorkcenterList only offers the
-// expand control once a row has an id. ──────────────────────────────────
+// ── Workcenters: local edit/add/delete/reorder, one Save/Cancel. Shift
+// attachment and capacity live on their own page
+// (workcenter-shift-assignments) — `shifts` here is read-only, used only
+// to gate delete vs archive. ─────────────────────────────────────────────
 const workcentersVersion = ref(0)
 const committedWorkcenters = ref(props.workcenters)
 const currentWorkcenters = ref(props.workcenters)
@@ -226,27 +226,11 @@ function workcenterOrderIds(rows, excludeIds) {
 }
 
 function workcenterFieldsChanged(orig, row) {
-    return orig.name !== row.name || orig.description !== row.description || isArchived(orig) !== isArchived(row)
+    return orig.name !== row.name || isArchived(orig) !== isArchived(row)
 }
 
 function isArchived(row) {
     return row.archived_at !== null
-}
-
-function shiftIds(row) {
-    return (row.shifts ?? []).map((s) => s.id).sort((a, b) => a - b)
-}
-
-function shiftIdsChanged(orig, row) {
-    return shiftIds(orig).join(',') !== shiftIds(row).join(',')
-}
-
-/** Shifts attached in both orig and row (by id) whose weekday_capacities differ. */
-function changedCapacityShifts(orig, row) {
-    return (row.shifts ?? []).filter((rs) => {
-        const os = (orig.shifts ?? []).find((s) => s.id === rs.id)
-        return os && JSON.stringify(os.weekday_capacities) !== JSON.stringify(rs.weekday_capacities)
-    })
 }
 
 const workcentersDirty = computed(() => {
@@ -260,8 +244,6 @@ const workcentersDirty = computed(() => {
         const orig = committed.find((c) => c.id === row.id)
         if (!orig) continue
         if (workcenterFieldsChanged(orig, row)) return true
-        if (shiftIdsChanged(orig, row)) return true
-        if (changedCapacityShifts(orig, row).length) return true
     }
 
     return workcenterOrderIds(current, []).join(',') !== workcenterOrderIds(committed, []).join(',')
@@ -283,37 +265,17 @@ async function saveWorkcenters() {
     const oldOrder = workcenterOrderIds(committed, toDeleteIds)
     const reorderNeeded = newOrder.join(',') !== oldOrder.join(',')
 
-    const stillPresent = current.filter((r) => r.id !== null && !toDeleteIds.includes(r.id))
-    const toUpdateShifts = stillPresent.filter((r) => {
-        const orig = committed.find((c) => c.id === r.id)
-        return orig && shiftIdsChanged(orig, r)
-    })
-    const capacityRequests = stillPresent.flatMap((r) => {
-        const orig = committed.find((c) => c.id === r.id)
-        if (!orig) return []
-        return changedCapacityShifts(orig, r).map((shift) => ({ workcenterId: r.id, shift }))
-    })
-
     const results = await Promise.allSettled([
         ...toDeleteIds.map((id) => deleteAsync(`/settings/workcenters/${id}`)),
         ...toEdit.map((r) => putAsync(`/settings/workcenters/${r.id}`, {
             name: r.name,
-            description: r.description,
             archived: isArchived(r),
         })),
         ...(reorderNeeded ? [putAsync('/settings/workcenters/reorder', { ids: newOrder })] : []),
         ...toAdd.map((r) => postAsync('/settings/workcenters', {
             name: r.name,
-            description: r.description,
             archived: isArchived(r),
         })),
-        ...toUpdateShifts.map((r) => putAsync(`/settings/workcenters/${r.id}/shifts`, {
-            shift_ids: shiftIds(r),
-        })),
-        ...capacityRequests.map(({ workcenterId, shift }) => putAsync(
-            `/settings/workcenters/${workcenterId}/shifts/${shift.id}/capacity`,
-            { spots: shift.weekday_capacities },
-        )),
     ])
 
     workcentersSaving.value = false
@@ -502,7 +464,6 @@ useUnsavedChangesGuard(() => (
                 <WorkcenterList
                     :key="workcentersVersion"
                     :items="committedWorkcenters"
-                    :all-shifts="shifts"
                     @update:items="onWorkcentersChange"
                 />
                 <TabSaveBar

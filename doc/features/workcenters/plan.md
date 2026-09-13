@@ -1,6 +1,6 @@
 # Workcenters — Plan
 
-Status: done — 5/5
+Status: done — 6/6 (see the revision note in spec.md)
 
 Spec: `spec.md`. Roadmap phase 3 continuation. Settings CRUD mirrors
 `BusinessLineController` (`store`, `update`, `destroy`, `reorder`). The
@@ -129,6 +129,29 @@ A second controller owns the shift-attachment and capacity endpoints.
   `php artisan test`: 429 passed. `npm run test`: 424 passed.
   `npm run build`: green. `php artisan migrate` on the dev database: the
   four workcenters migrations ran clean.
+
+- [x] 6. **Descope: drop `description`, remove the row-detail shift/capacity
+  UI.** Per the spec's revision note. Migration drops `description` from
+  `workcenters`. `Workcenter::$fillable`/`toPayload()` drop it.
+  `WorkcenterController::validated()`/`store`/`update` drop it.
+  `WorkcenterFactory` drops it. `SettingsController@workcenters()` drops
+  `weekday_capacities` from the `shifts` sub-payload — just `{ id, name }`,
+  kept only for the bin/archive gate. `WorkcenterList.vue` loses its
+  description column, expand control, shift multi-select, and capacity
+  grid (reverts to the step-2 shape, name + drag handle + archive/delete).
+  `Settings/Index.vue` drops the `allShifts` prop pass-through and the
+  shift-id/capacity diff logic from `workcentersDirty`/`saveWorkcenters`
+  (reverts to the step-2 shape). `WorkcenterShiftController` and its
+  `/settings/workcenters/{workcenter}/shifts...` routes are removed —
+  superseded by `WorkcenterShiftAssignmentController` in
+  `workcenter-shift-assignments`. `en.json` drops `workcenters.description*`
+  and `workcenters.shifts.*`. Test updates: `WorkcenterConfigTest` drops
+  description assertions; `WorkcenterShiftTest` is removed (superseded by
+  `WorkcenterShiftAssignmentTest`); `WorkcenterList.test.js` and
+  `SettingsIndex.test.js` drop the row-detail/shift-diff cases. Full PHP
+  (430 passed) and JS (425 passed) suites green, `npm run build` green,
+  `php artisan migrate` on the dev database ran the drop-description
+  migration clean.
 
 ## Not done / deferred
 

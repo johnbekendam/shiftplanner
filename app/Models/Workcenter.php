@@ -13,7 +13,6 @@ class Workcenter extends Model
 
     protected $fillable = [
         'name',
-        'description',
         'position',
         'archived_at',
     ];
@@ -64,7 +63,6 @@ class Workcenter extends Model
         return [
             'id' => $this->id,
             'name' => $this->name,
-            'description' => $this->description,
             'position' => $this->position,
             'archived_at' => $this->archived_at?->toIso8601String(),
         ];
