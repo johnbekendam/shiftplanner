@@ -30,7 +30,7 @@ html.dark {
   --color-sidebar-text: var(--color-zinc-400);
   --color-content-bg: var(--color-white);
   --color-content-text: var(--color-zinc-700);
-  --color-page-bg: transparent;
+  --color-page-bg: var(--color-surface-secondary-bg);
 
   /* Navigation */
   --color-menu-item-text: var(--color-zinc-700);
@@ -222,7 +222,6 @@ html.dark {
 
 /* ── Dark-mode overrides ─────────────────────────────────────────────────── */
 .dark {
-  --color-page-bg: transparent;
   --color-sidebar-bg: var(--color-zinc-900);
   --color-content-bg: var(--color-zinc-800);
   --color-surface-bg: var(--color-zinc-800);

@@ -287,13 +287,11 @@ class ThemeTokens
     }
 
     /**
-     * Not tokens — emitted straight to :root as transparent. The borders are
-     * always transparent; page_bg is transparent because the layout covers the
-     * whole screen, so an outer background is never seen.
+     * Not tokens — emitted straight to :root as transparent borders.
      */
     private const KEPT_LITERALS = [
         'menu_item_border', 'menu_item_hover_border', 'menu_item_selected_border',
-        'menu_item_disabled_border', 'tab_border', 'page_bg',
+        'menu_item_disabled_border', 'tab_border',
     ];
 
     /** Twelve keys the email templates read, each mapped to a flat token. */
@@ -508,6 +506,11 @@ class ThemeTokens
         foreach (self::KEPT_LITERALS as $key) {
             $lightVars[] = '  --color-'.str_replace('_', '-', $key).': transparent;';
         }
+
+        // Alias, not a stored token — the page background behind the app
+        // card. Lives at the same value as surface-secondary-bg (and follows
+        // it into dark mode) without needing its own Theme Builder picker.
+        $lightVars[] = '  --color-page-bg: var(--color-surface-secondary-bg);';
 
         return ":root {\n".implode("\n", $lightVars)."\n}\n\n.dark {\n".implode("\n", $darkVars)."\n}";
     }
