@@ -29,7 +29,7 @@ defineEmits(['update:modelValue'])
             <span
                 v-else-if="t.dirty"
                 data-testid="tab-dirty-dot"
-                class="ml-1 inline-block size-1.5 rounded-full bg-(--color-badge-warning-bg)"
+                class="ml-1 inline-block size-1.5 rounded-full bg-(--color-badge-warning-text)"
             />
         </button>
     </div>
