@@ -100,8 +100,8 @@ local edits only, one Save/Cancel pair per tab, no autosave, no confirm
 on a local change.
 
 **Workcenter list** — `WorkcenterList.vue`, in the shape of
-`BusinessLineList.vue`: a name field, a description field, and a drag
-handle for reordering, backed by `useDragReorder`. Editing a field,
+`BusinessLineList.vue`: a name `TextInput`, a description `TextInput`,
+and a drag handle for reordering, backed by `useDragReorder`. Editing a field,
 adding a row, removing a row, or dragging a row only changes local
 state. A row's bin button is available only while that workcenter has
 no shift attached (checked against its local shift list, so the gate

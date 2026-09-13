@@ -1,0 +1,161 @@
+<script setup>
+import { reactive, ref, watch } from 'vue'
+import ButtonPrimary from '@/components/ui/ButtonPrimary.vue'
+import ButtonDanger from '@/components/ui/ButtonDanger.vue'
+import Icon from '@/components/ui/Icon.vue'
+import { TextInput, CheckboxInput } from '@/components/ui/Input'
+import { useDragReorder } from '@/composables/useDragReorder'
+import { useI18n } from '@/composables/useI18n'
+
+const __ = useI18n()
+
+const props = defineProps({
+    // Rows of { id, name, description, position, archived_at, shifts }.
+    items: { type: Array, default: () => [] },
+})
+
+const emit = defineEmits(['update:items'])
+
+// Local, edit-until-Save state, seeded once from props. The parent forces
+// a fresh seed by remounting this component (a :key bump) after its own
+// successful save.
+let nextLocalKey = -1
+const rows = ref(props.items.map((item) => ({ ...item, shifts: item.shifts ?? [] })))
+
+watch(rows, () => emit('update:items', rows.value), { deep: true })
+
+const { dragIndex, onDragStart, onDragOver, onDragEnd } = useDragReorder(rows)
+
+const draft = reactive({ name: '', description: '' })
+
+function add() {
+    if ((draft.name ?? '').trim() === '') return
+
+    rows.value = [
+        ...rows.value,
+        {
+            id: null,
+            _key: nextLocalKey--,
+            name: draft.name,
+            description: draft.description,
+            archived_at: null,
+            shifts: [],
+        },
+    ]
+    draft.name = ''
+    draft.description = ''
+}
+
+function remove(item) {
+    rows.value = rows.value.filter((r) => r !== item)
+}
+
+function isArchived(item) {
+    return item.archived_at !== null
+}
+
+function setArchived(item, archived) {
+    item.archived_at = archived ? (item.archived_at ?? new Date().toISOString()) : null
+}
+</script>
+
+<template>
+    <form @submit.prevent="add">
+        <table class="w-full table-fixed text-sm">
+            <thead>
+                <tr class="border-b border-(--color-table-header-separator) text-left text-(--color-table-header-text)">
+                    <th class="w-8 py-2" />
+                    <th class="py-2 pr-3 font-medium">{{ __('workcenters.name') }}</th>
+                    <th class="py-2 pr-3 font-medium">{{ __('workcenters.description') }}</th>
+                    <th class="w-24 py-2 pr-3 font-medium" />
+                    <th class="w-14 py-2" />
+                </tr>
+            </thead>
+            <tbody>
+                <tr
+                    v-for="(item, index) in rows"
+                    :key="item.id ?? item._key"
+                    data-testid="workcenter-row"
+                    class="border-b border-(--color-table-row-separator) transition-opacity"
+                    :class="dragIndex === index ? 'opacity-40' : 'opacity-100'"
+                    draggable="true"
+                    @dragstart="onDragStart(index)"
+                    @dragover.prevent="onDragOver(index)"
+                    @dragend="onDragEnd"
+                    @drop.prevent
+                >
+                    <td class="py-2 pl-1 align-middle text-(--color-text-secondary)" :aria-label="__('workcenters.drag_handle')">
+                        <Icon name="bars" class="size-4 cursor-grab" />
+                    </td>
+                    <td class="py-2 pr-3 align-top">
+                        <TextInput
+                            v-model="item.name"
+                            class="w-full"
+                            :data-testid="`workcenter-name-${item.id ?? item._key}`"
+                        />
+                    </td>
+                    <td class="py-2 pr-3 align-top">
+                        <TextInput
+                            v-model="item.description"
+                            class="w-full"
+                            :data-testid="`workcenter-description-${item.id ?? item._key}`"
+                        />
+                    </td>
+                    <td class="py-2 pr-3 align-top">
+                        <CheckboxInput
+                            v-if="item.shifts.length"
+                            :model-value="isArchived(item)"
+                            :data-testid="`workcenter-archived-${item.id ?? item._key}`"
+                            @update:model-value="(v) => setArchived(item, v)"
+                        >
+                            {{ __('workcenters.archived') }}
+                        </CheckboxInput>
+                    </td>
+                    <td class="px-1 py-2 align-top">
+                        <ButtonDanger
+                            v-if="!item.shifts.length"
+                            type="button"
+                            icon="bin"
+                            class="w-full px-0"
+                            :aria-label="__('workcenters.delete')"
+                            @click="remove(item)"
+                        />
+                    </td>
+                </tr>
+
+                <tr v-if="!rows.length">
+                    <td colspan="5" class="py-6 text-center text-(--color-text-secondary)">
+                        {{ __('workcenters.list_empty') }}
+                    </td>
+                </tr>
+
+                <tr data-testid="workcenter-add-row" class="border-t border-(--color-table-row-separator)">
+                    <td />
+                    <td class="py-2 pr-3 align-top">
+                        <TextInput
+                            v-model="draft.name"
+                            class="w-full"
+                            :placeholder="__('workcenters.add_name_placeholder')"
+                        />
+                    </td>
+                    <td class="py-2 pr-3 align-top">
+                        <TextInput
+                            v-model="draft.description"
+                            class="w-full"
+                            :placeholder="__('workcenters.add_description_placeholder')"
+                        />
+                    </td>
+                    <td />
+                    <td class="px-1 py-2 text-right align-top">
+                        <ButtonPrimary
+                            type="submit"
+                            icon="plus-circle"
+                            class="px-2.5"
+                            :aria-label="__('workcenters.add')"
+                        />
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </form>
+</template>

@@ -1,6 +1,6 @@
 # Workcenters — Plan
 
-Status: in progress — 1/5
+Status: in progress — 2/5
 
 Spec: `spec.md`. Roadmap phase 3 continuation. Settings CRUD mirrors
 `BusinessLineController` (`store`, `update`, `destroy`, `reorder`). The
@@ -42,11 +42,12 @@ A second controller owns the shift-attachment and capacity endpoints.
   an empty workcenter; delete on one with an attached shift is
   rejected). Full PHP suite green (416 passed). Pint clean.
 
-- [ ] 2. **Frontend: the Workcenters Settings tab, list only.** New
+- [x] 2. **Frontend: the Workcenters Settings tab, list only.** New
   `resources/js/components/WorkcenterList.vue`, structured like
-  `BusinessLineList.vue`: local `rows` ref seeded from an `items` prop,
-  emitting `update:items` on change; a name `TextInput`, a description
-  `MultilineInput`, and a drag handle per row (`useDragReorder`); an add
+  `BusinessLineList.vue`: local `rows` ref seeded from an `items` prop
+  (each row's `shifts` defaults to `[]` when absent), emitting
+  `update:items` on change; a name `TextInput`, a description
+  `TextInput`, and a drag handle per row (`useDragReorder`); an add
   row; a bin button that removes the row locally, shown only while
   `item.shifts` is empty; an **Archived** `CheckboxInput` shown instead
   once `item.shifts` is non-empty. No request fires from the component

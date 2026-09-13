@@ -8,6 +8,7 @@ import Tabs from '@/components/ui/Tabs.vue'
 import OrderedNameList from '@/components/OrderedNameList.vue'
 import BusinessLineList from '@/components/BusinessLineList.vue'
 import ShiftList from '@/components/ShiftList.vue'
+import WorkcenterList from '@/components/WorkcenterList.vue'
 import ShiftNoteForm from '@/components/ShiftNoteForm.vue'
 import ScheduleNoteForm from '@/components/ScheduleNoteForm.vue'
 import PeriodSettingsForm from '@/components/PeriodSettingsForm.vue'
@@ -22,6 +23,7 @@ const props = defineProps({
     competences: { type: Array, default: () => [] },
     businessLines: { type: Array, default: () => [] },
     shifts: { type: Array, default: () => [] },
+    workcenters: { type: Array, default: () => [] },
     shiftNote: { type: String, default: '' },
     scheduleNote: { type: String, default: '' },
     questions: { type: Array, default: () => [] },
@@ -33,6 +35,7 @@ const tabs = computed(() => [
     { value: 'general', label: __('settings.tab.general'), dirty: periodFormRef.value?.isDirty ?? false },
     { value: 'business_lines', label: __('settings.tab.business_lines'), dirty: businessLinesDirty.value },
     { value: 'shifts', label: __('settings.tab.shifts'), dirty: shiftsDirty.value },
+    { value: 'workcenters', label: __('settings.tab.workcenters'), dirty: workcentersDirty.value },
     { value: 'questions', label: __('settings.tab.questions'), dirty: questionsTab.dirty.value },
     { value: 'competences', label: __('settings.tab.competences'), dirty: competencesTab.dirty.value },
     { value: 'information', label: __('settings.tab.information'), dirty: shiftNoteFormRef.value?.isDirty ?? false },
@@ -204,6 +207,96 @@ function cancelShifts() {
     shiftsVersion.value++
 }
 
+// ── Workcenters: local edit/add/delete/reorder, one Save/Cancel. Shift
+// attachment and per-shift capacity land in a later step and will extend
+// workcentersDirty/saveWorkcenters the same way the schedule note extends
+// the Shifts tab above. ──────────────────────────────────────────────────
+const workcentersVersion = ref(0)
+const committedWorkcenters = ref(props.workcenters)
+const currentWorkcenters = ref(props.workcenters)
+const workcentersSaving = ref(false)
+const workcentersJustSaved = ref(false)
+
+function onWorkcentersChange(rows) {
+    currentWorkcenters.value = rows
+}
+
+function workcenterOrderIds(rows, excludeIds) {
+    return rows.filter((r) => r.id !== null && !excludeIds.includes(r.id)).map((r) => r.id)
+}
+
+function workcenterFieldsChanged(orig, row) {
+    return orig.name !== row.name || orig.description !== row.description || isArchived(orig) !== isArchived(row)
+}
+
+function isArchived(row) {
+    return row.archived_at !== null
+}
+
+const workcentersDirty = computed(() => {
+    const committed = committedWorkcenters.value
+    const current = currentWorkcenters.value
+
+    if (current.some((r) => r.id === null)) return true
+    if (committed.some((c) => !current.some((r) => r.id === c.id))) return true
+
+    for (const row of current) {
+        const orig = committed.find((c) => c.id === row.id)
+        if (!orig) continue
+        if (workcenterFieldsChanged(orig, row)) return true
+    }
+
+    return workcenterOrderIds(current, []).join(',') !== workcenterOrderIds(committed, []).join(',')
+})
+
+async function saveWorkcenters() {
+    workcentersSaving.value = true
+    const committed = committedWorkcenters.value
+    const current = currentWorkcenters.value
+    const committedIds = committed.map((r) => r.id)
+    const toDeleteIds = committedIds.filter((id) => !current.some((r) => r.id === id))
+    const toAdd = current.filter((r) => r.id === null)
+    const toEdit = current.filter((r) => {
+        if (r.id === null || toDeleteIds.includes(r.id)) return false
+        const orig = committed.find((c) => c.id === r.id)
+        return orig && workcenterFieldsChanged(orig, r)
+    })
+    const newOrder = workcenterOrderIds(current, toDeleteIds)
+    const oldOrder = workcenterOrderIds(committed, toDeleteIds)
+    const reorderNeeded = newOrder.join(',') !== oldOrder.join(',')
+
+    const results = await Promise.allSettled([
+        ...toDeleteIds.map((id) => deleteAsync(`/settings/workcenters/${id}`)),
+        ...toEdit.map((r) => putAsync(`/settings/workcenters/${r.id}`, {
+            name: r.name,
+            description: r.description,
+            archived: isArchived(r),
+        })),
+        ...(reorderNeeded ? [putAsync('/settings/workcenters/reorder', { ids: newOrder })] : []),
+        ...toAdd.map((r) => postAsync('/settings/workcenters', {
+            name: r.name,
+            description: r.description,
+            archived: isArchived(r),
+        })),
+    ])
+
+    workcentersSaving.value = false
+    const ok = results.every((r) => r.status === 'fulfilled')
+    if (ok) {
+        committedWorkcenters.value = props.workcenters
+        currentWorkcenters.value = props.workcenters
+        workcentersVersion.value++
+        workcentersJustSaved.value = true
+        setTimeout(() => { workcentersJustSaved.value = false }, 2000)
+    }
+    return ok
+}
+
+function cancelWorkcenters() {
+    currentWorkcenters.value = committedWorkcenters.value
+    workcentersVersion.value++
+}
+
 // ── Questions and Competences: local edit/add/delete/reorder, shared
 // factory since both are plain `{ id, name }` lists behind the same
 // endpoint shape (see the Business Lines comment above about the
@@ -313,6 +406,7 @@ async function saveShiftNote() {
 useUnsavedChangesGuard(() => (
     businessLinesDirty.value
     || shiftsDirty.value
+    || workcentersDirty.value
     || questionsTab.dirty.value
     || competencesTab.dirty.value
     || (periodFormRef.value?.isDirty ?? false)
@@ -365,6 +459,21 @@ useUnsavedChangesGuard(() => (
                     :just-saved="shiftsJustSaved"
                     @save="saveShifts"
                     @cancel="cancelShifts"
+                />
+            </div>
+
+            <div v-show="tab === 'workcenters'" data-testid="panel-workcenters" class="p-6">
+                <WorkcenterList
+                    :key="workcentersVersion"
+                    :items="committedWorkcenters"
+                    @update:items="onWorkcentersChange"
+                />
+                <TabSaveBar
+                    :dirty="workcentersDirty"
+                    :saving="workcentersSaving"
+                    :just-saved="workcentersJustSaved"
+                    @save="saveWorkcenters"
+                    @cancel="cancelWorkcenters"
                 />
             </div>
 
