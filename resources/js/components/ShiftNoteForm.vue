@@ -21,6 +21,7 @@ function submit() {
     return new Promise((resolve) => {
         form.put('/settings/shifts/note', {
             preserveScroll: true,
+            async: true,
             onSuccess: () => {
                 form.defaults()
                 resolve(true)

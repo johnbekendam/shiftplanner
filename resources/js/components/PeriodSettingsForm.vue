@@ -30,6 +30,7 @@ function submit() {
             period_end: data.period_end || null,
         })).put('/settings/period', {
             preserveScroll: true,
+            async: true,
             onSuccess: () => {
                 form.defaults()
                 resolve(true)
