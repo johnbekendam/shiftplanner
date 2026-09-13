@@ -75,7 +75,7 @@ function remove(item) {
                     @dragover.prevent
                     @drop.prevent="onDrop(index)"
                 >
-                    <td class="py-2 pl-1 align-top text-(--color-text-secondary)" :aria-label="__('business_lines.drag_handle')">
+                    <td class="py-2 pl-1 align-middle text-(--color-text-secondary)" :aria-label="__('business_lines.drag_handle')">
                         <Icon name="bars" class="size-4 cursor-grab" />
                     </td>
                     <td class="py-2 pr-3 align-top">
