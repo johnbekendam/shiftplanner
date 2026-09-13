@@ -7,7 +7,6 @@ const en = {
     "period.fte_hours_hint": "Weekly hours that count as one full-time equivalent.",
     "period.period_start": "Period start",
     "period.period_end": "Period end",
-    "period.save": "Save period",
     "general.allow_employee_changes": "Allow employees to change their own details",
     "general.allow_employee_changes_hint": "When off, personal pages stay visible but read-only.",
 };
@@ -21,15 +20,27 @@ vi.mock("@inertiajs/vue3", () => ({
             ...initial,
             errors: {},
             processing: false,
+            _defaults: { ...initial },
+            get isDirty() {
+                return Object.keys(initial).some((k) => this[k] !== this._defaults[k]);
+            },
+            defaults() {
+                this._defaults = Object.fromEntries(Object.keys(initial).map((k) => [k, this[k]]));
+            },
+            reset() {
+                Object.assign(this, this._defaults);
+            },
+            clearErrors() {
+                this.errors = {};
+            },
             transform(cb) {
                 this._transform = cb;
                 return this;
             },
-            put(...args) {
-                const data = this._transform
-                    ? this._transform({ ...initial, ...this })
-                    : { ...this };
-                putSpy(args[0], data, args[1]);
+            put(url, opts) {
+                const data = this._transform ? this._transform({ ...initial, ...this }) : { ...this };
+                putSpy(url, data, opts);
+                opts?.onSuccess?.();
             },
         });
         return form;
@@ -59,12 +70,12 @@ describe("PeriodSettingsForm", () => {
         expect(w.findAllComponents(DateInput)[0].props("modelValue")).toBe("");
     });
 
-    it("submits to /settings/period, sending blank dates as null", async () => {
+    it("submits to /settings/period via the exposed submit(), sending blank dates as null", async () => {
         const w = mount(PeriodSettingsForm, {
             props: { period: { fte_hours: 40, period_start: null, period_end: null } },
         });
 
-        await w.get("form").trigger("submit");
+        await w.vm.submit();
 
         expect(putSpy).toHaveBeenCalledTimes(1);
         const [url, data] = putSpy.mock.calls[0];
@@ -87,8 +98,22 @@ describe("PeriodSettingsForm", () => {
             props: { period: { fte_hours: 40, allow_employee_changes: false } },
         });
 
-        await w.get("form").trigger("submit");
+        await w.vm.submit();
 
         expect(putSpy.mock.calls[0][1]).toMatchObject({ allow_employee_changes: false });
+    });
+
+    it("exposes isDirty reflecting the current edits, and cancel() resets them", async () => {
+        const w = mount(PeriodSettingsForm, { props: { period: { fte_hours: 40 } } });
+        expect(w.vm.isDirty).toBe(false);
+
+        w.findComponent(NumberInput).vm.$emit("update:modelValue", 32);
+        await w.vm.$nextTick();
+        expect(w.vm.isDirty).toBe(true);
+
+        w.vm.cancel();
+        await w.vm.$nextTick();
+        expect(w.vm.isDirty).toBe(false);
+        expect(w.findComponent(NumberInput).props("modelValue")).toBe(40);
     });
 });

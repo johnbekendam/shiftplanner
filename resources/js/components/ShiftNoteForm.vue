@@ -1,8 +1,8 @@
 <script setup>
+import { computed } from 'vue'
 import { useForm } from '@inertiajs/vue3'
 import LabeledInput from '@/components/LabeledInput.vue'
 import { MultilineInput } from '@/components/ui/Input'
-import ButtonPrimary from '@/components/ui/ButtonPrimary.vue'
 import { useI18n } from '@/composables/useI18n'
 
 const __ = useI18n()
@@ -14,20 +14,40 @@ const props = defineProps({
 
 const form = useForm({ note: props.note ?? '' })
 
+// Driven by the page's shared TabSaveBar via this exposed surface,
+// instead of an inline submit button — the useForm/validation/PUT stay
+// exactly as they were.
 function submit() {
-    form.put('/settings/shifts/note', { preserveScroll: true })
+    return new Promise((resolve) => {
+        form.put('/settings/shifts/note', {
+            preserveScroll: true,
+            onSuccess: () => {
+                form.defaults()
+                resolve(true)
+            },
+            onError: () => resolve(false),
+        })
+    })
 }
+
+function cancel() {
+    form.reset()
+    form.clearErrors()
+}
+
+defineExpose({
+    isDirty: computed(() => form.isDirty),
+    processing: computed(() => form.processing),
+    submit,
+    cancel,
+})
 </script>
 
 <template>
-    <form class="space-y-3" @submit.prevent="submit">
+    <div class="space-y-3">
         <LabeledInput :label="__('shifts.note_label')" :error="form.errors.note">
             <MultilineInput v-model="form.note" rows="8" class="w-full font-mono" />
             <p class="mt-1 text-xs text-(--color-text-secondary)">{{ __('shifts.note_hint') }}</p>
         </LabeledInput>
-
-        <ButtonPrimary type="submit" :disabled="form.processing">
-            {{ __('shifts.note_save') }}
-        </ButtonPrimary>
-    </form>
+    </div>
 </template>

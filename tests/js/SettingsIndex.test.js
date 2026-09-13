@@ -66,8 +66,33 @@ vi.mock("@inertiajs/vue3", () => ({
     router,
     Head: { name: "Head", render: () => null },
     usePage: () => ({ props: { translations: en } }),
-    useForm: (initial) =>
-        reactive({ ...initial, errors: {}, processing: false, transform() { return this; }, put: vi.fn() }),
+    useForm: (initial) => reactive({
+        ...initial,
+        errors: {},
+        processing: false,
+        _defaults: { ...initial },
+        get isDirty() {
+            return Object.keys(initial).some((k) => this[k] !== this._defaults[k]);
+        },
+        defaults() {
+            this._defaults = Object.fromEntries(Object.keys(initial).map((k) => [k, this[k]]));
+        },
+        reset() {
+            Object.assign(this, this._defaults);
+        },
+        clearErrors() {
+            this.errors = {};
+        },
+        transform(cb) {
+            this._transform = cb;
+            return this;
+        },
+        put(url, opts) {
+            const data = this._transform ? this._transform({ ...this }) : { ...this };
+            routerCalls.push(["put", url, data]);
+            opts?.onSuccess?.();
+        },
+    }),
 }));
 
 import Settings from "@/pages/Settings/Index.vue";
@@ -77,6 +102,7 @@ import ShiftList from "@/components/ShiftList.vue";
 import ShiftNoteForm from "@/components/ShiftNoteForm.vue";
 import ScheduleNoteForm from "@/components/ScheduleNoteForm.vue";
 import PeriodSettingsForm from "@/components/PeriodSettingsForm.vue";
+import { NumberInput, MultilineInput } from "@/components/ui/Input";
 
 const stubs = { AppLayout: { template: "<div><slot /></div>" } };
 
@@ -118,6 +144,35 @@ describe("Settings/Index", () => {
         const w = mountPage({ period: { fte_hours: 32, period_start: "2026-02-01", period_end: "2026-02-28" } });
         const form = w.findComponent(PeriodSettingsForm);
         expect(form.props("period")).toMatchObject({ fte_hours: 32, period_start: "2026-02-01" });
+    });
+
+    it("the General tab's Save/Cancel reflect the period form's own dirty state", async () => {
+        const w = mountPage({ period: { fte_hours: 40 } });
+        const bar = w.get('[data-testid="panel-general"]');
+        const save = () => bar.findAll("button").find((b) => ["Save", "Saving…", "Saved"].includes(b.text()));
+        expect(save().attributes("disabled")).toBeDefined();
+
+        w.findComponent(PeriodSettingsForm).findComponent(NumberInput).vm.$emit("update:modelValue", 32);
+        await w.vm.$nextTick();
+        expect(save().attributes("disabled")).toBeUndefined();
+
+        await save().trigger("click");
+        await flushPromises();
+
+        expect(routerCalls.some((c) => c[0] === "put" && c[1] === "/settings/period")).toBe(true);
+    });
+
+    it("Cancel on the General tab reverts the period form without saving", async () => {
+        const w = mountPage({ period: { fte_hours: 40 } });
+        w.findComponent(PeriodSettingsForm).findComponent(NumberInput).vm.$emit("update:modelValue", 32);
+        await w.vm.$nextTick();
+
+        const bar = w.get('[data-testid="panel-general"]');
+        await bar.findAll("button").find((b) => b.text() === "Cancel").trigger("click");
+        await w.vm.$nextTick();
+
+        expect(w.findComponent(PeriodSettingsForm).findComponent(NumberInput).props("modelValue")).toBe(40);
+        expect(routerCalls).toEqual([]);
     });
 
     it("mounts the Shifts list with its items", () => {
@@ -182,6 +237,22 @@ describe("Settings/Index", () => {
     it("mounts the shift note form seeded from the shiftNote prop", () => {
         const w = mountPage({ shiftNote: "# Allowances" });
         expect(w.findComponent(ShiftNoteForm).props("note")).toBe("# Allowances");
+    });
+
+    it("the Information tab's Save enables on edit and saves via the note form's own endpoint", async () => {
+        const w = mountPage({ shiftNote: "" });
+        const bar = w.get('[data-testid="panel-information"]');
+        const save = () => bar.findAll("button").find((b) => ["Save", "Saving…", "Saved"].includes(b.text()));
+        expect(save().attributes("disabled")).toBeDefined();
+
+        w.findComponent(ShiftNoteForm).findComponent(MultilineInput).vm.$emit("update:modelValue", "New note");
+        await w.vm.$nextTick();
+        expect(save().attributes("disabled")).toBeUndefined();
+
+        await save().trigger("click");
+        await flushPromises();
+
+        expect(routerCalls.some((c) => c[0] === "put" && c[1] === "/settings/shifts/note")).toBe(true);
     });
 
     it("mounts the Business lines list with its items", () => {

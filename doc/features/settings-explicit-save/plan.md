@@ -1,6 +1,6 @@
 # Settings Explicit Save — Plan
 
-Status: in progress — 4/6
+Status: in progress — 5/6
 
 Spec: `spec.md`.
 
@@ -100,7 +100,7 @@ Spec: `spec.md`.
   mirroring step 2's Save/Cancel assertions for each tab
   independently. Full PHP and JS suites, `npm run build`, green.
 
-- [ ] 5. **General and Information tabs, restyled.**
+- [x] 5. **General and Information tabs, restyled.**
   `PeriodSettingsForm.vue` and `ShiftNoteForm.vue` drop their own
   submit button, exposing `form.isDirty`/`form.processing` (or
   equivalent) up to `Settings/Index.vue` so it can drive a

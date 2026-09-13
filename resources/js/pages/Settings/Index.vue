@@ -281,6 +281,33 @@ function useOrderedTab(freshItems, endpoint) {
 
 const questionsTab = useOrderedTab(() => props.questions, '/settings/questions')
 const competencesTab = useOrderedTab(() => props.competences, '/settings/competences')
+
+// ── General and Information: already local-form/explicit-submit (their
+// own useForm), just driven by the shared TabSaveBar instead of their
+// own inline button. ─────────────────────────────────────────────────
+const periodFormRef = ref(null)
+const periodJustSaved = ref(false)
+
+async function savePeriod() {
+    const ok = await periodFormRef.value.submit()
+    if (ok) {
+        periodJustSaved.value = true
+        setTimeout(() => { periodJustSaved.value = false }, 2000)
+    }
+    return ok
+}
+
+const shiftNoteFormRef = ref(null)
+const shiftNoteJustSaved = ref(false)
+
+async function saveShiftNote() {
+    const ok = await shiftNoteFormRef.value.submit()
+    if (ok) {
+        shiftNoteJustSaved.value = true
+        setTimeout(() => { shiftNoteJustSaved.value = false }, 2000)
+    }
+    return ok
+}
 </script>
 
 <template>
@@ -308,7 +335,14 @@ const competencesTab = useOrderedTab(() => props.competences, '/settings/compete
             </div>
 
             <div v-show="tab === 'general'" data-testid="panel-general" class="p-6">
-                <PeriodSettingsForm :period="period" />
+                <PeriodSettingsForm ref="periodFormRef" :period="period" />
+                <TabSaveBar
+                    :dirty="periodFormRef?.isDirty ?? false"
+                    :saving="periodFormRef?.processing ?? false"
+                    :just-saved="periodJustSaved"
+                    @save="savePeriod"
+                    @cancel="periodFormRef?.cancel()"
+                />
             </div>
 
             <div v-show="tab === 'shifts'" data-testid="panel-shifts" class="space-y-6 p-6">
@@ -325,7 +359,14 @@ const competencesTab = useOrderedTab(() => props.competences, '/settings/compete
             </div>
 
             <div v-show="tab === 'information'" data-testid="panel-information" class="p-6">
-                <ShiftNoteForm :note="shiftNote" />
+                <ShiftNoteForm ref="shiftNoteFormRef" :note="shiftNote" />
+                <TabSaveBar
+                    :dirty="shiftNoteFormRef?.isDirty ?? false"
+                    :saving="shiftNoteFormRef?.processing ?? false"
+                    :just-saved="shiftNoteJustSaved"
+                    @save="saveShiftNote"
+                    @cancel="shiftNoteFormRef?.cancel()"
+                />
             </div>
 
             <div v-show="tab === 'questions'" data-testid="panel-questions" class="p-6">
