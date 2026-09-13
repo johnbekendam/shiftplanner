@@ -1,6 +1,6 @@
 # Workcenters — Plan
 
-Status: in progress — 3/5
+Status: in progress — 4/5
 
 Spec: `spec.md`. Roadmap phase 3 continuation. Settings CRUD mirrors
 `BusinessLineController` (`store`, `update`, `destroy`, `reorder`). The
@@ -97,7 +97,7 @@ A second controller owns the shift-attachment and capacity endpoints.
   weekday default otherwise, and `0` when neither exists). Full PHP
   suite green.
 
-- [ ] 4. **Frontend: row detail — shifts and capacity, folded into the
+- [x] 4. **Frontend: row detail — shifts and capacity, folded into the
   tab Save.** `WorkcenterList.vue` rows become expandable. Expanded, a
   row shows a shift multi-select (checkbox per shift, labeled with name
   and clock range) that changes the row's local `shifts` array, and per

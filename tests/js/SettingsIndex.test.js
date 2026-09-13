@@ -485,6 +485,101 @@ describe("Settings/Index", () => {
         expect(routerCalls).toEqual([]);
     });
 
+    it("passes the shifts list to WorkcenterList as allShifts", () => {
+        const w = mountPage({
+            shifts: [{ id: 9, name: "Early", start_time: "06:00", end_time: "14:00" }],
+            workcenters: [],
+        });
+        expect(w.findComponent(WorkcenterList).props("allShifts")).toHaveLength(1);
+    });
+
+    it("saves a changed shift-id set with a PUT to the shifts endpoint", async () => {
+        const w = mountPage({
+            workcenters: [{ id: 3, name: "Line 1", description: "", position: 1, archived_at: null, shifts: [] }],
+        });
+        w.findComponent(WorkcenterList).vm.$emit("update:items", [
+            { id: 3, name: "Line 1", description: "", position: 1, archived_at: null, shifts: [{ id: 9, name: "Early", weekday_capacities: [0, 0, 0, 0, 0, 0, 0] }] },
+        ]);
+        await w.vm.$nextTick();
+
+        const bar = w.get('[data-testid="panel-workcenters"]');
+        await bar.findAll("button").find((b) => ["Save", "Saving…", "Saved"].includes(b.text())).trigger("click");
+        await flushPromises();
+
+        expect(routerCalls).toContainEqual([
+            "put",
+            "/settings/workcenters/3/shifts",
+            { shift_ids: [9] },
+        ]);
+    });
+
+    it("saves changed weekday capacities with a PUT to the capacity endpoint, for an already-attached shift", async () => {
+        const w = mountPage({
+            workcenters: [{
+                id: 3,
+                name: "Line 1",
+                description: "",
+                position: 1,
+                archived_at: null,
+                shifts: [{ id: 9, name: "Early", weekday_capacities: [0, 0, 0, 0, 0, 0, 0] }],
+            }],
+        });
+        w.findComponent(WorkcenterList).vm.$emit("update:items", [
+            {
+                id: 3,
+                name: "Line 1",
+                description: "",
+                position: 1,
+                archived_at: null,
+                shifts: [{ id: 9, name: "Early", weekday_capacities: [4, 4, 4, 4, 2, 0, 0] }],
+            },
+        ]);
+        await w.vm.$nextTick();
+
+        const bar = w.get('[data-testid="panel-workcenters"]');
+        await bar.findAll("button").find((b) => ["Save", "Saving…", "Saved"].includes(b.text())).trigger("click");
+        await flushPromises();
+
+        expect(routerCalls).toContainEqual([
+            "put",
+            "/settings/workcenters/3/shifts/9/capacity",
+            { spots: [4, 4, 4, 4, 2, 0, 0] },
+        ]);
+        expect(routerCalls.some((c) => c[0] === "put" && c[1] === "/settings/workcenters/3/shifts")).toBe(false);
+    });
+
+    it("skips the shift-list and capacity requests for an unchanged workcenter", async () => {
+        const w = mountPage({
+            workcenters: [{
+                id: 3,
+                name: "Line 1",
+                description: "",
+                position: 1,
+                archived_at: null,
+                shifts: [{ id: 9, name: "Early", weekday_capacities: [1, 1, 1, 1, 1, 0, 0] }],
+            }],
+        });
+        // Touch an unrelated field so Save is enabled, leaving shifts untouched.
+        w.findComponent(WorkcenterList).vm.$emit("update:items", [
+            {
+                id: 3,
+                name: "Line 1A",
+                description: "",
+                position: 1,
+                archived_at: null,
+                shifts: [{ id: 9, name: "Early", weekday_capacities: [1, 1, 1, 1, 1, 0, 0] }],
+            },
+        ]);
+        await w.vm.$nextTick();
+
+        const bar = w.get('[data-testid="panel-workcenters"]');
+        await bar.findAll("button").find((b) => ["Save", "Saving…", "Saved"].includes(b.text())).trigger("click");
+        await flushPromises();
+
+        expect(routerCalls.some((c) => c[1] === "/settings/workcenters/3/shifts")).toBe(false);
+        expect(routerCalls.some((c) => c[1] === "/settings/workcenters/3/shifts/9/capacity")).toBe(false);
+    });
+
     it("mounts the competences list against its prefix", () => {
         const lists = mountPage({
             competences: [{ id: 1, name: "Forklift", position: 1, holder_count: 0 }],
