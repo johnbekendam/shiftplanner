@@ -1,6 +1,6 @@
 # Workcenters — Plan
 
-Status: in progress — 2/5
+Status: in progress — 3/5
 
 Spec: `spec.md`. Roadmap phase 3 continuation. Settings CRUD mirrors
 `BusinessLineController` (`store`, `update`, `destroy`, `reorder`). The
@@ -68,7 +68,7 @@ A second controller owns the shift-attachment and capacity endpoints.
   existing Business Lines save test). `npm run test` and `npm run build`
   green.
 
-- [ ] 3. **Backend: shift attachment and capacity.** Migrations
+- [x] 3. **Backend: shift attachment and capacity.** Migrations
   `workcenter_shift_capacities` (`workcenter_id`, `shift_id`, `weekday`
   unsigned tinyint 1–7, `spots` unsigned integer default 0, timestamps,
   unique on the triple), `workcenter_shift_date_overrides`

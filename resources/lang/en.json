@@ -301,6 +301,7 @@
     "workcenters.error.name_taken": "A workcenter with this name already exists.",
     "workcenters.error.reorder_mismatch": "The list changed elsewhere. Reload and try again.",
     "workcenters.error.has_shifts": "This workcenter still has a shift attached. Archive it instead.",
+    "workcenters.error.shift_not_attached": "This shift is not attached to the workcenter.",
     "workcenters.flash.added": "Workcenter added.",
     "workcenters.flash.updated": "Workcenter updated.",
     "workcenters.flash.deleted": "Workcenter deleted.",

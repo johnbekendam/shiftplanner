@@ -27,6 +27,7 @@ use App\Http\Controllers\SignupController;
 use App\Http\Controllers\ThemeBuilderController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\WorkcenterController;
+use App\Http\Controllers\WorkcenterShiftController;
 use Illuminate\Support\Facades\Route;
 
 Route::redirect('/', '/dashboard');
@@ -80,6 +81,8 @@ Route::middleware('auth')->group(function () {
         Route::put('/settings/workcenters/reorder', [WorkcenterController::class, 'reorder'])->name('settings.workcenters.reorder');
         Route::put('/settings/workcenters/{workcenter}', [WorkcenterController::class, 'update'])->name('settings.workcenters.update');
         Route::delete('/settings/workcenters/{workcenter}', [WorkcenterController::class, 'destroy'])->name('settings.workcenters.destroy');
+        Route::put('/settings/workcenters/{workcenter}/shifts', [WorkcenterShiftController::class, 'update'])->name('settings.workcenters.shifts.update');
+        Route::put('/settings/workcenters/{workcenter}/shifts/{shift}/capacity', [WorkcenterShiftController::class, 'updateCapacity'])->name('settings.workcenters.shifts.capacity');
 
         Route::get('/mailbox', [MailboxController::class, 'index'])->name('mailbox.index');
         Route::post('/mailbox/compose', [MailboxController::class, 'store'])->name('mailbox.compose');
