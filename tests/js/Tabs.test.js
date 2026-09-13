@@ -44,4 +44,25 @@ describe("Tabs", () => {
         expect(details.find('[data-testid="tab-error-dot"]').exists()).toBe(false);
         expect(availability.find('[data-testid="tab-error-dot"]').exists()).toBe(true);
     });
+
+    it("renders a dirty dot only for a tab with dirty: true", () => {
+        const withDirty = [
+            { value: "details", label: "Details" },
+            { value: "availability", label: "Availability", dirty: true },
+        ];
+        const w = mount(Tabs, { props: { tabs: withDirty, modelValue: "details" } });
+        const [details, availability] = w.findAll("button");
+
+        expect(details.find('[data-testid="tab-dirty-dot"]').exists()).toBe(false);
+        expect(availability.find('[data-testid="tab-dirty-dot"]').exists()).toBe(true);
+    });
+
+    it("shows the error dot, not the dirty dot, when a tab is both dirty and errored", () => {
+        const both = [{ value: "availability", label: "Availability", dirty: true, hasError: true }];
+        const w = mount(Tabs, { props: { tabs: both, modelValue: "availability" } });
+        const tab = w.findAll("button")[0];
+
+        expect(tab.find('[data-testid="tab-error-dot"]').exists()).toBe(true);
+        expect(tab.find('[data-testid="tab-dirty-dot"]').exists()).toBe(false);
+    });
 });

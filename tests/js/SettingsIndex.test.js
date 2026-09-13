@@ -430,6 +430,53 @@ describe("Settings/Index", () => {
         expect(routerCalls).toEqual([]);
     });
 
+    it("shows a dirty dot on the Business Lines tab when it has unsaved edits, even from another tab", async () => {
+        const w = mountPage({
+            businessLines: [{ id: 3, abbreviation: "PMP", description: "Pumps", target_fte: 4, employee_count: 2 }],
+        });
+        const findTab = () => w.findAll("button").find((b) => b.text().includes("Business lines"));
+        expect(findTab().find('[data-testid="tab-dirty-dot"]').exists()).toBe(false);
+
+        w.findComponent(BusinessLineList).vm.$emit("update:items", [
+            { id: 3, abbreviation: "PUM", description: "Pumps", target_fte: 4, employee_count: 2 },
+        ]);
+        await w.vm.$nextTick();
+        expect(findTab().find('[data-testid="tab-dirty-dot"]').exists()).toBe(true);
+
+        const shiftsTab = w.findAll("button").find((b) => b.text() === "Shifts");
+        await shiftsTab.trigger("click");
+        await w.vm.$nextTick();
+
+        expect(findTab().find('[data-testid="tab-dirty-dot"]').exists()).toBe(true);
+    });
+
+    it("clears the dirty dot once the tab is saved", async () => {
+        const w = mountPage({
+            businessLines: [{ id: 3, abbreviation: "PMP", description: "Pumps", target_fte: 4, employee_count: 2 }],
+        });
+        w.findComponent(BusinessLineList).vm.$emit("update:items", [
+            { id: 3, abbreviation: "PUM", description: "Pumps", target_fte: 4, employee_count: 2 },
+        ]);
+        await w.vm.$nextTick();
+
+        await findSaveButton(w).trigger("click");
+        await flushPromises();
+
+        const tab = w.findAll("button").find((b) => b.text().includes("Business lines"));
+        expect(tab.find('[data-testid="tab-dirty-dot"]').exists()).toBe(false);
+    });
+
+    it("shows a dirty dot on the General tab when the period form has unsaved edits", async () => {
+        const w = mountPage({ period: { fte_hours: 40 } });
+        const findTab = () => w.findAll("button").find((b) => b.text().includes("General"));
+        expect(findTab().find('[data-testid="tab-dirty-dot"]').exists()).toBe(false);
+
+        w.findComponent(PeriodSettingsForm).findComponent(NumberInput).vm.$emit("update:modelValue", 32);
+        await w.vm.$nextTick();
+
+        expect(findTab().find('[data-testid="tab-dirty-dot"]').exists()).toBe(true);
+    });
+
     it("opens on the General panel and switches on a tab click", async () => {
         const w = mountPage();
         const hidden = (sel) => (w.get(sel).attributes("style") ?? "").includes("display: none");

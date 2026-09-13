@@ -30,12 +30,12 @@ const props = defineProps({
 
 const tab = ref('general')
 const tabs = computed(() => [
-    { value: 'general', label: __('settings.tab.general') },
-    { value: 'business_lines', label: __('settings.tab.business_lines') },
-    { value: 'shifts', label: __('settings.tab.shifts') },
-    { value: 'questions', label: __('settings.tab.questions') },
-    { value: 'competences', label: __('settings.tab.competences') },
-    { value: 'information', label: __('settings.tab.information') },
+    { value: 'general', label: __('settings.tab.general'), dirty: periodFormRef.value?.isDirty ?? false },
+    { value: 'business_lines', label: __('settings.tab.business_lines'), dirty: businessLinesDirty.value },
+    { value: 'shifts', label: __('settings.tab.shifts'), dirty: shiftsDirty.value },
+    { value: 'questions', label: __('settings.tab.questions'), dirty: questionsTab.dirty.value },
+    { value: 'competences', label: __('settings.tab.competences'), dirty: competencesTab.dirty.value },
+    { value: 'information', label: __('settings.tab.information'), dirty: shiftNoteFormRef.value?.isDirty ?? false },
 ])
 
 // ── Business Lines: local edit/add/delete/reorder, one Save/Cancel ──────
