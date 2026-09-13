@@ -90,9 +90,20 @@ describe("BusinessLineList", () => {
         const rows = w.findAll('[data-testid="business-line-row"]');
 
         await rows[0].trigger("dragstart");
-        await rows[1].trigger("drop");
+        await rows[1].trigger("dragover");
 
         const emitted = w.emitted("update:items");
         expect(emitted.at(-1)[0].map((r) => r.id)).toEqual([2, 1]);
+    });
+
+    it("dims the dragged row until dragend", async () => {
+        const w = mountList();
+        const rows = w.findAll('[data-testid="business-line-row"]');
+
+        await rows[0].trigger("dragstart");
+        expect(rows[0].classes()).toContain("opacity-40");
+
+        await rows[0].trigger("dragend");
+        expect(rows[0].classes()).not.toContain("opacity-40");
     });
 });

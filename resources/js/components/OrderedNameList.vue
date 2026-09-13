@@ -29,7 +29,7 @@ const rows = ref(props.items.map((item) => ({ ...item })))
 
 watch(rows, () => emit('update:items', rows.value), { deep: true })
 
-const { onDragStart, onDrop } = useDragReorder(rows)
+const { dragIndex, onDragStart, onDragOver, onDragEnd } = useDragReorder(rows)
 
 const draft = ref('')
 
@@ -60,11 +60,13 @@ function remove(item) {
                     v-for="(item, index) in rows"
                     :key="item.id ?? item._key"
                     data-testid="ordered-name-row"
-                    class="border-b border-(--color-table-row-separator)"
+                    class="border-b border-(--color-table-row-separator) transition-opacity"
+                    :class="dragIndex === index ? 'opacity-40' : 'opacity-100'"
                     draggable="true"
                     @dragstart="onDragStart(index)"
-                    @dragover.prevent
-                    @drop.prevent="onDrop(index)"
+                    @dragover.prevent="onDragOver(index)"
+                    @dragend="onDragEnd"
+                    @drop.prevent
                 >
                     <td class="py-2 pl-1 align-middle text-(--color-text-secondary)" :aria-label="t('drag_handle')">
                         <Icon name="bars" class="size-4 cursor-grab" />

@@ -74,7 +74,7 @@ describe("OrderedNameList", () => {
         const rows = w.findAll('[data-testid="ordered-name-row"]');
 
         await rows[0].trigger("dragstart");
-        await rows[2].trigger("drop");
+        await rows[2].trigger("dragover");
 
         const emitted = w.emitted("update:items");
         expect(emitted.at(-1)[0].map((r) => r.id)).toEqual([2, 3, 1]);
