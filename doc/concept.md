@@ -86,12 +86,30 @@ Relating workcenters to shifts is a separate page, not a Settings tab:
 page relates them, in one flat table across every workcenter (workcenter,
 shift, and a spot count per weekday). Attaching a shift to a workcenter
 there sets a default open-spot count per ISO weekday, Monday through
-Sunday. A per-date override replaces the default for one calendar day,
-for example a holiday eve — not edited on this page; a later calendar
-view owns that. A workcenter with an attached shift archives instead of
-deleting, to keep that history intact. Employee assignment against
-these open spots, manual and automatic, is a later phase (see the
-roadmap).
+Sunday. A workcenter with an attached shift archives instead of
+deleting, to keep that history intact.
+
+### Scheduling
+
+`/scheduling`, off the sidebar, admin-only. Puts employees into the
+open spots `workcenter-shifts` defines. One workcenter and one week
+(Monday to Sunday) at a time: a grid of that workcenter's shifts by
+day. Each cell holds its spot count and the employees assigned to it.
+
+A cell's spot count is a per-date override on the weekday default —
+the exception `workcenter-shifts` deliberately left unhandled — with a
+reset back to the default. Lowering it below the number already
+assigned is rejected. Assigning an employee is blocked by a holiday, a
+recurring `unavailable` day, a same-day overlapping assignment
+elsewhere, or a full cell; a recurring `not_preferred` day only warns.
+Every write here — a spot edit, an assignment, a fixed toggle, a
+removal — takes effect immediately, unlike the rest of the app's
+edit-then-Save model, because this page is a live roster a manager
+works shift by shift, not a form.
+
+An assignment can be marked "fixed." Today that only shows a pin; it
+exists to protect the assignment once automatic re-planning ships.
+Employees do not see their own schedule anywhere yet — that is phase 6.
 
 ### Dashboard
 

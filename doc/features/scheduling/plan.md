@@ -1,6 +1,6 @@
 # Scheduling — Plan
 
-Status: in progress — 6/7
+Status: done — 7/7
 
 Spec: `spec.md`. Every write on this page is immediate — no
 explicit-save diffing, no `TabSaveBar`. A shared
@@ -146,14 +146,16 @@ eligible-employee lookup (to filter) and the assignment store endpoint
   and closes the panel). Full PHP suite green (468 passed). `npm run
   test` (440 passed) and `npm run build` green.
 
-- [ ] 7. **Docs and full checks.** `doc/roadmap.md` — phase 3 row and
+- [x] 7. **Docs and full checks.** `doc/roadmap.md` — phase 3 row and
   section note that scheduling shipped (manual assignment, the fixed
   flag, per-date capacity overrides now live here; automatic planning
-  still later). `doc/concept.md` — a Scheduling entry under Core Data;
-  the Workcenters entry's "not edited on this page" override line
-  updated to point here. Set this `plan.md` header to `7/7`. Run Pint,
-  `php artisan test`, `npm run test`, `npm run build`, and
-  `php artisan migrate` on the dev database — all green.
+  still needs a design session). `doc/concept.md` — a new Scheduling
+  entry under Core Data; the Workcenters entry's "not edited on this
+  page" override line updated to point here instead of a since-abandoned
+  "later calendar view" phrasing. Pint clean. `php artisan test`: 468
+  passed. `npm run test`: 440 passed. `npm run build`: green.
+  `php artisan migrate` on the dev database: the `shift_assignments`
+  migration ran clean.
 
 ## Not done / deferred
 

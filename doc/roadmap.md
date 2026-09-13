@@ -12,7 +12,7 @@ starts, a `plan.md` (the steps and progress).
 | 0 | Scaffold — TeamApps template snapshot, SQLite dev DB, compose stub | Done | — |
 | 1 | Employee admin prototype — manager employee list/editor, personal-page preview link | Done | `features/employee-admin/spec.md`, `features/employee-admin/plan.md` |
 | 2 | Auth hardening — manager Entra ID (OIDC), employee token hardening | Planned | grill first, then `features/auth-hardening/spec.md` |
-| 3 | Business Lines and standard day schedules — config list, per-employee assignment, FTE dashboard; then schedules and coverage | In progress | Business Lines shipped (`features/business-lines/`). Shift definitions shipped (`features/shift-definitions/`). Workcenters shipped (`features/workcenters/`): a Settings tab maintains the named workcenter list. Workcenter shift assignment shipped (`features/workcenter-shift-assignments/`): its own `/workcenter-shifts` page links workcenters to shifts and sets per-weekday open-spot capacity, one flat table across every workcenter. Employee assignment against those spots is `features/scheduling/`, not yet designed. |
+| 3 | Business Lines and standard day schedules — config list, per-employee assignment, FTE dashboard; then schedules and coverage | In progress | Business Lines shipped (`features/business-lines/`). Shift definitions shipped (`features/shift-definitions/`). Workcenters shipped (`features/workcenters/`): a Settings tab maintains the named workcenter list. Workcenter shift assignment shipped (`features/workcenter-shift-assignments/`): its own `/workcenter-shifts` page links workcenters to shifts and sets per-weekday open-spot capacity, one flat table across every workcenter. Scheduling shipped (`features/scheduling/`): a `/scheduling` page assigns employees into those spots, one workcenter and one week at a time, with per-date capacity overrides and a "fixed" flag against future automatic re-planning. Rule-based automatic planning still needs a design session. |
 | 3.5 | Competences — config list on a Settings page, per-employee checkmarks | Done | `features/competences/spec.md`, `features/competences/plan.md`. Planning use is out of scope. |
 | 3.6 | Product groups | Removed | Shipped, then removed from the product. Tables dropped by `2026_09_09_000007`; the config tab, per-employee checklist, routes, and language keys are gone. |
 | 3.7 | Account management (interim auth) — admin/manager roles, password or email code, admin `/users`, account page | Done | `features/account-management/`. The email-code passwordless path is superseded by phase 3.10. Entra ID, the PostgreSQL switch, and employee token hardening stay in phase 2. |
@@ -117,12 +117,25 @@ workcenters and shifts happens on Settings; relating them happens here.
 One flat table lists every (workcenter, shift) pairing across every
 workcenter — a shift can serve more than one workcenter — with a
 per-weekday open-spot default per pairing. Per-date overrides are not
-edited here; that lands with the calendar view below.
+edited here; that shipped with `features/scheduling/` instead.
 
-Still to design: employee assignment against those open spots
-(`features/scheduling/`), and, later still, rule-based automatic
-planning. Calendar recurrence and date-specific exceptions for
-availability stay in phase 4.
+Also shipped (`features/scheduling/`): a `/scheduling` page, admin-only,
+off the sidebar. One workcenter and one week at a time: a shift×day
+grid where each cell shows its open-spot count against the employees
+assigned, editable inline. Spot counts there are per-date overrides
+(`workcenter_shift_date_overrides`, `workcenter-shift-assignments`'
+non-goal), with a reset back to the weekday default. Assigning an
+employee re-checks capacity, holidays, the recurring-availability grid,
+and same-day overlap server-side even though the picker already
+filters. Every write is immediate — no explicit-save batching, unlike
+the rest of the app — since this page is a live roster, not a form. An
+assignment can be marked "fixed," which will protect it from a future
+automatic re-planning run; today it changes nothing else.
+
+Still to design: rule-based automatic planning (hard/soft rules, the
+OR-Tools `/solve` contract) and, further out, an employee-facing
+schedule view (phase 6). Calendar recurrence and date-specific
+exceptions for availability stay in phase 4.
 
 ## Phase 3.5 — Competences
 
