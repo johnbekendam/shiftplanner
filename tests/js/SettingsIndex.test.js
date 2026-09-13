@@ -58,7 +58,7 @@ const { routerCalls, failUrlsRef, router } = vi.hoisted(() => {
         routerCalls.push([name, ...rest]);
         failUrlsRef.current.includes(rest[0]) ? opts?.onError?.() : opts?.onSuccess?.();
     };
-    const router = { put: respond("put"), post: respond("post"), delete: respond("delete") };
+    const router = { put: respond("put"), post: respond("post"), delete: respond("delete"), on: () => () => {} };
     return { routerCalls, failUrlsRef, router };
 });
 

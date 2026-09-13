@@ -7,20 +7,22 @@ with one footer Save button per page.
 
 The original scope covered three pages: `Personal/Show.vue`,
 `Employees/Form.vue`, and `Settings/Index.vue`. `Settings/Index.vue`
-is dropped after `Personal/Show.vue` and `Employees/Form.vue` shipped.
-Its three list components (`BusinessLineList`, `ShiftList`,
-`OrderedNameList`) support step-by-step reordering through a
-one-step "move up/down" endpoint. Deferring a reorder to a batched
-Save means replaying it as a sequence of one-step moves computed
-against the list's pre-edit order, and that sequence breaks if a
-row was also added or deleted in the same edit session, since
-deleting a row changes what "the next neighbor" means for every
-move after it. That is a real amount of new logic for a page only
-admins use, occasionally, for a task (reordering business lines) that
-was never the source of the original complaint. `Personal/Show.vue`
-and `Employees/Form.vue` reach every goal in the Problem section
-below on their own. Settings/Index keeps its current per-row autosave
-and `SaveStatusBadge`, unchanged.
+was dropped after `Personal/Show.vue` and `Employees/Form.vue`
+shipped, since its list components' step-by-step reordering (a
+one-step "move up/down" endpoint) looked like it would need a
+replayed swap sequence to defer to a batched Save — real complexity
+for a page only admins use, occasionally, for a task that was never
+the source of the original complaint.
+
+`Settings/Index.vue` shipped after all, in a later feature:
+`doc/features/settings-explicit-save/spec.md`. It resolved the
+reorder problem differently than assumed here — a new bulk-reorder
+endpoint taking the final order directly, paired with drag-and-drop
+handles, rather than replaying one-step moves — and settled on one
+Save/Cancel pair per tab instead of one page-wide pair, since each
+tab's data is an independent resource with no cross-tab relationship.
+`useSaveStatus` and `SaveStatusBadge`, mentioned below as staying in
+place for Settings, are now retired everywhere.
 
 ## Problem
 

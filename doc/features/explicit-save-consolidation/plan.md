@@ -79,6 +79,11 @@ SaveStatusBadge cleanup) are dropped — see the spec's Revision note.
 ## Dropped
 
 Step 3 (Settings/Index.vue) and step 4 (retiring `useSaveStatus` and
-`SaveStatusBadge`) are dropped by choice, not by discovery of a
-blocker. See the spec's Revision note for the reasoning. Settings/Index
-keeps its current per-row autosave and `SaveStatusBadge`, unchanged.
+`SaveStatusBadge`) were dropped by choice, not by discovery of a
+blocker. See the spec's Revision note for the reasoning at the time.
+
+Both later shipped anyway, in `doc/features/settings-explicit-save/`,
+which solved the reorder problem this plan's step 3 was scoped around
+(a new bulk-reorder endpoint instead of replayed one-step moves) and
+retired `useSaveStatus`/`SaveStatusBadge` for good once Settings no
+longer needed them.

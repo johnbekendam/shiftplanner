@@ -1,6 +1,6 @@
 # Settings Explicit Save — Plan
 
-Status: in progress — 5/6
+Status: done — 6/6
 
 Spec: `spec.md`.
 
@@ -115,7 +115,7 @@ Spec: `spec.md`.
   Save submits; Cancel reverts via `form.reset()`. Full PHP and JS
   suites, `npm run build`, green.
 
-- [ ] 6. **Leave-guard and cleanup.** `Settings/Index.vue` wires
+- [x] 6. **Leave-guard and cleanup.** `Settings/Index.vue` wires
   `useUnsavedChangesGuard` to "any of the six tabs' dirty computeds is
   true." Delete `resources/js/composables/useSaveStatus.js`,
   `resources/js/components/ui/SaveStatusBadge.vue`, and their Vitest

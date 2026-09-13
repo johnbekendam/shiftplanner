@@ -13,6 +13,7 @@ import ScheduleNoteForm from '@/components/ScheduleNoteForm.vue'
 import PeriodSettingsForm from '@/components/PeriodSettingsForm.vue'
 import TabSaveBar from '@/components/ui/TabSaveBar.vue'
 import { useI18n } from '@/composables/useI18n'
+import { useUnsavedChangesGuard } from '@/composables/useUnsavedChangesGuard'
 import { putAsync, postAsync, deleteAsync } from '@/utils/inertiaAsync'
 
 const __ = useI18n()
@@ -308,6 +309,15 @@ async function saveShiftNote() {
     }
     return ok
 }
+
+useUnsavedChangesGuard(() => (
+    businessLinesDirty.value
+    || shiftsDirty.value
+    || questionsTab.dirty.value
+    || competencesTab.dirty.value
+    || (periodFormRef.value?.isDirty ?? false)
+    || (shiftNoteFormRef.value?.isDirty ?? false)
+))
 </script>
 
 <template>
