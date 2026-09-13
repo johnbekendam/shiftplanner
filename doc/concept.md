@@ -51,10 +51,8 @@ most one Business Line, on the employee Details tab. Business Lines take
 the slot the earlier plan called "Departments"; there is no separate
 Department record.
 
-A per-Business-Line standard day schedule — which shifts a line runs and
-the required headcount for each — comes in a later phase. The exact
-calendar model, including weekly recurrence and date-specific exceptions,
-is deferred until planning cadence is known.
+Coverage — which shifts run where and the required headcount for each —
+lives on the Workcenter, not the Business Line. See Workcenters below.
 
 ### Shifts
 
@@ -63,14 +61,33 @@ an end time; the end must be after the start, so no shift crosses
 midnight. Managers maintain the list on the Settings page. Shifts show in
 start-time order everywhere.
 
-Shifts are global, not per Business Line. Required headcount and the link
-from a shift to a workcenter come in a later phase. The recurring
-availability grid has one row per shift.
+Shifts are global, not per Business Line or Workcenter — the same shift
+can serve more than one workcenter. The recurring availability grid has
+one row per shift.
 
 The Shifts settings tab also holds one global Markdown note — shift
 information such as an allowances table. It renders at the top of every
 employee's availability page, on the manager editor and the personal
 page. Only an admin edits it.
+
+### Workcenters
+
+A workcenter is where shifts and headcount live: the place a schedule
+actually covers. It has a name, a description, and a manual order.
+Managers maintain the list on the Workcenters Settings tab, along with
+each workcenter's attached shifts and per-weekday open-spot capacity.
+
+A workcenter is independent of Business Line. No schema link exists
+between the two. A planning rule may later use Business Line as a soft
+preference signal, for example scheduling an employee toward their own
+line, but that is future, rule-engine work.
+
+Attaching a shift to a workcenter sets a default open-spot count per ISO
+weekday, Monday through Sunday. A per-date override replaces the
+default for one calendar day, for example a holiday eve. A workcenter
+with an attached shift archives instead of deleting, to keep that
+history intact. Employee assignment against these open spots, manual and
+automatic, is a later phase (see the roadmap).
 
 ### Dashboard
 

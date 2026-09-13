@@ -1,6 +1,6 @@
 # Workcenters — Plan
 
-Status: in progress — 4/5
+Status: done — 5/5
 
 Spec: `spec.md`. Roadmap phase 3 continuation. Settings CRUD mirrors
 `BusinessLineController` (`store`, `update`, `destroy`, `reorder`). The
@@ -120,15 +120,15 @@ A second controller owns the shift-attachment and capacity endpoints.
   shift-list and capacity requests for a changed row, and skips them for
   an unchanged one). `npm run test` and `npm run build` green.
 
-- [ ] 5. **Docs and full checks.** `doc/roadmap.md` — phase 3 row and
+- [x] 5. **Docs and full checks.** `doc/roadmap.md` — phase 3 row and
   section note that workcenters shipped (shift attachment and per-day
   open-spot capacity; employee assignment still later). `doc/concept.md`
-  — a Workcenters entry under Core Data; update the "shift-to-workcenter
-  link comes in a later phase" note. `doc/features/shift-definitions/spec.md`
-  — a short note that the workcenter link shipped here. Set this
-  `plan.md` header to `5/5`. Run Pint, `php artisan test`,
-  `npm run test`, `npm run build`, and `php artisan migrate` on the dev
-  database — all green.
+  — a Workcenters entry under Core Data; the old "shift-to-workcenter
+  link comes in a later phase" note replaced. `doc/features/shift-definitions/spec.md`
+  — a revision note that the workcenter link shipped here. Pint clean.
+  `php artisan test`: 429 passed. `npm run test`: 424 passed.
+  `npm run build`: green. `php artisan migrate` on the dev database: the
+  four workcenters migrations ran clean.
 
 ## Not done / deferred
 

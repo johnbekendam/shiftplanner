@@ -12,7 +12,7 @@ starts, a `plan.md` (the steps and progress).
 | 0 | Scaffold — TeamApps template snapshot, SQLite dev DB, compose stub | Done | — |
 | 1 | Employee admin prototype — manager employee list/editor, personal-page preview link | Done | `features/employee-admin/spec.md`, `features/employee-admin/plan.md` |
 | 2 | Auth hardening — manager Entra ID (OIDC), employee token hardening | Planned | grill first, then `features/auth-hardening/spec.md` |
-| 3 | Business Lines and standard day schedules — config list, per-employee assignment, FTE dashboard; then schedules and coverage | In progress | Business Lines shipped (`features/business-lines/`). Shift definitions shipped (`features/shift-definitions/`). Shift coverage (required headcount, the workcenter link) still needs a design session. |
+| 3 | Business Lines and standard day schedules — config list, per-employee assignment, FTE dashboard; then schedules and coverage | In progress | Business Lines shipped (`features/business-lines/`). Shift definitions shipped (`features/shift-definitions/`). Workcenters shipped (`features/workcenters/`): a Settings tab groups shifts under a workcenter and sets per-weekday open-spot capacity, with per-date overrides. Employee assignment against those spots is `features/scheduling/`, not yet designed. |
 | 3.5 | Competences — config list on a Settings page, per-employee checkmarks | Done | `features/competences/spec.md`, `features/competences/plan.md`. Planning use is out of scope. |
 | 3.6 | Product groups | Removed | Shipped, then removed from the product. Tables dropped by `2026_09_09_000007`; the config tab, per-employee checklist, routes, and language keys are gone. |
 | 3.7 | Account management (interim auth) — admin/manager roles, password or email code, admin `/users`, account page | Done | `features/account-management/`. The email-code passwordless path is superseded by phase 3.10. Entra ID, the PostgreSQL switch, and employee token hardening stay in phase 2. |
@@ -107,8 +107,16 @@ Also shipped (`features/shift-info-note/`): one global Markdown note on
 the Shifts tab, rendered at the top of every employee's availability page
 — typically an allowances table per shift.
 
-Still to design: required headcount per shift and the shift-to-workcenter
-link. Calendar recurrence and date-specific exceptions stay in phase 4.
+Also shipped (`features/workcenters/`): a Workcenters Settings tab. A
+workcenter groups one or more shifts — many-to-many, so the same shift
+can serve more than one workcenter. Each attached shift carries a
+per-weekday open-spot default, with a per-date override for one
+calendar day. A workcenter is independent of Business Line.
+
+Still to design: employee assignment against those open spots
+(`features/scheduling/`), and, later still, rule-based automatic
+planning. Calendar recurrence and date-specific exceptions for
+availability stay in phase 4.
 
 ## Phase 3.5 — Competences
 

@@ -4,6 +4,12 @@ Roadmap phase 3. This feature adds the "standard day schedule" shift
 record that phases 3 and 4 anticipated. It also replaces the recurring
 availability grid's three fixed dayparts with the defined shifts.
 
+## Revision note
+
+The shift-to-workcenter link and required-headcount figure, left as a
+non-goal below, shipped in `doc/features/workcenters/spec.md`. A shift
+stays global there too — a workcenter attaches to it, not the reverse.
+
 ## Problem
 
 The data model has no shift record. A manager cannot state that the team
