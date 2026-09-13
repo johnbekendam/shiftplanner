@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Shift;
 use App\Models\ShiftAssignment;
 use App\Models\Workcenter;
+use App\Models\WorkcenterShiftDateOverride;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -55,7 +56,7 @@ class SchedulingController extends Controller
         return $date->startOfWeek(Carbon::MONDAY);
     }
 
-    /** One entry per shift x day: { shift_id, date, spots, assignments }. */
+    /** One entry per shift x day: { shift_id, date, spots, overridden, assignments }. */
     private function cells(Workcenter $workcenter, $shifts, $days): array
     {
         $assignments = ShiftAssignment::query()
@@ -66,6 +67,13 @@ class SchedulingController extends Controller
             ->get()
             ->groupBy(fn (ShiftAssignment $a) => "{$a->shift_id}:{$a->date->toDateString()}");
 
+        $overriddenKeys = WorkcenterShiftDateOverride::query()
+            ->where('workcenter_id', $workcenter->id)
+            ->whereIn('shift_id', $shifts->pluck('id'))
+            ->whereIn('date', $days)
+            ->get()
+            ->map(fn (WorkcenterShiftDateOverride $o) => "{$o->shift_id}:{$o->date->toDateString()}");
+
         $cells = [];
         foreach ($shifts as $shift) {
             foreach ($days as $date) {
@@ -73,6 +81,7 @@ class SchedulingController extends Controller
                     'shift_id' => $shift->id,
                     'date' => $date,
                     'spots' => $workcenter->spotsFor($shift, Carbon::parse($date)),
+                    'overridden' => $overriddenKeys->contains("{$shift->id}:{$date}"),
                     'assignments' => $assignments->get("{$shift->id}:{$date}", collect())
                         ->map(fn (ShiftAssignment $a) => $a->toPayload())
                         ->values()

@@ -8,6 +8,7 @@ use App\Models\ShiftAssignment;
 use App\Models\User;
 use App\Models\Workcenter;
 use App\Models\WorkcenterShiftCapacity;
+use App\Models\WorkcenterShiftDateOverride;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -106,9 +107,28 @@ class SchedulingIndexTest extends TestCase
                 ->where('cells.0.shift_id', $shift->id)
                 ->where('cells.0.date', $date->toDateString())
                 ->where('cells.0.spots', 3)
+                ->where('cells.0.overridden', false)
                 ->has('cells.0.assignments', 1)
                 ->where('cells.0.assignments.0.employee_name', 'Anna Jansen')
                 ->where('cells.0.assignments.0.fixed', true)
+            );
+    }
+
+    public function test_a_cell_with_a_date_override_is_flagged_overridden(): void
+    {
+        $this->actingAsAdmin();
+        $workcenter = Workcenter::factory()->create();
+        $shift = Shift::factory()->create();
+        $workcenter->shifts()->attach($shift);
+        $date = Carbon::now()->startOfWeek(Carbon::MONDAY);
+        WorkcenterShiftDateOverride::query()->create([
+            'workcenter_id' => $workcenter->id, 'shift_id' => $shift->id, 'date' => $date->toDateString(), 'spots' => 1,
+        ]);
+
+        $this->get("/scheduling?workcenter_id={$workcenter->id}")->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('cells.0.overridden', true)
+                ->where('cells.0.spots', 1)
             );
     }
 

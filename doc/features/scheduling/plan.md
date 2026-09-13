@@ -1,6 +1,6 @@
 # Scheduling — Plan
 
-Status: in progress — 5/7
+Status: in progress — 6/7
 
 Spec: `spec.md`. Every write on this page is immediate — no
 explicit-save diffing, no `TabSaveBar`. A shared
@@ -113,27 +113,38 @@ eligible-employee lookup (to filter) and the assignment store endpoint
   from step 1's test now that the page exists. `npm run test` (432
   passed) and `npm run build` green.
 
-- [ ] 6. **Frontend: cell interactivity.** Spot count becomes
-  click-to-edit: a `NumberInput` on click, `PUT
-  /scheduling/spots/{workcenter}/{shift}/{date}` on blur (via
-  `putAsync`, reloading the page's `cells`), reverting the field
-  without a request if the response is a validation error; a reset
-  icon shown only on an overridden cell fires the `DELETE`. Each
-  assignee row gets a pin toggle (`PUT
+- [x] 6. **Frontend: cell interactivity.** New
+  `resources/js/components/scheduling/SchedulingCell.vue`, one per
+  shift×day cell, replacing the plain-text rendering from step 5.
+  Backend addition needed for the reset icon: `SchedulingController::cells()`
+  gains an `overridden` bool per cell (a `WorkcenterShiftDateOverride`
+  row exists for that shift/date), covered by a new
+  `SchedulingIndexTest` case. Spot count becomes click-to-edit: a
+  `NumberInput` swaps in on click; since it only emits
+  `update:modelValue` on commit (Enter/Tab/blur), that event alone
+  fires `PUT /scheduling/spots/{workcenter}/{shift}/{date}`
+  (`putAsync`) when the value changed, with no separate blur listener
+  needed for the write — a wrapping `@focusout` closes edit mode
+  regardless of whether a commit fired (a blur with nothing typed
+  commits nothing). A reset icon shown only when `overridden` fires the
+  `DELETE`. Each assignee row gets a pin toggle (`PUT
   /scheduling/assignments/{id}` `{ fixed }`) and a remove button
   (`DELETE /scheduling/assignments/{id}`, no confirm). An "Add" button
-  per cell opens a popover: on open, `axios.get('/scheduling/eligible-employees',
+  toggles an inline panel: on open, `axios.get('/scheduling/eligible-employees',
   { params: { workcenter_id, shift_id, date } })`; a `SearchInput`
   filters the returned list client-side (name match); a
-  `not_preferred` entry shows a warning badge; clicking a name fires
-  `POST /scheduling/assignments` and closes the popover. Vitest
-  additions to `Scheduling.test.js` (editing a spot count fires the
-  PUT and reflects the reload; a rejected edit reverts the field; the
-  reset icon appears only on an overridden cell and fires the DELETE;
-  toggling the pin fires the PUT; remove fires the DELETE with no
-  confirm; opening Add fetches eligible employees and lists them,
-  `not_preferred` flagged; clicking one fires the POST and closes the
-  popover). `npm run test` and `npm run build` green.
+  `not_preferred` entry shows a warning-triangle icon; clicking a name
+  fires `POST /scheduling/assignments` and closes the panel. `Icon.vue`
+  gains `arrow-uturn-left` and `map-pin`. `en.json`: `scheduling.reset_spots`,
+  `toggle_fixed`, `remove`, `add`, `no_eligible_employees`. Vitest
+  `SchedulingCell.test.js` (shows spots and assignee names; committing
+  a changed spot value fires the PUT, an unchanged one fires nothing;
+  the reset icon shows only when `overridden` and fires the DELETE;
+  toggling the pin fires the PUT with the flipped value; remove fires
+  the DELETE with no confirm; opening Add fetches and lists eligible
+  employees with `not_preferred` flagged; clicking one fires the POST
+  and closes the panel). Full PHP suite green (468 passed). `npm run
+  test` (440 passed) and `npm run build` green.
 
 - [ ] 7. **Docs and full checks.** `doc/roadmap.md` — phase 3 row and
   section note that scheduling shipped (manual assignment, the fixed

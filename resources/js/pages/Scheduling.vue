@@ -4,6 +4,7 @@ import { Head, router } from '@inertiajs/vue3'
 import AppLayout from '@/layouts/AppLayout.vue'
 import Card from '@/components/ui/Card.vue'
 import ButtonSecondary from '@/components/ui/ButtonSecondary.vue'
+import SchedulingCell from '@/components/scheduling/SchedulingCell.vue'
 import { SelectInput } from '@/components/ui/Input'
 import { useI18n } from '@/composables/useI18n'
 
@@ -61,7 +62,8 @@ const dateRangeLabel = computed(() => {
 })
 
 function cellFor(shiftId, date) {
-    return props.cells.find((c) => c.shift_id === shiftId && c.date === date) ?? { spots: 0, assignments: [] }
+    return props.cells.find((c) => c.shift_id === shiftId && c.date === date)
+        ?? { spots: 0, overridden: false, assignments: [] }
 }
 </script>
 
@@ -120,14 +122,12 @@ function cellFor(shiftId, date) {
                                 class="py-2 pr-2"
                                 :data-testid="`scheduling-cell-${shift.id}-${day}`"
                             >
-                                <div class="text-xs text-(--color-text-secondary)">
-                                    {{ cellFor(shift.id, day).assignments.length }}/{{ cellFor(shift.id, day).spots }}
-                                </div>
-                                <ul>
-                                    <li v-for="assignment in cellFor(shift.id, day).assignments" :key="assignment.id">
-                                        {{ assignment.employee_name }}<span v-if="assignment.fixed"> 📌</span>
-                                    </li>
-                                </ul>
+                                <SchedulingCell
+                                    :workcenter-id="workcenterId"
+                                    :shift-id="shift.id"
+                                    :date="day"
+                                    :cell="cellFor(shift.id, day)"
+                                />
                             </td>
                         </tr>
                     </tbody>
