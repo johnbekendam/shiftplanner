@@ -75,6 +75,7 @@ import OrderedNameList from "@/components/OrderedNameList.vue";
 import BusinessLineList from "@/components/BusinessLineList.vue";
 import ShiftList from "@/components/ShiftList.vue";
 import ShiftNoteForm from "@/components/ShiftNoteForm.vue";
+import ScheduleNoteForm from "@/components/ScheduleNoteForm.vue";
 import PeriodSettingsForm from "@/components/PeriodSettingsForm.vue";
 
 const stubs = { AppLayout: { template: "<div><slot /></div>" } };
@@ -119,13 +120,63 @@ describe("Settings/Index", () => {
         expect(form.props("period")).toMatchObject({ fte_hours: 32, period_start: "2026-02-01" });
     });
 
-    it("mounts the Shifts list against its endpoint", () => {
+    it("mounts the Shifts list with its items", () => {
         const w = mountPage({
             shifts: [{ id: 3, name: "Early", start_time: "06:00", end_time: "14:00" }],
         });
         const list = w.findComponent(ShiftList);
-        expect(list.props("endpoint")).toBe("/settings/shifts");
         expect(list.props("items")).toHaveLength(1);
+    });
+
+    it("the Shifts Save/Cancel are disabled with nothing changed", () => {
+        const w = mountPage({
+            shifts: [{ id: 3, name: "Early", start_time: "06:00", end_time: "14:00" }],
+        });
+        const bar = w.get('[data-testid="panel-shifts"]');
+        expect(bar.findAll("button").find((b) => b.text() === "Save").attributes("disabled")).toBeDefined();
+        expect(bar.findAll("button").find((b) => b.text() === "Cancel").attributes("disabled")).toBeDefined();
+    });
+
+    it("enables Save when a shift field changes, and saves via a PUT on click", async () => {
+        const w = mountPage({
+            shifts: [{ id: 3, name: "Early", start_time: "06:00", end_time: "14:00" }],
+        });
+        w.findComponent(ShiftList).vm.$emit("update:items", [
+            { id: 3, name: "Early bird", start_time: "06:00", end_time: "14:00" },
+        ]);
+        await w.vm.$nextTick();
+
+        const bar = w.get('[data-testid="panel-shifts"]');
+        const save = bar.findAll("button").find((b) => ["Save", "Saving…", "Saved"].includes(b.text()));
+        expect(save.attributes("disabled")).toBeUndefined();
+        await save.trigger("click");
+        await flushPromises();
+
+        expect(routerCalls).toContainEqual([
+            "put",
+            "/settings/shifts/3",
+            { name: "Early bird", start_time: "06:00", end_time: "14:00" },
+        ]);
+    });
+
+    it("enables Save when the schedule note changes, and saves it independently of the shift list", async () => {
+        const w = mountPage({
+            shifts: [],
+            scheduleNote: "",
+        });
+        w.findComponent(ScheduleNoteForm).vm.$emit("update:note", "Fridays end early.");
+        await w.vm.$nextTick();
+
+        const bar = w.get('[data-testid="panel-shifts"]');
+        const save = bar.findAll("button").find((b) => ["Save", "Saving…", "Saved"].includes(b.text()));
+        await save.trigger("click");
+        await flushPromises();
+
+        expect(routerCalls).toContainEqual([
+            "put",
+            "/settings/shifts/schedule-note",
+            { note: "Fridays end early." },
+        ]);
     });
 
     it("mounts the shift note form seeded from the shiftNote prop", () => {

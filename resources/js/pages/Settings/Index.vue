@@ -126,6 +126,85 @@ function cancelBusinessLines() {
     currentBusinessLines.value = committedBusinessLines.value
     businessLinesVersion.value++
 }
+
+// ── Shifts: the shift list and the schedule note, one Save/Cancel ──────
+const shiftsVersion = ref(0)
+const committedShifts = ref(props.shifts)
+const currentShifts = ref(props.shifts)
+const committedScheduleNote = ref(props.scheduleNote)
+const currentScheduleNote = ref(props.scheduleNote)
+const shiftsSaving = ref(false)
+const shiftsJustSaved = ref(false)
+
+function onShiftsChange(rows) {
+    currentShifts.value = rows
+}
+
+function onScheduleNoteChange(note) {
+    currentScheduleNote.value = note
+}
+
+const shiftsDirty = computed(() => {
+    const committed = committedShifts.value
+    const current = currentShifts.value
+
+    if (currentScheduleNote.value !== committedScheduleNote.value) return true
+    if (current.some((r) => r.id === null)) return true
+    if (committed.some((c) => !current.some((r) => r.id === c.id))) return true
+
+    return current.some((row) => {
+        const orig = committed.find((c) => c.id === row.id)
+        return orig && (orig.name !== row.name || orig.start_time !== row.start_time || orig.end_time !== row.end_time)
+    })
+})
+
+async function saveShifts() {
+    shiftsSaving.value = true
+    const committed = committedShifts.value
+    const current = currentShifts.value
+    const committedIds = committed.map((r) => r.id)
+    const toDeleteIds = committedIds.filter((id) => !current.some((r) => r.id === id))
+    const toAdd = current.filter((r) => r.id === null)
+    const toEdit = current.filter((r) => {
+        if (r.id === null || toDeleteIds.includes(r.id)) return false
+        const orig = committed.find((c) => c.id === r.id)
+        return orig && (orig.name !== r.name || orig.start_time !== r.start_time || orig.end_time !== r.end_time)
+    })
+    const noteChanged = currentScheduleNote.value !== committedScheduleNote.value
+
+    const results = await Promise.allSettled([
+        ...toDeleteIds.map((id) => deleteAsync(`/settings/shifts/${id}`)),
+        ...toEdit.map((r) => putAsync(`/settings/shifts/${r.id}`, {
+            name: r.name,
+            start_time: r.start_time,
+            end_time: r.end_time,
+        })),
+        ...toAdd.map((r) => postAsync('/settings/shifts', {
+            name: r.name,
+            start_time: r.start_time,
+            end_time: r.end_time,
+        })),
+        ...(noteChanged ? [putAsync('/settings/shifts/schedule-note', { note: currentScheduleNote.value })] : []),
+    ])
+
+    shiftsSaving.value = false
+    const ok = results.every((r) => r.status === 'fulfilled')
+    if (ok) {
+        committedShifts.value = props.shifts
+        currentShifts.value = props.shifts
+        committedScheduleNote.value = currentScheduleNote.value
+        shiftsVersion.value++
+        shiftsJustSaved.value = true
+        setTimeout(() => { shiftsJustSaved.value = false }, 2000)
+    }
+    return ok
+}
+
+function cancelShifts() {
+    currentShifts.value = committedShifts.value
+    currentScheduleNote.value = committedScheduleNote.value
+    shiftsVersion.value++
+}
 </script>
 
 <template>
@@ -156,11 +235,17 @@ function cancelBusinessLines() {
                 <PeriodSettingsForm :period="period" />
             </div>
 
-            <div v-show="tab === 'shifts'" data-testid="panel-shifts" class="relative space-y-6 p-6">
-                <SaveStatusBadge :status="saveStatus.status.value" />
-                <ShiftList :items="shifts" endpoint="/settings/shifts" :save-status="saveStatus" />
+            <div v-show="tab === 'shifts'" data-testid="panel-shifts" class="space-y-6 p-6">
+                <ShiftList :key="shiftsVersion" :items="committedShifts" @update:items="onShiftsChange" />
                 <CardSeparator />
-                <ScheduleNoteForm :note="scheduleNote" />
+                <ScheduleNoteForm :note="currentScheduleNote" @update:note="onScheduleNoteChange" />
+                <TabSaveBar
+                    :dirty="shiftsDirty"
+                    :saving="shiftsSaving"
+                    :just-saved="shiftsJustSaved"
+                    @save="saveShifts"
+                    @cancel="cancelShifts"
+                />
             </div>
 
             <div v-show="tab === 'information'" data-testid="panel-information" class="p-6">

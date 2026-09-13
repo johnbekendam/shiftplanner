@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { mount } from "@vue/test-utils";
 
 const en = {
@@ -8,16 +8,10 @@ const en = {
     "shifts.add": "Add shift",
     "shifts.add_name_placeholder": "New shift",
     "shifts.delete": "Delete",
-    "shifts.delete_confirm": "Delete this shift? Any availability set for it will be lost.",
     "shifts.list_empty": "No shifts yet.",
 };
 
-const { router } = vi.hoisted(() => ({
-    router: { post: vi.fn(), put: vi.fn(), delete: vi.fn() },
-}));
-
 vi.mock("@inertiajs/vue3", () => ({
-    router,
     usePage: () => ({ props: { translations: en } }),
 }));
 
@@ -29,20 +23,7 @@ const items = [
     { id: 2, name: "Late", start_time: "14:00", end_time: "22:00" },
 ];
 
-const mountList = (props = {}) =>
-    mount(ShiftList, {
-        props: { items, endpoint: "/settings/shifts", ...props },
-    });
-
-beforeEach(() => {
-    router.post.mockReset();
-    router.put.mockReset();
-    router.delete.mockReset();
-});
-
-afterEach(() => {
-    vi.unstubAllGlobals();
-});
+const mountList = (props = {}) => mount(ShiftList, { props: { items, ...props } });
 
 describe("ShiftList", () => {
     it("renders a row per item and the three headers", () => {
@@ -57,28 +38,17 @@ describe("ShiftList", () => {
         expect(mountList({ items: [] }).text()).toContain("No shifts yet.");
     });
 
-    it("writes the whole row through the endpoint when a field commits", async () => {
+    it("edits a field locally and emits update:items, without a network call", async () => {
         const w = mountList();
         const firstRow = w.findAll('[data-testid="shift-row"]')[0];
         firstRow.findComponent(TextInput).vm.$emit("update:modelValue", "Early bird");
         await w.vm.$nextTick();
 
-        expect(router.put).toHaveBeenCalledTimes(1);
-        const [url, payload] = router.put.mock.calls[0];
-        expect(url).toBe("/settings/shifts/1");
-        expect(payload).toEqual({ name: "Early bird", start_time: "06:00", end_time: "14:00" });
+        const emitted = w.emitted("update:items");
+        expect(emitted.at(-1)[0][0]).toMatchObject({ id: 1, name: "Early bird" });
     });
 
-    it("does not write when a field commits an unchanged value", async () => {
-        const w = mountList();
-        const firstRow = w.findAll('[data-testid="shift-row"]')[0];
-        firstRow.findComponent(TextInput).vm.$emit("update:modelValue", "Early");
-        await w.vm.$nextTick();
-
-        expect(router.put).not.toHaveBeenCalled();
-    });
-
-    it("posts a new shift from the add row", async () => {
+    it("adds a new row locally and emits update:items, without a network call", async () => {
         const w = mountList({ items: [] });
         const addRow = w.get('[data-testid="shift-add-row"]');
         addRow.findComponent(TextInput).vm.$emit("update:modelValue", "Night");
@@ -89,32 +59,27 @@ describe("ShiftList", () => {
 
         await w.get("form").trigger("submit");
 
-        expect(router.post).toHaveBeenCalledTimes(1);
-        const [url, payload] = router.post.mock.calls[0];
-        expect(url).toBe("/settings/shifts");
-        expect(payload).toEqual({ name: "Night", start_time: "22:00", end_time: "23:30" });
+        expect(w.findAll('[data-testid="shift-row"]')).toHaveLength(1);
+        const emitted = w.emitted("update:items");
+        expect(emitted.at(-1)[0]).toMatchObject([
+            { id: null, name: "Night", start_time: "22:00", end_time: "23:30" },
+        ]);
     });
 
-    it("asks for a plain confirmation before deleting", async () => {
-        const confirmSpy = vi.fn(() => false);
-        vi.stubGlobal("confirm", confirmSpy);
+    it("does not add a row with a blank name", async () => {
+        const w = mountList({ items: [] });
+        await w.get("form").trigger("submit");
 
-        const w = mountList();
-        await w.findAll('[data-testid="shift-row"]')[0].get('[aria-label="Delete"]').trigger("click");
-
-        expect(confirmSpy).toHaveBeenCalledWith(
-            "Delete this shift? Any availability set for it will be lost.",
-        );
-        expect(router.delete).not.toHaveBeenCalled();
+        expect(w.findAll('[data-testid="shift-row"]')).toHaveLength(0);
+        expect(w.emitted("update:items")).toBeUndefined();
     });
 
-    it("deletes through the endpoint once confirmed", async () => {
-        vi.stubGlobal("confirm", vi.fn(() => true));
-
+    it("removes a row locally and emits update:items, without a confirmation or network call", async () => {
         const w = mountList();
         await w.findAll('[data-testid="shift-row"]')[1].get('[aria-label="Delete"]').trigger("click");
 
-        expect(router.delete).toHaveBeenCalledTimes(1);
-        expect(router.delete.mock.calls[0][0]).toBe("/settings/shifts/2");
+        expect(w.findAll('[data-testid="shift-row"]')).toHaveLength(1);
+        const emitted = w.emitted("update:items");
+        expect(emitted.at(-1)[0]).toEqual([items[0]]);
     });
 });

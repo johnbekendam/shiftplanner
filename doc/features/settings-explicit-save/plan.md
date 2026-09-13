@@ -1,6 +1,6 @@
 # Settings Explicit Save — Plan
 
-Status: in progress — 2/6
+Status: in progress — 3/6
 
 Spec: `spec.md`.
 
@@ -63,7 +63,7 @@ Spec: `spec.md`.
   to last-saved without saving. Full PHP and JS suites, `npm run
   build`, green.
 
-- [ ] 3. **Shifts tab.** `ShiftList.vue`: same conversion as
+- [x] 3. **Shifts tab.** `ShiftList.vue`: same conversion as
   `BusinessLineList` minus reordering (it has none) — drop
   `saveStatus` and autosave, add/edit/delete local only, emit
   `update:items`. `ScheduleNoteForm.vue` drops its own `useForm` and
