@@ -47,7 +47,7 @@ class SchedulingIndexTest extends TestCase
 
         $this->get('/scheduling')->assertOk()
             ->assertInertia(fn ($page) => $page
-                ->component('Scheduling', false) // the page ships in a later step
+                ->component('Scheduling')
                 ->has('workcenters', 2)
                 ->where('workcenterId', $first->id)
                 ->where('weekStart', $monday)
@@ -62,7 +62,7 @@ class SchedulingIndexTest extends TestCase
 
         $this->get('/scheduling')->assertOk()
             ->assertInertia(fn ($page) => $page
-                ->component('Scheduling', false) // the page ships in a later step
+                ->component('Scheduling')
                 ->where('workcenterId', null)
                 ->where('shifts', [])
                 ->where('cells', [])

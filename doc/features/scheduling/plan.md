@@ -1,6 +1,6 @@
 # Scheduling — Plan
 
-Status: in progress — 4/7
+Status: in progress — 5/7
 
 Spec: `spec.md`. Every write on this page is immediate — no
 explicit-save diffing, no `TabSaveBar`. A shared
@@ -94,7 +94,7 @@ eligible-employee lookup (to filter) and the assignment store endpoint
   flag set; includes an otherwise-unconstrained employee). Full PHP
   suite green (467 passed). Pint clean.
 
-- [ ] 5. **Frontend: page skeleton, read-only grid.** New
+- [x] 5. **Frontend: page skeleton, read-only grid.** New
   `resources/js/pages/Scheduling.vue`: a Workcenter `SelectInput`
   (`router.get('/scheduling', { workcenter_id })` on change,
   `preserveState`), week navigation (`router.get` with a shifted
@@ -103,12 +103,15 @@ eligible-employee lookup (to filter) and the assignment store endpoint
   count and assignee names as plain text — no editing yet. Empty
   states: no active workcenters, and a workcenter with no attached
   shifts. `en.json`: `scheduling.*` (title, workcenter label, this
-  week, date-range join text, no_workcenters, no_shifts). Vitest
-  `Scheduling.test.js` (renders the grid from the `cells` prop;
-  switching the workcenter select navigates with the new
-  `workcenter_id`; week navigation buttons navigate with a shifted
-  `week_start`; both empty states). `npm run test` and `npm run build`
-  green.
+  week, no_workcenters, no_shifts). Vitest `Scheduling.test.js`
+  (renders a shift row and cell per day, with spots and assignee
+  names; switching the workcenter select navigates with the new
+  `workcenter_id`; prev/next-week buttons navigate with `week_start`
+  shifted ±7 days; this-week navigates with no `week_start`, letting
+  the server default; both empty states). Full PHP suite green (467
+  passed) — removed the `component('Scheduling', false)` workaround
+  from step 1's test now that the page exists. `npm run test` (432
+  passed) and `npm run build` green.
 
 - [ ] 6. **Frontend: cell interactivity.** Spot count becomes
   click-to-edit: a `NumberInput` on click, `PUT

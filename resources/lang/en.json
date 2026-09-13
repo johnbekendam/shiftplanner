@@ -324,6 +324,13 @@
     "workcenter_shifts.error.workcenter_archived": "This workcenter is archived and cannot take a new assignment.",
     "workcenter_shifts.flash.saved": "Workcenter shifts saved.",
 
+    "scheduling.title": "Scheduling",
+    "scheduling.select_workcenter": "Select a workcenter",
+    "scheduling.prev_week": "Previous week",
+    "scheduling.next_week": "Next week",
+    "scheduling.this_week": "This week",
+    "scheduling.no_workcenters": "No active workcenters yet. Add one on the Settings page.",
+    "scheduling.no_shifts": "This workcenter has no shifts attached yet. Attach one on the Workcenter Shifts page.",
     "scheduling.error.duplicate": "This employee is already assigned to this shift on this day.",
     "scheduling.error.cell_full": "No open spots left on this shift for this day.",
     "scheduling.error.holiday": "This employee is on holiday that day.",
