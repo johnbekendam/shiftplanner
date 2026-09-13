@@ -23,6 +23,7 @@ use App\Http\Controllers\QuestionController;
 use App\Http\Controllers\RecurringAvailabilityController;
 use App\Http\Controllers\SchedulingController;
 use App\Http\Controllers\SettingsController;
+use App\Http\Controllers\ShiftAssignmentController;
 use App\Http\Controllers\ShiftController;
 use App\Http\Controllers\SignupController;
 use App\Http\Controllers\ThemeBuilderController;
@@ -89,6 +90,9 @@ Route::middleware('auth')->group(function () {
         Route::delete('/workcenter-shifts/{workcenter}/{shift}', [WorkcenterShiftAssignmentController::class, 'destroy'])->name('workcenter-shifts.destroy');
 
         Route::get('/scheduling', [SchedulingController::class, 'index'])->name('scheduling.index');
+        Route::post('/scheduling/assignments', [ShiftAssignmentController::class, 'store'])->name('scheduling.assignments.store');
+        Route::put('/scheduling/assignments/{shiftAssignment}', [ShiftAssignmentController::class, 'updateFixed'])->name('scheduling.assignments.update');
+        Route::delete('/scheduling/assignments/{shiftAssignment}', [ShiftAssignmentController::class, 'destroy'])->name('scheduling.assignments.destroy');
 
         Route::get('/mailbox', [MailboxController::class, 'index'])->name('mailbox.index');
         Route::post('/mailbox/compose', [MailboxController::class, 'store'])->name('mailbox.compose');

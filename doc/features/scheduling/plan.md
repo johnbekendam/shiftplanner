@@ -1,6 +1,6 @@
 # Scheduling — Plan
 
-Status: in progress — 1/7
+Status: in progress — 2/7
 
 Spec: `spec.md`. Every write on this page is immediate — no
 explicit-save diffing, no `TabSaveBar`. A shared
@@ -36,7 +36,7 @@ eligible-employee lookup (to filter) and the assignment store endpoint
   false)` since the page component ships in step 5, not yet on disk).
   Full PHP suite green (437 passed). Pint clean.
 
-- [ ] 2. **Backend: assignment writes.** `App\Services\SchedulingEligibility`:
+- [x] 2. **Backend: assignment writes.** `App\Services\SchedulingEligibility`:
   `isOnHoliday(Employee, Carbon)`, `isUnavailable(Employee, int $weekday,
   Shift)`, `isNotPreferred(Employee, int $weekday, Shift)`,
   `hasOverlap(Employee, Carbon, Shift, ?int $excludeAssignmentId)` (any
@@ -51,12 +51,13 @@ eligible-employee lookup (to filter) and the assignment store endpoint
   `POST /scheduling/assignments`,
   `PUT /scheduling/assignments/{shiftAssignment}`,
   `DELETE /scheduling/assignments/{shiftAssignment}`. Feature test
-  `ShiftAssignmentTest` (guest and manager blocked; store creates an
-  assignment; store rejects a full cell, a duplicate pair, a holiday
-  employee, an unavailable employee, and a same-date overlapping
-  assignment; a `not_preferred` employee is accepted; updateFixed
+  `ShiftAssignmentTest` (guest and manager blocked on store, update,
+  and destroy; store creates an assignment; store rejects a full cell,
+  a duplicate pair, a holiday employee, an unavailable employee, and a
+  same-date overlapping assignment; a `not_preferred` employee is
+  accepted; a non-overlapping same-day shift is accepted; updateFixed
   toggles; destroy removes a fixed assignment with no extra step).
-  Full PHP suite green.
+  Full PHP suite green (451 passed). Pint clean.
 
 - [ ] 3. **Backend: spot-count writes.** `ScheduleSpotController@update`
   — `{ spots }` (`integer|min:0`), rejects a value below the cell's

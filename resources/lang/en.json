@@ -324,6 +324,15 @@
     "workcenter_shifts.error.workcenter_archived": "This workcenter is archived and cannot take a new assignment.",
     "workcenter_shifts.flash.saved": "Workcenter shifts saved.",
 
+    "scheduling.error.duplicate": "This employee is already assigned to this shift on this day.",
+    "scheduling.error.cell_full": "No open spots left on this shift for this day.",
+    "scheduling.error.holiday": "This employee is on holiday that day.",
+    "scheduling.error.unavailable": "This employee is marked unavailable that day.",
+    "scheduling.error.overlap": "This employee is already assigned to an overlapping shift that day.",
+    "scheduling.flash.assigned": "Employee assigned.",
+    "scheduling.flash.updated": "Assignment updated.",
+    "scheduling.flash.removed": "Employee removed.",
+
     "signup.page_title": "Request your personal link",
     "signup.card_title": "Request your personal link",
     "signup.intro": "Fill in your details and we will email you the link to your personal ShiftPlanner page.",
