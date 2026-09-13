@@ -1,6 +1,6 @@
 # Settings Explicit Save — Plan
 
-Status: in progress — 3/6
+Status: in progress — 4/6
 
 Spec: `spec.md`.
 
@@ -80,7 +80,7 @@ Spec: `spec.md`.
   both enables Save; Save persists exactly what changed; Cancel
   reverts both. Full PHP and JS suites, `npm run build`, green.
 
-- [ ] 4. **Questions and Competences tabs.** `OrderedNameList.vue`:
+- [x] 4. **Questions and Competences tabs.** `OrderedNameList.vue`:
   same conversion as `BusinessLineList` — drop `saveStatus` and
   autosave, add/edit/delete local only, drag handle via
   `useDragReorder` replacing the up/down buttons, emits

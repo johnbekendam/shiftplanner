@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\Competence;
 use Closure;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 
 class CompetenceController extends Controller
 {
@@ -39,29 +38,6 @@ class CompetenceController extends Controller
         $competence->delete();
 
         return back()->with('success', __('competences.flash.deleted'));
-    }
-
-    public function move(Request $request, Competence $competence)
-    {
-        $direction = $request->validate([
-            'direction' => ['required', Rule::in(['up', 'down'])],
-        ])['direction'];
-
-        $neighbour = Competence::query()
-            ->when(
-                $direction === 'up',
-                fn ($q) => $q->where('position', '<', $competence->position)->reorder('position', 'desc'),
-                fn ($q) => $q->where('position', '>', $competence->position)->reorder('position', 'asc'),
-            )
-            ->first();
-
-        if ($neighbour) {
-            $mine = $competence->position;
-            $competence->update(['position' => $neighbour->position]);
-            $neighbour->update(['position' => $mine]);
-        }
-
-        return back();
     }
 
     /**

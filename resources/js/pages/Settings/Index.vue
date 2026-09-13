@@ -11,14 +11,11 @@ import ShiftList from '@/components/ShiftList.vue'
 import ShiftNoteForm from '@/components/ShiftNoteForm.vue'
 import ScheduleNoteForm from '@/components/ScheduleNoteForm.vue'
 import PeriodSettingsForm from '@/components/PeriodSettingsForm.vue'
-import SaveStatusBadge from '@/components/ui/SaveStatusBadge.vue'
 import TabSaveBar from '@/components/ui/TabSaveBar.vue'
 import { useI18n } from '@/composables/useI18n'
-import { useSaveStatus } from '@/composables/useSaveStatus'
 import { putAsync, postAsync, deleteAsync } from '@/utils/inertiaAsync'
 
 const __ = useI18n()
-const saveStatus = useSaveStatus()
 
 const props = defineProps({
     competences: { type: Array, default: () => [] },
@@ -205,6 +202,85 @@ function cancelShifts() {
     currentScheduleNote.value = committedScheduleNote.value
     shiftsVersion.value++
 }
+
+// ── Questions and Competences: local edit/add/delete/reorder, shared
+// factory since both are plain `{ id, name }` lists behind the same
+// endpoint shape (see the Business Lines comment above about the
+// reorder/add ordering edge case, which applies here too). ──────────────
+function useOrderedTab(freshItems, endpoint) {
+    const version = ref(0)
+    const committed = ref(freshItems())
+    const current = ref(freshItems())
+    const saving = ref(false)
+    const justSaved = ref(false)
+
+    function onChange(rows) {
+        current.value = rows
+    }
+
+    function orderIds(rows, excludeIds) {
+        return rows.filter((r) => r.id !== null && !excludeIds.includes(r.id)).map((r) => r.id)
+    }
+
+    const dirty = computed(() => {
+        const c = committed.value
+        const cur = current.value
+
+        if (cur.some((r) => r.id === null)) return true
+        if (c.some((x) => !cur.some((r) => r.id === x.id))) return true
+        if (cur.some((row) => {
+            const orig = c.find((x) => x.id === row.id)
+            return orig && orig.name !== row.name
+        })) return true
+
+        return orderIds(cur, []).join(',') !== orderIds(c, []).join(',')
+    })
+
+    async function save() {
+        saving.value = true
+        const c = committed.value
+        const cur = current.value
+        const committedIds = c.map((r) => r.id)
+        const toDeleteIds = committedIds.filter((id) => !cur.some((r) => r.id === id))
+        const toAdd = cur.filter((r) => r.id === null)
+        const toEdit = cur.filter((r) => {
+            if (r.id === null || toDeleteIds.includes(r.id)) return false
+            const orig = c.find((x) => x.id === r.id)
+            return orig && orig.name !== r.name
+        })
+        const newOrder = orderIds(cur, toDeleteIds)
+        const oldOrder = orderIds(c, toDeleteIds)
+        const reorderNeeded = newOrder.join(',') !== oldOrder.join(',')
+
+        const results = await Promise.allSettled([
+            ...toDeleteIds.map((id) => deleteAsync(`${endpoint}/${id}`)),
+            ...toEdit.map((r) => putAsync(`${endpoint}/${r.id}`, { name: r.name })),
+            ...(reorderNeeded ? [putAsync(`${endpoint}/reorder`, { ids: newOrder })] : []),
+            ...toAdd.map((r) => postAsync(endpoint, { name: r.name })),
+        ])
+
+        saving.value = false
+        const ok = results.every((r) => r.status === 'fulfilled')
+        if (ok) {
+            committed.value = freshItems()
+            current.value = freshItems()
+            version.value++
+            justSaved.value = true
+            setTimeout(() => { justSaved.value = false }, 2000)
+        }
+        return ok
+    }
+
+    function cancel() {
+        current.value = committed.value
+        version.value++
+    }
+
+    return { version, committed, saving, justSaved, onChange, dirty, save, cancel }
+}
+
+const questionsTab = useOrderedTab(() => props.questions, '/settings/questions')
+const competencesTab = useOrderedTab(() => props.competences, '/settings/competences')
 </script>
 
 <template>
@@ -252,23 +328,35 @@ function cancelShifts() {
                 <ShiftNoteForm :note="shiftNote" />
             </div>
 
-            <div v-show="tab === 'questions'" data-testid="panel-questions" class="relative p-6">
-                <SaveStatusBadge :status="saveStatus.status.value" />
+            <div v-show="tab === 'questions'" data-testid="panel-questions" class="p-6">
                 <OrderedNameList
-                    :items="questions"
-                    endpoint="/settings/questions"
+                    :key="questionsTab.version.value"
+                    :items="questionsTab.committed.value"
                     i18n-prefix="questions"
-                    :save-status="saveStatus"
+                    @update:items="questionsTab.onChange"
+                />
+                <TabSaveBar
+                    :dirty="questionsTab.dirty.value"
+                    :saving="questionsTab.saving.value"
+                    :just-saved="questionsTab.justSaved.value"
+                    @save="questionsTab.save"
+                    @cancel="questionsTab.cancel"
                 />
             </div>
 
-            <div v-show="tab === 'competences'" data-testid="panel-competences" class="relative p-6">
-                <SaveStatusBadge :status="saveStatus.status.value" />
+            <div v-show="tab === 'competences'" data-testid="panel-competences" class="p-6">
                 <OrderedNameList
-                    :items="competences"
-                    endpoint="/settings/competences"
+                    :key="competencesTab.version.value"
+                    :items="competencesTab.committed.value"
                     i18n-prefix="competences"
-                    :save-status="saveStatus"
+                    @update:items="competencesTab.onChange"
+                />
+                <TabSaveBar
+                    :dirty="competencesTab.dirty.value"
+                    :saving="competencesTab.saving.value"
+                    :just-saved="competencesTab.justSaved.value"
+                    @save="competencesTab.save"
+                    @cancel="competencesTab.cancel"
                 />
             </div>
         </Card>

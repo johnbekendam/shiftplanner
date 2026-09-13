@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\AvailabilityQuestion;
 use Closure;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 
 class QuestionController extends Controller
 {
@@ -39,29 +38,6 @@ class QuestionController extends Controller
         $question->delete();
 
         return back()->with('success', __('questions.flash.deleted'));
-    }
-
-    public function move(Request $request, AvailabilityQuestion $question)
-    {
-        $direction = $request->validate([
-            'direction' => ['required', Rule::in(['up', 'down'])],
-        ])['direction'];
-
-        $neighbour = AvailabilityQuestion::query()
-            ->when(
-                $direction === 'up',
-                fn ($q) => $q->where('position', '<', $question->position)->reorder('position', 'desc'),
-                fn ($q) => $q->where('position', '>', $question->position)->reorder('position', 'asc'),
-            )
-            ->first();
-
-        if ($neighbour) {
-            $mine = $question->position;
-            $question->update(['position' => $neighbour->position]);
-            $neighbour->update(['position' => $mine]);
-        }
-
-        return back();
     }
 
     /**

@@ -283,27 +283,80 @@ describe("Settings/Index", () => {
         expect(routerCalls).toEqual([]);
     });
 
-    it("mounts the competences list against its endpoint and prefix", () => {
+    it("mounts the competences list against its prefix", () => {
         const lists = mountPage({
             competences: [{ id: 1, name: "Forklift", position: 1, holder_count: 0 }],
         }).findAllComponents(OrderedNameList);
 
-        const byEndpoint = Object.fromEntries(lists.map((l) => [l.props("endpoint"), l]));
+        const byPrefix = Object.fromEntries(lists.map((l) => [l.props("i18nPrefix"), l]));
 
-        expect(byEndpoint["/settings/competences"].props("i18nPrefix")).toBe("competences");
-        expect(byEndpoint["/settings/competences"].props("items")).toHaveLength(1);
-        expect(byEndpoint["/settings/product-groups"]).toBeUndefined();
+        expect(byPrefix.competences.props("items")).toHaveLength(1);
     });
 
-    it("mounts the questions list against its endpoint and prefix", () => {
+    it("mounts the questions list against its prefix", () => {
         const lists = mountPage({
             questions: [{ id: 1, name: "Weekend?", position: 1, holder_count: 2 }],
         }).findAllComponents(OrderedNameList);
 
-        const byEndpoint = Object.fromEntries(lists.map((l) => [l.props("endpoint"), l]));
+        const byPrefix = Object.fromEntries(lists.map((l) => [l.props("i18nPrefix"), l]));
 
-        expect(byEndpoint["/settings/questions"].props("i18nPrefix")).toBe("questions");
-        expect(byEndpoint["/settings/questions"].props("items")).toHaveLength(1);
+        expect(byPrefix.questions.props("items")).toHaveLength(1);
+    });
+
+    it("enables Save when a question changes, and saves via a PUT on click", async () => {
+        const w = mountPage({
+            questions: [{ id: 1, name: "Weekend?", position: 1, holder_count: 0 }],
+        });
+        const list = w.findAllComponents(OrderedNameList).find((l) => l.props("i18nPrefix") === "questions");
+        list.vm.$emit("update:items", [{ id: 1, name: "Weekends?", position: 1, holder_count: 0 }]);
+        await w.vm.$nextTick();
+
+        const bar = w.get('[data-testid="panel-questions"]');
+        const save = bar.findAll("button").find((b) => ["Save", "Saving…", "Saved"].includes(b.text()));
+        expect(save.attributes("disabled")).toBeUndefined();
+        await save.trigger("click");
+        await flushPromises();
+
+        expect(routerCalls).toContainEqual(["put", "/settings/questions/1", { name: "Weekends?" }]);
+    });
+
+    it("saves a competence reorder with one PUT to the reorder endpoint", async () => {
+        const w = mountPage({
+            competences: [
+                { id: 1, name: "Forklift", position: 1, holder_count: 0 },
+                { id: 2, name: "Cleanroom", position: 2, holder_count: 0 },
+            ],
+        });
+        const list = w.findAllComponents(OrderedNameList).find((l) => l.props("i18nPrefix") === "competences");
+        list.vm.$emit("update:items", [
+            { id: 2, name: "Cleanroom", position: 2, holder_count: 0 },
+            { id: 1, name: "Forklift", position: 1, holder_count: 0 },
+        ]);
+        await w.vm.$nextTick();
+
+        const bar = w.get('[data-testid="panel-competences"]');
+        const save = bar.findAll("button").find((b) => ["Save", "Saving…", "Saved"].includes(b.text()));
+        await save.trigger("click");
+        await flushPromises();
+
+        expect(routerCalls).toContainEqual(["put", "/settings/competences/reorder", { ids: [2, 1] }]);
+    });
+
+    it("Cancel reverts the questions list without saving", async () => {
+        const w = mountPage({
+            questions: [{ id: 1, name: "Weekend?", position: 1, holder_count: 0 }],
+        });
+        const list = w.findAllComponents(OrderedNameList).find((l) => l.props("i18nPrefix") === "questions");
+        list.vm.$emit("update:items", [{ id: 1, name: "Weekends?", position: 1, holder_count: 0 }]);
+        await w.vm.$nextTick();
+
+        const bar = w.get('[data-testid="panel-questions"]');
+        await bar.findAll("button").find((b) => b.text() === "Cancel").trigger("click");
+        await w.vm.$nextTick();
+
+        const save = bar.findAll("button").find((b) => ["Save", "Saving…", "Saved"].includes(b.text()));
+        expect(save.attributes("disabled")).toBeDefined();
+        expect(routerCalls).toEqual([]);
     });
 
     it("opens on the General panel and switches on a tab click", async () => {
