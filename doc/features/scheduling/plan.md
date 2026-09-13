@@ -1,6 +1,6 @@
 # Scheduling — Plan
 
-Status: in progress — 3/7
+Status: in progress — 4/7
 
 Spec: `spec.md`. Every write on this page is immediate — no
 explicit-save diffing, no `TabSaveBar`. A shared
@@ -79,19 +79,20 @@ eligible-employee lookup (to filter) and the assignment store endpoint
   on a date with no override). Full PHP suite green (459 passed). Pint
   clean.
 
-- [ ] 4. **Backend: eligible-employee lookup.**
+- [x] 4. **Backend: eligible-employee lookup.**
   `EligibleEmployeeController@index` — query params `workcenter_id`,
   `shift_id`, `date`; returns every employee except one already
   assigned to that exact cell, on holiday, or marked `unavailable` for
   that weekday/shift (via `SchedulingEligibility`), or with a
   same-date overlapping assignment; each returned entry is
-  `{ id, name, not_preferred: bool }`. Route
+  `{ id, name, not_preferred: bool }`, name-ordered. A plain JSON
+  response (`response()->json()`), not an Inertia render. Route
   `GET /scheduling/eligible-employees` behind `admin`. Feature test
   `EligibleEmployeeTest` (guest and manager blocked; excludes an
   already-assigned, a holiday, an unavailable, and a same-date
   overlapping employee; includes a `not_preferred` employee with the
   flag set; includes an otherwise-unconstrained employee). Full PHP
-  suite green.
+  suite green (467 passed). Pint clean.
 
 - [ ] 5. **Frontend: page skeleton, read-only grid.** New
   `resources/js/pages/Scheduling.vue`: a Workcenter `SelectInput`

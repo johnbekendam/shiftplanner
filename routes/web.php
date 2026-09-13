@@ -6,6 +6,7 @@ use App\Http\Controllers\Auth\LoginLinkController;
 use App\Http\Controllers\BusinessLineController;
 use App\Http\Controllers\CompetenceController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\EligibleEmployeeController;
 use App\Http\Controllers\EmployeeCompetenceController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\EmployeeHolidayController;
@@ -98,6 +99,7 @@ Route::middleware('auth')->group(function () {
             ->where('date', '\d{4}-\d{2}-\d{2}')->name('scheduling.spots.update');
         Route::delete('/scheduling/spots/{workcenter}/{shift}/{date}', [ScheduleSpotController::class, 'destroy'])
             ->where('date', '\d{4}-\d{2}-\d{2}')->name('scheduling.spots.destroy');
+        Route::get('/scheduling/eligible-employees', [EligibleEmployeeController::class, 'index'])->name('scheduling.eligible-employees');
 
         Route::get('/mailbox', [MailboxController::class, 'index'])->name('mailbox.index');
         Route::post('/mailbox/compose', [MailboxController::class, 'store'])->name('mailbox.compose');
