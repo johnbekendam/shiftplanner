@@ -329,6 +329,7 @@
     "scheduling.error.holiday": "This employee is on holiday that day.",
     "scheduling.error.unavailable": "This employee is marked unavailable that day.",
     "scheduling.error.overlap": "This employee is already assigned to an overlapping shift that day.",
+    "scheduling.error.spots_below_assigned": "People are already assigned — remove someone first.",
     "scheduling.flash.assigned": "Employee assigned.",
     "scheduling.flash.updated": "Assignment updated.",
     "scheduling.flash.removed": "Employee removed.",

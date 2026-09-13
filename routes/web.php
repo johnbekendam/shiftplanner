@@ -21,6 +21,7 @@ use App\Http\Controllers\PersonalQuestionController;
 use App\Http\Controllers\PersonalRecurringAvailabilityController;
 use App\Http\Controllers\QuestionController;
 use App\Http\Controllers\RecurringAvailabilityController;
+use App\Http\Controllers\ScheduleSpotController;
 use App\Http\Controllers\SchedulingController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\ShiftAssignmentController;
@@ -93,6 +94,10 @@ Route::middleware('auth')->group(function () {
         Route::post('/scheduling/assignments', [ShiftAssignmentController::class, 'store'])->name('scheduling.assignments.store');
         Route::put('/scheduling/assignments/{shiftAssignment}', [ShiftAssignmentController::class, 'updateFixed'])->name('scheduling.assignments.update');
         Route::delete('/scheduling/assignments/{shiftAssignment}', [ShiftAssignmentController::class, 'destroy'])->name('scheduling.assignments.destroy');
+        Route::put('/scheduling/spots/{workcenter}/{shift}/{date}', [ScheduleSpotController::class, 'update'])
+            ->where('date', '\d{4}-\d{2}-\d{2}')->name('scheduling.spots.update');
+        Route::delete('/scheduling/spots/{workcenter}/{shift}/{date}', [ScheduleSpotController::class, 'destroy'])
+            ->where('date', '\d{4}-\d{2}-\d{2}')->name('scheduling.spots.destroy');
 
         Route::get('/mailbox', [MailboxController::class, 'index'])->name('mailbox.index');
         Route::post('/mailbox/compose', [MailboxController::class, 'store'])->name('mailbox.compose');

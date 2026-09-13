@@ -1,6 +1,6 @@
 # Scheduling — Plan
 
-Status: in progress — 2/7
+Status: in progress — 3/7
 
 Spec: `spec.md`. Every write on this page is immediate — no
 explicit-save diffing, no `TabSaveBar`. A shared
@@ -59,19 +59,25 @@ eligible-employee lookup (to filter) and the assignment store endpoint
   toggles; destroy removes a fixed assignment with no extra step).
   Full PHP suite green (451 passed). Pint clean.
 
-- [ ] 3. **Backend: spot-count writes.** `ScheduleSpotController@update`
-  — `{ spots }` (`integer|min:0`), rejects a value below the cell's
+- [x] 3. **Backend: spot-count writes.** `ScheduleSpotController@update`
+  (`Workcenter $workcenter, Shift $shift, string $date` route-bound) —
+  `{ spots }` (`integer|min:0`), rejects a value below the cell's
   current assignee count (`ValidationException`), upserts a
   `WorkcenterShiftDateOverride` row. `@destroy` — deletes the override
   row for that `(workcenter, shift, date)`, reverting to the weekday
   default (a no-op, not an error, if no override exists). Routes
   behind `admin`: `PUT /scheduling/spots/{workcenter}/{shift}/{date}`,
   `DELETE /scheduling/spots/{workcenter}/{shift}/{date}`, `date`
-  constrained to `\d{4}-\d{2}-\d{2}`. Feature test `ScheduleSpotTest`
+  constrained to `\d{4}-\d{2}-\d{2}`. Fixed a latent bug found along
+  the way: `WorkcenterShiftDateOverride::$casts` had `date` cast to
+  plain `date`, which stores a full `H:i:s` datetime and broke
+  `updateOrCreate`'s plain-string match — changed to `date:Y-m-d`,
+  matching `EmployeeHoliday`. Feature test `ScheduleSpotTest`
   (guest and manager blocked; update creates an override; update on an
   already-overridden date replaces it; update rejects a value below
   the assignee count; destroy removes an override; destroy is a no-op
-  on a date with no override). Full PHP suite green.
+  on a date with no override). Full PHP suite green (459 passed). Pint
+  clean.
 
 - [ ] 4. **Backend: eligible-employee lookup.**
   `EligibleEmployeeController@index` — query params `workcenter_id`,
