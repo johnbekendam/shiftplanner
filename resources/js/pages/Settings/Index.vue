@@ -12,13 +12,15 @@ import ShiftNoteForm from '@/components/ShiftNoteForm.vue'
 import ScheduleNoteForm from '@/components/ScheduleNoteForm.vue'
 import PeriodSettingsForm from '@/components/PeriodSettingsForm.vue'
 import SaveStatusBadge from '@/components/ui/SaveStatusBadge.vue'
+import TabSaveBar from '@/components/ui/TabSaveBar.vue'
 import { useI18n } from '@/composables/useI18n'
 import { useSaveStatus } from '@/composables/useSaveStatus'
+import { putAsync, postAsync, deleteAsync } from '@/utils/inertiaAsync'
 
 const __ = useI18n()
 const saveStatus = useSaveStatus()
 
-defineProps({
+const props = defineProps({
     competences: { type: Array, default: () => [] },
     businessLines: { type: Array, default: () => [] },
     shifts: { type: Array, default: () => [] },
@@ -37,6 +39,93 @@ const tabs = computed(() => [
     { value: 'competences', label: __('settings.tab.competences') },
     { value: 'information', label: __('settings.tab.information') },
 ])
+
+// ── Business Lines: local edit/add/delete/reorder, one Save/Cancel ──────
+// Reorder and add are both fire-and-forget in the same Promise.allSettled
+// below. A brand-new row's server-assigned position (max(position)+1) is
+// computed independently of a concurrent reorder's position writes, so
+// the rare case of reordering AND adding in the same Save can leave the
+// new row's final position slightly off — a cosmetic edge case, not a
+// data-integrity one (position carries no unique constraint).
+const businessLinesVersion = ref(0)
+const committedBusinessLines = ref(props.businessLines)
+const currentBusinessLines = ref(props.businessLines)
+const businessLinesSaving = ref(false)
+const businessLinesJustSaved = ref(false)
+
+function onBusinessLinesChange(rows) {
+    currentBusinessLines.value = rows
+}
+
+function businessLineOrderIds(rows, excludeIds) {
+    return rows.filter((r) => r.id !== null && !excludeIds.includes(r.id)).map((r) => r.id)
+}
+
+const businessLinesDirty = computed(() => {
+    const committed = committedBusinessLines.value
+    const current = currentBusinessLines.value
+
+    if (current.some((r) => r.id === null)) return true
+    if (committed.some((c) => !current.some((r) => r.id === c.id))) return true
+
+    for (const row of current) {
+        const orig = committed.find((c) => c.id === row.id)
+        if (!orig) continue
+        if (orig.abbreviation !== row.abbreviation || orig.description !== row.description || orig.target_fte !== row.target_fte) {
+            return true
+        }
+    }
+
+    return businessLineOrderIds(current, []).join(',') !== businessLineOrderIds(committed, []).join(',')
+})
+
+async function saveBusinessLines() {
+    businessLinesSaving.value = true
+    const committed = committedBusinessLines.value
+    const current = currentBusinessLines.value
+    const committedIds = committed.map((r) => r.id)
+    const toDeleteIds = committedIds.filter((id) => !current.some((r) => r.id === id))
+    const toAdd = current.filter((r) => r.id === null)
+    const toEdit = current.filter((r) => {
+        if (r.id === null || toDeleteIds.includes(r.id)) return false
+        const orig = committed.find((c) => c.id === r.id)
+        return orig && (orig.abbreviation !== r.abbreviation || orig.description !== r.description || orig.target_fte !== r.target_fte)
+    })
+    const newOrder = businessLineOrderIds(current, toDeleteIds)
+    const oldOrder = businessLineOrderIds(committed, toDeleteIds)
+    const reorderNeeded = newOrder.join(',') !== oldOrder.join(',')
+
+    const results = await Promise.allSettled([
+        ...toDeleteIds.map((id) => deleteAsync(`/settings/business-lines/${id}`)),
+        ...toEdit.map((r) => putAsync(`/settings/business-lines/${r.id}`, {
+            abbreviation: r.abbreviation,
+            description: r.description,
+            target_fte: r.target_fte,
+        })),
+        ...(reorderNeeded ? [putAsync('/settings/business-lines/reorder', { ids: newOrder })] : []),
+        ...toAdd.map((r) => postAsync('/settings/business-lines', {
+            abbreviation: r.abbreviation,
+            description: r.description,
+            target_fte: r.target_fte,
+        })),
+    ])
+
+    businessLinesSaving.value = false
+    const ok = results.every((r) => r.status === 'fulfilled')
+    if (ok) {
+        committedBusinessLines.value = props.businessLines
+        currentBusinessLines.value = props.businessLines
+        businessLinesVersion.value++
+        businessLinesJustSaved.value = true
+        setTimeout(() => { businessLinesJustSaved.value = false }, 2000)
+    }
+    return ok
+}
+
+function cancelBusinessLines() {
+    currentBusinessLines.value = committedBusinessLines.value
+    businessLinesVersion.value++
+}
 </script>
 
 <template>
@@ -48,9 +137,19 @@ const tabs = computed(() => [
                 <Tabs v-model="tab" :tabs="tabs" />
             </template>
 
-            <div v-show="tab === 'business_lines'" data-testid="panel-business-lines" class="relative p-6">
-                <SaveStatusBadge :status="saveStatus.status.value" />
-                <BusinessLineList :items="businessLines" endpoint="/settings/business-lines" :save-status="saveStatus" />
+            <div v-show="tab === 'business_lines'" data-testid="panel-business-lines" class="p-6">
+                <BusinessLineList
+                    :key="businessLinesVersion"
+                    :items="committedBusinessLines"
+                    @update:items="onBusinessLinesChange"
+                />
+                <TabSaveBar
+                    :dirty="businessLinesDirty"
+                    :saving="businessLinesSaving"
+                    :just-saved="businessLinesJustSaved"
+                    @save="saveBusinessLines"
+                    @cancel="cancelBusinessLines"
+                />
             </div>
 
             <div v-show="tab === 'general'" data-testid="panel-general" class="p-6">

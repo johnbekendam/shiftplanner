@@ -182,52 +182,6 @@ class BusinessLineConfigTest extends TestCase
 
     // ── Reorder ────────────────────────────────────────────────────────
 
-    public function test_move_down_swaps_with_the_next_row(): void
-    {
-        $this->actingAsAdmin();
-        $a = BusinessLine::factory()->create(['position' => 1]);
-        $b = BusinessLine::factory()->create(['position' => 2]);
-
-        $this->put("/settings/business-lines/{$a->id}/move", ['direction' => 'down'])->assertRedirect();
-
-        $this->assertSame(2, $a->fresh()->position);
-        $this->assertSame(1, $b->fresh()->position);
-    }
-
-    public function test_move_up_swaps_with_the_previous_row(): void
-    {
-        $this->actingAsAdmin();
-        $a = BusinessLine::factory()->create(['position' => 1]);
-        $b = BusinessLine::factory()->create(['position' => 2]);
-
-        $this->put("/settings/business-lines/{$b->id}/move", ['direction' => 'up'])->assertRedirect();
-
-        $this->assertSame(2, $a->fresh()->position);
-        $this->assertSame(1, $b->fresh()->position);
-    }
-
-    public function test_moving_past_an_end_changes_nothing(): void
-    {
-        $this->actingAsAdmin();
-        $a = BusinessLine::factory()->create(['position' => 1]);
-        $b = BusinessLine::factory()->create(['position' => 2]);
-
-        $this->put("/settings/business-lines/{$a->id}/move", ['direction' => 'up'])->assertRedirect();
-        $this->put("/settings/business-lines/{$b->id}/move", ['direction' => 'down'])->assertRedirect();
-
-        $this->assertSame(1, $a->fresh()->position);
-        $this->assertSame(2, $b->fresh()->position);
-    }
-
-    public function test_an_unknown_move_direction_is_rejected(): void
-    {
-        $this->actingAsAdmin();
-        $line = BusinessLine::factory()->create(['position' => 1]);
-
-        $this->put("/settings/business-lines/{$line->id}/move", ['direction' => 'sideways'])
-            ->assertSessionHasErrors('direction');
-    }
-
     public function test_reorder_sets_every_rows_position_from_the_given_order(): void
     {
         $this->actingAsAdmin();

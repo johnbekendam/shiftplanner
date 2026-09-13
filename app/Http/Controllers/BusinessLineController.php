@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\BusinessLine;
 use Closure;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 
 class BusinessLineController extends Controller
 {
@@ -33,29 +32,6 @@ class BusinessLineController extends Controller
         $businessLine->delete();
 
         return back()->with('success', __('business_lines.flash.deleted'));
-    }
-
-    public function move(Request $request, BusinessLine $businessLine)
-    {
-        $direction = $request->validate([
-            'direction' => ['required', Rule::in(['up', 'down'])],
-        ])['direction'];
-
-        $neighbour = BusinessLine::query()
-            ->when(
-                $direction === 'up',
-                fn ($q) => $q->where('position', '<', $businessLine->position)->reorder('position', 'desc'),
-                fn ($q) => $q->where('position', '>', $businessLine->position)->reorder('position', 'asc'),
-            )
-            ->first();
-
-        if ($neighbour) {
-            $mine = $businessLine->position;
-            $businessLine->update(['position' => $neighbour->position]);
-            $neighbour->update(['position' => $mine]);
-        }
-
-        return back();
     }
 
     /**

@@ -64,7 +64,6 @@ Route::middleware('auth')->group(function () {
         Route::delete('/settings/competences/{competence}', [CompetenceController::class, 'destroy'])->name('settings.competences.destroy');
         Route::post('/settings/business-lines', [BusinessLineController::class, 'store'])->name('settings.business-lines.store');
         Route::put('/settings/business-lines/reorder', [BusinessLineController::class, 'reorder'])->name('settings.business-lines.reorder');
-        Route::put('/settings/business-lines/{businessLine}/move', [BusinessLineController::class, 'move'])->name('settings.business-lines.move');
         Route::put('/settings/business-lines/{businessLine}', [BusinessLineController::class, 'update'])->name('settings.business-lines.update');
         Route::delete('/settings/business-lines/{businessLine}', [BusinessLineController::class, 'destroy'])->name('settings.business-lines.destroy');
         Route::post('/settings/shifts', [ShiftController::class, 'store'])->name('settings.shifts.store');

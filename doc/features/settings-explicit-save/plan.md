@@ -1,6 +1,6 @@
 # Settings Explicit Save — Plan
 
-Status: in progress — 1/6
+Status: in progress — 2/6
 
 Spec: `spec.md`.
 
@@ -37,7 +37,7 @@ Spec: `spec.md`.
   matches today's `move` tests. Full PHP and JS suites, `npm run
   build`, green.
 
-- [ ] 2. **Business Lines tab.** `BusinessLineList.vue`: drop
+- [x] 2. **Business Lines tab.** `BusinessLineList.vue`: drop
   `saveStatus` and the `watch(rows, …)` autosave; add/edit/delete
   change local state only; replace the up/down buttons with a drag
   handle per row via `useDragReorder`. Remove

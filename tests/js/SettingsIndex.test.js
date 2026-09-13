@@ -1,5 +1,5 @@
-import { describe, it, expect, vi } from "vitest";
-import { mount } from "@vue/test-utils";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { mount, flushPromises } from "@vue/test-utils";
 import { reactive } from "vue";
 
 const en = {
@@ -34,14 +34,33 @@ const en = {
     "questions.name": "Question",
     "questions.list_empty": "No questions yet.",
     "questions.add_placeholder": "New question",
+    "app.save": "Save",
     "app.saving": "Saving…",
     "app.saved": "Saved",
+    "app.cancel": "Cancel",
     "app.save_failed": "Could not save",
+    "business_lines.drag_handle": "Drag to reorder",
+    "business_lines.delete": "Delete",
+    "business_lines.add_abbreviation_placeholder": "ABBR",
+    "business_lines.add_description_placeholder": "New business line",
 };
 
-const { router } = vi.hoisted(() => ({
-    router: { post: vi.fn(), put: vi.fn(), delete: vi.fn() },
-}));
+// Requests fired by putAsync/postAsync/deleteAsync go through this mocked
+// router; other still-autosaving lists just get a plain post/put/delete.
+const { routerCalls, failUrlsRef, router } = vi.hoisted(() => {
+    const routerCalls = [];
+    const failUrlsRef = { current: [] };
+    const respond = (name) => (...args) => {
+        const last = args.at(-1);
+        const hasOpts = last && typeof last === "object" && (last.onSuccess || last.onError);
+        const opts = hasOpts ? last : undefined;
+        const rest = hasOpts ? args.slice(0, -1) : args;
+        routerCalls.push([name, ...rest]);
+        failUrlsRef.current.includes(rest[0]) ? opts?.onError?.() : opts?.onSuccess?.();
+    };
+    const router = { put: respond("put"), post: respond("post"), delete: respond("delete") };
+    return { routerCalls, failUrlsRef, router };
+});
 
 vi.mock("@inertiajs/vue3", () => ({
     router,
@@ -73,6 +92,14 @@ const mountPage = (props = {}) =>
         },
         global: { stubs },
     });
+
+beforeEach(() => {
+    routerCalls.length = 0;
+    failUrlsRef.current = [];
+});
+
+const findSaveButton = (w) => w.findAll("button").find((b) => ["Save", "Saving…", "Saved"].includes(b.text()));
+const findCancelButton = (w) => w.findAll("button").find((b) => b.text() === "Cancel");
 
 describe("Settings/Index", () => {
     it("shows a tab for competences, business lines, shifts, information, questions and general", () => {
@@ -106,30 +133,103 @@ describe("Settings/Index", () => {
         expect(w.findComponent(ShiftNoteForm).props("note")).toBe("# Allowances");
     });
 
-    it("mounts the Business lines list against its endpoint", () => {
+    it("mounts the Business lines list with its items", () => {
         const w = mountPage({
             businessLines: [
                 { id: 3, abbreviation: "PMP", description: "Pumps", target_fte: 4, employee_count: 2 },
             ],
         });
         const list = w.findComponent(BusinessLineList);
-        expect(list.props("endpoint")).toBe("/settings/business-lines");
         expect(list.props("items")).toHaveLength(1);
     });
 
-    it("shows the shared save-status badge on the Business lines panel while a row saves", async () => {
+    it("the Business lines Save/Cancel are disabled with nothing changed", () => {
         const w = mountPage({
-            businessLines: [
-                { id: 3, abbreviation: "PMP", description: "Pumps", target_fte: 4, employee_count: 2 },
-            ],
+            businessLines: [{ id: 3, abbreviation: "PMP", description: "Pumps", target_fte: 4, employee_count: 2 }],
         });
-        const list = w.findComponent(BusinessLineList);
-        expect(list.props("saveStatus")).toBeTruthy();
+        expect(findSaveButton(w).attributes("disabled")).toBeDefined();
+        expect(findCancelButton(w).attributes("disabled")).toBeDefined();
+    });
 
-        list.props("saveStatus").start();
+    it("enables Save when a business line field changes, and saves via a PUT on click", async () => {
+        const w = mountPage({
+            businessLines: [{ id: 3, abbreviation: "PMP", description: "Pumps", target_fte: 4, employee_count: 2 }],
+        });
+        w.findComponent(BusinessLineList).vm.$emit("update:items", [
+            { id: 3, abbreviation: "PUM", description: "Pumps", target_fte: 4, employee_count: 2 },
+        ]);
         await w.vm.$nextTick();
 
-        expect(w.get('[data-testid="panel-business-lines"]').text()).toContain("Saving…");
+        expect(findSaveButton(w).attributes("disabled")).toBeUndefined();
+        await findSaveButton(w).trigger("click");
+        await flushPromises();
+
+        expect(routerCalls).toContainEqual([
+            "put",
+            "/settings/business-lines/3",
+            { abbreviation: "PUM", description: "Pumps", target_fte: 4 },
+        ]);
+        expect(findSaveButton(w).attributes("disabled")).toBeDefined();
+    });
+
+    it("saves a new business line with a POST and a removed one with a DELETE", async () => {
+        const w = mountPage({
+            businessLines: [{ id: 3, abbreviation: "PMP", description: "Pumps", target_fte: 4, employee_count: 0 }],
+        });
+        w.findComponent(BusinessLineList).vm.$emit("update:items", [
+            { id: null, abbreviation: "SNS", description: "Sensors", target_fte: 1, employee_count: 0 },
+        ]);
+        await w.vm.$nextTick();
+
+        await findSaveButton(w).trigger("click");
+        await flushPromises();
+
+        expect(routerCalls).toContainEqual([
+            "post",
+            "/settings/business-lines",
+            { abbreviation: "SNS", description: "Sensors", target_fte: 1 },
+        ]);
+        expect(routerCalls.some((c) => c[0] === "delete" && c[1] === "/settings/business-lines/3")).toBe(true);
+    });
+
+    it("saves a reorder with one PUT to the reorder endpoint", async () => {
+        const w = mountPage({
+            businessLines: [
+                { id: 3, abbreviation: "PMP", description: "Pumps", target_fte: 4, employee_count: 0 },
+                { id: 4, abbreviation: "VLV", description: "Valves", target_fte: 2, employee_count: 0 },
+            ],
+        });
+        w.findComponent(BusinessLineList).vm.$emit("update:items", [
+            { id: 4, abbreviation: "VLV", description: "Valves", target_fte: 2, employee_count: 0 },
+            { id: 3, abbreviation: "PMP", description: "Pumps", target_fte: 4, employee_count: 0 },
+        ]);
+        await w.vm.$nextTick();
+
+        await findSaveButton(w).trigger("click");
+        await flushPromises();
+
+        expect(routerCalls).toContainEqual([
+            "put",
+            "/settings/business-lines/reorder",
+            { ids: [4, 3] },
+        ]);
+    });
+
+    it("Cancel reverts business lines to the last-saved state without saving", async () => {
+        const w = mountPage({
+            businessLines: [{ id: 3, abbreviation: "PMP", description: "Pumps", target_fte: 4, employee_count: 0 }],
+        });
+        w.findComponent(BusinessLineList).vm.$emit("update:items", [
+            { id: 3, abbreviation: "PUM", description: "Pumps", target_fte: 4, employee_count: 0 },
+        ]);
+        await w.vm.$nextTick();
+        expect(findSaveButton(w).attributes("disabled")).toBeUndefined();
+
+        await findCancelButton(w).trigger("click");
+        await w.vm.$nextTick();
+
+        expect(findSaveButton(w).attributes("disabled")).toBeDefined();
+        expect(routerCalls).toEqual([]);
     });
 
     it("mounts the competences list against its endpoint and prefix", () => {
