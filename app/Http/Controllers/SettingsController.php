@@ -7,6 +7,7 @@ use App\Models\BusinessLine;
 use App\Models\Competence;
 use App\Models\PlanningSettings;
 use App\Models\Shift;
+use App\Models\Workcenter;
 use Inertia\Inertia;
 
 class SettingsController extends Controller
@@ -17,6 +18,7 @@ class SettingsController extends Controller
             'competences' => $this->listWithHolderCount(Competence::query()),
             'businessLines' => $this->businessLines(),
             'shifts' => Shift::all()->map->toPayload()->all(),
+            'workcenters' => Workcenter::all()->map->toPayload()->all(),
             'shiftNote' => PlanningSettings::current()->shift_note ?? '',
             'scheduleNote' => PlanningSettings::current()->shift_schedule_note ?? '',
             'questions' => $this->questions(),

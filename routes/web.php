@@ -26,6 +26,7 @@ use App\Http\Controllers\ShiftController;
 use App\Http\Controllers\SignupController;
 use App\Http\Controllers\ThemeBuilderController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\WorkcenterController;
 use Illuminate\Support\Facades\Route;
 
 Route::redirect('/', '/dashboard');
@@ -75,6 +76,10 @@ Route::middleware('auth')->group(function () {
         Route::put('/settings/questions/{question}', [QuestionController::class, 'update'])->name('settings.questions.update');
         Route::delete('/settings/questions/{question}', [QuestionController::class, 'destroy'])->name('settings.questions.destroy');
         Route::put('/settings/period', [PeriodController::class, 'update'])->name('settings.period.update');
+        Route::post('/settings/workcenters', [WorkcenterController::class, 'store'])->name('settings.workcenters.store');
+        Route::put('/settings/workcenters/reorder', [WorkcenterController::class, 'reorder'])->name('settings.workcenters.reorder');
+        Route::put('/settings/workcenters/{workcenter}', [WorkcenterController::class, 'update'])->name('settings.workcenters.update');
+        Route::delete('/settings/workcenters/{workcenter}', [WorkcenterController::class, 'destroy'])->name('settings.workcenters.destroy');
 
         Route::get('/mailbox', [MailboxController::class, 'index'])->name('mailbox.index');
         Route::post('/mailbox/compose', [MailboxController::class, 'store'])->name('mailbox.compose');

@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Shift extends Model
@@ -44,6 +45,11 @@ class Shift extends Model
     public function recurringAvailabilities(): HasMany
     {
         return $this->hasMany(RecurringAvailability::class);
+    }
+
+    public function workcenters(): BelongsToMany
+    {
+        return $this->belongsToMany(Workcenter::class, 'workcenter_shift');
     }
 
     /** The shape shared with the front end. */
