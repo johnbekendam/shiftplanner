@@ -1,5 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { mount, flushPromises } from "@vue/test-utils";
+import { mount, flushPromises, DOMWrapper } from "@vue/test-utils";
+
+// The Add popover teleports to <body> (to escape the Card/table's overflow
+// clipping), so it is outside the mounted wrapper's own DOM subtree.
+const bodyWrapper = () => new DOMWrapper(document.body);
 
 const en = {
     "scheduling.reset_spots": "Reset to the weekday default",
@@ -120,9 +124,10 @@ describe("SchedulingCell", () => {
         expect(axiosGet).toHaveBeenCalledWith("/scheduling/eligible-employees", {
             params: { workcenter_id: 1, shift_id: 9, date: "2026-09-15" },
         });
-        const popover = w.get('[data-testid="add-popover"]');
+        const popover = bodyWrapper().get('[data-testid="add-popover"]');
         expect(popover.text()).toContain("Bram Bakker");
         expect(popover.text()).toContain("Els de Vries");
+        w.unmount();
     });
 
     it("clicking an eligible employee fires a POST and closes the popover", async () => {
@@ -131,7 +136,7 @@ describe("SchedulingCell", () => {
         await w.findAll("button").find((b) => b.text().includes("Add")).trigger("click");
         await flushPromises();
 
-        await w.get('[data-testid="add-popover"] button').trigger("click");
+        await bodyWrapper().get('[data-testid="add-popover"] button').trigger("click");
         await flushPromises();
 
         expect(routerCalls).toContainEqual([
@@ -139,6 +144,7 @@ describe("SchedulingCell", () => {
             "/scheduling/assignments",
             { employee_id: 2, workcenter_id: 1, shift_id: 9, date: "2026-09-15" },
         ]);
-        expect(w.find('[data-testid="add-popover"]').exists()).toBe(false);
+        expect(bodyWrapper().find('[data-testid="add-popover"]').exists()).toBe(false);
+        w.unmount();
     });
 });

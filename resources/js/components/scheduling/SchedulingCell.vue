@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onBeforeUnmount } from 'vue'
 import axios from 'axios'
 import Icon from '@/components/ui/Icon.vue'
 import { NumberInput, SearchInput } from '@/components/ui/Input'
@@ -55,13 +55,27 @@ async function removeAssignment(assignment) {
 }
 
 // ── Add employee ────────────────────────────────────────────────────────
+// Teleported to <body> and positioned with `fixed` coordinates from the
+// trigger button's own rect, the same way SelectInput.vue escapes a
+// table/card's overflow clipping — a plain `absolute` panel here would get
+// cut off by the Card's edge on a cell near the table's border.
 const addOpen = ref(false)
 const eligible = ref([])
 const searchTerm = ref('')
+const addButtonRef = ref(null)
+const panelRef = ref(null)
+const panelStyle = ref({})
+
+function computePanelPosition() {
+    if (!addButtonRef.value) return
+    const rect = addButtonRef.value.getBoundingClientRect()
+    panelStyle.value = { top: `${rect.bottom + 4}px`, left: `${rect.left}px` }
+}
 
 async function openAdd() {
     addOpen.value = true
     searchTerm.value = ''
+    computePanelPosition()
     const response = await axios.get('/scheduling/eligible-employees', {
         params: { workcenter_id: props.workcenterId, shift_id: props.shiftId, date: props.date },
     })
@@ -87,6 +101,25 @@ async function assign(employee) {
         date: props.date,
     }).catch(() => {})
 }
+
+function onClickOutside(e) {
+    if (!addOpen.value) return
+    if (addButtonRef.value?.contains(e.target)) return
+    if (panelRef.value?.contains(e.target)) return
+    closeAdd()
+}
+
+function onScroll() {
+    if (addOpen.value) computePanelPosition()
+}
+
+document.addEventListener('mousedown', onClickOutside)
+document.addEventListener('scroll', onScroll, true)
+
+onBeforeUnmount(() => {
+    document.removeEventListener('mousedown', onClickOutside)
+    document.removeEventListener('scroll', onScroll, true)
+})
 </script>
 
 <template>
@@ -134,36 +167,45 @@ async function assign(employee) {
             </li>
         </ul>
 
-        <div class="relative">
-            <button type="button" class="text-xs text-(--color-btn-primary-bg)" @click="addOpen ? closeAdd() : openAdd()">
+        <div>
+            <button
+                ref="addButtonRef"
+                type="button"
+                class="text-xs text-(--color-btn-primary-bg)"
+                @click="addOpen ? closeAdd() : openAdd()"
+            >
                 + {{ __('scheduling.add') }}
             </button>
-            <div
-                v-if="addOpen"
-                data-testid="add-popover"
-                class="absolute z-10 mt-1 w-48 rounded-md border border-(--color-dropdown-panel-border) bg-(--color-dropdown-panel-bg) p-2 shadow-lg"
-            >
-                <SearchInput v-model="searchTerm" class="w-full" />
-                <ul class="mt-1 max-h-40 overflow-y-auto">
-                    <li v-for="employee in filteredEligible" :key="employee.id">
-                        <button
-                            type="button"
-                            class="flex w-full items-center justify-between gap-1 rounded px-1 py-1 text-left hover:bg-(--color-dropdown-option-hover-bg)"
-                            @click="assign(employee)"
-                        >
-                            <span>{{ employee.name }}</span>
-                            <Icon
-                                v-if="employee.not_preferred"
-                                name="exclamation-triangle"
-                                class="size-3 shrink-0 text-(--color-badge-warning-text)"
-                            />
-                        </button>
-                    </li>
-                    <li v-if="!filteredEligible.length" class="px-1 py-1 text-(--color-text-secondary)">
-                        {{ __('scheduling.no_eligible_employees') }}
-                    </li>
-                </ul>
-            </div>
+            <Teleport to="body">
+                <div
+                    v-if="addOpen"
+                    ref="panelRef"
+                    data-testid="add-popover"
+                    :style="panelStyle"
+                    class="fixed z-50 w-48 rounded-md border border-(--color-dropdown-panel-border) bg-(--color-dropdown-panel-bg) p-2 shadow-lg"
+                >
+                    <SearchInput v-model="searchTerm" class="w-full" />
+                    <ul class="mt-1 max-h-40 overflow-y-auto">
+                        <li v-for="employee in filteredEligible" :key="employee.id">
+                            <button
+                                type="button"
+                                class="flex w-full items-center justify-between gap-1 rounded px-1 py-1 text-left hover:bg-(--color-dropdown-option-hover-bg)"
+                                @click="assign(employee)"
+                            >
+                                <span>{{ employee.name }}</span>
+                                <Icon
+                                    v-if="employee.not_preferred"
+                                    name="exclamation-triangle"
+                                    class="size-3 shrink-0 text-(--color-badge-warning-text)"
+                                />
+                            </button>
+                        </li>
+                        <li v-if="!filteredEligible.length" class="px-1 py-1 text-(--color-text-secondary)">
+                            {{ __('scheduling.no_eligible_employees') }}
+                        </li>
+                    </ul>
+                </div>
+            </Teleport>
         </div>
     </div>
 </template>
