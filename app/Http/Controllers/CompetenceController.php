@@ -64,6 +64,37 @@ class CompetenceController extends Controller
         return back();
     }
 
+    /**
+     * One request replaces a sequence of one-step moves: the client sends
+     * the full desired order, and every row's position is set in one pass.
+     */
+    public function reorder(Request $request)
+    {
+        $request->validate([
+            'ids' => ['required', 'array', $this->completeIdSet()],
+            'ids.*' => ['integer', 'distinct'],
+        ]);
+
+        foreach ($request->input('ids') as $index => $id) {
+            Competence::whereKey($id)->update(['position' => $index]);
+        }
+
+        return back();
+    }
+
+    /** Rejects anything but the full, current set of competence ids. */
+    private function completeIdSet(): Closure
+    {
+        return function (string $attribute, mixed $value, Closure $fail) {
+            $current = Competence::query()->pluck('id')->sort()->values()->all();
+            $given = collect($value)->map(fn ($id) => (int) $id)->sort()->values()->all();
+
+            if ($current !== $given) {
+                $fail(__('competences.error.reorder_mismatch'));
+            }
+        };
+    }
+
     /** Case-insensitive uniqueness on the competence name, ignoring one row. */
     private function uniqueName(?Competence $ignore = null): Closure
     {

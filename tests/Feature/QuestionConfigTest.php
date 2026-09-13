@@ -205,4 +205,52 @@ class QuestionConfigTest extends TestCase
         $this->put("/settings/questions/{$question->id}/move", ['direction' => 'sideways'])
             ->assertSessionHasErrors('direction');
     }
+
+    public function test_reorder_sets_every_rows_position_from_the_given_order(): void
+    {
+        $this->actingAsAdmin();
+        $a = AvailabilityQuestion::factory()->create(['position' => 1]);
+        $b = AvailabilityQuestion::factory()->create(['position' => 2]);
+        $c = AvailabilityQuestion::factory()->create(['position' => 3]);
+
+        $this->put('/settings/questions/reorder', ['ids' => [$c->id, $a->id, $b->id]])
+            ->assertRedirect();
+
+        $this->assertSame(0, $c->fresh()->position);
+        $this->assertSame(1, $a->fresh()->position);
+        $this->assertSame(2, $b->fresh()->position);
+    }
+
+    public function test_reorder_rejects_a_partial_id_set(): void
+    {
+        $this->actingAsAdmin();
+        $a = AvailabilityQuestion::factory()->create(['position' => 1]);
+        AvailabilityQuestion::factory()->create(['position' => 2]);
+
+        $this->put('/settings/questions/reorder', ['ids' => [$a->id]])
+            ->assertSessionHasErrors('ids');
+    }
+
+    public function test_guest_cannot_reorder_questions(): void
+    {
+        $a = AvailabilityQuestion::factory()->create(['position' => 1]);
+        $b = AvailabilityQuestion::factory()->create(['position' => 2]);
+
+        $this->put('/settings/questions/reorder', ['ids' => [$b->id, $a->id]])
+            ->assertRedirect('/login');
+
+        $this->assertSame(1, $a->fresh()->position);
+    }
+
+    public function test_manager_cannot_reorder_questions(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $a = AvailabilityQuestion::factory()->create(['position' => 1]);
+        $b = AvailabilityQuestion::factory()->create(['position' => 2]);
+
+        $this->put('/settings/questions/reorder', ['ids' => [$b->id, $a->id]])
+            ->assertForbidden();
+
+        $this->assertSame(1, $a->fresh()->position);
+    }
 }

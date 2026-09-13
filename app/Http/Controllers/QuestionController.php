@@ -64,6 +64,37 @@ class QuestionController extends Controller
         return back();
     }
 
+    /**
+     * One request replaces a sequence of one-step moves: the client sends
+     * the full desired order, and every row's position is set in one pass.
+     */
+    public function reorder(Request $request)
+    {
+        $request->validate([
+            'ids' => ['required', 'array', $this->completeIdSet()],
+            'ids.*' => ['integer', 'distinct'],
+        ]);
+
+        foreach ($request->input('ids') as $index => $id) {
+            AvailabilityQuestion::whereKey($id)->update(['position' => $index]);
+        }
+
+        return back();
+    }
+
+    /** Rejects anything but the full, current set of question ids. */
+    private function completeIdSet(): Closure
+    {
+        return function (string $attribute, mixed $value, Closure $fail) {
+            $current = AvailabilityQuestion::query()->pluck('id')->sort()->values()->all();
+            $given = collect($value)->map(fn ($id) => (int) $id)->sort()->values()->all();
+
+            if ($current !== $given) {
+                $fail(__('questions.error.reorder_mismatch'));
+            }
+        };
+    }
+
     /** Case-insensitive uniqueness on the question text, ignoring one row. */
     private function uniqueText(?AvailabilityQuestion $ignore = null): Closure
     {

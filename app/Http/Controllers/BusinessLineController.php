@@ -58,6 +58,37 @@ class BusinessLineController extends Controller
         return back();
     }
 
+    /**
+     * One request replaces a sequence of one-step moves: the client sends
+     * the full desired order, and every row's position is set in one pass.
+     */
+    public function reorder(Request $request)
+    {
+        $request->validate([
+            'ids' => ['required', 'array', $this->completeIdSet()],
+            'ids.*' => ['integer', 'distinct'],
+        ]);
+
+        foreach ($request->input('ids') as $index => $id) {
+            BusinessLine::whereKey($id)->update(['position' => $index]);
+        }
+
+        return back();
+    }
+
+    /** Rejects anything but the full, current set of business-line ids. */
+    private function completeIdSet(): Closure
+    {
+        return function (string $attribute, mixed $value, Closure $fail) {
+            $current = BusinessLine::query()->pluck('id')->sort()->values()->all();
+            $given = collect($value)->map(fn ($id) => (int) $id)->sort()->values()->all();
+
+            if ($current !== $given) {
+                $fail(__('business_lines.error.reorder_mismatch'));
+            }
+        };
+    }
+
     /** @return array<string, mixed> */
     private function validated(Request $request, ?BusinessLine $ignore = null): array
     {

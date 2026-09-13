@@ -58,10 +58,12 @@ Route::middleware('auth')->group(function () {
 
         Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
         Route::post('/settings/competences', [CompetenceController::class, 'store'])->name('settings.competences.store');
+        Route::put('/settings/competences/reorder', [CompetenceController::class, 'reorder'])->name('settings.competences.reorder');
         Route::put('/settings/competences/{competence}/move', [CompetenceController::class, 'move'])->name('settings.competences.move');
         Route::put('/settings/competences/{competence}', [CompetenceController::class, 'update'])->name('settings.competences.update');
         Route::delete('/settings/competences/{competence}', [CompetenceController::class, 'destroy'])->name('settings.competences.destroy');
         Route::post('/settings/business-lines', [BusinessLineController::class, 'store'])->name('settings.business-lines.store');
+        Route::put('/settings/business-lines/reorder', [BusinessLineController::class, 'reorder'])->name('settings.business-lines.reorder');
         Route::put('/settings/business-lines/{businessLine}/move', [BusinessLineController::class, 'move'])->name('settings.business-lines.move');
         Route::put('/settings/business-lines/{businessLine}', [BusinessLineController::class, 'update'])->name('settings.business-lines.update');
         Route::delete('/settings/business-lines/{businessLine}', [BusinessLineController::class, 'destroy'])->name('settings.business-lines.destroy');
@@ -71,6 +73,7 @@ Route::middleware('auth')->group(function () {
         Route::put('/settings/shifts/{shift}', [ShiftController::class, 'update'])->name('settings.shifts.update');
         Route::delete('/settings/shifts/{shift}', [ShiftController::class, 'destroy'])->name('settings.shifts.destroy');
         Route::post('/settings/questions', [QuestionController::class, 'store'])->name('settings.questions.store');
+        Route::put('/settings/questions/reorder', [QuestionController::class, 'reorder'])->name('settings.questions.reorder');
         Route::put('/settings/questions/{question}/move', [QuestionController::class, 'move'])->name('settings.questions.move');
         Route::put('/settings/questions/{question}', [QuestionController::class, 'update'])->name('settings.questions.update');
         Route::delete('/settings/questions/{question}', [QuestionController::class, 'destroy'])->name('settings.questions.destroy');
