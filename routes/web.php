@@ -21,6 +21,7 @@ use App\Http\Controllers\PersonalQuestionController;
 use App\Http\Controllers\PersonalRecurringAvailabilityController;
 use App\Http\Controllers\QuestionController;
 use App\Http\Controllers\RecurringAvailabilityController;
+use App\Http\Controllers\SchedulingController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\ShiftController;
 use App\Http\Controllers\SignupController;
@@ -86,6 +87,8 @@ Route::middleware('auth')->group(function () {
         Route::post('/workcenter-shifts', [WorkcenterShiftAssignmentController::class, 'store'])->name('workcenter-shifts.store');
         Route::put('/workcenter-shifts/{workcenter}/{shift}', [WorkcenterShiftAssignmentController::class, 'update'])->name('workcenter-shifts.update');
         Route::delete('/workcenter-shifts/{workcenter}/{shift}', [WorkcenterShiftAssignmentController::class, 'destroy'])->name('workcenter-shifts.destroy');
+
+        Route::get('/scheduling', [SchedulingController::class, 'index'])->name('scheduling.index');
 
         Route::get('/mailbox', [MailboxController::class, 'index'])->name('mailbox.index');
         Route::post('/mailbox/compose', [MailboxController::class, 'store'])->name('mailbox.compose');
