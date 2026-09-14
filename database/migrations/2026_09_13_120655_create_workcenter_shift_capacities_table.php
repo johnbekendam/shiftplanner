@@ -16,7 +16,7 @@ return new class extends Migration
             $table->unsignedInteger('spots')->default(0);
             $table->timestamps();
 
-            $table->unique(['workcenter_id', 'shift_id', 'weekday']);
+            $table->unique(['workcenter_id', 'shift_id', 'weekday'], 'wsc_workcenter_shift_weekday_unique');
         });
     }
 
