@@ -10,7 +10,7 @@ const en = {
     "employees.column.weekly_hours": "Weekly hours",
     "employees.column.flexibility": "Flexibility",
     "employees.column.confirmed": "Confirmed",
-    "employees.column.confirmed_help": "Only confirmed employees can be planned. Manager should set the emmployee to confirmed in this column",
+    "employees.column.confirmed_help": "Only confirmed employees can be planned.\nManagers should set the employee to confirmed in this column.",
     "employees.confirmed.yes": "Confirmed",
     "employees.confirmed.no": "Unconfirmed",
     "employees.no_business_line": "—",
@@ -139,7 +139,7 @@ describe("Employees/Index", () => {
         const w = mountIndex();
 
         expect(w.get('[data-testid="confirmed-column-help"]').attributes("title")).toBe(
-            "Only confirmed employees can be planned. Manager should set the emmployee to confirmed in this column",
+            "Only confirmed employees can be planned.\nManagers should set the employee to confirmed in this column.",
         );
     });
 

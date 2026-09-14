@@ -17,8 +17,8 @@ unconfirmed. Existing employees also stay unconfirmed after the migration.
 Add a Confirmed column to the employees list. The column contains a toggle
 for each employee. A user who can edit employees can change the toggle. The
 change saves immediately for that row. The column header has a tooltip:
-"Only confirmed employees can be planned. Manager should set the emmployee
-to confirmed in this column".
+"Only confirmed employees can be planned.
+Managers should set the employee to confirmed in this column.".
 
 Dashboard coverage uses only confirmed employees. The dashboard also shows
 one global notice above the coverage cards when unconfirmed employees exist.
