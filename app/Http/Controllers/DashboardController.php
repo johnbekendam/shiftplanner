@@ -16,8 +16,13 @@ class DashboardController extends Controller
     {
         $settings = PlanningSettings::current();
 
+        $unconfirmedEmployeeCount = Employee::query()->where('confirmed', false)->count();
+
         if (! $settings->period_start || ! $settings->period_end || $settings->period_end->lt($settings->period_start)) {
-            return Inertia::render('Dashboard/Index', ['period' => null]);
+            return Inertia::render('Dashboard/Index', [
+                'period' => null,
+                'unconfirmedEmployeeCount' => $unconfirmedEmployeeCount,
+            ]);
         }
 
         /** @var Collection<int, CarbonInterface> $days */
@@ -34,7 +39,7 @@ class DashboardController extends Controller
         $overall = $zeros;
         $lines = $businessLines->mapWithKeys(fn (BusinessLine $line) => [$line->id => $zeros])->all();
 
-        Employee::query()->with('holidays')->get()->each(function (Employee $employee) use ($days, $settings, &$overall, &$lines) {
+        Employee::query()->where('confirmed', true)->with('holidays')->get()->each(function (Employee $employee) use ($days, $settings, &$overall, &$lines) {
             foreach ($this->availableFte($employee, $days, $settings->fte_hours) as $i => $value) {
                 $overall[$i] += $value;
                 if ($employee->business_line_id && isset($lines[$employee->business_line_id])) {
@@ -56,6 +61,7 @@ class DashboardController extends Controller
                 'available_hours' => array_sum($overall) * $dailyFteHours,
                 'required_hours' => (float) $businessLines->sum('target_fte') * $days->count() * $dailyFteHours,
             ],
+            'unconfirmedEmployeeCount' => $unconfirmedEmployeeCount,
             'lines' => $businessLines->map(fn (BusinessLine $line) => [
                 'abbreviation' => $line->abbreviation,
                 'description' => $line->description,

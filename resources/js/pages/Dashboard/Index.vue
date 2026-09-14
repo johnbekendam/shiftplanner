@@ -15,6 +15,7 @@ const props = defineProps({
     days: { type: Array, default: () => [] },
     overall: { type: Object, default: null },
     lines: { type: Array, default: () => [] },
+    unconfirmedEmployeeCount: { type: Number, default: 0 },
 })
 
 const blocks = computed(() => {
@@ -49,6 +50,14 @@ const blocks = computed(() => {
         </p>
 
         <div v-else class="grid gap-6 md:w-1/2">
+            <p
+                v-if="unconfirmedEmployeeCount > 0"
+                data-testid="unconfirmed-employees-notice"
+                class="text-sm text-(--color-text-secondary)"
+            >
+                {{ __('dashboard.unconfirmed_employees', { count: unconfirmedEmployeeCount }) }}
+            </p>
+
             <Card v-for="block in blocks" :key="block.key" data-testid="dashboard-block">
                 <template #header>
                     <h2 class="px-4 py-2.5 text-sm font-semibold text-(--color-card-header-text)">

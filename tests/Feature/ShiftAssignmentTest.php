@@ -74,7 +74,7 @@ class ShiftAssignmentTest extends TestCase
     public function test_store_creates_an_assignment(): void
     {
         $this->actingAsAdmin();
-        $employee = Employee::factory()->create();
+        $employee = Employee::factory()->create(['confirmed' => true]);
         $workcenter = Workcenter::factory()->create();
         $shift = Shift::factory()->create();
         $this->setCapacity($workcenter, $shift, $this->aTuesday(), 1);
@@ -89,6 +89,20 @@ class ShiftAssignmentTest extends TestCase
             'date' => $this->aTuesday()->toDateString(),
             'fixed' => false,
         ]);
+    }
+
+    public function test_store_rejects_an_unconfirmed_employee(): void
+    {
+        $this->actingAsAdmin();
+        $employee = Employee::factory()->create(['confirmed' => false]);
+        $workcenter = Workcenter::factory()->create();
+        $shift = Shift::factory()->create();
+        $this->setCapacity($workcenter, $shift, $this->aTuesday(), 1);
+
+        $this->post('/scheduling/assignments', $this->validPayload($employee, $workcenter, $shift))
+            ->assertSessionHasErrors('employee_id');
+
+        $this->assertSame(0, ShiftAssignment::count());
     }
 
     public function test_store_rejects_a_full_cell(): void
@@ -188,7 +202,7 @@ class ShiftAssignmentTest extends TestCase
     public function test_store_accepts_a_not_preferred_employee(): void
     {
         $this->actingAsAdmin();
-        $employee = Employee::factory()->create();
+        $employee = Employee::factory()->create(['confirmed' => true]);
         $workcenter = Workcenter::factory()->create();
         $shift = Shift::factory()->create();
         $this->setCapacity($workcenter, $shift, $this->aTuesday(), 5);
@@ -228,7 +242,7 @@ class ShiftAssignmentTest extends TestCase
     public function test_store_accepts_a_non_overlapping_shift_the_same_day(): void
     {
         $this->actingAsAdmin();
-        $employee = Employee::factory()->create();
+        $employee = Employee::factory()->create(['confirmed' => true]);
         $workcenterA = Workcenter::factory()->create();
         $shiftA = Shift::factory()->create(['start_time' => '06:00', 'end_time' => '14:00']);
         $this->setCapacity($workcenterA, $shiftA, $this->aTuesday(), 5);

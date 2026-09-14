@@ -9,12 +9,18 @@ const en = {
     "employees.column.business_line": "Business line",
     "employees.column.weekly_hours": "Weekly hours",
     "employees.column.flexibility": "Flexibility",
+    "employees.column.confirmed": "Confirmed",
+    "employees.column.confirmed_help": "Only confirmed employees can be planned. Manager should set the emmployee to confirmed in this column",
+    "employees.confirmed.yes": "Confirmed",
+    "employees.confirmed.no": "Unconfirmed",
     "employees.no_business_line": "—",
     "employees.action.new": "New employee",
     "employees.action.send_link": "Send link",
     "employees.action.sending_link": "Sending…",
     "employees.action.link_sent": "Sent",
     "employees.action.delete_selected": "Delete selected",
+    "employees.selection.select_all": "Select all employees on this page",
+    "employees.selection.select_employee": "Select :name",
     "employees.confirm.delete_selected": "Permanently delete :count selected employees and their dependent scheduling data?",
     "employees.hours_option": ":count hours",
     "employees.pagination.range": ":from-:to of :total",
@@ -25,7 +31,7 @@ const en = {
 
 const state = vi.hoisted(() => ({ user: { role: "admin" } }));
 const { router } = vi.hoisted(() => ({
-    router: { get: vi.fn(), post: vi.fn(), visit: vi.fn() },
+    router: { get: vi.fn(), post: vi.fn(), put: vi.fn(), visit: vi.fn() },
 }));
 
 vi.mock("@inertiajs/vue3", () => ({
@@ -44,6 +50,7 @@ const employees = {
             name: "Ann Ant",
             business_line: "PMP",
             weekly_hours: 24,
+            confirmed: true,
             shift_coverage: [
                 { shift_id: 1, name: "Morning", coverage_percentage: 100 },
                 { shift_id: 2, name: "Evening", coverage_percentage: 60 },
@@ -54,6 +61,7 @@ const employees = {
             name: "Bo Bee",
             business_line: null,
             weekly_hours: 40,
+            confirmed: false,
             shift_coverage: [
                 { shift_id: 1, name: "Morning", coverage_percentage: 20 },
                 { shift_id: 2, name: "Evening", coverage_percentage: 100 },
@@ -81,12 +89,16 @@ const mountIndex = (props = {}) =>
     });
 
 const deleteButton = (w, count) => w.get(`[aria-label="Delete selected ${count}"]`);
+const selectionCheckboxes = (w) => w
+    .findAll('input[type="checkbox"]')
+    .filter((input) => input.attributes("aria-label")?.startsWith("Select"));
 
 beforeEach(() => {
     vi.useFakeTimers();
     state.user = { role: "admin" };
     router.get.mockReset();
     router.post.mockReset();
+    router.put.mockReset();
     router.visit.mockReset();
     vi.stubGlobal("confirm", vi.fn());
 });
@@ -101,8 +113,34 @@ describe("Employees/Index", () => {
         const w = mountIndex();
         const headers = w.findAll("thead th").map((th) => th.text());
 
-        expect(headers).toEqual(["", "Name", "Business line", "Weekly hours", "Flexibility", ""]);
+        expect(headers).toEqual(["", "Name", "Business line", "Weekly hours", "Flexibility", "Confirmed", ""]);
         expect(w.text()).not.toContain("Email");
+    });
+
+    it("renders confirmed toggles and saves a row immediately", async () => {
+        const w = mountIndex();
+        const rows = w.findAll("tbody tr");
+        const firstToggle = rows[0].findAll('input[type="checkbox"]')[1];
+        const secondToggle = rows[1].findAll('input[type="checkbox"]')[1];
+
+        expect(firstToggle.element.checked).toBe(true);
+        expect(secondToggle.element.checked).toBe(false);
+
+        await secondToggle.setValue(true);
+
+        expect(router.put).toHaveBeenCalledWith(
+            "/employees/2/confirmed",
+            { confirmed: true },
+            expect.objectContaining({ preserveScroll: true }),
+        );
+    });
+
+    it("explains the confirmed column in a header tooltip", () => {
+        const w = mountIndex();
+
+        expect(w.get('[data-testid="confirmed-column-help"]').attributes("title")).toBe(
+            "Only confirmed employees can be planned. Manager should set the emmployee to confirmed in this column",
+        );
     });
 
     it("renders shift coverage percentages for each employee", () => {
@@ -257,7 +295,7 @@ describe("Employees/Index", () => {
 
     it("renders current-page selection controls and a disabled danger action", () => {
         const w = mountIndex();
-        const checkboxes = w.findAll('input[type="checkbox"]');
+        const checkboxes = selectionCheckboxes(w);
 
         expect(checkboxes).toHaveLength(3);
         expect(deleteButton(w, 0).attributes("disabled")).toBeDefined();
@@ -265,7 +303,7 @@ describe("Employees/Index", () => {
 
     it("selects one employee without opening its row", async () => {
         const w = mountIndex();
-        const checkboxes = w.findAll('input[type="checkbox"]');
+        const checkboxes = selectionCheckboxes(w);
 
         await checkboxes[1].setValue(true);
 
@@ -275,7 +313,7 @@ describe("Employees/Index", () => {
 
     it("selects all visible employees from the header checkbox", async () => {
         const w = mountIndex();
-        const checkboxes = w.findAll('input[type="checkbox"]');
+        const checkboxes = selectionCheckboxes(w);
 
         await checkboxes[0].setValue(true);
 

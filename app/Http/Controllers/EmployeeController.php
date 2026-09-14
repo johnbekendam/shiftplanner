@@ -68,6 +68,7 @@ class EmployeeController extends Controller
             'name' => $employee->name,
             'business_line' => $employee->businessLine?->abbreviation,
             'weekly_hours' => $employee->weekly_hours,
+            'confirmed' => $employee->confirmed,
             'shift_coverage' => $this->shiftCoverage($employee, $shifts),
         ]);
 
@@ -155,6 +156,17 @@ class EmployeeController extends Controller
         }
 
         return redirect("/employees/{$employee->id}/edit")->with('success', __('employees.flash.updated'));
+    }
+
+    public function updateConfirmed(Request $request, Employee $employee)
+    {
+        $data = $request->validate([
+            'confirmed' => ['required', 'boolean'],
+        ]);
+
+        $employee->update(['confirmed' => $data['confirmed']]);
+
+        return redirect()->back()->with('success', __('employees.flash.updated'));
     }
 
     public function bulkDelete(Request $request)

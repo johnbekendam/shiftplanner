@@ -24,6 +24,7 @@ const columns = [
     { key: 'business_line', label: 'employees.column.business_line', sortable: true },
     { key: 'weekly_hours', label: 'employees.column.weekly_hours', sortable: true },
     { key: 'flexibility', label: 'employees.column.flexibility', sortable: false },
+    { key: 'confirmed', label: 'employees.column.confirmed', sortable: false },
 ]
 
 const searchTerm = ref(props.search ?? '')
@@ -141,6 +142,12 @@ function sendLink(employee) {
     })
 }
 
+function updateConfirmed(employee, confirmed) {
+    router.put(`/employees/${employee.id}/confirmed`, { confirmed }, {
+        preserveScroll: true,
+    })
+}
+
 function toggleSelectAll(checked) {
     selectedIds.value = checked ? props.employees.data.map(employee => employee.id) : []
 }
@@ -217,7 +224,19 @@ function bulkDelete() {
                                         class="size-3.5"
                                     />
                                 </button>
-                                <span v-else class="font-medium">{{ __(column.label) }}</span>
+                                <span v-else class="inline-flex items-center gap-1 font-medium">
+                                    {{ __(column.label) }}
+                                    <span
+                                        v-if="column.key === 'confirmed'"
+                                        :title="__('employees.column.confirmed_help')"
+                                        data-testid="confirmed-column-help"
+                                    >
+                                        <Icon
+                                            name="question-mark"
+                                            class="size-4 text-(--color-text-secondary)"
+                                        />
+                                    </span>
+                                </span>
                             </th>
                             <th class="px-2 py-2" />
                         </tr>
@@ -253,6 +272,13 @@ function bulkDelete() {
                                         {{ shift.name }} {{ shift.coverage_percentage }}%
                                     </span>
                                 </div>
+                            </td>
+                            <td class="px-2 py-2 text-(--color-table-row-text)" @click.stop>
+                                <CheckboxInput
+                                    :model-value="employee.confirmed"
+                                    :aria-label="employee.confirmed ? __('employees.confirmed.yes') : __('employees.confirmed.no')"
+                                    @update:model-value="(confirmed) => updateConfirmed(employee, confirmed)"
+                                />
                             </td>
                             <td class="px-2 py-2 text-right" @click.stop>
                                 <ButtonSecondary

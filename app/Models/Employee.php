@@ -33,6 +33,7 @@ class Employee extends Model
         'weekly_hours',
         'weekly_hours_minimum',
         'business_line_id',
+        'confirmed',
     ];
 
     protected function casts(): array
@@ -40,6 +41,7 @@ class Employee extends Model
         return [
             'weekly_hours' => 'integer',
             'weekly_hours_minimum' => 'integer',
+            'confirmed' => 'boolean',
         ];
     }
 

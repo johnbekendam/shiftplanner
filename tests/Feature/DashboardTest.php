@@ -47,7 +47,7 @@ class DashboardTest extends TestCase
     {
         $this->actingAs(User::factory()->create());
         $this->setPeriod('2026-01-05', '2026-01-05', fteHours: 40); // Monday
-        Employee::factory()->create(['weekly_hours' => 32]);
+        Employee::factory()->create(['weekly_hours' => 32, 'confirmed' => true]);
 
         $this->get('/dashboard')->assertOk()
             ->assertInertia(fn ($page) => $page
@@ -56,11 +56,25 @@ class DashboardTest extends TestCase
             );
     }
 
+    public function test_dashboard_counts_only_confirmed_employees_and_reports_unconfirmed_count(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->setPeriod('2026-01-05', '2026-01-05', fteHours: 40);
+        Employee::factory()->create(['weekly_hours' => 40, 'confirmed' => true]);
+        Employee::factory()->create(['weekly_hours' => 40, 'confirmed' => false]);
+
+        $this->get('/dashboard')->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('overall.available', [1])
+                ->where('unconfirmedEmployeeCount', 1)
+            );
+    }
+
     public function test_weekend_dates_are_dropped_from_the_charts(): void
     {
         $this->actingAs(User::factory()->create());
         $this->setPeriod('2026-01-05', '2026-01-11', fteHours: 40); // Mon .. Sun
-        Employee::factory()->create(['weekly_hours' => 40]);
+        Employee::factory()->create(['weekly_hours' => 40, 'confirmed' => true]);
 
         $this->get('/dashboard')->assertOk()
             ->assertInertia(fn ($page) => $page
@@ -74,7 +88,7 @@ class DashboardTest extends TestCase
         $this->actingAs(User::factory()->create());
         $this->setPeriod('2026-01-03', '2026-01-04'); // Sat .. Sun
         BusinessLine::factory()->create(['target_fte' => 5]);
-        Employee::factory()->create(['weekly_hours' => 40]);
+        Employee::factory()->create(['weekly_hours' => 40, 'confirmed' => true]);
 
         $this->get('/dashboard')->assertOk()
             ->assertInertia(fn ($page) => $page
@@ -90,7 +104,7 @@ class DashboardTest extends TestCase
         $this->actingAs(User::factory()->create());
         $this->setPeriod('2026-01-05', '2026-01-05', fteHours: 40); // one Monday
         $line = BusinessLine::factory()->create(['target_fte' => 5]);
-        Employee::factory()->create(['weekly_hours' => 40, 'business_line_id' => $line->id]);
+        Employee::factory()->create(['weekly_hours' => 40, 'business_line_id' => $line->id, 'confirmed' => true]);
 
         // One weekday, one full-timer: 1.0 FTE * 40 / 5 = 8 available hours.
         // Target 5 FTE * 1 weekday * 40 / 5 = 40 required hours.
@@ -108,7 +122,7 @@ class DashboardTest extends TestCase
         $this->actingAs(User::factory()->create());
         $this->setPeriod('2026-01-05', '2026-01-11', fteHours: 40); // 5 weekdays
         $line = BusinessLine::factory()->create(['target_fte' => 5]);
-        Employee::factory()->create(['weekly_hours' => 40, 'business_line_id' => $line->id]);
+        Employee::factory()->create(['weekly_hours' => 40, 'business_line_id' => $line->id, 'confirmed' => true]);
 
         // 5 weekdays * 8 = 40 available hours; 5 * 5 * 8 = 200 required hours.
         $this->get('/dashboard')->assertOk()
@@ -123,7 +137,7 @@ class DashboardTest extends TestCase
         $this->actingAs(User::factory()->create());
         $this->setPeriod('2026-01-05', '2026-01-05', fteHours: 40);
         $line = BusinessLine::factory()->create(['target_fte' => 0]);
-        Employee::factory()->create(['weekly_hours' => 40, 'business_line_id' => $line->id]);
+        Employee::factory()->create(['weekly_hours' => 40, 'business_line_id' => $line->id, 'confirmed' => true]);
 
         $this->get('/dashboard')->assertOk()
             ->assertInertia(fn ($page) => $page
@@ -136,7 +150,7 @@ class DashboardTest extends TestCase
     {
         $this->actingAs(User::factory()->create());
         $this->setPeriod('2026-01-05', '2026-01-05');
-        $employee = Employee::factory()->create(['weekly_hours' => 40]);
+        $employee = Employee::factory()->create(['weekly_hours' => 40, 'confirmed' => true]);
         $employee->holidays()->create(['start_date' => '2026-01-01', 'end_date' => '2026-01-10']);
 
         $this->get('/dashboard')->assertOk()
@@ -158,8 +172,8 @@ class DashboardTest extends TestCase
         $this->actingAs(User::factory()->create());
         $this->setPeriod('2026-01-05', '2026-01-05', fteHours: 40);
         $line = BusinessLine::factory()->create(['target_fte' => 5]);
-        Employee::factory()->create(['weekly_hours' => 40, 'business_line_id' => $line->id]);
-        Employee::factory()->create(['weekly_hours' => 40, 'business_line_id' => null]);
+        Employee::factory()->create(['weekly_hours' => 40, 'business_line_id' => $line->id, 'confirmed' => true]);
+        Employee::factory()->create(['weekly_hours' => 40, 'business_line_id' => null, 'confirmed' => true]);
 
         $this->get('/dashboard')->assertOk()
             ->assertInertia(fn ($page) => $page
@@ -177,7 +191,7 @@ class DashboardTest extends TestCase
         $this->setPeriod('2026-01-05', '2026-01-05', fteHours: 40);
         $second = BusinessLine::factory()->create(['abbreviation' => 'VLV', 'position' => 2, 'target_fte' => 3]);
         $first = BusinessLine::factory()->create(['abbreviation' => 'PMP', 'position' => 1, 'target_fte' => 8]);
-        Employee::factory()->create(['weekly_hours' => 40, 'business_line_id' => $first->id]);
+        Employee::factory()->create(['weekly_hours' => 40, 'business_line_id' => $first->id, 'confirmed' => true]);
 
         $this->get('/dashboard')->assertOk()
             ->assertInertia(fn ($page) => $page

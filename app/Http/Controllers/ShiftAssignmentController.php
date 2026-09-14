@@ -38,6 +38,10 @@ class ShiftAssignmentController extends Controller
             throw ValidationException::withMessages(['employee_id' => __('scheduling.error.duplicate')]);
         }
 
+        if (! $employee->confirmed) {
+            throw ValidationException::withMessages(['employee_id' => __('scheduling.error.unconfirmed')]);
+        }
+
         if ($existing->count() >= $workcenter->spotsFor($shift, $date)) {
             throw ValidationException::withMessages(['employee_id' => __('scheduling.error.cell_full')]);
         }

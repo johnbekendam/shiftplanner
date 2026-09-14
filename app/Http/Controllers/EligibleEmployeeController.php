@@ -33,6 +33,7 @@ class EligibleEmployeeController extends Controller
 
         $employees = Employee::query()
             ->with('shiftVisibilityOverrides')
+            ->where('confirmed', true)
             ->whereNotIn('id', $alreadyAssignedIds)
             ->orderBy('first_name')
             ->orderBy('last_name')

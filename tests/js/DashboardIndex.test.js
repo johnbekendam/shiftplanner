@@ -5,6 +5,7 @@ const en = {
     "dashboard.title": "Dashboard",
     "dashboard.overall": "Overall",
     "dashboard.no_period": "Set a period on the Settings page to see available FTE.",
+    "dashboard.unconfirmed_employees": ":count unconfirmed employees are not included in these numbers.",
     "dashboard.coverage": "Hours covered",
     "dashboard.hours_ratio": ":available / :required h",
 };
@@ -51,6 +52,31 @@ describe("Dashboard/Index", () => {
         expect(charts[0].props("title")).toBe("Overall");
         expect(charts[0].props("available")).toEqual([2, 1]);
         expect(charts[1].props("target")).toBe(5);
+    });
+
+    it("shows one dashboard notice when unconfirmed employees are excluded", () => {
+        const w = mountPage({
+            period: { start: "2026-01-05", end: "2026-01-06", fte_hours: 40 },
+            days: ["2026-01-05", "2026-01-06"],
+            overall: { available: [1, 1], target: 8, available_hours: 16, required_hours: 64 },
+            lines: [],
+            unconfirmedEmployeeCount: 3,
+        });
+
+        expect(w.text()).toContain("3 unconfirmed employees are not included in these numbers.");
+        expect(w.findAll('[data-testid="unconfirmed-employees-notice"]')).toHaveLength(1);
+    });
+
+    it("hides the unconfirmed notice when everyone is confirmed", () => {
+        const w = mountPage({
+            period: { start: "2026-01-05", end: "2026-01-06", fte_hours: 40 },
+            days: ["2026-01-05", "2026-01-06"],
+            overall: { available: [1, 1], target: 8, available_hours: 16, required_hours: 64 },
+            lines: [],
+            unconfirmedEmployeeCount: 0,
+        });
+
+        expect(w.find('[data-testid="unconfirmed-employees-notice"]').exists()).toBe(false);
     });
 
     it("gives each block a coverage donut fed the block's hours", () => {

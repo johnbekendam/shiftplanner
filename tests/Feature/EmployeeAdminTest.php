@@ -28,7 +28,7 @@ class EmployeeAdminTest extends TestCase
     public function test_index_lists_employees_with_weekly_hours(): void
     {
         $user = User::factory()->create();
-        Employee::factory()->create(['first_name' => 'Aaron', 'last_name' => 'Able', 'weekly_hours' => 32]);
+        Employee::factory()->create(['first_name' => 'Aaron', 'last_name' => 'Able', 'weekly_hours' => 32, 'confirmed' => true]);
         Employee::factory()->create(['first_name' => 'Zoe', 'last_name' => 'Zeal']);
 
         $this->actingAs($user)->get('/employees')->assertOk()
@@ -37,9 +37,36 @@ class EmployeeAdminTest extends TestCase
                 ->has('employees.data', 2)
                 ->where('employees.data.0.name', 'Aaron Able')
                 ->where('employees.data.0.weekly_hours', 32)
+                ->where('employees.data.0.confirmed', true)
                 ->missing('employees.data.0.department')
                 ->missing('employees.data.0.shift_preference')
             );
+    }
+
+    public function test_created_employee_defaults_to_unconfirmed(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)->post('/employees', [
+            'first_name' => 'New',
+            'last_name' => 'Hire',
+            'email' => 'new.hire@example.com',
+            'weekly_hours' => 32,
+        ])->assertRedirect();
+
+        $this->assertFalse(Employee::firstWhere('email', 'new.hire@example.com')->confirmed);
+    }
+
+    public function test_confirmed_status_can_be_toggled_from_the_employee_list(): void
+    {
+        $user = User::factory()->create();
+        $employee = Employee::factory()->create(['confirmed' => false]);
+
+        $this->actingAs($user)->put("/employees/{$employee->id}/confirmed", [
+            'confirmed' => true,
+        ])->assertRedirect();
+
+        $this->assertTrue($employee->refresh()->confirmed);
     }
 
     public function test_index_includes_shift_coverage_percentages(): void
