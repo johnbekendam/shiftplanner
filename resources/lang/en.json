@@ -386,6 +386,10 @@
     "dashboard.overall": "Overall",
     "dashboard.no_period": "Set a period on the Settings page to see available FTE.",
     "dashboard.unconfirmed_employees": ":count unconfirmed employees are not included in these numbers.",
+    "dashboard.employee_filter.label": "Employee status",
+    "dashboard.employee_filter.confirmed": "Confirmed",
+    "dashboard.employee_filter.unconfirmed": "Unconfirmed",
+    "dashboard.employee_filter.both": "Both",
     "dashboard.coverage": "Hours covered",
     "dashboard.hours_ratio": ":available / :required h",
 

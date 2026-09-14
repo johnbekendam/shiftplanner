@@ -70,6 +70,63 @@ class DashboardTest extends TestCase
             );
     }
 
+    public function test_dashboard_can_show_only_unconfirmed_employees(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->setPeriod('2026-01-05', '2026-01-05', fteHours: 40);
+        Employee::factory()->create(['weekly_hours' => 40, 'confirmed' => true]);
+        Employee::factory()->create(['weekly_hours' => 20, 'confirmed' => false]);
+
+        $this->get('/dashboard?employees=unconfirmed')->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('employeeStatusFilter', 'unconfirmed')
+                ->where('overall.available', [0.5])
+                ->where('overall.available_confirmed', [1])
+                ->where('overall.available_unconfirmed', [0.5])
+                ->where('overall.available_hours', 4)
+                ->where('overall.available_hours_confirmed', 8)
+                ->where('overall.available_hours_unconfirmed', 4)
+            );
+    }
+
+    public function test_dashboard_can_show_confirmed_and_unconfirmed_employees_together(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->setPeriod('2026-01-05', '2026-01-05', fteHours: 40);
+        $line = BusinessLine::factory()->create(['target_fte' => 5]);
+        Employee::factory()->create(['weekly_hours' => 40, 'business_line_id' => $line->id, 'confirmed' => true]);
+        Employee::factory()->create(['weekly_hours' => 20, 'business_line_id' => $line->id, 'confirmed' => false]);
+
+        $this->get('/dashboard?employees=both')->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('employeeStatusFilter', 'both')
+                ->where('overall.available', [1.5])
+                ->where('overall.available_confirmed', [1])
+                ->where('overall.available_unconfirmed', [0.5])
+                ->where('overall.available_hours', 12)
+                ->where('overall.available_hours_confirmed', 8)
+                ->where('overall.available_hours_unconfirmed', 4)
+                ->where('lines.0.available', [1.5])
+                ->where('lines.0.available_confirmed', [1])
+                ->where('lines.0.available_unconfirmed', [0.5])
+                ->where('lines.0.available_hours', 12)
+            );
+    }
+
+    public function test_invalid_dashboard_employee_status_filter_falls_back_to_confirmed(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->setPeriod('2026-01-05', '2026-01-05', fteHours: 40);
+        Employee::factory()->create(['weekly_hours' => 40, 'confirmed' => true]);
+        Employee::factory()->create(['weekly_hours' => 20, 'confirmed' => false]);
+
+        $this->get('/dashboard?employees=unknown')->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('employeeStatusFilter', 'confirmed')
+                ->where('overall.available', [1])
+            );
+    }
+
     public function test_weekend_dates_are_dropped_from_the_charts(): void
     {
         $this->actingAs(User::factory()->create());

@@ -7,6 +7,8 @@ const props = defineProps({
     days: { type: Array, default: () => [] },
     // Available FTE, one value per day.
     available: { type: Array, default: () => [] },
+    // Optional lower line for stacked views. The main available line remains the stacked total.
+    baseAvailable: { type: Array, default: null },
     // Target FTE — a flat reference line.
     target: { type: Number, default: 0 },
     // Show the title as a visible caption above the chart. Turn off when a
@@ -24,7 +26,8 @@ const plotH = H - PAD.top - PAD.bottom
 const Y_STEPS = 4
 
 const maxValue = computed(() => {
-    const peak = Math.max(props.target, ...props.available, 1)
+    const baseValues = Array.isArray(props.baseAvailable) ? props.baseAvailable : []
+    const peak = Math.max(props.target, ...props.available, ...baseValues, 1)
     // Round up to a whole-number axis top that divides evenly into Y_STEPS,
     // so every tick lands on an integer.
     const step = Math.max(1, Math.ceil((peak * 1.1) / Y_STEPS))
@@ -39,6 +42,14 @@ const x = (i) => {
 const y = (v) => PAD.top + plotH * (1 - v / maxValue.value)
 
 const linePoints = computed(() => props.available.map((v, i) => `${x(i)},${y(v)}`).join(' '))
+
+const hasBaseLine = computed(
+    () => Array.isArray(props.baseAvailable) && props.baseAvailable.length === props.available.length && props.baseAvailable.length > 0,
+)
+
+const baseLinePoints = computed(() =>
+    hasBaseLine.value ? props.baseAvailable.map((v, i) => `${x(i)},${y(v)}`).join(' ') : '',
+)
 
 const targetY = computed(() => y(props.target))
 
@@ -160,6 +171,17 @@ const xTicks = computed(() => {
             />
 
             <!-- Available FTE series -->
+            <polyline
+                v-if="hasBaseLine"
+                data-testid="fte-base-line"
+                :points="baseLinePoints"
+                fill="none"
+                stroke="var(--color-text-secondary)"
+                stroke-width="2"
+                stroke-linejoin="round"
+                stroke-linecap="round"
+            />
+
             <polyline
                 data-testid="fte-line"
                 :points="linePoints"

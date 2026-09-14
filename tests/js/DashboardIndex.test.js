@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from "vitest";
+import { beforeEach, describe, it, expect, vi } from "vitest";
 import { mount } from "@vue/test-utils";
 
 const en = {
@@ -6,13 +6,19 @@ const en = {
     "dashboard.overall": "Overall",
     "dashboard.no_period": "Set a period on the Settings page to see available FTE.",
     "dashboard.unconfirmed_employees": ":count unconfirmed employees are not included in these numbers.",
+    "dashboard.employee_filter.confirmed": "Confirmed",
+    "dashboard.employee_filter.unconfirmed": "Unconfirmed",
+    "dashboard.employee_filter.both": "Both",
     "dashboard.coverage": "Hours covered",
     "dashboard.hours_ratio": ":available / :required h",
 };
 
+const routerGet = vi.hoisted(() => vi.fn());
+
 vi.mock("@inertiajs/vue3", () => ({
     Head: { name: "Head", render: () => null },
     usePage: () => ({ props: { translations: en } }),
+    router: { get: routerGet },
 }));
 
 import Dashboard from "@/pages/Dashboard/Index.vue";
@@ -24,10 +30,43 @@ const stubs = { AppLayout: { template: "<div><slot /></div>" } };
 const mountPage = (props = {}) => mount(Dashboard, { props, global: { stubs } });
 
 describe("Dashboard/Index", () => {
+    beforeEach(() => {
+        routerGet.mockClear();
+    });
+
     it("prompts for a period when none is set", () => {
         const w = mountPage({ period: null });
         expect(w.text()).toContain("Set a period on the Settings page");
         expect(w.findAll('[data-testid="dashboard-block"]')).toHaveLength(0);
+    });
+
+    it("shows all employee status filter options", () => {
+        const w = mountPage({
+            period: { start: "2026-01-05", end: "2026-01-06", fte_hours: 40 },
+            days: ["2026-01-05", "2026-01-06"],
+            employeeStatusFilter: "confirmed",
+            overall: { available: [1, 1], target: 8, available_hours: 16, required_hours: 64 },
+            lines: [],
+        });
+
+        const options = w.findAll('[data-testid="dashboard-employee-filter"]');
+        expect(options).toHaveLength(3);
+        expect(options.map((option) => option.text())).toEqual(["Confirmed", "Unconfirmed", "Both"]);
+        expect(options[0].attributes("aria-pressed")).toBe("true");
+    });
+
+    it("navigates with a query string when an employee status filter is selected", async () => {
+        const w = mountPage({
+            period: { start: "2026-01-05", end: "2026-01-06", fte_hours: 40 },
+            days: ["2026-01-05", "2026-01-06"],
+            employeeStatusFilter: "confirmed",
+            overall: { available: [1, 1], target: 8, available_hours: 16, required_hours: 64 },
+            lines: [],
+        });
+
+        await w.findAll('[data-testid="dashboard-employee-filter"]')[2].trigger("click");
+
+        expect(routerGet).toHaveBeenCalledWith("/dashboard", { employees: "both" }, { preserveScroll: true, preserveState: true });
     });
 
     it("shows an overall block first, then one per business line", () => {
@@ -90,6 +129,27 @@ describe("Dashboard/Index", () => {
         });
 
         expect(w.find('[data-testid="unconfirmed-employees-notice"]').exists()).toBe(false);
+    });
+
+    it("passes confirmed as the base stacked line in both mode", () => {
+        const w = mountPage({
+            period: { start: "2026-01-05", end: "2026-01-06", fte_hours: 40 },
+            days: ["2026-01-05", "2026-01-06"],
+            employeeStatusFilter: "both",
+            overall: {
+                available: [1.5, 1.25],
+                available_confirmed: [1, 1],
+                available_unconfirmed: [0.5, 0.25],
+                target: 8,
+                available_hours: 22,
+                required_hours: 64,
+            },
+            lines: [],
+        });
+
+        const chart = w.getComponent(FteLineChart);
+        expect(chart.props("available")).toEqual([1.5, 1.25]);
+        expect(chart.props("baseAvailable")).toEqual([1, 1]);
     });
 
     it("gives each block a coverage donut fed the block's hours", () => {
