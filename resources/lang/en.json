@@ -389,7 +389,7 @@
     "dashboard.employee_filter.label": "Employee status",
     "dashboard.employee_filter.confirmed": "Confirmed",
     "dashboard.employee_filter.unconfirmed": "Unconfirmed",
-    "dashboard.employee_filter.both": "Both",
+    "dashboard.employee_filter.both": "Stacked",
     "dashboard.coverage": "Hours covered",
     "dashboard.hours_ratio": ":available / :required h",
 

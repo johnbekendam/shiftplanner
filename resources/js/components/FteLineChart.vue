@@ -9,6 +9,8 @@ const props = defineProps({
     available: { type: Array, default: () => [] },
     // Optional lower line for stacked views. The main available line remains the stacked total.
     baseAvailable: { type: Array, default: null },
+    availableStroke: { type: String, default: 'var(--color-brand-bg)' },
+    baseAvailableStroke: { type: String, default: 'var(--color-brand-bg)' },
     // Target FTE — a flat reference line.
     target: { type: Number, default: 0 },
     // Show the title as a visible caption above the chart. Turn off when a
@@ -176,7 +178,7 @@ const xTicks = computed(() => {
                 data-testid="fte-base-line"
                 :points="baseLinePoints"
                 fill="none"
-                stroke="var(--color-text-secondary)"
+                :stroke="baseAvailableStroke"
                 stroke-width="2"
                 stroke-linejoin="round"
                 stroke-linecap="round"
@@ -186,7 +188,7 @@ const xTicks = computed(() => {
                 data-testid="fte-line"
                 :points="linePoints"
                 fill="none"
-                stroke="var(--color-brand-bg)"
+                :stroke="availableStroke"
                 stroke-width="2"
                 stroke-linejoin="round"
                 stroke-linecap="round"

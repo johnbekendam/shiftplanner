@@ -45,4 +45,18 @@ describe.each(variants)("Button %s state prop", (name, Comp) => {
         expect(c).not.toContain(`bg-[var(--color-btn-${name}-disabled-bg)]`);
         expect(c).not.toContain("cursor-not-allowed");
     });
+
+});
+
+describe("ButtonSecondary caller classes", () => {
+    it("preserves caller-provided classes", () => {
+        const c = mount(ButtonSecondary, {
+            attrs: { class: "outline outline-2 outline-[var(--color-brand-bg)]" },
+            slots: { default: "x" },
+        }).get("button").classes().join(" ");
+
+        expect(c).toContain("outline");
+        expect(c).toContain("outline-2");
+        expect(c).toContain("outline-[var(--color-brand-bg)]");
+    });
 });

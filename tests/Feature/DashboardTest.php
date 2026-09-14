@@ -56,7 +56,7 @@ class DashboardTest extends TestCase
             );
     }
 
-    public function test_dashboard_counts_only_confirmed_employees_and_reports_unconfirmed_count(): void
+    public function test_dashboard_defaults_to_stacked_confirmed_and_unconfirmed_employees(): void
     {
         $this->actingAs(User::factory()->create());
         $this->setPeriod('2026-01-05', '2026-01-05', fteHours: 40);
@@ -65,8 +65,23 @@ class DashboardTest extends TestCase
 
         $this->get('/dashboard')->assertOk()
             ->assertInertia(fn ($page) => $page
-                ->where('overall.available', [1])
+                ->where('employeeStatusFilter', 'both')
+                ->where('overall.available', [2])
                 ->where('unconfirmedEmployeeCount', 1)
+            );
+    }
+
+    public function test_dashboard_can_show_only_confirmed_employees(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->setPeriod('2026-01-05', '2026-01-05', fteHours: 40);
+        Employee::factory()->create(['weekly_hours' => 40, 'confirmed' => true]);
+        Employee::factory()->create(['weekly_hours' => 20, 'confirmed' => false]);
+
+        $this->get('/dashboard?employees=confirmed')->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('employeeStatusFilter', 'confirmed')
+                ->where('overall.available', [1])
             );
     }
 
@@ -113,7 +128,7 @@ class DashboardTest extends TestCase
             );
     }
 
-    public function test_invalid_dashboard_employee_status_filter_falls_back_to_confirmed(): void
+    public function test_invalid_dashboard_employee_status_filter_falls_back_to_stacked(): void
     {
         $this->actingAs(User::factory()->create());
         $this->setPeriod('2026-01-05', '2026-01-05', fteHours: 40);
@@ -122,8 +137,8 @@ class DashboardTest extends TestCase
 
         $this->get('/dashboard?employees=unknown')->assertOk()
             ->assertInertia(fn ($page) => $page
-                ->where('employeeStatusFilter', 'confirmed')
-                ->where('overall.available', [1])
+                ->where('employeeStatusFilter', 'both')
+                ->where('overall.available', [1.5])
             );
     }
 

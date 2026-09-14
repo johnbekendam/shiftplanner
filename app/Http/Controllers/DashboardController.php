@@ -109,7 +109,7 @@ class DashboardController extends Controller
 
     private function employeeStatusFilter(mixed $value): string
     {
-        return in_array($value, ['confirmed', 'unconfirmed', 'both'], true) ? $value : 'confirmed';
+        return in_array($value, ['confirmed', 'unconfirmed', 'both'], true) ? $value : 'both';
     }
 
     /**

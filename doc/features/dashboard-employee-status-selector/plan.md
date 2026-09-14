@@ -3,7 +3,7 @@
 Status: done — 5/5
 
 Spec: `spec.md`. Add a URL-backed dashboard selector for confirmed,
-unconfirmed, and both employee groups. Both mode renders confirmed capacity as
+unconfirmed, and stacked employee groups. Stacked mode renders confirmed capacity as
 the lower stacked line and unconfirmed capacity above it.
 
 - [x] 1. **Reuse check and test infrastructure.** Search for existing dashboard

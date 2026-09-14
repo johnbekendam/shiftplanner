@@ -39,14 +39,23 @@ describe("FteLineChart", () => {
         expect(w.get('[data-testid="fte-line"]').attributes("stroke")).toBe("var(--color-brand-bg)");
     });
 
-    it("draws a base line below the total line for stacked data", () => {
-        const w = mount(FteLineChart, { props: { ...base, available: [1.5, 2.5, 2], baseAvailable: [1, 2, 1.5] } });
+    it("draws a brand base line below a gray total line for stacked data", () => {
+        const w = mount(FteLineChart, {
+            props: {
+                ...base,
+                available: [1.5, 2.5, 2],
+                baseAvailable: [1, 2, 1.5],
+                availableStroke: "var(--color-text-secondary)",
+                baseAvailableStroke: "var(--color-brand-bg)",
+            },
+        });
 
         const basePoints = w.get('[data-testid="fte-base-line"]').attributes("points").trim().split(/\s+/);
         const totalPoints = w.get('[data-testid="fte-line"]').attributes("points").trim().split(/\s+/);
 
         expect(basePoints).toHaveLength(3);
         expect(totalPoints).toHaveLength(3);
-        expect(w.get('[data-testid="fte-base-line"]').attributes("stroke")).toBe("var(--color-text-secondary)");
+        expect(w.get('[data-testid="fte-base-line"]').attributes("stroke")).toBe("var(--color-brand-bg)");
+        expect(w.get('[data-testid="fte-line"]').attributes("stroke")).toBe("var(--color-text-secondary)");
     });
 });

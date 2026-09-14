@@ -1,5 +1,5 @@
 <template>
-    <button v-bind="$attrs" :class="[base, stateClasses]">
+    <button v-bind="$attrs" :class="[base, stateClasses, $attrs.class]">
         <Icon v-if="icon" :name="icon" :class="iconClass" class="shrink-0" />
         <slot />
         <Icon v-if="trailingIcon" :name="trailingIcon" :class="trailingIconClass" class="shrink-0" />

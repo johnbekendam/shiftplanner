@@ -3,7 +3,6 @@ import { computed } from 'vue'
 import { Head, router } from '@inertiajs/vue3'
 import AppLayout from '@/layouts/AppLayout.vue'
 import Card from '@/components/ui/Card.vue'
-import ButtonPrimary from '@/components/ui/ButtonPrimary.vue'
 import ButtonSecondary from '@/components/ui/ButtonSecondary.vue'
 import FteLineChart from '@/components/FteLineChart.vue'
 import CoverageDonut from '@/components/CoverageDonut.vue'
@@ -17,18 +16,21 @@ const props = defineProps({
     days: { type: Array, default: () => [] },
     overall: { type: Object, default: null },
     lines: { type: Array, default: () => [] },
-    employeeStatusFilter: { type: String, default: 'confirmed' },
+    employeeStatusFilter: { type: String, default: 'both' },
     unconfirmedEmployeeCount: { type: Number, default: 0 },
 })
 
 const employeeFilterOptions = [
-    { value: 'confirmed', label: 'dashboard.employee_filter.confirmed' },
-    { value: 'unconfirmed', label: 'dashboard.employee_filter.unconfirmed' },
+    { value: 'confirmed', label: 'dashboard.employee_filter.confirmed', lineClass: 'bg-[var(--color-brand-bg)]' },
+    { value: 'unconfirmed', label: 'dashboard.employee_filter.unconfirmed', lineClass: 'bg-[var(--color-text-secondary)]' },
     { value: 'both', label: 'dashboard.employee_filter.both' },
 ]
 
+const confirmedLineColor = 'var(--color-brand-bg)'
+const unconfirmedLineColor = 'var(--color-text-secondary)'
+
 const activeEmployeeFilter = computed(() =>
-    ['confirmed', 'unconfirmed', 'both'].includes(props.employeeStatusFilter) ? props.employeeStatusFilter : 'confirmed',
+    ['confirmed', 'unconfirmed', 'both'].includes(props.employeeStatusFilter) ? props.employeeStatusFilter : 'both',
 )
 
 const selectEmployeeFilter = (filter) => {
@@ -36,7 +38,7 @@ const selectEmployeeFilter = (filter) => {
 
     router.get(
         '/dashboard',
-        filter === 'confirmed' ? {} : { employees: filter },
+        filter === 'both' ? {} : { employees: filter },
         { preserveScroll: true, preserveState: true },
     )
 }
@@ -49,6 +51,8 @@ const blocks = computed(() => {
             title: __('dashboard.overall'),
             available: props.overall.available,
             baseAvailable: activeEmployeeFilter.value === 'both' ? props.overall.available_confirmed : null,
+            availableStroke: activeEmployeeFilter.value === 'confirmed' ? confirmedLineColor : unconfirmedLineColor,
+            baseAvailableStroke: confirmedLineColor,
             target: props.overall.target,
             availableHours: props.overall.available_hours,
             requiredHours: props.overall.required_hours,
@@ -58,6 +62,8 @@ const blocks = computed(() => {
             title: `${line.abbreviation} — ${line.description}`,
             available: line.available,
             baseAvailable: activeEmployeeFilter.value === 'both' ? line.available_confirmed : null,
+            availableStroke: activeEmployeeFilter.value === 'confirmed' ? confirmedLineColor : unconfirmedLineColor,
+            baseAvailableStroke: confirmedLineColor,
             target: line.target,
             availableHours: line.available_hours,
             requiredHours: line.required_hours,
@@ -77,14 +83,22 @@ const blocks = computed(() => {
         <div v-else data-testid="dashboard-card-grid" class="grid w-full gap-6">
             <div class="flex flex-wrap gap-2" role="group" :aria-label="__('dashboard.employee_filter.label')">
                 <component
-                    :is="option.value === activeEmployeeFilter ? ButtonPrimary : ButtonSecondary"
+                    :is="ButtonSecondary"
                     v-for="option in employeeFilterOptions"
                     :key="option.value"
                     type="button"
                     data-testid="dashboard-employee-filter"
+                    :class="option.value === activeEmployeeFilter ? 'outline outline-2 outline-offset-2 outline-[var(--color-brand-bg)]' : ''"
                     :aria-pressed="option.value === activeEmployeeFilter"
                     @click="selectEmployeeFilter(option.value)"
                 >
+                    <span
+                        v-if="option.lineClass"
+                        data-testid="dashboard-employee-filter-line"
+                        class="h-0.5 w-5 shrink-0 rounded-full"
+                        :class="option.lineClass"
+                        aria-hidden="true"
+                    ></span>
                     {{ __(option.label) }}
                 </component>
             </div>
@@ -111,6 +125,8 @@ const blocks = computed(() => {
                             :days="days"
                             :available="block.available"
                             :base-available="block.baseAvailable"
+                            :available-stroke="block.availableStroke"
+                            :base-available-stroke="block.baseAvailableStroke"
                             :target="block.target"
                             :show-caption="false"
                         />
