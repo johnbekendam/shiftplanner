@@ -64,9 +64,9 @@ const effectiveWeeklyHoursMinimum = computed(() =>
     form.weekly_hours_minimum ?? props.globalWeeklyHoursMinimum,
 )
 
-const tab = ref('information')
+const tab = ref('settings')
 const tabs = computed(() => [
-    { value: 'information', label: __('availability.tab.information') },
+    { value: 'settings', label: __('availability.tab.settings'), hasError: registry.hasError('personal') },
     { value: 'details', label: __('availability.tab.details'), hasError: registry.hasError('personal') },
     {
         value: 'availability',
@@ -75,7 +75,6 @@ const tabs = computed(() => [
             || registry.hasError('holidays') || registry.hasError('questions'),
     },
     { value: 'competences', label: __('competences.tab'), hasError: registry.hasError('competences') },
-    { value: 'settings', label: __('availability.tab.settings'), hasError: registry.hasError('personal') },
 ])
 
 function submit() {
@@ -344,15 +343,6 @@ function onDeleteConfirm() {
                         </ButtonPrimary>
                     </div>
                 </form>
-            </div>
-
-            <div v-if="isEdit" v-show="tab === 'information'" data-testid="panel-information" class="p-6">
-                <ShiftNote v-if="shiftNoteHtml" :html="shiftNoteHtml" class="mb-6" />
-                <p v-else class="mb-6 text-sm text-(--color-text-secondary)">
-                    {{ __('availability.info.empty') }}
-                </p>
-
-                <p class="text-sm text-(--color-text-secondary)">{{ __('availability.info.cta') }}</p>
             </div>
 
             <div v-if="isEdit" v-show="tab === 'availability'" data-testid="panel-availability" class="p-6">

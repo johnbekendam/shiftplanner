@@ -108,15 +108,18 @@ beforeEach(() => {
 });
 
 describe("Employees/Form", () => {
-    it("shows Information, Details and Availability tabs", () => {
+    it("shows Settings first and hides the Information tab", () => {
         const w = mount(Form, {
             props: { employee: { id: 3, name: "A", email: "a@b.c", weekly_hours: 24 }, holidays: [] },
             global: { stubs },
         });
-        expect(w.text()).toContain("Information");
-        expect(w.text()).toContain("Details");
-        expect(w.text()).toContain("Availability");
-        expect(w.text()).toContain("Settings");
+        const tabs = w.findAll("button").map((button) => button.text());
+
+        expect(tabs[0]).toBe("Settings");
+        expect(tabs).toContain("Details");
+        expect(tabs).toContain("Availability");
+        expect(tabs).not.toContain("Information");
+        expect(w.find('[data-testid="panel-information"]').exists()).toBe(false);
     });
 
     it("shows employee planning rules only on the manager edit page", () => {
@@ -195,7 +198,7 @@ describe("Employees/Form", () => {
         expect(w.get('[data-testid="cell-1-7"]').classes()).toContain("bg-(--color-badge-success-bg)");
     });
 
-    it("starts on Information and reveals Availability on tab click", async () => {
+    it("starts on Settings and reveals Availability on tab click", async () => {
         const w = mount(Form, {
             props: { employee: { id: 3, name: "A", email: "a@b.c", weekly_hours: 24 }, holidays: [] },
             global: { stubs },
@@ -203,40 +206,15 @@ describe("Employees/Form", () => {
 
         const hidden = (sel) => (w.get(sel).attributes("style") ?? "").includes("display: none");
 
-        expect(hidden('[data-testid="panel-information"]')).toBe(false);
+        expect(hidden('[data-testid="panel-settings"]')).toBe(false);
         expect(hidden('[data-testid="panel-availability"]')).toBe(true);
 
         const availabilityTab = w.findAll("button").find((b) => b.text() === "Availability");
         await availabilityTab.trigger("click");
         await w.vm.$nextTick();
 
-        expect(hidden('[data-testid="panel-information"]')).toBe(true);
+        expect(hidden('[data-testid="panel-settings"]')).toBe(true);
         expect(hidden('[data-testid="panel-availability"]')).toBe(false);
-    });
-
-    it("renders the shift note on the Information tab when set", () => {
-        const w = mount(Form, {
-            props: {
-                employee: { id: 3, name: "A", email: "a@b.c", weekly_hours: 24 },
-                holidays: [],
-                shiftNoteHtml: "<p>Allowances table here</p>",
-            },
-            global: { stubs },
-        });
-
-        const note = w.findComponent(ShiftNote);
-        expect(note.exists()).toBe(true);
-        expect(note.props("html")).toBe("<p>Allowances table here</p>");
-        expect(w.get('[data-testid="panel-information"]').text()).toContain("Allowances table here");
-    });
-
-    it("shows an empty state on the Information tab when no shift note is set", () => {
-        const w = mount(Form, {
-            props: { employee: { id: 3, name: "A", email: "a@b.c", weekly_hours: 24 }, holidays: [] },
-            global: { stubs },
-        });
-        expect(w.findComponent(ShiftNote).exists()).toBe(false);
-        expect(w.get('[data-testid="panel-information"]').text()).toContain("No information has been provided yet.");
     });
 
     it("on create, shows only the Details fields with a Create button and no tabs", () => {
