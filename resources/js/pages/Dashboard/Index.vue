@@ -49,7 +49,7 @@ const blocks = computed(() => {
             {{ __('dashboard.no_period') }}
         </p>
 
-        <div v-else class="grid gap-6 md:w-1/2">
+        <div v-else data-testid="dashboard-card-grid" class="grid w-full gap-6">
             <p
                 v-if="unconfirmedEmployeeCount > 0"
                 data-testid="unconfirmed-employees-notice"

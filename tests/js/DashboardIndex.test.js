@@ -54,6 +54,19 @@ describe("Dashboard/Index", () => {
         expect(charts[1].props("target")).toBe(5);
     });
 
+    it("lets the dashboard cards fill the page body width", () => {
+        const w = mountPage({
+            period: { start: "2026-01-05", end: "2026-01-06", fte_hours: 40 },
+            days: ["2026-01-05", "2026-01-06"],
+            overall: { available: [2, 1], target: 8, available_hours: 24, required_hours: 64 },
+            lines: [],
+        });
+
+        const grid = w.get('[data-testid="dashboard-card-grid"]');
+        expect(grid.classes()).toContain("w-full");
+        expect(grid.classes()).not.toContain("md:w-1/2");
+    });
+
     it("shows one dashboard notice when unconfirmed employees are excluded", () => {
         const w = mountPage({
             period: { start: "2026-01-05", end: "2026-01-06", fte_hours: 40 },
