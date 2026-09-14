@@ -14,6 +14,7 @@ const props = defineProps({
 
 const form = useForm({
     fte_hours: props.period.fte_hours ?? 40,
+    weekly_hours_minimum: props.period.weekly_hours_minimum ?? 20,
     period_start: props.period.period_start ?? '',
     period_end: props.period.period_end ?? '',
     allow_employee_changes: props.period.allow_employee_changes ?? true,
@@ -58,6 +59,11 @@ defineExpose({
         <LabeledInput :label="__('period.fte_hours')" :error="form.errors.fte_hours">
             <NumberInput v-model="form.fte_hours" :min="1" class="w-full" />
             <p class="mt-1 text-xs text-(--color-text-secondary)">{{ __('period.fte_hours_hint') }}</p>
+        </LabeledInput>
+
+        <LabeledInput :label="__('period.weekly_hours_minimum')" :error="form.errors.weekly_hours_minimum">
+            <NumberInput v-model="form.weekly_hours_minimum" :min="1" :max="48" class="w-full" />
+            <p class="mt-1 text-xs text-(--color-text-secondary)">{{ __('period.weekly_hours_minimum_hint') }}</p>
         </LabeledInput>
 
         <LabeledInput :label="__('period.period_start')" :error="form.errors.period_start">

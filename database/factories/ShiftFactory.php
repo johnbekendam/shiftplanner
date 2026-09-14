@@ -14,6 +14,7 @@ class ShiftFactory extends Factory
             'name' => fake()->unique()->words(2, true),
             'start_time' => sprintf('%02d:00', $startHour),
             'end_time' => sprintf('%02d:00', $startHour + 3),
+            'visible_by_default' => true,
         ];
     }
 }

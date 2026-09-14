@@ -38,6 +38,7 @@ class PeriodSettingsTest extends TestCase
         $this->get('/settings')->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->where('period.fte_hours', 40)
+                ->where('period.weekly_hours_minimum', 20)
                 ->where('period.period_start', null)
                 ->where('period.period_end', null)
             );
@@ -49,6 +50,7 @@ class PeriodSettingsTest extends TestCase
 
         $this->put('/settings/period', [
             'fte_hours' => 36,
+            'weekly_hours_minimum' => 24,
             'period_start' => '2026-01-01',
             'period_end' => '2026-03-31',
             'allow_employee_changes' => true,
@@ -56,6 +58,7 @@ class PeriodSettingsTest extends TestCase
 
         $settings = PlanningSettings::current();
         $this->assertSame(36, $settings->fte_hours);
+        $this->assertSame(24, $settings->weekly_hours_minimum);
         $this->assertSame('2026-01-01', $settings->period_start->toDateString());
         $this->assertSame('2026-03-31', $settings->period_end->toDateString());
     }
@@ -66,6 +69,7 @@ class PeriodSettingsTest extends TestCase
 
         $this->put('/settings/period', [
             'fte_hours' => 40,
+            'weekly_hours_minimum' => 20,
             'period_start' => null,
             'period_end' => null,
             'allow_employee_changes' => true,
@@ -81,12 +85,28 @@ class PeriodSettingsTest extends TestCase
         $this->put('/settings/period', ['fte_hours' => 0])->assertSessionHasErrors('fte_hours');
     }
 
+    public function test_weekly_hours_minimum_must_be_between_one_and_forty_eight(): void
+    {
+        $this->actingAsAdmin();
+
+        foreach ([0, 49, 20.5, 'many'] as $value) {
+            $this->put('/settings/period', [
+                'fte_hours' => 40,
+                'weekly_hours_minimum' => $value,
+                'period_start' => null,
+                'period_end' => null,
+                'allow_employee_changes' => true,
+            ])->assertSessionHasErrors('weekly_hours_minimum');
+        }
+    }
+
     public function test_an_end_before_the_start_is_rejected(): void
     {
         $this->actingAsAdmin();
 
         $this->put('/settings/period', [
             'fte_hours' => 40,
+            'weekly_hours_minimum' => 20,
             'period_start' => '2026-03-31',
             'period_end' => '2026-01-01',
         ])->assertSessionHasErrors('period_end');

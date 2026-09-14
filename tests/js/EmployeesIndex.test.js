@@ -115,6 +115,13 @@ describe("Employees/Index", () => {
         expect(rows[1].findAll("td")[4].text()).toContain("Evening 100%");
     });
 
+    it("stacks shift coverage vertically", () => {
+        const coverage = mountIndex().get('[data-testid="shift-coverage"]');
+
+        expect(coverage.classes()).toContain("flex-col");
+        expect(coverage.classes()).toContain("items-start");
+    });
+
     it("renders the assigned business line, with a dash when there is none", () => {
         const w = mountIndex();
         const rows = w.findAll("tbody tr");

@@ -32,11 +32,13 @@ class EligibleEmployeeController extends Controller
             ->pluck('employee_id');
 
         $employees = Employee::query()
+            ->with('shiftVisibilityOverrides')
             ->whereNotIn('id', $alreadyAssignedIds)
             ->orderBy('first_name')
             ->orderBy('last_name')
             ->get()
-            ->reject(fn (Employee $employee) => $this->eligibility->isOnHoliday($employee, $date)
+            ->reject(fn (Employee $employee) => ! $this->eligibility->isShiftVisible($employee, $shift)
+                || $this->eligibility->isOnHoliday($employee, $date)
                 || $this->eligibility->isUnavailable($employee, $weekday, $shift)
                 || $this->eligibility->hasOverlap($employee, $date, $shift))
             ->map(fn (Employee $employee) => [

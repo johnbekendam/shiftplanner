@@ -3,8 +3,7 @@ import { mount } from "@vue/test-utils";
 
 const en = {
     "employees.field.weekly_hours": "Weekly hours",
-    "employees.hours_option": ":count hours",
-    "employees.hours_below_minimum": "I can only work less than :min hours",
+    "employees.weekly_hours_below_minimum_warning": "Weekly hours are below the required minimum of :min.",
 };
 
 vi.mock("@inertiajs/vue3", () => ({
@@ -12,38 +11,46 @@ vi.mock("@inertiajs/vue3", () => ({
 }));
 
 import WeeklyHoursField from "@/components/WeeklyHoursField.vue";
-import SelectInput from "@/components/ui/Input/Select.vue";
+import NumberInput from "@/components/ui/Input/Number.vue";
 
 describe("WeeklyHoursField", () => {
-    it("offers a below-minimum option first, then 20-48 in steps of 4", () => {
-        const w = mount(WeeklyHoursField, { props: { modelValue: 32 } });
-        const opts = w.getComponent(SelectInput).props("options");
+    it("uses a whole-number input from zero through forty-eight", () => {
+        const w = mount(WeeklyHoursField, { props: { modelValue: 32, minimum: 20 } });
+        const input = w.getComponent(NumberInput);
 
-        expect(opts.map((o) => o.value)).toEqual([0, 20, 24, 28, 32, 36, 40, 44, 48]);
-        expect(opts[0]).toEqual({
-            value: 0,
-            label: "I can only work less than 20 hours",
-        });
-        expect(opts[1].label).toBe("20 hours");
-        expect(opts.at(-1).label).toBe("48 hours");
+        expect(input.props()).toMatchObject({ modelValue: 32, min: 0, max: 48, step: 1 });
     });
 
-    it("binds the select to modelValue and emits on change", async () => {
+    it("binds the number input to modelValue and emits on change", async () => {
         const w = mount(WeeklyHoursField, { props: { modelValue: 0 } });
-        const select = w.getComponent(SelectInput);
+        const input = w.getComponent(NumberInput);
 
-        expect(select.props("modelValue")).toBe(0);
+        expect(input.props("modelValue")).toBe(0);
 
-        select.vm.$emit("update:modelValue", 40);
+        input.vm.$emit("update:modelValue", 37);
         await w.vm.$nextTick();
 
         expect(w.emitted("update:modelValue")).toBeTruthy();
-        expect(w.emitted("update:modelValue")[0]).toEqual([40]);
+        expect(w.emitted("update:modelValue")[0]).toEqual([37]);
+    });
+
+    it("warns for a positive value below the effective minimum", () => {
+        const w = mount(WeeklyHoursField, { props: { modelValue: 19, minimum: 20 } });
+
+        expect(w.get('[data-testid="weekly-hours-minimum-warning"]').text())
+            .toBe("Weekly hours are below the required minimum of 20.");
+    });
+
+    it("does not warn for zero or the minimum", () => {
+        expect(mount(WeeklyHoursField, { props: { modelValue: 0, minimum: 20 } })
+            .find('[data-testid="weekly-hours-minimum-warning"]').exists()).toBe(false);
+        expect(mount(WeeklyHoursField, { props: { modelValue: 20, minimum: 20 } })
+            .find('[data-testid="weekly-hours-minimum-warning"]').exists()).toBe(false);
     });
 
     it("passes disabled through", () => {
         const w = mount(WeeklyHoursField, { props: { modelValue: 32, disabled: true } });
-        expect(w.getComponent(SelectInput).props("disabled")).toBe(true);
+        expect(w.getComponent(NumberInput).props("disabled")).toBe(true);
     });
 
     it("shows an error message", () => {

@@ -25,6 +25,7 @@ const en = {
     "availability.tab.information": "Information",
     "availability.tab.details": "Details",
     "availability.tab.availability": "Availability",
+    "availability.tab.settings": "Settings",
     "availability.info.empty": "No information has been provided yet.",
     "availability.info.cta": "Please update your details, availability and competences on the different tabs.",
     "availability.hours_warning.not_preferred": "You will be planned on not-preferred hours.",
@@ -188,6 +189,7 @@ describe("Personal/Show", () => {
         const w = mountShow();
         expect(w.get('[data-testid="panel-details"]').findComponent(WeeklyHoursField).exists()).toBe(false);
         expect(w.get('[data-testid="panel-availability"]').findComponent(WeeklyHoursField).exists()).toBe(true);
+        expect(w.text()).not.toContain("Settings");
     });
 
     it("updates the availability-hours warning after an availability-grid change", async () => {

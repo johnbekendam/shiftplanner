@@ -58,6 +58,39 @@ class RecurringAvailabilityTest extends TestCase
         ]);
     }
 
+    public function test_hidden_shift_rejects_new_manager_and_personal_availability_writes(): void
+    {
+        $user = User::factory()->create();
+        $employee = Employee::factory()->create();
+        $token = $this->token($employee);
+        $shift = $this->shift();
+        $employee->shiftVisibilityOverrides()->attach($shift, ['visible' => false]);
+
+        $this->actingAs($user)
+            ->put("/employees/{$employee->id}/availability/3/{$shift->id}", ['level' => 'unavailable'])
+            ->assertSessionHasErrors('shift');
+
+        $this->put("/personal/{$token}/availability/3/{$shift->id}", ['level' => 'unavailable'])
+            ->assertSessionHasErrors('shift');
+
+        $this->assertSame(0, RecurringAvailability::count());
+    }
+
+    public function test_hiding_a_shift_keeps_existing_availability_dormant(): void
+    {
+        $employee = Employee::factory()->create();
+        $shift = $this->shift();
+        $availability = $employee->recurringAvailabilities()->create([
+            'weekday' => 3,
+            'shift_id' => $shift->id,
+            'level' => 'unavailable',
+        ]);
+
+        $employee->shiftVisibilityOverrides()->attach($shift, ['visible' => false]);
+
+        $this->assertDatabaseHas('recurring_availabilities', ['id' => $availability->id]);
+    }
+
     public function test_setting_a_cell_again_updates_the_same_row(): void
     {
         $user = User::factory()->create();
@@ -219,6 +252,40 @@ class RecurringAvailabilityTest extends TestCase
                 ->where('availability.0.weekday', 1)
                 ->where('availability.0.shift_id', $shift->id)
                 ->where('availability.0.level', 'not_preferred')
+            );
+    }
+
+    public function test_manager_and_personal_payloads_hide_ineligible_shifts(): void
+    {
+        $user = User::factory()->create();
+        $employee = Employee::factory()->create();
+        $token = $this->token($employee);
+        $visible = $this->shift('Visible');
+        $hidden = Shift::factory()->create([
+            'name' => 'Hidden',
+            'start_time' => '14:00',
+            'end_time' => '22:00',
+            'visible_by_default' => false,
+        ]);
+        $employee->recurringAvailabilities()->create([
+            'weekday' => 1,
+            'shift_id' => $hidden->id,
+            'level' => 'unavailable',
+        ]);
+
+        $this->actingAs($user)->get("/employees/{$employee->id}/edit")
+            ->assertInertia(fn ($page) => $page
+                ->has('shifts', 1)
+                ->where('shifts.0.id', $visible->id)
+                ->has('availability', 0)
+            );
+
+        $this->get("/personal/{$token}")
+            ->assertInertia(fn ($page) => $page
+                ->has('shifts', 1)
+                ->where('shifts.0.id', $visible->id)
+                ->has('availability', 0)
+                ->missing('shiftSettings')
             );
     }
 }

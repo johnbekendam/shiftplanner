@@ -63,6 +63,7 @@ class ShiftController extends Controller
             'name' => ['required', 'string', 'max:50', $this->uniqueName($ignore)],
             'start_time' => ['required', 'date_format:H:i'],
             'end_time' => ['required', 'date_format:H:i', 'after:start_time'],
+            'visible_by_default' => ['required', 'boolean'],
         ], [
             'end_time.after' => __('shifts.error.time_range'),
         ]);

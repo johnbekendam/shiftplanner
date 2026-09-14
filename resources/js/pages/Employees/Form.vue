@@ -7,6 +7,7 @@ import CardSeparator from '@/components/ui/CardSeparator.vue'
 import Tabs from '@/components/ui/Tabs.vue'
 import EmployeeFields from '@/components/EmployeeFields.vue'
 import WeeklyHoursField from '@/components/WeeklyHoursField.vue'
+import EmployeePlanningSettings from '@/components/EmployeePlanningSettings.vue'
 import AvailabilityGrid from '@/components/AvailabilityGrid.vue'
 import ShiftNote from '@/components/ShiftNote.vue'
 import HolidayList from '@/components/HolidayList.vue'
@@ -29,6 +30,9 @@ const props = defineProps({
     businessLines: { type: Array, default: () => [] },
     holidays: { type: Array, default: () => [] },
     shifts: { type: Array, default: () => [] },
+    shiftSettings: { type: Array, default: () => [] },
+    weeklyHoursMinimum: { type: Number, default: 20 },
+    globalWeeklyHoursMinimum: { type: Number, default: 20 },
     shiftNoteHtml: { type: String, default: null },
     scheduleNoteHtml: { type: String, default: null },
     availability: { type: Array, default: () => [] },
@@ -48,8 +52,17 @@ const form = useForm({
     last_name: props.employee?.last_name ?? '',
     email: props.employee?.email ?? '',
     weekly_hours: props.employee?.weekly_hours ?? 0,
+    weekly_hours_minimum: props.employee?.weekly_hours_minimum ?? null,
+    shift_visibility: props.shiftSettings.map((shift) => ({
+        shift_id: shift.id,
+        override: shift.visibility_override,
+    })),
     business_line_id: props.employee?.business_line_id ?? null,
 })
+
+const effectiveWeeklyHoursMinimum = computed(() =>
+    form.weekly_hours_minimum ?? props.globalWeeklyHoursMinimum,
+)
 
 const tab = ref('information')
 const tabs = computed(() => [
@@ -62,6 +75,7 @@ const tabs = computed(() => [
             || registry.hasError('holidays') || registry.hasError('questions'),
     },
     { value: 'competences', label: __('competences.tab'), hasError: registry.hasError('competences') },
+    { value: 'settings', label: __('availability.tab.settings'), hasError: registry.hasError('personal') },
 ])
 
 function submit() {
@@ -79,6 +93,7 @@ if (isEdit.value) {
                 async: true,
                 onSuccess: () => {
                     form.defaults()
+                    availabilityVersion.value++
                     resolve(true)
                 },
                 onError: () => resolve(false),
@@ -341,9 +356,10 @@ function onDeleteConfirm() {
             </div>
 
             <div v-if="isEdit" v-show="tab === 'availability'" data-testid="panel-availability" class="p-6">
-                <section class="mb-6 max-w-xs">
+                <section class="mb-6">
                     <WeeklyHoursField
                         :model-value="form.weekly_hours"
+                        :minimum="effectiveWeeklyHoursMinimum"
                         :error="form.errors.weekly_hours"
                         @update:model-value="onWeeklyHoursChange"
                     />
@@ -415,6 +431,14 @@ function onDeleteConfirm() {
                     :selected-ids="savedCompetenceIds"
                     empty-key="competences.checklist_empty"
                     @update:selected-ids="onSelectedCompetenceIdsChange"
+                />
+            </div>
+
+            <div v-if="isEdit" v-show="tab === 'settings'" data-testid="panel-settings" class="p-6">
+                <EmployeePlanningSettings
+                    :form="form"
+                    :shifts="shiftSettings"
+                    :inherited-minimum="globalWeeklyHoursMinimum"
                 />
             </div>
 

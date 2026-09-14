@@ -14,6 +14,11 @@ use Carbon\Carbon;
  */
 class SchedulingEligibility
 {
+    public function isShiftVisible(Employee $employee, Shift $shift): bool
+    {
+        return $employee->isShiftVisible($shift);
+    }
+
     public function isOnHoliday(Employee $employee, Carbon $date): bool
     {
         return $employee->holidays()

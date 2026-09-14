@@ -16,7 +16,15 @@ class Shift extends Model
         'name',
         'start_time',
         'end_time',
+        'visible_by_default',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'visible_by_default' => 'boolean',
+        ];
+    }
 
     protected static function booted(): void
     {
@@ -52,6 +60,13 @@ class Shift extends Model
         return $this->belongsToMany(Workcenter::class, 'workcenter_shift');
     }
 
+    public function employeeVisibilityOverrides(): BelongsToMany
+    {
+        return $this->belongsToMany(Employee::class, 'employee_shift_visibility_overrides')
+            ->withPivot('visible')
+            ->withTimestamps();
+    }
+
     /** The shape shared with the front end. */
     public function toPayload(): array
     {
@@ -60,6 +75,7 @@ class Shift extends Model
             'name' => $this->name,
             'start_time' => $this->start_time,
             'end_time' => $this->end_time,
+            'visible_by_default' => $this->visible_by_default,
         ];
     }
 }

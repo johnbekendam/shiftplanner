@@ -153,7 +153,8 @@ const shiftsDirty = computed(() => {
 
     return current.some((row) => {
         const orig = committed.find((c) => c.id === row.id)
-        return orig && (orig.name !== row.name || orig.start_time !== row.start_time || orig.end_time !== row.end_time)
+        return orig && (orig.name !== row.name || orig.start_time !== row.start_time
+            || orig.end_time !== row.end_time || orig.visible_by_default !== row.visible_by_default)
     })
 })
 
@@ -167,7 +168,8 @@ async function saveShifts() {
     const toEdit = current.filter((r) => {
         if (r.id === null || toDeleteIds.includes(r.id)) return false
         const orig = committed.find((c) => c.id === r.id)
-        return orig && (orig.name !== r.name || orig.start_time !== r.start_time || orig.end_time !== r.end_time)
+        return orig && (orig.name !== r.name || orig.start_time !== r.start_time
+            || orig.end_time !== r.end_time || orig.visible_by_default !== r.visible_by_default)
     })
     const noteChanged = currentScheduleNote.value !== committedScheduleNote.value
 
@@ -177,11 +179,13 @@ async function saveShifts() {
             name: r.name,
             start_time: r.start_time,
             end_time: r.end_time,
+            visible_by_default: r.visible_by_default,
         })),
         ...toAdd.map((r) => postAsync('/settings/shifts', {
             name: r.name,
             start_time: r.start_time,
             end_time: r.end_time,
+            visible_by_default: r.visible_by_default,
         })),
         ...(noteChanged ? [putAsync('/settings/shifts/schedule-note', { note: currentScheduleNote.value })] : []),
     ])

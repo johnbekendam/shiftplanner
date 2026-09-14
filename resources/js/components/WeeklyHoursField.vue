@@ -1,36 +1,37 @@
 <script setup>
-import { computed } from 'vue'
 import LabeledInput from '@/components/LabeledInput.vue'
-import { SelectInput } from '@/components/ui/Input'
+import { NumberInput } from '@/components/ui/Input'
 import { useI18n } from '@/composables/useI18n'
 
 const __ = useI18n()
-
-// The real weekly-hours choices. The below-minimum "0" option is appended
-// for an employee who cannot work the minimum.
-const WEEKLY_HOURS_OPTIONS = [20, 24, 28, 32, 36, 40, 44, 48]
 
 const model = defineModel({ type: Number, default: 0 })
 
 defineProps({
     disabled: { type: Boolean, default: false },
     error: { type: String, default: null },
+    minimum: { type: Number, default: 20 },
 })
-
-const options = computed(() => [
-    {
-        value: 0,
-        label: __('employees.hours_below_minimum', { min: WEEKLY_HOURS_OPTIONS[0] }),
-    },
-    ...WEEKLY_HOURS_OPTIONS.map((hours) => ({
-        value: hours,
-        label: __('employees.hours_option', { count: hours }),
-    })),
-])
 </script>
 
 <template>
     <LabeledInput :label="__('employees.field.weekly_hours')" :error="error">
-        <SelectInput v-model="model" :options="options" :disabled="disabled" class="w-full" />
+        <div class="flex items-center gap-3">
+            <NumberInput
+                v-model="model"
+                :min="0"
+                :max="48"
+                :step="1"
+                :disabled="disabled"
+                class="w-24 shrink-0"
+            />
+            <p
+                v-if="model > 0 && model < minimum"
+                data-testid="weekly-hours-minimum-warning"
+                class="min-w-0 flex-1 rounded-md border border-(--color-badge-warning-border) bg-(--color-badge-warning-bg) px-3 py-2 text-sm text-(--color-badge-warning-text)"
+            >
+                {{ __('employees.weekly_hours_below_minimum_warning', { min: minimum }) }}
+            </p>
+        </div>
     </LabeledInput>
 </template>

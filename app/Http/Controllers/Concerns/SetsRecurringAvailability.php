@@ -7,6 +7,7 @@ use App\Models\RecurringAvailability;
 use App\Models\Shift;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 trait SetsRecurringAvailability
 {
@@ -19,6 +20,10 @@ trait SetsRecurringAvailability
         $level = $request->validate([
             'level' => ['required', Rule::in(['available', ...RecurringAvailability::LEVELS])],
         ])['level'];
+
+        if (! $employee->isShiftVisible($shift)) {
+            throw ValidationException::withMessages(['shift' => __('availability.error.shift_hidden')]);
+        }
 
         $cell = $employee->recurringAvailabilities()
             ->where('weekday', $weekday)

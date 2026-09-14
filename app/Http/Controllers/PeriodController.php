@@ -11,6 +11,7 @@ class PeriodController extends Controller
     {
         $data = $request->validate([
             'fte_hours' => ['required', 'integer', 'min:1'],
+            'weekly_hours_minimum' => ['sometimes', 'required', 'integer', 'min:1', 'max:48'],
             'period_start' => ['nullable', 'date'],
             'period_end' => ['nullable', 'date', 'after_or_equal:period_start'],
             'allow_employee_changes' => ['required', 'boolean'],

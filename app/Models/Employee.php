@@ -31,6 +31,7 @@ class Employee extends Model
         'last_name',
         'email',
         'weekly_hours',
+        'weekly_hours_minimum',
         'business_line_id',
     ];
 
@@ -38,6 +39,7 @@ class Employee extends Model
     {
         return [
             'weekly_hours' => 'integer',
+            'weekly_hours_minimum' => 'integer',
         ];
     }
 
@@ -72,6 +74,29 @@ class Employee extends Model
     public function recurringAvailabilities(): HasMany
     {
         return $this->hasMany(RecurringAvailability::class);
+    }
+
+    public function shiftVisibilityOverrides(): BelongsToMany
+    {
+        return $this->belongsToMany(Shift::class, 'employee_shift_visibility_overrides')
+            ->withPivot('visible')
+            ->withTimestamps();
+    }
+
+    public function isShiftVisible(Shift $shift): bool
+    {
+        $override = $this->relationLoaded('shiftVisibilityOverrides')
+            ? $this->shiftVisibilityOverrides->firstWhere('id', $shift->id)
+            : $this->shiftVisibilityOverrides()->whereKey($shift->id)->first();
+
+        return $override === null
+            ? $shift->visible_by_default
+            : (bool) $override->pivot->getAttribute('visible');
+    }
+
+    public function effectiveWeeklyHoursMinimum(): int
+    {
+        return $this->weekly_hours_minimum ?? PlanningSettings::current()->weekly_hours_minimum;
     }
 
     public function competences(): BelongsToMany

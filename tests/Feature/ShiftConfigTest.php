@@ -51,6 +51,7 @@ class ShiftConfigTest extends TestCase
                 ->where('shifts.0.name', 'Early')
                 ->where('shifts.0.start_time', '06:00')
                 ->where('shifts.0.end_time', '14:00')
+                ->where('shifts.0.visible_by_default', true)
                 ->where('shifts.1.name', 'Late')
             );
     }
@@ -61,10 +62,13 @@ class ShiftConfigTest extends TestCase
     {
         $this->actingAsAdmin();
 
-        $this->post('/settings/shifts', $this->validPayload(['name' => 'Night']))
+        $this->post('/settings/shifts', $this->validPayload([
+            'name' => 'Night',
+            'visible_by_default' => false,
+        ]))
             ->assertRedirect();
 
-        $this->assertDatabaseHas('shifts', ['name' => 'Night']);
+        $this->assertDatabaseHas('shifts', ['name' => 'Night', 'visible_by_default' => false]);
     }
 
     public function test_a_blank_name_is_rejected(): void
@@ -134,11 +138,13 @@ class ShiftConfigTest extends TestCase
             'name' => 'Early bird',
             'start_time' => '05:30',
             'end_time' => '13:30',
+            'visible_by_default' => false,
         ])->assertRedirect();
 
         $this->assertDatabaseHas('shifts', [
             'id' => $shift->id,
             'name' => 'Early bird',
+            'visible_by_default' => false,
         ]);
         $this->assertSame('05:30', $shift->fresh()->start_time);
     }
@@ -183,6 +189,7 @@ class ShiftConfigTest extends TestCase
             'name' => 'Early',
             'start_time' => '06:00',
             'end_time' => '14:00',
+            'visible_by_default' => true,
         ], $overrides);
     }
 }

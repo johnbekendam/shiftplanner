@@ -12,6 +12,7 @@ class PlanningSettings extends Model
 
     protected $fillable = [
         'fte_hours',
+        'weekly_hours_minimum',
         'period_start',
         'period_end',
         'shift_note',
@@ -23,6 +24,7 @@ class PlanningSettings extends Model
     {
         return [
             'fte_hours' => 'integer',
+            'weekly_hours_minimum' => 'integer',
             'period_start' => 'date:Y-m-d',
             'period_end' => 'date:Y-m-d',
             'allow_employee_changes' => 'boolean',
@@ -34,6 +36,7 @@ class PlanningSettings extends Model
     {
         return static::firstOrCreate(['id' => self::ID], [
             'fte_hours' => 40,
+            'weekly_hours_minimum' => 20,
             'allow_employee_changes' => true,
         ]);
     }
@@ -94,6 +97,7 @@ class PlanningSettings extends Model
     {
         return [
             'fte_hours' => $this->fte_hours,
+            'weekly_hours_minimum' => $this->weekly_hours_minimum,
             'period_start' => $this->period_start?->toDateString(),
             'period_end' => $this->period_end?->toDateString(),
             'allow_employee_changes' => $this->allow_employee_changes,

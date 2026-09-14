@@ -45,7 +45,7 @@ class EmployeeController extends Controller
         $query = Employee::query()
             ->select('employees.*')
             ->leftJoin('business_lines', 'business_lines.id', '=', 'employees.business_line_id')
-            ->with(['businessLine', 'recurringAvailabilities']);
+            ->with(['businessLine', 'recurringAvailabilities', 'shiftVisibilityOverrides']);
 
         foreach (self::SORT_COLUMNS[$sort] as $column) {
             $query->orderBy($column, $direction);
@@ -96,21 +96,37 @@ class EmployeeController extends Controller
 
     public function edit(Employee $employee)
     {
+        $employee->load('shiftVisibilityOverrides');
+        $shifts = Shift::all();
+        $visibleShifts = $shifts->filter(fn (Shift $shift) => $employee->isShiftVisible($shift));
+        $overrides = $employee->shiftVisibilityOverrides->keyBy('id');
+
         return Inertia::render('Employees/Form', [
             'employee' => [
-                ...$employee->only(['id', 'first_name', 'last_name', 'email', 'weekly_hours', 'business_line_id']),
+                ...$employee->only(['id', 'first_name', 'last_name', 'email', 'weekly_hours', 'weekly_hours_minimum', 'business_line_id']),
                 'link_sent' => Message::query()
                     ->where('type', MessageType::PersonalPageLink)
                     ->where('status', 'sent')
                     ->where('recipient_email', $employee->email)
                     ->exists(),
             ],
+            'weeklyHoursMinimum' => $employee->effectiveWeeklyHoursMinimum(),
+            'globalWeeklyHoursMinimum' => PlanningSettings::current()->weekly_hours_minimum,
             'businessLines' => BusinessLine::all()->map->toPayload()->all(),
             'holidays' => $employee->holidays->map->toPayload()->all(),
-            'shifts' => Shift::all()->map->toPayload()->all(),
+            'shifts' => $visibleShifts->map->toPayload()->values()->all(),
+            'shiftSettings' => $shifts->map(fn (Shift $shift) => [
+                ...$shift->toPayload(),
+                'visibility_override' => ($override = $overrides->get($shift->id))
+                    ? (bool) $override->pivot->getAttribute('visible')
+                    : null,
+                'effective_visible' => $employee->isShiftVisible($shift),
+            ])->values()->all(),
             'shiftNoteHtml' => PlanningSettings::current()->shiftNoteHtml($employee->first_name),
             'scheduleNoteHtml' => PlanningSettings::current()->scheduleNoteHtml($employee->first_name),
-            'availability' => $employee->recurringAvailabilities->map->toPayload()->all(),
+            'availability' => $employee->recurringAvailabilities
+                ->whereIn('shift_id', $visibleShifts->pluck('id'))
+                ->map->toPayload()->values()->all(),
             'competences' => Competence::all()->map->toPayload()->all(),
             'competenceIds' => $employee->competences->pluck('id')->all(),
             'questions' => AvailabilityQuestion::all()->map->toPayload()->all(),
@@ -120,7 +136,23 @@ class EmployeeController extends Controller
 
     public function update(Request $request, Employee $employee)
     {
-        $employee->update($this->validated($request, $employee));
+        $data = $this->validated($request, $employee);
+        $shiftVisibility = $data['shift_visibility'] ?? null;
+        unset($data['shift_visibility']);
+
+        $employee->fill($data);
+        $employee->save();
+
+        if ($shiftVisibility !== null) {
+            $employee->shiftVisibilityOverrides()->sync(
+                collect($shiftVisibility)
+                    ->whereNotNull('override')
+                    ->mapWithKeys(fn (array $item) => [
+                        $item['shift_id'] => ['visible' => $item['override']],
+                    ])
+                    ->all()
+            );
+        }
 
         return redirect("/employees/{$employee->id}/edit")->with('success', __('employees.flash.updated'));
     }
@@ -152,13 +184,17 @@ class EmployeeController extends Controller
             ->whereIn('weekday', self::WEEKDAYS)
             ->groupBy('shift_id');
 
-        return $shifts->map(fn (Shift $shift) => [
-            'shift_id' => $shift->id,
-            'name' => $shift->name,
-            'coverage_percentage' => (int) round(
-                ((count(self::WEEKDAYS) - ($unavailable->get($shift->id)?->count() ?? 0)) / count(self::WEEKDAYS)) * 100
-            ),
-        ])->all();
+        return $shifts
+            ->filter(fn (Shift $shift) => $employee->isShiftVisible($shift))
+            ->map(fn (Shift $shift) => [
+                'shift_id' => $shift->id,
+                'name' => $shift->name,
+                'coverage_percentage' => (int) round(
+                    ((count(self::WEEKDAYS) - ($unavailable->get($shift->id)?->count() ?? 0)) / count(self::WEEKDAYS)) * 100
+                ),
+            ])
+            ->values()
+            ->all();
     }
 
     public function personalPage(Employee $employee)
@@ -200,12 +236,23 @@ class EmployeeController extends Controller
 
     private function validated(Request $request, ?Employee $employee = null): array
     {
-        return $request->validate([
+        $rules = [
             'first_name' => ['required', 'string', 'max:255'],
             'last_name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', Rule::unique('employees', 'email')->ignore($employee?->id)],
-            'weekly_hours' => ['required', 'integer', Rule::in(Employee::WEEKLY_HOURS_OPTIONS)],
+            'weekly_hours' => ['required', 'integer', 'min:0', 'max:48'],
             'business_line_id' => ['nullable', 'integer', 'exists:business_lines,id'],
-        ]);
+        ];
+
+        if ($employee !== null) {
+            $rules += [
+                'weekly_hours_minimum' => ['nullable', 'integer', 'min:1', 'max:48'],
+                'shift_visibility' => ['sometimes', 'array'],
+                'shift_visibility.*.shift_id' => ['required', 'integer', 'distinct', 'exists:shifts,id'],
+                'shift_visibility.*.override' => ['nullable', 'boolean'],
+            ];
+        }
+
+        return $request->validate($rules);
     }
 }

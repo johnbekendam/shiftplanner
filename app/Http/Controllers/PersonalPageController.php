@@ -10,7 +10,6 @@ use App\Models\PlanningSettings;
 use App\Models\Shift;
 use App\Services\EmployeePersonalLinkService;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 
 /**
@@ -36,6 +35,9 @@ class PersonalPageController extends Controller
             return redirect('/signup')->with('error', __('personal.link_invalid'));
         }
 
+        $employee->load('shiftVisibilityOverrides');
+        $visibleShifts = Shift::all()->filter(fn (Shift $shift) => $employee->isShiftVisible($shift));
+
         return Inertia::render('Personal/Show', [
             'token' => $token,
             'editable' => PlanningSettings::current()->allow_employee_changes,
@@ -46,12 +48,15 @@ class PersonalPageController extends Controller
                 'weekly_hours' => $employee->weekly_hours,
                 'business_line_id' => $employee->business_line_id,
             ],
+            'weeklyHoursMinimum' => $employee->effectiveWeeklyHoursMinimum(),
             'businessLines' => BusinessLine::all()->map->toPayload()->all(),
             'holidays' => $employee->holidays->map->toPayload()->all(),
-            'shifts' => Shift::all()->map->toPayload()->all(),
+            'shifts' => $visibleShifts->map->toPayload()->values()->all(),
             'shiftNoteHtml' => PlanningSettings::current()->shiftNoteHtml($employee->first_name),
             'scheduleNoteHtml' => PlanningSettings::current()->scheduleNoteHtml($employee->first_name),
-            'availability' => $employee->recurringAvailabilities->map->toPayload()->all(),
+            'availability' => $employee->recurringAvailabilities
+                ->whereIn('shift_id', $visibleShifts->pluck('id'))
+                ->map->toPayload()->values()->all(),
             'competences' => Competence::all()->map->toPayload()->all(),
             'competenceIds' => $employee->competences->pluck('id')->all(),
             'questions' => AvailabilityQuestion::all()->map->toPayload()->all(),
@@ -63,10 +68,12 @@ class PersonalPageController extends Controller
     {
         $employee = $this->resolveOrFail($token);
 
-        $employee->update($request->validate([
-            'weekly_hours' => ['required', 'integer', Rule::in(Employee::WEEKLY_HOURS_OPTIONS)],
+        $data = $request->validate([
+            'weekly_hours' => ['required', 'integer', 'min:0', 'max:48'],
             'business_line_id' => ['nullable', 'integer', 'exists:business_lines,id'],
-        ]));
+        ]);
+
+        $employee->update($data);
 
         return redirect("/personal/{$token}")->with('success', __('personal.flash.saved'));
     }

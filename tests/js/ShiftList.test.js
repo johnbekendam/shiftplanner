@@ -5,6 +5,7 @@ const en = {
     "shifts.name": "Name",
     "shifts.start_time": "Start",
     "shifts.end_time": "End",
+    "shifts.visible_by_default": "Visible by default",
     "shifts.add": "Add shift",
     "shifts.add_name_placeholder": "New shift",
     "shifts.delete": "Delete",
@@ -16,11 +17,11 @@ vi.mock("@inertiajs/vue3", () => ({
 }));
 
 import ShiftList from "@/components/ShiftList.vue";
-import { TextInput, TimeInput } from "@/components/ui/Input";
+import { TextInput, TimeInput, CheckboxInput } from "@/components/ui/Input";
 
 const items = [
-    { id: 1, name: "Early", start_time: "06:00", end_time: "14:00" },
-    { id: 2, name: "Late", start_time: "14:00", end_time: "22:00" },
+    { id: 1, name: "Early", start_time: "06:00", end_time: "14:00", visible_by_default: true },
+    { id: 2, name: "Late", start_time: "14:00", end_time: "22:00", visible_by_default: false },
 ];
 
 const mountList = (props = {}) => mount(ShiftList, { props: { items, ...props } });
@@ -32,6 +33,16 @@ describe("ShiftList", () => {
         expect(w.text()).toContain("Name");
         expect(w.text()).toContain("Start");
         expect(w.text()).toContain("End");
+        expect(w.text()).toContain("Visible by default");
+    });
+
+    it("edits default visibility locally", async () => {
+        const w = mountList();
+        const firstRow = w.findAll('[data-testid="shift-row"]')[0];
+        firstRow.findComponent(CheckboxInput).vm.$emit("update:modelValue", false);
+        await w.vm.$nextTick();
+
+        expect(w.emitted("update:items").at(-1)[0][0].visible_by_default).toBe(false);
     });
 
     it("shows an empty state with no items", () => {
@@ -62,7 +73,7 @@ describe("ShiftList", () => {
         expect(w.findAll('[data-testid="shift-row"]')).toHaveLength(1);
         const emitted = w.emitted("update:items");
         expect(emitted.at(-1)[0]).toMatchObject([
-            { id: null, name: "Night", start_time: "22:00", end_time: "23:30" },
+            { id: null, name: "Night", start_time: "22:00", end_time: "23:30", visible_by_default: true },
         ]);
     });
 

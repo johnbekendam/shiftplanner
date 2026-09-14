@@ -37,6 +37,7 @@ class PersonalPageTest extends TestCase
                 ->where('employee.last_name', 'Person')
                 ->where('employee.email', 'pat@example.com')
                 ->where('employee.weekly_hours', 28)
+                ->where('weeklyHoursMinimum', 20)
                 ->where('employee.business_line_id', $line->id)
                 ->has('businessLines', 1)
                 ->where('businessLines.0.abbreviation', 'PMP')
@@ -135,12 +136,29 @@ class PersonalPageTest extends TestCase
         $this->assertSame(0, $employee->fresh()->weekly_hours);
     }
 
-    public function test_weekly_hours_update_rejects_a_value_outside_the_allowed_set(): void
+    public function test_weekly_hours_update_accepts_any_whole_value_and_preserves_below_minimum(): void
     {
         [$employee, $token] = $this->linkedEmployee(['weekly_hours' => 20]);
 
-        $this->put("/personal/{$token}", ['weekly_hours' => 22])
-            ->assertSessionHasErrors('weekly_hours');
+        $this->put("/personal/{$token}", ['weekly_hours' => 37])
+            ->assertSessionHasNoErrors();
+        $this->assertSame(37, $employee->fresh()->weekly_hours);
+
+        $employee->update(['weekly_hours_minimum' => 30]);
+        $this->put("/personal/{$token}", ['weekly_hours' => 29])
+            ->assertSessionHasNoErrors();
+        $this->assertSame(29, $employee->fresh()->weekly_hours);
+    }
+
+    public function test_weekly_hours_update_rejects_a_value_outside_the_allowed_range(): void
+    {
+        [$employee, $token] = $this->linkedEmployee(['weekly_hours' => 20]);
+
+        foreach ([-1, 49, 20.5, 'many'] as $value) {
+            $this->put("/personal/{$token}", ['weekly_hours' => $value])
+                ->assertSessionHasErrors('weekly_hours');
+        }
+
         $this->assertSame(20, $employee->fresh()->weekly_hours);
     }
 

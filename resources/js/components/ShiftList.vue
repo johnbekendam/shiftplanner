@@ -2,7 +2,7 @@
 import { reactive, ref, watch } from 'vue'
 import ButtonPrimary from '@/components/ui/ButtonPrimary.vue'
 import ButtonDanger from '@/components/ui/ButtonDanger.vue'
-import { TextInput, TimeInput } from '@/components/ui/Input'
+import { TextInput, TimeInput, CheckboxInput } from '@/components/ui/Input'
 import { useI18n } from '@/composables/useI18n'
 
 const __ = useI18n()
@@ -22,18 +22,26 @@ const rows = ref(props.items.map((item) => ({ ...item })))
 
 watch(rows, () => emit('update:items', rows.value), { deep: true })
 
-const draft = reactive({ name: '', start_time: '', end_time: '' })
+const draft = reactive({ name: '', start_time: '', end_time: '', visible_by_default: true })
 
 function add() {
     if ((draft.name ?? '').trim() === '') return
 
     rows.value = [
         ...rows.value,
-        { id: null, _key: nextLocalKey--, name: draft.name, start_time: draft.start_time, end_time: draft.end_time },
+        {
+            id: null,
+            _key: nextLocalKey--,
+            name: draft.name,
+            start_time: draft.start_time,
+            end_time: draft.end_time,
+            visible_by_default: draft.visible_by_default,
+        },
     ]
     draft.name = ''
     draft.start_time = ''
     draft.end_time = ''
+    draft.visible_by_default = true
 }
 
 function remove(item) {
@@ -49,6 +57,7 @@ function remove(item) {
                     <th class="py-2 pr-3 font-medium">{{ __('shifts.name') }}</th>
                     <th class="w-28 py-2 pr-3 font-medium">{{ __('shifts.start_time') }}</th>
                     <th class="w-28 py-2 pr-3 font-medium">{{ __('shifts.end_time') }}</th>
+                    <th class="w-40 py-2 pr-3 font-medium">{{ __('shifts.visible_by_default') }}</th>
                     <th class="w-14 py-2" />
                 </tr>
             </thead>
@@ -78,6 +87,9 @@ function remove(item) {
                             :data-testid="`shift-end-time-${item.id ?? item._key}`"
                         />
                     </td>
+                    <td class="py-2 pr-3 align-middle">
+                        <CheckboxInput v-model="item.visible_by_default" />
+                    </td>
                     <td class="px-1 py-2 align-top">
                         <ButtonDanger
                             type="button"
@@ -90,7 +102,7 @@ function remove(item) {
                 </tr>
 
                 <tr v-if="!rows.length">
-                    <td colspan="4" class="py-6 text-center text-(--color-text-secondary)">
+                    <td colspan="5" class="py-6 text-center text-(--color-text-secondary)">
                         {{ __('shifts.list_empty') }}
                     </td>
                 </tr>
@@ -108,6 +120,9 @@ function remove(item) {
                     </td>
                     <td class="py-2 pr-3 align-top">
                         <TimeInput v-model="draft.end_time" />
+                    </td>
+                    <td class="py-2 pr-3 align-middle">
+                        <CheckboxInput v-model="draft.visible_by_default" />
                     </td>
                     <td class="px-1 py-2 text-right align-top">
                         <ButtonPrimary

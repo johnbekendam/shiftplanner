@@ -29,6 +29,7 @@ const props = defineProps({
     businessLines: { type: Array, default: () => [] },
     holidays: { type: Array, default: () => [] },
     shifts: { type: Array, default: () => [] },
+    weeklyHoursMinimum: { type: Number, default: 20 },
     shiftNoteHtml: { type: String, default: null },
     scheduleNoteHtml: { type: String, default: null },
     availability: { type: Array, default: () => [] },
@@ -319,9 +320,10 @@ function onWithdrawConfirm() {
         </div>
 
         <div v-show="tab === 'availability'" data-testid="panel-availability">
-            <section class="mb-6 max-w-xs">
+            <section class="mb-6">
                 <WeeklyHoursField
                     :model-value="form.weekly_hours"
+                    :minimum="weeklyHoursMinimum"
                     :error="form.errors.weekly_hours"
                     :disabled="!editable"
                     @update:model-value="onWeeklyHoursChange"

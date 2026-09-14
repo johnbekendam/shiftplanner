@@ -244,7 +244,7 @@ function bulkDelete() {
                                 {{ __('employees.hours_option', { count: employee.weekly_hours }) }}
                             </td>
                             <td class="px-2 py-2 text-(--color-table-row-text)">
-                                <div class="flex flex-wrap gap-1.5">
+                                <div data-testid="shift-coverage" class="flex flex-col items-start gap-1.5">
                                     <span
                                         v-for="shift in employee.shift_coverage ?? []"
                                         :key="shift.shift_id"

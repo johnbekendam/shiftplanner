@@ -48,6 +48,16 @@ class EmployeeAdminTest extends TestCase
         $employee = Employee::factory()->create(['first_name' => 'Aaron', 'last_name' => 'Able']);
         $morning = Shift::factory()->create(['name' => 'Morning', 'start_time' => '08:00', 'end_time' => '12:00']);
         $evening = Shift::factory()->create(['name' => 'Evening', 'start_time' => '16:00', 'end_time' => '20:00']);
+        $night = Shift::factory()->create([
+            'name' => 'Night',
+            'start_time' => '20:00',
+            'end_time' => '23:00',
+            'visible_by_default' => false,
+        ]);
+        $employee->shiftVisibilityOverrides()->attach([
+            $evening->id => ['visible' => false],
+            $night->id => ['visible' => true],
+        ]);
 
         RecurringAvailability::factory()->create([
             'employee_id' => $employee->id,
@@ -80,8 +90,8 @@ class EmployeeAdminTest extends TestCase
                 ->has('employees.data.0.shift_coverage', 2)
                 ->where('employees.data.0.shift_coverage.0.name', 'Morning')
                 ->where('employees.data.0.shift_coverage.0.coverage_percentage', 60)
-                ->where('employees.data.0.shift_coverage.1.name', 'Evening')
-                ->where('employees.data.0.shift_coverage.1.coverage_percentage', 80)
+                ->where('employees.data.0.shift_coverage.1.name', 'Night')
+                ->where('employees.data.0.shift_coverage.1.coverage_percentage', 100)
             );
     }
 
@@ -163,11 +173,25 @@ class EmployeeAdminTest extends TestCase
         $this->assertSame(0, Employee::count());
     }
 
-    public function test_create_rejects_weekly_hours_outside_the_allowed_set(): void
+    public function test_create_accepts_any_whole_weekly_hours_value_in_range(): void
     {
         $user = User::factory()->create();
 
-        foreach ([18, 22, 52, 40.5, 'many'] as $bad) {
+        $this->actingAs($user)->post('/employees', [
+            'first_name' => 'Flexible',
+            'last_name' => 'Hours',
+            'email' => 'flexible.hours@example.com',
+            'weekly_hours' => 37,
+        ])->assertSessionHasNoErrors();
+
+        $this->assertSame(37, Employee::firstWhere('email', 'flexible.hours@example.com')->weekly_hours);
+    }
+
+    public function test_create_rejects_weekly_hours_outside_the_allowed_range(): void
+    {
+        $user = User::factory()->create();
+
+        foreach ([-1, 49, 40.5, 'many'] as $bad) {
             $this->actingAs($user)->post('/employees', [
                 'first_name' => 'Bad',
                 'last_name' => 'Hours',
@@ -177,6 +201,20 @@ class EmployeeAdminTest extends TestCase
         }
 
         $this->assertSame(0, Employee::count());
+    }
+
+    public function test_save_preserves_positive_weekly_hours_below_the_effective_minimum(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)->post('/employees', [
+            'first_name' => 'Below',
+            'last_name' => 'Minimum',
+            'email' => 'normalized@example.com',
+            'weekly_hours' => 19,
+        ])->assertSessionHasNoErrors();
+
+        $this->assertSame(19, Employee::firstWhere('email', 'normalized@example.com')->weekly_hours);
     }
 
     public function test_create_accepts_zero_weekly_hours_for_an_employee_below_the_minimum(): void
@@ -232,6 +270,51 @@ class EmployeeAdminTest extends TestCase
             'last_name' => 'Name',
             'weekly_hours' => 40,
         ]);
+    }
+
+    public function test_edit_and_update_employee_planning_settings(): void
+    {
+        $user = User::factory()->create();
+        $employee = Employee::factory()->create();
+        $visible = Shift::factory()->create(['name' => 'Visible', 'start_time' => '06:00', 'end_time' => '14:00']);
+        $hidden = Shift::factory()->create([
+            'name' => 'Hidden',
+            'start_time' => '14:00',
+            'end_time' => '22:00',
+            'visible_by_default' => false,
+        ]);
+
+        $this->actingAs($user)->get("/employees/{$employee->id}/edit")->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('weeklyHoursMinimum', 20)
+                ->has('shiftSettings', 2)
+                ->where('shiftSettings.0.id', $visible->id)
+                ->where('shiftSettings.0.visibility_override', null)
+                ->where('shiftSettings.0.effective_visible', true)
+                ->where('shiftSettings.1.id', $hidden->id)
+                ->where('shiftSettings.1.effective_visible', false)
+                ->has('shifts', 1)
+                ->where('shifts.0.id', $visible->id)
+            );
+
+        $this->actingAs($user)->put("/employees/{$employee->id}", [
+            'first_name' => $employee->first_name,
+            'last_name' => $employee->last_name,
+            'email' => $employee->email,
+            'weekly_hours' => 27,
+            'weekly_hours_minimum' => 28,
+            'shift_visibility' => [
+                ['shift_id' => $visible->id, 'override' => false],
+                ['shift_id' => $hidden->id, 'override' => null],
+            ],
+        ])->assertSessionHasNoErrors();
+
+        $employee->refresh();
+        $this->assertSame(28, $employee->weekly_hours_minimum);
+        $this->assertSame(27, $employee->weekly_hours);
+        $this->assertFalse($employee->isShiftVisible($visible));
+        $this->assertFalse($employee->isShiftVisible($hidden));
+        $this->assertSame(1, $employee->shiftVisibilityOverrides()->count());
     }
 
     public function test_update_keeps_own_email_without_unique_conflict(): void

@@ -102,6 +102,19 @@ class EligibleEmployeeTest extends TestCase
         $this->assertNotContains($employee->id, $ids);
     }
 
+    public function test_excludes_an_employee_when_the_shift_is_hidden(): void
+    {
+        $this->actingAsAdmin();
+        $workcenter = Workcenter::factory()->create();
+        $shift = Shift::factory()->create();
+        $employee = Employee::factory()->create();
+        $employee->shiftVisibilityOverrides()->attach($shift, ['visible' => false]);
+
+        $ids = collect($this->get($this->url($workcenter, $shift))->json())->pluck('id');
+
+        $this->assertNotContains($employee->id, $ids);
+    }
+
     public function test_excludes_an_employee_with_a_same_date_overlapping_assignment(): void
     {
         $this->actingAsAdmin();

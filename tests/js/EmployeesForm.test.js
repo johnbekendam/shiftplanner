@@ -6,6 +6,7 @@ const en = {
     "availability.tab.information": "Information",
     "availability.tab.details": "Details",
     "availability.tab.availability": "Availability",
+    "availability.tab.settings": "Settings",
     "availability.info.empty": "No information has been provided yet.",
     "availability.info.cta": "Please update your details, availability and competences on the different tabs.",
     "availability.hours_warning.not_preferred": "You will be planned on not-preferred hours.",
@@ -93,6 +94,8 @@ import AvailabilityGrid from "@/components/AvailabilityGrid.vue";
 import ShiftNote from "@/components/ShiftNote.vue";
 import TagChecklist from "@/components/TagChecklist.vue";
 import QuestionChecklist from "@/components/QuestionChecklist.vue";
+import EmployeePlanningSettings from "@/components/EmployeePlanningSettings.vue";
+import { NumberInput } from "@/components/ui/Input";
 
 const stubs = { AppLayout: { template: "<div><slot /></div>" }, teleport: true };
 const findSaveButton = (w) => w.findAll("button").find((b) => ["Save", "Saving…", "Saved"].includes(b.text()));
@@ -113,6 +116,83 @@ describe("Employees/Form", () => {
         expect(w.text()).toContain("Information");
         expect(w.text()).toContain("Details");
         expect(w.text()).toContain("Availability");
+        expect(w.text()).toContain("Settings");
+    });
+
+    it("shows employee planning rules only on the manager edit page", () => {
+        const w = mount(Form, {
+            props: {
+                employee: { id: 3, first_name: "A", last_name: "B", email: "a@b.c", weekly_hours: 24, weekly_hours_minimum: null },
+                weeklyHoursMinimum: 20,
+                shiftSettings: [{ id: 1, name: "Early", visibility_override: null, effective_visible: true }],
+                holidays: [],
+            },
+            global: { stubs },
+        });
+
+        const settings = w.findComponent(EmployeePlanningSettings);
+        expect(settings.exists()).toBe(true);
+        expect(settings.props("inheritedMinimum")).toBe(20);
+        expect(settings.props("shifts")).toHaveLength(1);
+        expect(settings.props("form").shift_visibility).toEqual([{ shift_id: 1, override: null }]);
+
+        const create = mount(Form, { props: { employee: null, holidays: [] }, global: { stubs } });
+        expect(create.findComponent(EmployeePlanningSettings).exists()).toBe(false);
+    });
+
+    it("uses a changed employee minimum for the warning and preserves the saved hours", async () => {
+        const w = mount(Form, {
+            props: {
+                employee: { id: 3, first_name: "A", last_name: "B", email: "a@b.c", weekly_hours: 27, weekly_hours_minimum: null },
+                weeklyHoursMinimum: 20,
+                globalWeeklyHoursMinimum: 20,
+                holidays: [],
+            },
+            global: { stubs },
+        });
+        const form = w.findComponent(EmployeeFields).props("form");
+
+        w.findComponent(EmployeePlanningSettings).findComponent(NumberInput)
+            .vm.$emit("update:modelValue", 28);
+        await w.vm.$nextTick();
+
+        expect(w.findComponent(WeeklyHoursField).props("minimum")).toBe(28);
+        expect(w.findComponent(WeeklyHoursField).text()).toContain("employees.weekly_hours_below_minimum_warning");
+
+        await findSaveButton(w).trigger("click");
+        await flushPromises();
+        expect(form.weekly_hours).toBe(27);
+    });
+
+    it("shows a newly enabled shift as available after the employee settings save", async () => {
+        const shift = {
+            id: 7,
+            name: "Night",
+            start_time: "20:00",
+            end_time: "23:00",
+            visible_by_default: false,
+            visibility_override: null,
+            effective_visible: false,
+        };
+        const w = mount(Form, {
+            props: {
+                employee: { id: 3, first_name: "A", last_name: "B", email: "a@b.c", weekly_hours: 24 },
+                shifts: [],
+                shiftSettings: [shift],
+                holidays: [],
+            },
+            global: { stubs },
+        });
+        const form = w.findComponent(EmployeeFields).props("form");
+
+        await w.setProps({ shifts: [shift] });
+        form.shift_visibility = [{ shift_id: shift.id, override: true }];
+        await w.vm.$nextTick();
+
+        await findSaveButton(w).trigger("click");
+        await flushPromises();
+
+        expect(w.get('[data-testid="cell-1-7"]').classes()).toContain("bg-(--color-badge-success-bg)");
     });
 
     it("starts on Information and reveals Availability on tab click", async () => {

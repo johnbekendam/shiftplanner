@@ -15,6 +15,7 @@ class EmployeeFactory extends Factory
             'last_name' => fake()->lastName(),
             'email' => fake()->unique()->safeEmail(),
             'weekly_hours' => fake()->randomElement(Employee::WEEKLY_HOURS_OPTIONS),
+            'weekly_hours_minimum' => null,
         ];
     }
 }
