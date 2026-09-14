@@ -29,10 +29,10 @@ describe("WeeklyHoursField", () => {
     });
 
     it("binds the select to modelValue and emits on change", async () => {
-        const w = mount(WeeklyHoursField, { props: { modelValue: 32 } });
+        const w = mount(WeeklyHoursField, { props: { modelValue: 0 } });
         const select = w.getComponent(SelectInput);
 
-        expect(select.props("modelValue")).toBe(32);
+        expect(select.props("modelValue")).toBe(0);
 
         select.vm.$emit("update:modelValue", 40);
         await w.vm.$nextTick();

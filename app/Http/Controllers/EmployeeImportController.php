@@ -41,7 +41,7 @@ class EmployeeImportController extends Controller
             $names = ['first_name' => $row['first_name'], 'last_name' => $row['last_name']];
 
             if ($employee === null) {
-                Employee::create([...$names, 'email' => $row['email']]);
+                Employee::create([...$names, 'email' => $row['email'], 'weekly_hours' => Employee::DEFAULT_WEEKLY_HOURS]);
                 $created++;
             } elseif ($employee->first_name !== $row['first_name'] || $employee->last_name !== $row['last_name']) {
                 $employee->update($names);

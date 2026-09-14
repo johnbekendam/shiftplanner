@@ -44,7 +44,7 @@ describe("AppLayout navigation", () => {
         expect(hrefs).toEqual(["/dashboard", "/employees", "/users"]);
     });
 
-    it("shows Import, Mailbox, Workcenter Shifts, Scheduling, Users and Settings to an admin, but not Theme Builder", () => {
+    it("shows Import, Mailbox, Users and Settings to an admin, but not Theme Builder, Workcenter Shifts or Scheduling", () => {
         state.user = { role: "admin" };
         const hrefs = navHrefs(mount(AppLayout, { global: { stubs } }));
 
@@ -53,8 +53,6 @@ describe("AppLayout navigation", () => {
             "/employees",
             "/users",
             "/mailbox",
-            "/workcenter-shifts",
-            "/scheduling",
             "/settings",
             "/import",
         ]);

@@ -18,7 +18,7 @@ class Employee extends Model
     public const MIN_WEEKLY_HOURS = 20;
 
     /** The default value for a newly created employee. */
-    public const DEFAULT_WEEKLY_HOURS = 32;
+    public const DEFAULT_WEEKLY_HOURS = 0;
 
     /**
      * Allowed values for the weekly_hours column: 20 to 48 in steps of 4,

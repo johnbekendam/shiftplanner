@@ -53,8 +53,6 @@ const navItems = computed(() => {
     if (isAdmin.value) {
         items.push(
             { label: __('nav.mailbox'), href: '/mailbox', icon: 'envelope' },
-            { label: __('nav.workcenter_shifts'), href: '/workcenter-shifts', icon: 'table-cells' },
-            { label: __('nav.scheduling'), href: '/scheduling', icon: 'calendar-days' },
             { label: __('nav.settings'), href: '/settings', icon: 'cog' },
             { label: __('nav.import'), href: '/import', icon: 'upload' },
         )

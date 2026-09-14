@@ -6,6 +6,7 @@ use App\Models\Employee;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
 
@@ -65,7 +66,18 @@ class EmployeeImportTest extends TestCase
     {
         $this->import("first_name,last_name,email\nJane,Doe,jane@example.com\n")->assertOk();
 
-        $this->assertSame(32, Employee::firstWhere('email', 'jane@example.com')->weekly_hours);
+        $this->assertSame(0, Employee::firstWhere('email', 'jane@example.com')->weekly_hours);
+    }
+
+    public function test_database_default_weekly_hours_is_below_minimum(): void
+    {
+        $id = DB::table('employees')->insertGetId([
+            'first_name' => 'Jane',
+            'last_name' => 'Doe',
+            'email' => 'jane@example.com',
+        ]);
+
+        $this->assertSame(0, Employee::findOrFail($id)->weekly_hours);
     }
 
     public function test_it_updates_the_name_of_an_existing_employee_matched_by_email(): void

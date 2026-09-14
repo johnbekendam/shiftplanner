@@ -8,7 +8,6 @@ import Tabs from '@/components/ui/Tabs.vue'
 import OrderedNameList from '@/components/OrderedNameList.vue'
 import BusinessLineList from '@/components/BusinessLineList.vue'
 import ShiftList from '@/components/ShiftList.vue'
-import WorkcenterList from '@/components/WorkcenterList.vue'
 import ShiftNoteForm from '@/components/ShiftNoteForm.vue'
 import ScheduleNoteForm from '@/components/ScheduleNoteForm.vue'
 import PeriodSettingsForm from '@/components/PeriodSettingsForm.vue'
@@ -35,7 +34,6 @@ const tabs = computed(() => [
     { value: 'general', label: __('settings.tab.general'), dirty: periodFormRef.value?.isDirty ?? false },
     { value: 'business_lines', label: __('settings.tab.business_lines'), dirty: businessLinesDirty.value },
     { value: 'shifts', label: __('settings.tab.shifts'), dirty: shiftsDirty.value },
-    { value: 'workcenters', label: __('settings.tab.workcenters'), dirty: workcentersDirty.value },
     { value: 'questions', label: __('settings.tab.questions'), dirty: questionsTab.dirty.value },
     { value: 'competences', label: __('settings.tab.competences'), dirty: competencesTab.dirty.value },
     { value: 'information', label: __('settings.tab.information'), dirty: shiftNoteFormRef.value?.isDirty ?? false },
@@ -457,21 +455,6 @@ useUnsavedChangesGuard(() => (
                     :just-saved="shiftsJustSaved"
                     @save="saveShifts"
                     @cancel="cancelShifts"
-                />
-            </div>
-
-            <div v-show="tab === 'workcenters'" data-testid="panel-workcenters" class="p-6">
-                <WorkcenterList
-                    :key="workcentersVersion"
-                    :items="committedWorkcenters"
-                    @update:items="onWorkcentersChange"
-                />
-                <TabSaveBar
-                    :dirty="workcentersDirty"
-                    :saving="workcentersSaving"
-                    :just-saved="workcentersJustSaved"
-                    @save="saveWorkcenters"
-                    @cancel="cancelWorkcenters"
                 />
             </div>
 

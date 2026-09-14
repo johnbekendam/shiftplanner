@@ -167,7 +167,7 @@ describe("Employees/Form", () => {
 
         expect(w.findComponent(EmployeeFields).exists()).toBe(true);
         expect(w.get('[data-testid="panel-details"]').text()).toContain("Create");
-        expect(w.findComponent(EmployeeFields).props("form").weekly_hours).toBe(32);
+        expect(w.findComponent(EmployeeFields).props("form").weekly_hours).toBe(0);
 
         expect(w.findAll("button").some((b) => b.text() === "Availability")).toBe(false);
         expect(w.find('[data-testid="panel-information"]').exists()).toBe(false);
