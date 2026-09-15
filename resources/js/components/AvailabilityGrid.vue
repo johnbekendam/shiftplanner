@@ -21,7 +21,9 @@ const emit = defineEmits(['update:availability'])
 // Monday–Friday. The team runs no weekend shifts; a weekend need is a
 // configurable question instead.
 const WEEKDAYS = [1, 2, 3, 4, 5]
-const STATES = ['not_set', 'available', 'not_preferred', 'unavailable']
+// The menu only offers explicit states — "not set" is the unclicked default,
+// not a choice a person picks back into once they've set something.
+const MENU_STATES = ['available', 'not_preferred', 'unavailable']
 
 const key = (weekday, shiftId) => `${weekday}-${shiftId}`
 
@@ -202,7 +204,7 @@ onBeforeUnmount(() => {
                     @keydown.arrow-down.prevent="moveMenuFocus(1)"
                     @keydown.arrow-up.prevent="moveMenuFocus(-1)"
                 >
-                    <li v-for="level in STATES" :key="level">
+                    <li v-for="level in MENU_STATES" :key="level">
                         <button
                             type="button"
                             data-menu-item
