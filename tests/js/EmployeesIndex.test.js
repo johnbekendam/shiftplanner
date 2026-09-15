@@ -153,6 +153,27 @@ describe("Employees/Index", () => {
         expect(rows[1].findAll("td")[4].text()).toContain("Evening 100%");
     });
 
+    it("hides a shift's badge when its coverage is 0%", () => {
+        const w = mountIndex({
+            employees: {
+                ...employees,
+                data: [
+                    {
+                        ...employees.data[0],
+                        shift_coverage: [
+                            { shift_id: 1, name: "Morning", coverage_percentage: 0 },
+                            { shift_id: 2, name: "Evening", coverage_percentage: 60 },
+                        ],
+                    },
+                ],
+            },
+        });
+        const coverage = w.get('[data-testid="shift-coverage"]');
+
+        expect(coverage.text()).not.toContain("Morning");
+        expect(coverage.text()).toContain("Evening 60%");
+    });
+
     it("stacks shift coverage vertically", () => {
         const coverage = mountIndex().get('[data-testid="shift-coverage"]');
 

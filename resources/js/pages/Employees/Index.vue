@@ -265,7 +265,7 @@ function bulkDelete() {
                             <td class="px-2 py-2 text-(--color-table-row-text)">
                                 <div data-testid="shift-coverage" class="flex flex-col items-start gap-1.5">
                                     <span
-                                        v-for="shift in employee.shift_coverage ?? []"
+                                        v-for="shift in (employee.shift_coverage ?? []).filter((s) => s.coverage_percentage > 0)"
                                         :key="shift.shift_id"
                                         class="inline-flex items-center rounded-full border border-(--color-badge-standard-border) bg-(--color-badge-standard-bg) px-2 py-0.5 text-xs font-medium text-(--color-badge-standard-text)"
                                     >
