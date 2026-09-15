@@ -17,6 +17,7 @@ const routerGet = vi.hoisted(() => vi.fn());
 
 vi.mock("@inertiajs/vue3", () => ({
     Head: { name: "Head", render: () => null },
+    Link: { name: "Link", props: ["href"], template: '<a :href="href"><slot /></a>' },
     usePage: () => ({ props: { translations: en } }),
     router: { get: routerGet },
 }));
@@ -220,6 +221,22 @@ describe("Dashboard/Index", () => {
 
         const chart = w.getComponent(FteLineChart);
         expect(chart.props("availableStroke")).toBe("var(--color-badge-success-text)");
+    });
+
+    it("links each card header to the matching filtered employees view", () => {
+        const w = mountPage({
+            period: { start: "2026-01-05", end: "2026-01-06", fte_hours: 40 },
+            days: ["2026-01-05", "2026-01-06"],
+            overall: { available: [2, 1], target: 8, available_hours: 24, required_hours: 64 },
+            lines: [
+                { id: 7, abbreviation: "PMP", description: "Pumps", available: [1, 1], target: 5, available_hours: 16, required_hours: 40 },
+            ],
+        });
+
+        const headerLinks = w.findAll('[data-testid="dashboard-block-header-link"]');
+        expect(headerLinks).toHaveLength(2);
+        expect(headerLinks[0].attributes("href")).toBe("/employees");
+        expect(headerLinks[1].attributes("href")).toBe("/employees?business_lines[]=7");
     });
 
     it("gives each block a coverage donut fed the block's hours", () => {

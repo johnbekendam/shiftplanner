@@ -1,4 +1,4 @@
-Status: in progress — 3/4
+Status: done — 4/4
 
 - [x] 1. Backend: filter the employees index by business line.
       `EmployeeController::index` reads `business_lines[]` from the
@@ -34,7 +34,7 @@ Status: in progress — 3/4
       business line's `id`. Add it so the frontend can build the link
       target. Extend the existing dashboard feature test to assert the
       `id` is present per line.
-- [ ] 4. Frontend: dashboard card headers link to filtered Employees.
+- [x] 4. Frontend: dashboard card headers link to filtered Employees.
       `Dashboard/Index.vue` wraps each card's header `<h2>` in a `Link`
       (`@inertiajs/vue3`): business-line blocks link to
       `/employees?business_lines[]=<id>`, the Overall block links to

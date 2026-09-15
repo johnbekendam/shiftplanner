@@ -1,6 +1,6 @@
 <script setup>
 import { computed } from 'vue'
-import { Head, router } from '@inertiajs/vue3'
+import { Head, Link, router } from '@inertiajs/vue3'
 import AppLayout from '@/layouts/AppLayout.vue'
 import Card from '@/components/ui/Card.vue'
 import ButtonSecondary from '@/components/ui/ButtonSecondary.vue'
@@ -71,6 +71,7 @@ const blocks = computed(() => {
             target: props.overall.target,
             availableHours: props.overall.available_hours,
             requiredHours: props.overall.required_hours,
+            employeesHref: '/employees',
             ...stackedLines(props.overall),
         },
         ...props.lines.map((line) => ({
@@ -81,6 +82,7 @@ const blocks = computed(() => {
             target: line.target,
             availableHours: line.available_hours,
             requiredHours: line.required_hours,
+            employeesHref: `/employees?business_lines[]=${line.id}`,
             ...stackedLines(line),
         })),
     ]
@@ -128,9 +130,13 @@ const blocks = computed(() => {
 
             <Card v-for="block in blocks" :key="block.key" data-testid="dashboard-block">
                 <template #header>
-                    <h2 class="px-4 py-2.5 text-sm font-semibold text-(--color-card-header-text)">
+                    <Link
+                        :href="block.employeesHref"
+                        data-testid="dashboard-block-header-link"
+                        class="block px-4 py-2.5 text-sm font-semibold text-(--color-card-header-text) hover:underline"
+                    >
                         {{ block.title }}
-                    </h2>
+                    </Link>
                 </template>
 
                 <div class="flex flex-wrap items-center gap-4 p-4">
