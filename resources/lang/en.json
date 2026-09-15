@@ -201,6 +201,7 @@
     "availability.weekday.4": "Thu",
     "availability.weekday.5": "Fri",
     "availability.state.available": "Available",
+    "availability.state.not_set": "Not set",
     "availability.state.not_preferred": "Not preferred",
     "availability.state.unavailable": "Unavailable",
     "availability.holidays.heading": "Holidays",

@@ -11,6 +11,7 @@ const en = {
     "availability.weekday.4": "Thu",
     "availability.weekday.5": "Fri",
     "availability.state.available": "Available",
+    "availability.state.not_set": "Not set",
     "availability.state.not_preferred": "Not preferred",
     "availability.state.unavailable": "Unavailable",
 };
@@ -60,10 +61,11 @@ describe("AvailabilityGrid", () => {
         expect(cls).toContain("bg-(--color-badge-error-bg)");
     });
 
-    it("leaves cells with no row as available (success tokens)", () => {
+    it("renders cells with no row as not set", () => {
         const w = mountGrid();
         const cls = w.get('[data-testid="cell-4-20"]').classes().join(" ");
-        expect(cls).toContain("bg-(--color-badge-success-bg)");
+        expect(w.get('[data-testid="cell-4-20"]').attributes("aria-label")).toContain("Not set");
+        expect(cls).toContain("bg-(--color-badge-standard-bg)");
     });
 
     it("opens a menu on click", async () => {

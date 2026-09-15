@@ -9,13 +9,14 @@ const shifts = [
 describe('calculateAvailabilityHours', () => {
     it('counts available shifts as preferred hours and not-preferred shifts as available hours', () => {
         const availability = [
+            { weekday: 3, shift_id: 1, level: 'available' },
             { weekday: 1, shift_id: 1, level: 'not_preferred' },
             { weekday: 2, shift_id: 2, level: 'unavailable' },
         ]
 
         expect(calculateAvailabilityHours(shifts, availability)).toEqual({
-            preferred: 32,
-            available: 36,
+            preferred: 4,
+            available: 8,
         })
     })
 
@@ -29,8 +30,8 @@ describe('calculateAvailabilityHours', () => {
         ]
 
         expect(calculateAvailabilityHours(shifts, availability)).toEqual({
-            preferred: 20,
-            available: 20,
+            preferred: 0,
+            available: 0,
         })
     })
 })

@@ -46,7 +46,7 @@ class ShiftAssignmentController extends Controller
             throw ValidationException::withMessages(['employee_id' => __('scheduling.error.cell_full')]);
         }
 
-        if (! $this->eligibility->isShiftVisible($employee, $shift)) {
+        if (! $shift->visible_by_default) {
             throw ValidationException::withMessages(['employee_id' => __('scheduling.error.shift_hidden')]);
         }
 

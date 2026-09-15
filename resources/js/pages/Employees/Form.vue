@@ -31,7 +31,6 @@ const props = defineProps({
     businessLines: { type: Array, default: () => [] },
     holidays: { type: Array, default: () => [] },
     shifts: { type: Array, default: () => [] },
-    shiftSettings: { type: Array, default: () => [] },
     weeklyHoursMinimum: { type: Number, default: 20 },
     globalWeeklyHoursMinimum: { type: Number, default: 20 },
     shiftNoteHtml: { type: String, default: null },
@@ -56,10 +55,6 @@ const form = useForm({
     email: props.employee?.email ?? '',
     weekly_hours: props.employee?.weekly_hours ?? 0,
     weekly_hours_minimum: props.employee?.weekly_hours_minimum ?? null,
-    shift_visibility: props.shiftSettings.map((shift) => ({
-        shift_id: shift.id,
-        override: shift.visibility_override,
-    })),
     business_line_id: props.employee?.business_line_id ?? null,
 })
 
@@ -119,12 +114,12 @@ const pendingAvailability = reactive({})
 
 function committedAvailabilityLevel(weekday, shiftId) {
     const row = committedAvailability.value.find((r) => r.weekday === weekday && r.shift_id === shiftId)
-    return row ? row.level : 'available'
+    return row ? row.level : 'not_set'
 }
 
 function onAvailabilityChange({ weekday, shiftId, level }) {
     availability.value = availability.value.filter((row) => row.weekday !== weekday || row.shift_id !== shiftId)
-    if (level !== 'available') {
+    if (level !== 'not_set') {
         availability.value.push({ weekday, shift_id: shiftId, level })
     }
 
@@ -148,7 +143,7 @@ if (isEdit.value) {
                         delete pendingAvailability[key]
                         committedAvailability.value = committedAvailability.value
                             .filter((row) => row.weekday !== Number(weekday) || row.shift_id !== Number(shiftId))
-                        if (level !== 'available') {
+                        if (level !== 'not_set') {
                             committedAvailability.value = [
                                 ...committedAvailability.value,
                                 { weekday: Number(weekday), shift_id: Number(shiftId), level },
@@ -446,7 +441,6 @@ function onDeleteConfirm() {
             <div v-if="isEdit" v-show="tab === 'settings'" data-testid="panel-settings" class="p-6">
                 <EmployeePlanningSettings
                     :form="form"
-                    :shifts="shiftSettings"
                     :inherited-minimum="globalWeeklyHoursMinimum"
                 />
             </div>

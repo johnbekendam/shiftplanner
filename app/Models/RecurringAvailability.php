@@ -10,7 +10,7 @@ class RecurringAvailability extends Model
 {
     use HasFactory;
 
-    /** Stored levels. 'available' is the absence of a row, so it is not here. */
+    /** Stored constrained levels. Explicit availability is handled separately. */
     public const LEVELS = ['not_preferred', 'unavailable'];
 
     protected $fillable = [

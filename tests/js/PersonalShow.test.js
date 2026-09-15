@@ -197,6 +197,12 @@ describe("Personal/Show", () => {
     it("updates the availability-hours warning after an availability-grid change", async () => {
         const w = mountShow([], {
             shifts: [{ id: 1, name: "Day", start_time: "08:00", end_time: "12:00" }],
+            availability: [
+                { weekday: 2, shift_id: 1, level: "available" },
+                { weekday: 3, shift_id: 1, level: "available" },
+                { weekday: 4, shift_id: 1, level: "available" },
+                { weekday: 5, shift_id: 1, level: "available" },
+            ],
             employee: { first_name: "J", last_name: "L", email: "j@l.c", weekly_hours: 20, business_line_id: null },
         });
 

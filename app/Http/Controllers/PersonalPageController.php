@@ -36,8 +36,8 @@ class PersonalPageController extends Controller
             return redirect('/signup')->with('error', __('personal.link_invalid'));
         }
 
-        $employee->load('shiftVisibilityOverrides');
-        $visibleShifts = Shift::all()->filter(fn (Shift $shift) => $employee->isShiftVisible($shift));
+        $shifts = Shift::all();
+        $visibleShifts = $shifts->where('visible_by_default', true);
 
         return Inertia::render('Personal/Show', [
             'token' => $token,

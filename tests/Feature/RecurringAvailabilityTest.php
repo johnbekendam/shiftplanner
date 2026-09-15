@@ -64,7 +64,7 @@ class RecurringAvailabilityTest extends TestCase
         $employee = Employee::factory()->create();
         $token = $this->token($employee);
         $shift = $this->shift();
-        $employee->shiftVisibilityOverrides()->attach($shift, ['visible' => false]);
+        $shift->update(['visible_by_default' => false]);
 
         $this->actingAs($user)
             ->put("/employees/{$employee->id}/availability/3/{$shift->id}", ['level' => 'unavailable'])
@@ -86,7 +86,7 @@ class RecurringAvailabilityTest extends TestCase
             'level' => 'unavailable',
         ]);
 
-        $employee->shiftVisibilityOverrides()->attach($shift, ['visible' => false]);
+        $shift->update(['visible_by_default' => false]);
 
         $this->assertDatabaseHas('recurring_availabilities', ['id' => $availability->id]);
     }
@@ -110,7 +110,7 @@ class RecurringAvailabilityTest extends TestCase
         ]);
     }
 
-    public function test_setting_a_cell_to_available_deletes_the_row(): void
+    public function test_setting_a_cell_to_available_stores_the_row(): void
     {
         $user = User::factory()->create();
         $employee = Employee::factory()->create();
@@ -125,7 +125,34 @@ class RecurringAvailabilityTest extends TestCase
             ->put("/employees/{$employee->id}/availability/3/{$shift->id}", ['level' => 'available'])
             ->assertRedirect();
 
-        $this->assertSame(0, RecurringAvailability::count());
+        $this->assertDatabaseHas('recurring_availabilities', [
+            'employee_id' => $employee->id,
+            'weekday' => 3,
+            'shift_id' => $shift->id,
+            'level' => 'available',
+        ]);
+    }
+
+    public function test_setting_a_cell_to_not_set_deletes_the_row(): void
+    {
+        $user = User::factory()->create();
+        $employee = Employee::factory()->create();
+        $shift = $this->shift();
+        $employee->recurringAvailabilities()->create([
+            'weekday' => 3,
+            'shift_id' => $shift->id,
+            'level' => 'available',
+        ]);
+
+        $this->actingAs($user)
+            ->put("/employees/{$employee->id}/availability/3/{$shift->id}", ['level' => 'not_set'])
+            ->assertRedirect();
+
+        $this->assertDatabaseMissing('recurring_availabilities', [
+            'employee_id' => $employee->id,
+            'weekday' => 3,
+            'shift_id' => $shift->id,
+        ]);
     }
 
     public function test_deleting_a_shift_cascades_its_cells(): void

@@ -84,11 +84,6 @@ class EmployeeAdminTest extends TestCase
             'end_time' => '23:00',
             'visible_by_default' => false,
         ]);
-        $employee->shiftVisibilityOverrides()->attach([
-            $evening->id => ['visible' => false],
-            $night->id => ['visible' => true],
-        ]);
-
         RecurringAvailability::factory()->create([
             'employee_id' => $employee->id,
             'shift_id' => $morning->id,
@@ -120,8 +115,8 @@ class EmployeeAdminTest extends TestCase
                 ->has('employees.data.0.shift_coverage', 2)
                 ->where('employees.data.0.shift_coverage.0.name', 'Morning')
                 ->where('employees.data.0.shift_coverage.0.coverage_percentage', 60)
-                ->where('employees.data.0.shift_coverage.1.name', 'Night')
-                ->where('employees.data.0.shift_coverage.1.coverage_percentage', 100)
+                ->where('employees.data.0.shift_coverage.1.name', 'Evening')
+                ->where('employees.data.0.shift_coverage.1.coverage_percentage', 80)
             );
     }
 
@@ -343,12 +338,6 @@ class EmployeeAdminTest extends TestCase
         $this->actingAs($user)->get("/employees/{$employee->id}/edit")->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->where('weeklyHoursMinimum', 20)
-                ->has('shiftSettings', 2)
-                ->where('shiftSettings.0.id', $visible->id)
-                ->where('shiftSettings.0.visibility_override', null)
-                ->where('shiftSettings.0.effective_visible', true)
-                ->where('shiftSettings.1.id', $hidden->id)
-                ->where('shiftSettings.1.effective_visible', false)
                 ->has('shifts', 1)
                 ->where('shifts.0.id', $visible->id)
             );
@@ -359,18 +348,13 @@ class EmployeeAdminTest extends TestCase
             'email' => $employee->email,
             'weekly_hours' => 27,
             'weekly_hours_minimum' => 28,
-            'shift_visibility' => [
-                ['shift_id' => $visible->id, 'override' => false],
-                ['shift_id' => $hidden->id, 'override' => null],
-            ],
         ])->assertSessionHasNoErrors();
 
         $employee->refresh();
         $this->assertSame(28, $employee->weekly_hours_minimum);
         $this->assertSame(27, $employee->weekly_hours);
-        $this->assertFalse($employee->isShiftVisible($visible));
-        $this->assertFalse($employee->isShiftVisible($hidden));
-        $this->assertSame(1, $employee->shiftVisibilityOverrides()->count());
+        $this->assertTrue($visible->fresh()->visible_by_default);
+        $this->assertFalse($hidden->fresh()->visible_by_default);
     }
 
     public function test_update_keeps_own_email_without_unique_conflict(): void

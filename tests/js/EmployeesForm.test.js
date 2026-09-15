@@ -155,7 +155,6 @@ describe("Employees/Form", () => {
             props: {
                 employee: { id: 3, first_name: "A", last_name: "B", email: "a@b.c", weekly_hours: 24, weekly_hours_minimum: null },
                 weeklyHoursMinimum: 20,
-                shiftSettings: [{ id: 1, name: "Early", visibility_override: null, effective_visible: true }],
                 holidays: [],
             },
             global: { stubs },
@@ -164,8 +163,6 @@ describe("Employees/Form", () => {
         const settings = w.findComponent(EmployeePlanningSettings);
         expect(settings.exists()).toBe(true);
         expect(settings.props("inheritedMinimum")).toBe(20);
-        expect(settings.props("shifts")).toHaveLength(1);
-        expect(settings.props("form").shift_visibility).toEqual([{ shift_id: 1, override: null }]);
 
         const create = mount(Form, { props: { employee: null, holidays: [] }, global: { stubs } });
         expect(create.findComponent(EmployeePlanningSettings).exists()).toBe(false);
@@ -195,21 +192,18 @@ describe("Employees/Form", () => {
         expect(form.weekly_hours).toBe(27);
     });
 
-    it("shows a newly enabled shift as available after the employee settings save", async () => {
+    it("shows a newly enabled shift as not set after the employee settings save", async () => {
         const shift = {
             id: 7,
             name: "Night",
             start_time: "20:00",
             end_time: "23:00",
             visible_by_default: false,
-            visibility_override: null,
-            effective_visible: false,
         };
         const w = mount(Form, {
             props: {
                 employee: { id: 3, first_name: "A", last_name: "B", email: "a@b.c", weekly_hours: 24 },
-                shifts: [],
-                shiftSettings: [shift],
+                shifts: [shift],
                 holidays: [],
             },
             global: { stubs },
@@ -217,13 +211,12 @@ describe("Employees/Form", () => {
         const form = w.findComponent(EmployeeFields).props("form");
 
         await w.setProps({ shifts: [shift] });
-        form.shift_visibility = [{ shift_id: shift.id, override: true }];
         await w.vm.$nextTick();
 
         await findSaveButton(w).trigger("click");
         await flushPromises();
 
-        expect(w.get('[data-testid="cell-1-7"]').classes()).toContain("bg-(--color-badge-success-bg)");
+        expect(w.get('[data-testid="cell-1-7"]').classes()).toContain("bg-(--color-badge-standard-bg)");
     });
 
     it("starts on Settings and reveals Availability on tab click", async () => {
@@ -372,6 +365,12 @@ describe("Employees/Form", () => {
             props: {
                 employee: { id: 3, first_name: "A", last_name: "B", email: "a@b.c", weekly_hours: 20 },
                 shifts: [{ id: 1, name: "Day", start_time: "08:00", end_time: "12:00" }],
+                availability: [
+                    { weekday: 2, shift_id: 1, level: "available" },
+                    { weekday: 3, shift_id: 1, level: "available" },
+                    { weekday: 4, shift_id: 1, level: "available" },
+                    { weekday: 5, shift_id: 1, level: "available" },
+                ],
                 holidays: [],
             },
             global: { stubs },

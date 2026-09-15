@@ -17,9 +17,9 @@ export function calculateAvailabilityHours(shifts, availability) {
         const hours = hoursBetween(shift.start_time, shift.end_time)
 
         for (const weekday of WEEKDAYS) {
-            const level = levels.get(`${weekday}-${shift.id}`) ?? 'available'
+            const level = levels.get(`${weekday}-${shift.id}`)
 
-            if (level !== 'unavailable') totals.available += hours
+            if (level === 'available' || level === 'not_preferred') totals.available += hours
             if (level === 'available') totals.preferred += hours
         }
 

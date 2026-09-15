@@ -11,26 +11,22 @@ use Illuminate\Validation\ValidationException;
 
 trait SetsRecurringAvailability
 {
-    /**
-     * Apply one grid cell. 'available' clears the cell; the other levels
-     * upsert the single row for that weekday and shift.
-     */
+    /** Apply one grid cell as an explicit availability level. */
     protected function setCell(Request $request, Employee $employee, int $weekday, Shift $shift): void
     {
         $level = $request->validate([
-            'level' => ['required', Rule::in(['available', ...RecurringAvailability::LEVELS])],
+            'level' => ['required', Rule::in(['not_set', 'available', ...RecurringAvailability::LEVELS])],
         ])['level'];
 
-        if (! $employee->isShiftVisible($shift)) {
+        if (! $shift->visible_by_default) {
             throw ValidationException::withMessages(['shift' => __('availability.error.shift_hidden')]);
         }
 
-        $cell = $employee->recurringAvailabilities()
-            ->where('weekday', $weekday)
-            ->where('shift_id', $shift->id);
-
-        if ($level === 'available') {
-            $cell->delete();
+        if ($level === 'not_set') {
+            $employee->recurringAvailabilities()
+                ->where('weekday', $weekday)
+                ->where('shift_id', $shift->id)
+                ->delete();
 
             return;
         }

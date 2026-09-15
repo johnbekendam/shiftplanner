@@ -14,11 +14,6 @@ use Carbon\Carbon;
  */
 class SchedulingEligibility
 {
-    public function isShiftVisible(Employee $employee, Shift $shift): bool
-    {
-        return $employee->isShiftVisible($shift);
-    }
-
     public function isOnHoliday(Employee $employee, Carbon $date): bool
     {
         return $employee->holidays()
@@ -29,7 +24,7 @@ class SchedulingEligibility
 
     public function isUnavailable(Employee $employee, int $weekday, Shift $shift): bool
     {
-        return $this->recurringLevel($employee, $weekday, $shift) === RecurringAvailability::LEVELS[1];
+        return ! in_array($this->recurringLevel($employee, $weekday, $shift), ['available', 'not_preferred'], true);
     }
 
     public function isNotPreferred(Employee $employee, int $weekday, Shift $shift): bool

@@ -17,25 +17,11 @@ class EmployeePlanningRulesTest extends TestCase
         $employee = Employee::factory()->create();
         $shift = Shift::factory()->create(['visible_by_default' => true]);
 
-        $this->assertTrue($employee->isShiftVisible($shift));
+        $this->assertTrue($shift->visible_by_default);
 
         $shift->update(['visible_by_default' => false]);
 
-        $this->assertFalse($employee->isShiftVisible($shift->fresh()));
-    }
-
-    public function test_explicit_shift_visibility_overrides_the_shift_default(): void
-    {
-        $employee = Employee::factory()->create();
-        $shift = Shift::factory()->create(['visible_by_default' => true]);
-        $employee->shiftVisibilityOverrides()->attach($shift, ['visible' => false]);
-
-        $this->assertFalse($employee->isShiftVisible($shift));
-
-        $shift->update(['visible_by_default' => false]);
-        $employee->shiftVisibilityOverrides()->updateExistingPivot($shift, ['visible' => true]);
-
-        $this->assertTrue($employee->isShiftVisible($shift->fresh()));
+        $this->assertFalse($shift->fresh()->visible_by_default);
     }
 
     public function test_weekly_hours_minimum_inherits_the_global_value_or_uses_an_override(): void

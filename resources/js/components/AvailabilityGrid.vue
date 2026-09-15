@@ -8,7 +8,7 @@ const __ = useI18n()
 const props = defineProps({
     // Defined shifts, in display order: { id, name, start_time, end_time }.
     shifts: { type: Array, default: () => [] },
-    // Array of { weekday, shift_id, level } for the non-available cells.
+    // Array of { weekday, shift_id, level } for cells with an explicit level.
     availability: { type: Array, default: () => [] },
     // Manager surface: the empty state also points at the Settings page.
     showAddHint: { type: Boolean, default: false },
@@ -21,7 +21,7 @@ const emit = defineEmits(['update:availability'])
 // Monday–Friday. The team runs no weekend shifts; a weekend need is a
 // configurable question instead.
 const WEEKDAYS = [1, 2, 3, 4, 5]
-const STATES = ['available', 'not_preferred', 'unavailable']
+const STATES = ['not_set', 'available', 'not_preferred', 'unavailable']
 
 const key = (weekday, shiftId) => `${weekday}-${shiftId}`
 
@@ -33,7 +33,7 @@ const key = (weekday, shiftId) => `${weekday}-${shiftId}`
 const cells = reactive({})
 
 for (const shift of props.shifts) {
-    for (const weekday of WEEKDAYS) cells[key(weekday, shift.id)] = 'available'
+    for (const weekday of WEEKDAYS) cells[key(weekday, shift.id)] = 'not_set'
 }
 for (const row of props.availability) {
     const k = key(row.weekday, row.shift_id)
@@ -42,6 +42,7 @@ for (const row of props.availability) {
 
 // Theme-builder badge tokens: Success / Warning / Error.
 const LEVEL_CLASS = {
+    not_set: 'bg-(--color-badge-standard-bg) text-(--color-badge-standard-text) border-(--color-badge-standard-border)',
     available: 'bg-(--color-badge-success-bg) text-(--color-badge-success-text) border-(--color-badge-success-border)',
     not_preferred: 'bg-(--color-badge-warning-bg) text-(--color-badge-warning-text) border-(--color-badge-warning-border)',
     unavailable: 'bg-(--color-badge-error-bg) text-(--color-badge-error-text) border-(--color-badge-error-border)',

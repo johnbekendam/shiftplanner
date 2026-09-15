@@ -60,13 +60,6 @@ class Shift extends Model
         return $this->belongsToMany(Workcenter::class, 'workcenter_shift');
     }
 
-    public function employeeVisibilityOverrides(): BelongsToMany
-    {
-        return $this->belongsToMany(Employee::class, 'employee_shift_visibility_overrides')
-            ->withPivot('visible')
-            ->withTimestamps();
-    }
-
     /** The shape shared with the front end. */
     public function toPayload(): array
     {

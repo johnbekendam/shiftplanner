@@ -64,7 +64,6 @@ class ShiftAssignmentTest extends TestCase
         $workcenter = Workcenter::factory()->create();
         $shift = Shift::factory()->create();
         $this->setCapacity($workcenter, $shift, $this->aTuesday(), 1);
-
         $this->post('/scheduling/assignments', $this->validPayload($employee, $workcenter, $shift))
             ->assertForbidden();
     }
@@ -78,6 +77,12 @@ class ShiftAssignmentTest extends TestCase
         $workcenter = Workcenter::factory()->create();
         $shift = Shift::factory()->create();
         $this->setCapacity($workcenter, $shift, $this->aTuesday(), 1);
+        RecurringAvailability::factory()->create([
+            'employee_id' => $employee->id,
+            'weekday' => $this->aTuesday()->isoWeekday(),
+            'shift_id' => $shift->id,
+            'level' => 'available',
+        ]);
 
         $this->post('/scheduling/assignments', $this->validPayload($employee, $workcenter, $shift))
             ->assertRedirect();
@@ -180,9 +185,8 @@ class ShiftAssignmentTest extends TestCase
         $this->actingAsAdmin();
         $employee = Employee::factory()->create();
         $workcenter = Workcenter::factory()->create();
-        $shift = Shift::factory()->create();
+        $shift = Shift::factory()->create(['visible_by_default' => false]);
         $this->setCapacity($workcenter, $shift, $this->aTuesday(), 5);
-        $employee->shiftVisibilityOverrides()->attach($shift, ['visible' => false]);
 
         $this->post('/scheduling/assignments', $this->validPayload($employee, $workcenter, $shift))
             ->assertSessionHasErrors('employee_id');
@@ -194,7 +198,7 @@ class ShiftAssignmentTest extends TestCase
     {
         $assignment = ShiftAssignment::factory()->create();
 
-        $assignment->employee->shiftVisibilityOverrides()->attach($assignment->shift, ['visible' => false]);
+        $assignment->shift->update(['visible_by_default' => false]);
 
         $this->assertDatabaseHas('shift_assignments', ['id' => $assignment->id]);
     }
@@ -254,6 +258,12 @@ class ShiftAssignmentTest extends TestCase
         $workcenterB = Workcenter::factory()->create();
         $shiftB = Shift::factory()->create(['start_time' => '14:00', 'end_time' => '22:00']);
         $this->setCapacity($workcenterB, $shiftB, $this->aTuesday(), 5);
+        RecurringAvailability::factory()->create([
+            'employee_id' => $employee->id,
+            'weekday' => $this->aTuesday()->isoWeekday(),
+            'shift_id' => $shiftB->id,
+            'level' => 'available',
+        ]);
 
         $this->post('/scheduling/assignments', $this->validPayload($employee, $workcenterB, $shiftB))
             ->assertSessionHasNoErrors();

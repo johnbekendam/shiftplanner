@@ -103,12 +103,12 @@ const pendingAvailability = reactive({})
 
 function committedAvailabilityLevel(weekday, shiftId) {
     const row = committedAvailability.value.find((r) => r.weekday === weekday && r.shift_id === shiftId)
-    return row ? row.level : 'available'
+    return row ? row.level : 'not_set'
 }
 
 function onAvailabilityChange({ weekday, shiftId, level }) {
     availability.value = availability.value.filter((row) => row.weekday !== weekday || row.shift_id !== shiftId)
-    if (level !== 'available') {
+    if (level !== 'not_set') {
         availability.value.push({ weekday, shift_id: shiftId, level })
     }
 
@@ -131,7 +131,7 @@ registry.register('availability', {
                     delete pendingAvailability[key]
                     committedAvailability.value = committedAvailability.value
                         .filter((row) => row.weekday !== Number(weekday) || row.shift_id !== Number(shiftId))
-                    if (level !== 'available') {
+                    if (level !== 'not_set') {
                         committedAvailability.value = [
                             ...committedAvailability.value,
                             { weekday: Number(weekday), shift_id: Number(shiftId), level },
