@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onBeforeUnmount } from 'vue'
+import { ref, computed, nextTick, onBeforeUnmount } from 'vue'
 import axios from 'axios'
 import Icon from '@/components/ui/Icon.vue'
 import { SearchInput } from '@/components/ui/Input'
@@ -7,6 +7,27 @@ import { useI18n } from '@/composables/useI18n'
 import { putAsync, postAsync, deleteAsync } from '@/utils/inertiaAsync'
 
 const __ = useI18n()
+
+// Positions a floating panel below its trigger, flipping above when there
+// isn't room below the viewport's bottom edge, and clamping horizontally
+// within the viewport's right edge — shared by the three popovers below.
+const PANEL_GAP = 4
+
+function positionPanel(triggerEl, panelEl) {
+    if (!triggerEl) return {}
+    const rect = triggerEl.getBoundingClientRect()
+    const panelHeight = panelEl?.offsetHeight ?? 0
+    const panelWidth = panelEl?.offsetWidth ?? 0
+
+    const fitsBelow = !panelHeight || rect.bottom + PANEL_GAP + panelHeight <= window.innerHeight
+    const top = fitsBelow ? rect.bottom + PANEL_GAP : Math.max(PANEL_GAP, rect.top - PANEL_GAP - panelHeight)
+
+    const left = panelWidth && rect.left + panelWidth > window.innerWidth
+        ? Math.max(PANEL_GAP, window.innerWidth - panelWidth - PANEL_GAP)
+        : rect.left
+
+    return { top: `${top}px`, left: `${left}px` }
+}
 
 const props = defineProps({
     workcenterId: { type: Number, required: true },
@@ -50,18 +71,18 @@ const spotsMenuStyle = ref({})
 const spotsMenuCell = computed(() => props.cells.find((c) => c.date === spotsMenuDate.value) ?? null)
 
 function computeSpotsMenuPosition() {
-    if (!spotsMenuTriggerEl.value) return
-    const rect = spotsMenuTriggerEl.value.getBoundingClientRect()
-    spotsMenuStyle.value = { top: `${rect.bottom + 4}px`, left: `${rect.left}px` }
+    spotsMenuStyle.value = positionPanel(spotsMenuTriggerEl.value, spotsMenuRef.value)
 }
 
-function toggleSpotsMenu(cell, event) {
+async function toggleSpotsMenu(cell, event) {
     if (spotsMenuDate.value === cell.date) {
         closeSpotsMenu()
         return
     }
     spotsMenuDate.value = cell.date
     spotsMenuTriggerEl.value = event.currentTarget
+    spotsMenuStyle.value = positionPanel(spotsMenuTriggerEl.value, null)
+    await nextTick()
     computeSpotsMenuPosition()
 }
 
@@ -90,18 +111,18 @@ const assignmentMenuRef = ref(null)
 const assignmentMenuStyle = ref({})
 
 function computeAssignmentMenuPosition() {
-    if (!assignmentMenuTriggerEl.value) return
-    const rect = assignmentMenuTriggerEl.value.getBoundingClientRect()
-    assignmentMenuStyle.value = { top: `${rect.bottom + 4}px`, left: `${rect.left}px` }
+    assignmentMenuStyle.value = positionPanel(assignmentMenuTriggerEl.value, assignmentMenuRef.value)
 }
 
-function toggleAssignmentMenu(assignment, event) {
+async function toggleAssignmentMenu(assignment, event) {
     if (assignmentMenuAssignment.value?.id === assignment.id) {
         closeAssignmentMenu()
         return
     }
     assignmentMenuAssignment.value = assignment
     assignmentMenuTriggerEl.value = event.currentTarget
+    assignmentMenuStyle.value = positionPanel(assignmentMenuTriggerEl.value, null)
+    await nextTick()
     computeAssignmentMenuPosition()
 }
 
@@ -135,20 +156,23 @@ const panelRef = ref(null)
 const panelStyle = ref({})
 
 function computePanelPosition() {
-    if (!openTriggerEl.value) return
-    const rect = openTriggerEl.value.getBoundingClientRect()
-    panelStyle.value = { top: `${rect.bottom + 4}px`, left: `${rect.left}px` }
+    panelStyle.value = positionPanel(openTriggerEl.value, panelRef.value)
 }
 
 async function openAssign(date, event) {
     openAssignDate.value = date
     openTriggerEl.value = event.currentTarget
     searchTerm.value = ''
+    panelStyle.value = positionPanel(openTriggerEl.value, null)
+    await nextTick()
     computePanelPosition()
     const response = await axios.get('/scheduling/eligible-employees', {
         params: { workcenter_id: props.workcenterId, shift_id: props.shiftId, date },
     })
     eligible.value = response.data
+    // The list just changed height (loading → results), so re-measure.
+    await nextTick()
+    computePanelPosition()
 }
 
 function closeAssign() {

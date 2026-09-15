@@ -200,4 +200,26 @@ describe("ShiftWeekTable", () => {
         expect(bodyWrapper().find('[data-testid="assign-popover"]').exists()).toBe(false);
         w.unmount();
     });
+
+    it("flips the assign popover above the trigger when there isn't room below the viewport", async () => {
+        const originalInnerHeight = window.innerHeight;
+        const offsetHeightSpy = vi.spyOn(window.HTMLElement.prototype, "offsetHeight", "get").mockReturnValue(200);
+        window.innerHeight = 400;
+
+        const w = mountTable();
+        const trigger = w.get('[data-testid="cell-9-2026-09-17-0"] button');
+        vi.spyOn(trigger.element, "getBoundingClientRect").mockReturnValue({
+            top: 380, bottom: 390, left: 10, right: 50, width: 40, height: 10, x: 10, y: 380, toJSON: () => {},
+        });
+
+        await trigger.trigger("click");
+        await flushPromises();
+
+        const popover = bodyWrapper().get('[data-testid="assign-popover"]');
+        expect(parseFloat(popover.element.style.top)).toBeLessThan(380);
+
+        offsetHeightSpy.mockRestore();
+        window.innerHeight = originalInnerHeight;
+        w.unmount();
+    });
 });
