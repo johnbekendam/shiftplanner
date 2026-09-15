@@ -2,14 +2,40 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\BusinessLine;
+use App\Models\Competence;
 use App\Models\PlanningRule;
+use App\Models\Shift;
+use App\Models\Workcenter;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
+use Inertia\Inertia;
 
 class PlanningRuleController extends Controller
 {
+    public function index()
+    {
+        return Inertia::render('PlanningRules', [
+            'planningRules' => PlanningRule::all()->map->toPayload()->all(),
+            'workcenters' => Workcenter::query()
+                ->whereNull('archived_at')
+                ->get()
+                ->map(fn (Workcenter $w) => ['id' => $w->id, 'name' => $w->name])
+                ->all(),
+            'shifts' => Shift::all()
+                ->map(fn (Shift $s) => ['id' => $s->id, 'name' => $s->name])
+                ->all(),
+            'competences' => Competence::all()
+                ->map(fn (Competence $c) => ['id' => $c->id, 'name' => $c->name])
+                ->all(),
+            'businessLines' => BusinessLine::all()
+                ->map(fn (BusinessLine $b) => ['id' => $b->id, 'abbreviation' => $b->abbreviation])
+                ->all(),
+        ]);
+    }
+
     public function store(Request $request)
     {
         $data = $request->validate($this->rules());

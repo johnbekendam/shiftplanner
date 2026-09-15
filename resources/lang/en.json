@@ -10,6 +10,7 @@
     "nav.mailbox": "Mailbox",
     "nav.workcenter_shifts": "Schedule",
     "nav.scheduling": "Planning",
+    "nav.planning_rules": "Planning rules",
     "nav.employees": "Employees",
     "nav.my_details": "My details",
     "nav.account": "Account",
@@ -265,7 +266,6 @@
     "settings.tab.shifts": "Shifts",
     "settings.tab.workcenters": "Workcenters",
     "settings.tab.information": "Information",
-    "settings.tab.planning_rules": "Planning rules",
     "settings.tab.questions": "Questions",
     "settings.tab.general": "General",
 
@@ -394,6 +394,7 @@
     "period.flash.saved": "Period saved.",
     "period.error.range": "The period end cannot be before the start.",
 
+    "planning_rules.title": "Planning rules",
     "planning_rules.type": "Rule type",
     "planning_rules.type.max_hours_per_week": "Max hours per week",
     "planning_rules.type.max_shifts_per_day": "Max shifts per day",

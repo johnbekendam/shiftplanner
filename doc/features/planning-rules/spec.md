@@ -83,18 +83,23 @@ application ignores client-supplied identity fields on update. Only
 `value`, `business_line_preference`'s `business_line_ids`) change in
 place; anything else means deleting the row and adding a new one.
 
-### Settings tab — Planning Rules
+### Page — `/planning-rules`
 
-A new tab on `/settings`, admin-only, alongside Competences, Business
-Lines, Shifts, Workcenters. One list of rule cards, regardless of
-type, each showing its type, its target (for a scoped type), its
-mutable field, and a hard/soft toggle with a conditional severity
-field. An add section below picks a type first — a singleton type
-already present is not offered — then reveals only the fields that
-type needs, mirroring the row layout above. Same explicit-save model
-as the rest of Settings (`settings-explicit-save/spec.md`): local
-edit-until-Save state, one Save/Cancel pair, nothing written until
-Save.
+A new sidebar item, **Planning rules**, admin-only, next to Schedule
+and Planning in `AppLayout.vue`. Route behind the existing `admin`
+middleware group — its own page, not a Settings tab, since it is a
+frequent, standalone task rather than one-off configuration (the same
+reasoning `workcenter-shift-assignments/spec.md` gave for
+`/schedule`'s own page).
+
+One list of rule cards, regardless of type, each showing its type, its
+target (for a scoped type), its mutable field, and a hard/soft toggle
+with a conditional severity field. An add section below picks a type
+first — a singleton type already present is not offered — then
+reveals only the fields that type needs, mirroring the row layout
+above. Same explicit-save model as the rest of the app
+(`settings-explicit-save/spec.md`): local edit-until-Save state, one
+Save/Cancel pair, nothing written until Save.
 
 ### Controller
 
@@ -162,10 +167,11 @@ Save.
   counts can. Here, `type` and a scoped rule's target never change in
   place; `mode`, `severity`, and a type's own mutable field
   (`value`, `business_line_ids`) do.
-- **One Settings tab for everything**, not splitting the workcenter-
-  scoped rules onto `/schedule`. Keeps every planning constraint
-  discoverable in one place; `/schedule` stays about capacity, not
-  rules.
+- **A dedicated `/planning-rules` page, not a Settings tab.** Reversed
+  from this spec's first draft. Managing rules is a frequent task, not
+  one-off configuration, and every rule (global or scoped) belongs in
+  one list rather than split across a Settings tab and
+  `/schedule`; `/schedule` stays about capacity, not rules.
 
 ## Non-goals
 
