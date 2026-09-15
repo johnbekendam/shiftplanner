@@ -132,6 +132,13 @@ the rest of the app — since this page is a live roster, not a form. An
 assignment can be marked "fixed," which will protect it from a future
 automatic re-planning run; today it changes nothing else.
 
+In progress (`features/scheduling-calendar/`): `/scheduling`'s landing
+view is being reworked into a month calendar with a workcenter/shift
+filter, coloring each day by whether every checked pairing is fully
+staffed. Step 1 (this calendar, read-only, filter-driven coloring)
+shipped; the week-grid editing UI is temporarily off the page pending a
+later day-drill-down step.
+
 Still to design: rule-based automatic planning (hard/soft rules, the
 OR-Tools `/solve` contract) and, further out, an employee-facing
 schedule view (phase 6). Calendar recurrence and date-specific

@@ -3,12 +3,15 @@ import { mount } from "@vue/test-utils";
 
 const en = {
     "scheduling.title": "Scheduling",
-    "scheduling.select_workcenter": "Select a workcenter",
-    "scheduling.prev_week": "Previous week",
-    "scheduling.next_week": "Next week",
-    "scheduling.this_week": "This week",
-    "scheduling.no_workcenters": "No active workcenters yet.",
-    "scheduling.no_shifts": "This workcenter has no shifts attached yet.",
+    "scheduling.filter_workcenters": "Workcenters",
+    "scheduling.filter_shifts": "Shifts",
+    "scheduling.no_workcenters": "No active workcenters yet. Add one on the Settings page.",
+    "scheduling.legend_staffed": "Fully staffed",
+    "scheduling.legend_open_spots": "Open spots",
+    "scheduling.legend_nothing_scheduled": "Nothing scheduled",
+    "calendar.reset": "Jump to today",
+    "calendar.prev_month": "Previous month",
+    "calendar.next_month": "Next month",
 };
 
 const routerGetCalls = vi.hoisted(() => []);
@@ -16,90 +19,101 @@ const routerGetCalls = vi.hoisted(() => []);
 vi.mock("@inertiajs/vue3", () => ({
     router: { get: (...args) => routerGetCalls.push(args) },
     Head: { name: "Head", render: () => null },
-    usePage: () => ({ props: { translations: en } }),
+    usePage: () => ({ props: { translations: en, auth: { settings: { month_format: "my" } } } }),
 }));
 
 import Scheduling from "@/pages/Scheduling.vue";
-import { SelectInput } from "@/components/ui/Input";
 
 const stubs = { AppLayout: { template: "<div><slot /></div>" } };
 
 const baseProps = {
-    workcenters: [{ id: 1, name: "Line 1" }],
-    workcenterId: 1,
-    weekStart: "2026-09-14",
-    days: ["2026-09-14", "2026-09-15", "2026-09-16", "2026-09-17", "2026-09-18", "2026-09-19", "2026-09-20"],
-    shifts: [{ id: 9, name: "Early", start_time: "06:00", end_time: "14:00" }],
-    cells: [
-        { shift_id: 9, date: "2026-09-14", spots: 4, assignments: [{ id: 1, employee_id: 5, employee_name: "Anna Jansen", fixed: true }] },
-        { shift_id: 9, date: "2026-09-15", spots: 4, assignments: [] },
-        { shift_id: 9, date: "2026-09-16", spots: 4, assignments: [] },
-        { shift_id: 9, date: "2026-09-17", spots: 4, assignments: [] },
-        { shift_id: 9, date: "2026-09-18", spots: 4, assignments: [] },
-        { shift_id: 9, date: "2026-09-19", spots: 0, assignments: [] },
-        { shift_id: 9, date: "2026-09-20", spots: 0, assignments: [] },
+    workcenters: [
+        { id: 1, name: "Line 1" },
+        { id: 2, name: "Line 2" },
+    ],
+    shifts: [
+        { id: 9, name: "Early" },
+        { id: 10, name: "Late" },
+    ],
+    year: 2026,
+    month: 9,
+    coverage: [
+        { workcenter_id: 1, shift_id: 9, date: "2026-09-10", spots: 3, assigned: 3 },
+        { workcenter_id: 1, shift_id: 9, date: "2026-09-11", spots: 3, assigned: 1 },
+        { workcenter_id: 2, shift_id: 10, date: "2026-09-12", spots: 2, assigned: 2 },
     ],
 };
 
 const mountPage = (props = {}) =>
     mount(Scheduling, { props: { ...baseProps, ...props }, global: { stubs } });
 
+function dayButton(w, day) {
+    return w.findAll("button").find((b) => b.text() === String(day));
+}
+
 beforeEach(() => {
     routerGetCalls.length = 0;
 });
 
 describe("Scheduling", () => {
-    it("renders a row per shift and a cell per day, with spots and assignee names", () => {
+    it("renders a checklist per workcenter and per shift, all checked by default", () => {
         const w = mountPage();
-        const rows = w.findAll('[data-testid="scheduling-shift-row"]');
-        expect(rows).toHaveLength(1);
-        expect(rows[0].text()).toContain("Early");
+        const checkboxes = w.findAll('input[type="checkbox"]');
 
-        const cell = w.get('[data-testid="scheduling-cell-9-2026-09-14"]');
-        expect(cell.text()).toContain("1/4");
-        expect(cell.text()).toContain("Anna Jansen");
+        expect(checkboxes).toHaveLength(4); // 2 workcenters + 2 shifts
+        checkboxes.forEach((c) => expect(c.element.checked).toBe(true));
+        expect(w.text()).toContain("Line 1");
+        expect(w.text()).toContain("Line 2");
+        expect(w.text()).toContain("Early");
+        expect(w.text()).toContain("Late");
     });
 
-    it("switching the workcenter select navigates with the new workcenter_id", async () => {
-        const w = mountPage({ workcenters: [{ id: 1, name: "Line 1" }, { id: 2, name: "Line 2" }] });
-        w.findComponent(SelectInput).vm.$emit("update:modelValue", 2);
-        await w.vm.$nextTick();
+    it("renders the calendar for the given year and month", () => {
+        const w = mountPage();
+        expect(w.text()).toContain("September 2026");
+    });
+
+    it("colors a fully-staffed day green", () => {
+        const w = mountPage();
+        expect(dayButton(w, 10).classes().join(" ")).toContain("bg-(--color-badge-success-bg)");
+    });
+
+    it("colors a short-staffed day warning", () => {
+        const w = mountPage();
+        expect(dayButton(w, 11).classes().join(" ")).toContain("bg-(--color-badge-warning-bg)");
+    });
+
+    it("colors a day with no relevant coverage muted", () => {
+        const w = mountPage();
+        expect(dayButton(w, 15).classes().join(" ")).toContain("bg-(--color-badge-muted-bg)");
+    });
+
+    it("unchecking a workcenter recolors days that only had coverage from it, with no navigation", async () => {
+        const w = mountPage();
+        const line2Checkbox = w.findAll('input[type="checkbox"]').at(1); // Line 2
+
+        await line2Checkbox.setValue(false);
+
+        expect(dayButton(w, 12).classes().join(" ")).toContain("bg-(--color-badge-muted-bg)");
+        expect(routerGetCalls).toHaveLength(0);
+    });
+
+    it("navigates to the next month via the calendar, carrying year/month", async () => {
+        const w = mountPage();
+        await w.get('[aria-label="Next month"]').trigger("click");
 
         expect(routerGetCalls).toHaveLength(1);
         expect(routerGetCalls[0][0]).toBe("/scheduling");
-        expect(routerGetCalls[0][1]).toMatchObject({ workcenter_id: 2, week_start: "2026-09-14" });
+        expect(routerGetCalls[0][1]).toEqual({ year: 2026, month: 10 });
     });
 
-    it("the next-week button navigates with week_start shifted forward 7 days", async () => {
-        const w = mountPage();
-        await w.get('[aria-label="Next week"]').trigger("click");
-
-        expect(routerGetCalls[0][1]).toMatchObject({ workcenter_id: 1, week_start: "2026-09-21" });
-    });
-
-    it("the previous-week button navigates with week_start shifted back 7 days", async () => {
-        const w = mountPage();
-        await w.get('[aria-label="Previous week"]').trigger("click");
-
-        expect(routerGetCalls[0][1]).toMatchObject({ workcenter_id: 1, week_start: "2026-09-07" });
-    });
-
-    it("the this-week button navigates without a week_start, letting the server default", async () => {
-        const w = mountPage();
-        await w.get("button", { text: "This week" });
-        const button = w.findAll("button").find((b) => b.text() === "This week");
-        await button.trigger("click");
-
-        expect(routerGetCalls[0][1]).toEqual({ workcenter_id: 1 });
+    it("does not navigate on initial mount", () => {
+        mountPage();
+        expect(routerGetCalls).toHaveLength(0);
     });
 
     it("shows a message when there are no active workcenters", () => {
-        const w = mountPage({ workcenters: [], workcenterId: null, shifts: [], cells: [] });
-        expect(w.text()).toContain("No active workcenters yet.");
-    });
-
-    it("shows a message when the selected workcenter has no shifts", () => {
-        const w = mountPage({ shifts: [], cells: [] });
-        expect(w.text()).toContain("This workcenter has no shifts attached yet.");
+        const w = mountPage({ workcenters: [], coverage: [] });
+        expect(w.text()).toContain("No active workcenters yet. Add one on the Settings page.");
     });
 });

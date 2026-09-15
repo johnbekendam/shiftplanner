@@ -5,91 +5,92 @@ namespace App\Http\Controllers;
 use App\Models\Shift;
 use App\Models\ShiftAssignment;
 use App\Models\Workcenter;
+use App\Models\WorkcenterShiftCapacity;
 use App\Models\WorkcenterShiftDateOverride;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 
 class SchedulingController extends Controller
 {
     public function index(Request $request)
     {
+        $now = Carbon::now();
+        $year = $request->integer('year') ?: $now->year;
+        $month = $request->integer('month') ?: $now->month;
+        $monthStart = Carbon::create($year, $month, 1)->startOfMonth();
+
         $workcenters = Workcenter::query()->whereNull('archived_at')->get();
-
-        $workcenterId = $this->resolveWorkcenterId($request, $workcenters);
-        $weekStart = $this->resolveWeekStart($request);
-        $days = collect(range(0, 6))->map(fn ($offset) => $weekStart->copy()->addDays($offset)->toDateString());
-
-        $workcenter = $workcenterId ? $workcenters->firstWhere('id', $workcenterId) : null;
-        $shifts = $workcenter ? $workcenter->shifts : collect();
+        $shifts = Shift::query()->get();
 
         return Inertia::render('Scheduling', [
             'workcenters' => $workcenters->map(fn (Workcenter $w) => ['id' => $w->id, 'name' => $w->name])->values()->all(),
-            'workcenterId' => $workcenterId,
-            'weekStart' => $weekStart->toDateString(),
-            'days' => $days->all(),
-            'shifts' => $shifts->map(fn (Shift $s) => [
-                'id' => $s->id,
-                'name' => $s->name,
-                'start_time' => $s->start_time,
-                'end_time' => $s->end_time,
-            ])->values()->all(),
-            'cells' => $workcenter ? $this->cells($workcenter, $shifts, $days) : [],
+            'shifts' => $shifts->map(fn (Shift $s) => ['id' => $s->id, 'name' => $s->name])->values()->all(),
+            'year' => $monthStart->year,
+            'month' => $monthStart->month,
+            'coverage' => $this->coverage($workcenters, $monthStart),
         ]);
     }
 
-    private function resolveWorkcenterId(Request $request, $workcenters): ?int
+    /** One entry per (workcenter, shift, date) with spots > 0 that date: { workcenter_id, shift_id, date, spots, assigned }. */
+    private function coverage(Collection $workcenters, Carbon $monthStart): array
     {
-        $requested = $request->integer('workcenter_id') ?: null;
-        if ($requested && $workcenters->contains('id', $requested)) {
-            return $requested;
+        $workcenterIds = $workcenters->pluck('id');
+        if ($workcenterIds->isEmpty()) {
+            return [];
         }
 
-        return $workcenters->first()?->id;
-    }
+        $monthEnd = $monthStart->copy()->endOfMonth();
+        $days = collect(range(0, $monthStart->daysInMonth - 1))
+            ->map(fn (int $offset) => $monthStart->copy()->addDays($offset));
 
-    private function resolveWeekStart(Request $request): Carbon
-    {
-        $given = $request->query('week_start');
-        $date = $given ? Carbon::parse($given) : Carbon::now();
+        $attachments = DB::table('workcenter_shift')
+            ->whereIn('workcenter_id', $workcenterIds)
+            ->get(['workcenter_id', 'shift_id']);
 
-        return $date->startOfWeek(Carbon::MONDAY);
-    }
-
-    /** One entry per shift x day: { shift_id, date, spots, overridden, assignments }. */
-    private function cells(Workcenter $workcenter, $shifts, $days): array
-    {
-        $assignments = ShiftAssignment::query()
-            ->where('workcenter_id', $workcenter->id)
-            ->whereIn('shift_id', $shifts->pluck('id'))
-            ->whereIn('date', $days)
-            ->with('employee')
+        $capacities = WorkcenterShiftCapacity::query()
+            ->whereIn('workcenter_id', $workcenterIds)
             ->get()
-            ->groupBy(fn (ShiftAssignment $a) => "{$a->shift_id}:{$a->date->toDateString()}");
+            ->keyBy(fn (WorkcenterShiftCapacity $c) => "{$c->workcenter_id}:{$c->shift_id}:{$c->weekday}");
 
-        $overriddenKeys = WorkcenterShiftDateOverride::query()
-            ->where('workcenter_id', $workcenter->id)
-            ->whereIn('shift_id', $shifts->pluck('id'))
-            ->whereIn('date', $days)
+        $overrides = WorkcenterShiftDateOverride::query()
+            ->whereIn('workcenter_id', $workcenterIds)
+            ->whereBetween('date', [$monthStart->toDateString(), $monthEnd->toDateString()])
             ->get()
-            ->map(fn (WorkcenterShiftDateOverride $o) => "{$o->shift_id}:{$o->date->toDateString()}");
+            ->keyBy(fn (WorkcenterShiftDateOverride $o) => "{$o->workcenter_id}:{$o->shift_id}:{$o->date->toDateString()}");
 
-        $cells = [];
-        foreach ($shifts as $shift) {
+        $assignedCounts = ShiftAssignment::query()
+            ->whereIn('workcenter_id', $workcenterIds)
+            ->whereBetween('date', [$monthStart->toDateString(), $monthEnd->toDateString()])
+            ->get()
+            ->countBy(fn (ShiftAssignment $a) => "{$a->workcenter_id}:{$a->shift_id}:{$a->date->toDateString()}");
+
+        $coverage = [];
+        foreach ($attachments as $attachment) {
             foreach ($days as $date) {
-                $cells[] = [
-                    'shift_id' => $shift->id,
-                    'date' => $date,
-                    'spots' => $workcenter->spotsFor($shift, Carbon::parse($date)),
-                    'overridden' => $overriddenKeys->contains("{$shift->id}:{$date}"),
-                    'assignments' => $assignments->get("{$shift->id}:{$date}", collect())
-                        ->map(fn (ShiftAssignment $a) => $a->toPayload())
-                        ->values()
-                        ->all(),
+                $dateStr = $date->toDateString();
+                $key = "{$attachment->workcenter_id}:{$attachment->shift_id}:{$dateStr}";
+                $override = $overrides->get($key);
+                $spots = $override?->spots
+                    ?? $capacities->get("{$attachment->workcenter_id}:{$attachment->shift_id}:{$date->isoWeekday()}")?->spots
+                    ?? 0;
+
+                if ($spots <= 0) {
+                    continue;
+                }
+
+                $coverage[] = [
+                    'workcenter_id' => $attachment->workcenter_id,
+                    'shift_id' => $attachment->shift_id,
+                    'date' => $dateStr,
+                    'spots' => $spots,
+                    'assigned' => $assignedCounts->get($key, 0),
                 ];
             }
         }
 
-        return $cells;
+        return $coverage;
     }
 }

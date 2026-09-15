@@ -43,6 +43,14 @@ write to it. `Workcenter::spotsFor()` already reads it.
 A new sidebar item, **Scheduling**, admin-only (`nav.scheduling`, icon
 `calendar-days`), after Workcenter Shifts. Route behind `admin`.
 
+> **Superseded:** the page's landing view described below (one
+> workcenter, one week, at a time) has been replaced by a month
+> calendar — see `doc/features/scheduling-calendar/spec.md`. The
+> write endpoints and eligibility logic below are unchanged and still
+> fully tested; only `SchedulingController@index` and
+> `Scheduling.vue`'s rendering changed. This section is kept as the
+> historical record of what shipped in this feature.
+
 One workcenter, one week, at a time:
 
 - A Workcenter `SelectInput` (active workcenters, position order).
