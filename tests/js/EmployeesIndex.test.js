@@ -14,6 +14,9 @@ const en = {
     "employees.confirmed.yes": "Confirmed",
     "employees.confirmed.no": "Unconfirmed",
     "employees.no_business_line": "—",
+    "employees.business_lines.label": "Business lines",
+    "employees.business_lines.no_line": "No business line",
+    "employees.business_lines.aria_group": "Filter by business line",
     "employees.action.new": "New employee",
     "employees.action.send_link": "Send link",
     "employees.action.sending_link": "Sending…",
@@ -82,9 +85,22 @@ const employees = {
     ],
 };
 
+const businessLines = [
+    { id: 1, abbreviation: "PMP" },
+    { id: 2, abbreviation: "VLV" },
+];
+
 const mountIndex = (props = {}) =>
     mount(Index, {
-        props: { employees, search: "", sort: "name", direction: "asc", ...props },
+        props: {
+            employees,
+            search: "",
+            sort: "name",
+            direction: "asc",
+            businessLines: [],
+            selectedBusinessLines: ["none"],
+            ...props,
+        },
         global: { stubs: { AppLayout: { template: "<div><slot /></div>" } } },
     });
 
@@ -435,5 +451,93 @@ describe("Employees/Index", () => {
             { ids: [1] },
             expect.objectContaining({ onSuccess: expect.any(Function) }),
         );
+    });
+
+    describe("business lines filter menu", () => {
+        const openMenu = async (w) => {
+            await w.get('[data-testid="business-lines-menu-trigger"]').trigger("click");
+        };
+
+        it("stays closed until the trigger is clicked", () => {
+            const w = mountIndex({ businessLines, selectedBusinessLines: [1, 2, "none"] });
+
+            expect(w.find('[data-testid="business-lines-menu"]').exists()).toBe(false);
+        });
+
+        it("lists one checkbox per business line plus No business line, all checked by default", async () => {
+            const w = mountIndex({ businessLines, selectedBusinessLines: [1, 2, "none"] });
+            await openMenu(w);
+
+            const menu = w.get('[data-testid="business-lines-menu"]');
+            const labels = menu.findAll('input[type="checkbox"]').map((input, i) => ({
+                checked: input.element.checked,
+                text: menu.findAll("label")[i]?.text(),
+            }));
+
+            expect(labels).toEqual([
+                { checked: true, text: "PMP" },
+                { checked: true, text: "VLV" },
+                { checked: true, text: "No business line" },
+            ]);
+        });
+
+        it("reflects a partial selection from props", async () => {
+            const w = mountIndex({ businessLines, selectedBusinessLines: [1] });
+            await openMenu(w);
+
+            const checkboxes = w.get('[data-testid="business-lines-menu"]').findAll('input[type="checkbox"]');
+            expect(checkboxes.map((c) => c.element.checked)).toEqual([true, false, false]);
+        });
+
+        it("unchecking one line reloads with the remaining ids", async () => {
+            const w = mountIndex({ businessLines, selectedBusinessLines: [1, 2, "none"] });
+            await openMenu(w);
+
+            const checkboxes = w.get('[data-testid="business-lines-menu"]').findAll('input[type="checkbox"]');
+            await checkboxes[1].setValue(false); // uncheck VLV
+
+            expect(router.get).toHaveBeenCalledWith(
+                "/employees",
+                { business_lines: [1, "none"] },
+                expect.objectContaining({ preserveState: true }),
+            );
+        });
+
+        it("re-checking every box drops the business_lines param entirely", async () => {
+            const w = mountIndex({ businessLines, selectedBusinessLines: [1, "none"] });
+            await openMenu(w);
+
+            const checkboxes = w.get('[data-testid="business-lines-menu"]').findAll('input[type="checkbox"]');
+            await checkboxes[1].setValue(true); // re-check VLV
+
+            expect(router.get).toHaveBeenCalledWith(
+                "/employees",
+                {},
+                expect.objectContaining({ preserveState: true }),
+            );
+        });
+
+        it("closes the menu on an outside click", async () => {
+            const w = mount(Index, {
+                props: {
+                    employees,
+                    search: "",
+                    sort: "name",
+                    direction: "asc",
+                    businessLines,
+                    selectedBusinessLines: [1, 2, "none"],
+                },
+                global: { stubs: { AppLayout: { template: "<div><slot /></div>" } } },
+                attachTo: document.body,
+            });
+            await openMenu(w);
+            expect(w.find('[data-testid="business-lines-menu"]').exists()).toBe(true);
+
+            document.body.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+            await w.vm.$nextTick();
+
+            expect(w.find('[data-testid="business-lines-menu"]').exists()).toBe(false);
+            w.unmount();
+        });
     });
 });

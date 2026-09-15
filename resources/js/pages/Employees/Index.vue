@@ -17,6 +17,8 @@ const props = defineProps({
     search: { type: String, default: '' },
     sort: { type: String, default: 'name' },
     direction: { type: String, default: 'asc' },
+    businessLines: { type: Array, default: () => [] },
+    selectedBusinessLines: { type: Array, default: () => [] },
 })
 
 const columns = [
@@ -33,12 +35,21 @@ const allSelected = computed(() =>
     props.employees.data.length > 0 && selectedIds.value.length === props.employees.data.length,
 )
 
+const businessLineOptions = computed(() => [
+    ...props.businessLines.map((line) => ({ value: line.id, label: line.abbreviation })),
+    { value: 'none', label: __('employees.business_lines.no_line') },
+])
+const allBusinessLinesSelected = computed(() =>
+    businessLineOptions.value.every((option) => props.selectedBusinessLines.includes(option.value)),
+)
+
 const query = computed(() => {
     const q = {}
     const search = (searchTerm.value ?? '').trim()
     if (search !== '') q.search = search
     if (props.sort !== 'name') q.sort = props.sort
     if (props.direction !== 'asc') q.direction = props.direction
+    if (!allBusinessLinesSelected.value) q.business_lines = props.selectedBusinessLines
     return q
 })
 
@@ -99,6 +110,39 @@ function reload(overrides) {
 function sortBy(key) {
     const direction = props.sort === key && props.direction === 'asc' ? 'desc' : 'asc'
     reload({ sort: key === 'name' ? undefined : key, direction: direction === 'asc' ? undefined : direction })
+}
+
+const businessLinesMenuOpen = ref(false)
+const businessLinesMenuTriggerEl = ref(null)
+const businessLinesMenuRef = ref(null)
+
+function toggleBusinessLinesMenu(event) {
+    businessLinesMenuOpen.value = !businessLinesMenuOpen.value
+    businessLinesMenuTriggerEl.value = event.currentTarget
+}
+
+function closeBusinessLinesMenu() {
+    businessLinesMenuOpen.value = false
+}
+
+function onClickOutsideBusinessLinesMenu(e) {
+    if (!businessLinesMenuOpen.value) return
+    if (businessLinesMenuTriggerEl.value?.contains(e.target)) return
+    if (businessLinesMenuRef.value?.contains(e.target)) return
+    closeBusinessLinesMenu()
+}
+
+document.addEventListener('mousedown', onClickOutsideBusinessLinesMenu)
+onBeforeUnmount(() => document.removeEventListener('mousedown', onClickOutsideBusinessLinesMenu))
+
+function toggleBusinessLine(value, checked) {
+    const next = new Set(props.selectedBusinessLines)
+    if (checked) next.add(value)
+    else next.delete(value)
+
+    const allValues = businessLineOptions.value.map((option) => option.value)
+    const isAllSelected = allValues.every((v) => next.has(v))
+    reload({ business_lines: isAllSelected ? undefined : allValues.filter((v) => next.has(v)) })
 }
 
 let searchTimer = null
@@ -174,11 +218,43 @@ function bulkDelete() {
 
             <div class="space-y-4 p-6">
                 <div class="flex items-center justify-between gap-3">
-                    <SearchInput
-                        v-model="searchTerm"
-                        class="max-w-xs"
-                        :placeholder="__('employees.search_placeholder')"
-                    />
+                    <div class="flex items-center gap-3">
+                        <SearchInput
+                            v-model="searchTerm"
+                            class="max-w-xs"
+                            :placeholder="__('employees.search_placeholder')"
+                        />
+
+                        <div class="relative">
+                            <ButtonSecondary
+                                type="button"
+                                data-testid="business-lines-menu-trigger"
+                                :aria-expanded="businessLinesMenuOpen"
+                                @click="toggleBusinessLinesMenu"
+                            >
+                                {{ __('employees.business_lines.label') }}
+                            </ButtonSecondary>
+
+                            <div
+                                v-if="businessLinesMenuOpen"
+                                ref="businessLinesMenuRef"
+                                data-testid="business-lines-menu"
+                                role="group"
+                                :aria-label="__('employees.business_lines.aria_group')"
+                                class="absolute z-50 mt-1 w-48 rounded-md border border-(--color-dropdown-panel-border) bg-(--color-dropdown-panel-bg) p-2 shadow-lg"
+                            >
+                                <CheckboxInput
+                                    v-for="option in businessLineOptions"
+                                    :key="option.value"
+                                    :model-value="selectedBusinessLines.includes(option.value)"
+                                    class="py-1"
+                                    @update:model-value="(checked) => toggleBusinessLine(option.value, checked)"
+                                >
+                                    {{ option.label }}
+                                </CheckboxInput>
+                            </div>
+                        </div>
+                    </div>
 
                     <div class="ml-auto flex items-center justify-end gap-3">
                         <ButtonDanger

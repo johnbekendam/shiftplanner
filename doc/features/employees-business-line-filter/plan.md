@@ -1,4 +1,4 @@
-Status: in progress — 1/4
+Status: in progress — 2/4
 
 - [x] 1. Backend: filter the employees index by business line.
       `EmployeeController::index` reads `business_lines[]` from the
@@ -14,7 +14,7 @@ Status: in progress — 1/4
       to one line, filtering to "no business line", combining multiple
       lines, an unknown id being ignored, and the default (no param)
       returning everyone with every id "selected".
-- [ ] 2. Frontend: the Business Lines filter menu on Employees.
+- [x] 2. Frontend: the Business Lines filter menu on Employees.
       `Employees/Index.vue` gets a "Business lines" `ButtonSecondary`
       next to the search box. Clicking it opens a floating panel (outside
       click / Escape closes it, following `ShiftWeekTable.vue`'s
