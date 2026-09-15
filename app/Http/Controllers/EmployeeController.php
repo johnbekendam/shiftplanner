@@ -170,8 +170,8 @@ class EmployeeController extends Controller
 
     private function shiftCoverage(Employee $employee, Collection $shifts): array
     {
-        $unavailable = $employee->recurringAvailabilities
-            ->where('level', 'unavailable')
+        $covered = $employee->recurringAvailabilities
+            ->whereIn('level', ['available', 'not_preferred'])
             ->whereIn('weekday', self::WEEKDAYS)
             ->groupBy('shift_id');
 
@@ -181,7 +181,7 @@ class EmployeeController extends Controller
                 'shift_id' => $shift->id,
                 'name' => $shift->name,
                 'coverage_percentage' => (int) round(
-                    ((count(self::WEEKDAYS) - ($unavailable->get($shift->id)?->count() ?? 0)) / count(self::WEEKDAYS)) * 100
+                    (($covered->get($shift->id)?->count() ?? 0) / count(self::WEEKDAYS)) * 100
                 ),
             ])
             ->values()
