@@ -33,4 +33,19 @@ describe("WorkcenterScheduleCard", () => {
         expect(w.text()).toContain("14:00–22:00");
         expect(w.findAll("table")).toHaveLength(2);
     });
+
+    it("places a separator between shifts, but not before the first one", () => {
+        const w = mount(WorkcenterScheduleCard, {
+            props: {
+                workcenter: { id: 1, name: "Line 1" },
+                schedule: [
+                    { shift: { id: 9, name: "Early", start_time: "06:00", end_time: "14:00" }, cells },
+                    { shift: { id: 10, name: "Late", start_time: "14:00", end_time: "22:00" }, cells },
+                    { shift: { id: 11, name: "Night", start_time: "22:00", end_time: "06:00" }, cells },
+                ],
+            },
+        });
+
+        expect(w.findAll("hr")).toHaveLength(2);
+    });
 });

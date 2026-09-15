@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { mount, flushPromises } from "@vue/test-utils";
 
 const en = {
-    "workcenter_shifts.title": "Workcenter Shifts",
+    "workcenter_shifts.title": "Schedule",
     "workcenter_shifts.column.workcenter": "Workcenter",
     "workcenter_shifts.column.shift": "Shift",
     "workcenter_shifts.weekday.mon": "Mon",

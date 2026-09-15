@@ -2,7 +2,7 @@
 import { ref, computed, onBeforeUnmount } from 'vue'
 import axios from 'axios'
 import Icon from '@/components/ui/Icon.vue'
-import { NumberInput, SearchInput } from '@/components/ui/Input'
+import { SearchInput } from '@/components/ui/Input'
 import { useI18n } from '@/composables/useI18n'
 import { putAsync, postAsync, deleteAsync } from '@/utils/inertiaAsync'
 
@@ -39,20 +39,41 @@ function spotsUrl(date) {
 }
 
 // ── Spot count ──────────────────────────────────────────────────────────
-const editingSpotsDate = ref(null)
-const draftSpots = ref(0)
+// A floating menu of selectable counts, positioned from the clicked date
+// label's own rect — same approach as the assign popover below.
+const spotsOptions = Array.from({ length: 13 }, (_, i) => i) // 0..12
+const spotsMenuDate = ref(null)
+const spotsMenuTriggerEl = ref(null)
+const spotsMenuRef = ref(null)
+const spotsMenuStyle = ref({})
 
-function startEditSpots(cell) {
-    draftSpots.value = cell.spots
-    editingSpotsDate.value = cell.date
+const spotsMenuCell = computed(() => props.cells.find((c) => c.date === spotsMenuDate.value) ?? null)
+
+function computeSpotsMenuPosition() {
+    if (!spotsMenuTriggerEl.value) return
+    const rect = spotsMenuTriggerEl.value.getBoundingClientRect()
+    spotsMenuStyle.value = { top: `${rect.bottom + 4}px`, left: `${rect.left}px` }
 }
 
-function stopEditSpots() {
-    editingSpotsDate.value = null
+function toggleSpotsMenu(cell, event) {
+    if (spotsMenuDate.value === cell.date) {
+        closeSpotsMenu()
+        return
+    }
+    spotsMenuDate.value = cell.date
+    spotsMenuTriggerEl.value = event.currentTarget
+    computeSpotsMenuPosition()
 }
 
-async function commitSpots(cell, value) {
-    if (value === cell.spots) return
+function closeSpotsMenu() {
+    spotsMenuDate.value = null
+    spotsMenuTriggerEl.value = null
+}
+
+async function selectSpots(value) {
+    const cell = spotsMenuCell.value
+    closeSpotsMenu()
+    if (!cell || value === cell.spots) return
     await putAsync(spotsUrl(cell.date), { spots: value }).catch(() => {})
 }
 
@@ -61,17 +82,45 @@ async function resetSpots(cell) {
 }
 
 // ── Assignees ───────────────────────────────────────────────────────────
-const expandedAssignmentId = ref(null)
+// A floating menu (Freeze/Unfreeze, Remove), same positioning approach as
+// the spots menu and the assign popover.
+const assignmentMenuAssignment = ref(null)
+const assignmentMenuTriggerEl = ref(null)
+const assignmentMenuRef = ref(null)
+const assignmentMenuStyle = ref({})
 
-function toggleExpanded(assignmentId) {
-    expandedAssignmentId.value = expandedAssignmentId.value === assignmentId ? null : assignmentId
+function computeAssignmentMenuPosition() {
+    if (!assignmentMenuTriggerEl.value) return
+    const rect = assignmentMenuTriggerEl.value.getBoundingClientRect()
+    assignmentMenuStyle.value = { top: `${rect.bottom + 4}px`, left: `${rect.left}px` }
 }
 
-async function toggleFixed(assignment) {
+function toggleAssignmentMenu(assignment, event) {
+    if (assignmentMenuAssignment.value?.id === assignment.id) {
+        closeAssignmentMenu()
+        return
+    }
+    assignmentMenuAssignment.value = assignment
+    assignmentMenuTriggerEl.value = event.currentTarget
+    computeAssignmentMenuPosition()
+}
+
+function closeAssignmentMenu() {
+    assignmentMenuAssignment.value = null
+    assignmentMenuTriggerEl.value = null
+}
+
+async function selectFreeze() {
+    const assignment = assignmentMenuAssignment.value
+    closeAssignmentMenu()
+    if (!assignment) return
     await putAsync(`/scheduling/assignments/${assignment.id}`, { fixed: !assignment.fixed }).catch(() => {})
 }
 
-async function removeAssignment(assignment) {
+async function selectRemove() {
+    const assignment = assignmentMenuAssignment.value
+    closeAssignmentMenu()
+    if (!assignment) return
     await deleteAsync(`/scheduling/assignments/${assignment.id}`).catch(() => {})
 }
 
@@ -125,14 +174,21 @@ async function assign(employee) {
 }
 
 function onClickOutside(e) {
-    if (!openAssignDate.value) return
-    if (openTriggerEl.value?.contains(e.target)) return
-    if (panelRef.value?.contains(e.target)) return
-    closeAssign()
+    if (openAssignDate.value) {
+        if (!openTriggerEl.value?.contains(e.target) && !panelRef.value?.contains(e.target)) closeAssign()
+    }
+    if (spotsMenuDate.value) {
+        if (!spotsMenuTriggerEl.value?.contains(e.target) && !spotsMenuRef.value?.contains(e.target)) closeSpotsMenu()
+    }
+    if (assignmentMenuAssignment.value) {
+        if (!assignmentMenuTriggerEl.value?.contains(e.target) && !assignmentMenuRef.value?.contains(e.target)) closeAssignmentMenu()
+    }
 }
 
 function onScroll() {
     if (openAssignDate.value) computePanelPosition()
+    if (spotsMenuDate.value) computeSpotsMenuPosition()
+    if (assignmentMenuAssignment.value) computeAssignmentMenuPosition()
 }
 
 document.addEventListener('mousedown', onClickOutside)
@@ -145,28 +201,18 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-    <table class="w-full text-sm">
+    <table class="w-full table-fixed text-sm">
         <thead>
-            <tr>
+            <tr class="border-b border-(--color-table-header-separator)">
                 <th class="w-8"></th>
-                <th v-for="cell in cells" :key="cell.date" class="px-1 py-1 text-center font-medium">
-                    <div class="text-xs text-(--color-text-secondary)">{{ formatDay(cell.date) }}</div>
-                    <div class="flex items-center justify-center gap-1">
-                        <span v-if="editingSpotsDate === cell.date" @focusout="stopEditSpots">
-                            <NumberInput
-                                :model-value="draftSpots"
-                                :min="0"
-                                class="w-14"
-                                @update:model-value="(v) => commitSpots(cell, v)"
-                            />
-                        </span>
+                <th v-for="cell in cells" :key="cell.date" class="px-1 py-1 text-left font-medium">
+                    <div class="flex items-center gap-1">
                         <button
-                            v-else
                             type="button"
                             :data-testid="`spots-${shiftId}-${cell.date}`"
-                            @click="startEditSpots(cell)"
+                            @click="(e) => toggleSpotsMenu(cell, e)"
                         >
-                            {{ cell.spots }}
+                            {{ formatDay(cell.date) }}
                         </button>
                         <button
                             v-if="cell.overridden"
@@ -186,53 +232,88 @@ onBeforeUnmount(() => {
                 <td
                     v-for="cell in cells"
                     :key="cell.date"
-                    class="px-1 py-0.5 text-center"
+                    class="px-1 py-0.5 text-left"
                     :data-testid="`cell-${shiftId}-${cell.date}-${row}`"
                 >
-                    <template v-if="cellState(cell, row).type === 'filled'">
-                        <div
-                            v-if="expandedAssignmentId === cellState(cell, row).assignment.id"
-                            class="flex items-center justify-center gap-1"
+                    <div class="flex h-5 min-w-0 items-center">
+                        <template v-if="cellState(cell, row).type === 'filled'">
+                            <button
+                                type="button"
+                                class="inline-flex min-w-0 items-center"
+                                :title="cellState(cell, row).assignment.employee_name"
+                                @click="(e) => toggleAssignmentMenu(cellState(cell, row).assignment, e)"
+                            >
+                                <span
+                                    v-if="cellState(cell, row).assignment.fixed"
+                                    class="inline-flex min-w-0 items-center gap-1 text-(--color-btn-primary-bg)"
+                                >
+                                    <Icon name="map-pin" class="size-3 shrink-0" />
+                                    <span class="truncate">{{ cellState(cell, row).assignment.employee_name }}</span>
+                                </span>
+                                <span v-else class="block min-w-0 truncate">{{ cellState(cell, row).assignment.employee_name }}</span>
+                            </button>
+                        </template>
+                        <button
+                            v-else-if="cellState(cell, row).type === 'open'"
+                            type="button"
+                            class="inline-flex items-center text-(--color-btn-primary-bg)"
+                            :aria-label="__('scheduling.open_spot')"
+                            @click="(e) => openAssign(cell.date, e)"
                         >
-                            <button
-                                type="button"
-                                :aria-label="__('scheduling.toggle_fixed')"
-                                @click="toggleFixed(cellState(cell, row).assignment)"
-                            >
-                                <Icon
-                                    name="map-pin"
-                                    class="size-3"
-                                    :class="cellState(cell, row).assignment.fixed
-                                        ? 'text-(--color-btn-primary-bg)'
-                                        : 'text-(--color-text-secondary)'"
-                                />
-                            </button>
-                            <span>{{ cellState(cell, row).assignment.employee_name }}</span>
-                            <button
-                                type="button"
-                                :aria-label="__('scheduling.remove')"
-                                @click="removeAssignment(cellState(cell, row).assignment)"
-                            >
-                                <Icon name="x-mark" class="size-3" />
-                            </button>
-                        </div>
-                        <button v-else type="button" @click="toggleExpanded(cellState(cell, row).assignment.id)">
-                            {{ cellState(cell, row).assignment.employee_name }}
+                            <Icon name="plus-circle" class="size-4" />
                         </button>
-                    </template>
-                    <button
-                        v-else-if="cellState(cell, row).type === 'open'"
-                        type="button"
-                        class="text-(--color-btn-primary-bg)"
-                        @click="(e) => openAssign(cell.date, e)"
-                    >
-                        {{ __('scheduling.open_spot') }}
-                    </button>
-                    <span v-else class="text-(--color-text-muted)">—</span>
+                        <span v-else class="text-(--color-text-muted)">—</span>
+                    </div>
                 </td>
             </tr>
         </tbody>
     </table>
+
+    <Teleport to="body">
+        <div
+            v-if="spotsMenuDate"
+            ref="spotsMenuRef"
+            data-testid="spots-menu"
+            :style="spotsMenuStyle"
+            class="fixed z-50 max-h-48 w-16 overflow-y-auto rounded-md border border-(--color-dropdown-panel-border) bg-(--color-dropdown-panel-bg) p-1 shadow-lg"
+        >
+            <button
+                v-for="n in spotsOptions"
+                :key="n"
+                type="button"
+                class="block w-full rounded px-2 py-1 text-left hover:bg-(--color-dropdown-option-hover-bg)"
+                :class="n === spotsMenuCell?.spots ? 'font-semibold text-(--color-btn-primary-bg)' : ''"
+                @click="selectSpots(n)"
+            >
+                {{ n }}
+            </button>
+        </div>
+    </Teleport>
+
+    <Teleport to="body">
+        <div
+            v-if="assignmentMenuAssignment"
+            ref="assignmentMenuRef"
+            data-testid="assignment-menu"
+            :style="assignmentMenuStyle"
+            class="fixed z-50 w-28 rounded-md border border-(--color-dropdown-panel-border) bg-(--color-dropdown-panel-bg) p-1 shadow-lg"
+        >
+            <button
+                type="button"
+                class="block w-full rounded px-2 py-1 text-left hover:bg-(--color-dropdown-option-hover-bg)"
+                @click="selectFreeze"
+            >
+                {{ assignmentMenuAssignment.fixed ? __('scheduling.unfreeze') : __('scheduling.freeze') }}
+            </button>
+            <button
+                type="button"
+                class="block w-full rounded px-2 py-1 text-left hover:bg-(--color-dropdown-option-hover-bg)"
+                @click="selectRemove"
+            >
+                {{ __('scheduling.remove') }}
+            </button>
+        </div>
+    </Teleport>
 
     <Teleport to="body">
         <div

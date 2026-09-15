@@ -2,10 +2,10 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { mount } from "@vue/test-utils";
 
 const en = {
-    "scheduling.title": "Scheduling",
+    "scheduling.title": "Planning",
     "scheduling.filter_workcenters": "Workcenters",
     "scheduling.filter_shifts": "Shifts",
-    "scheduling.no_workcenters": "No active workcenters yet. Add one on the Settings page.",
+    "scheduling.no_schedule": "There's no schedule yet. Add one on the Schedule page.",
     "scheduling.legend_staffed": "Fully staffed",
     "scheduling.legend_open_spots": "Open spots",
     "calendar.reset": "Jump to today",
@@ -146,9 +146,9 @@ describe("Scheduling", () => {
         expect(routerGetCalls).toHaveLength(0);
     });
 
-    it("shows a message when there are no active workcenters", () => {
+    it("shows a message pointing to the Schedule page when there are no active workcenters", () => {
         const w = mountPage({ workcenters: [], coverage: [] });
-        expect(w.text()).toContain("No active workcenters yet. Add one on the Settings page.");
+        expect(w.text()).toContain("There's no schedule yet. Add one on the Schedule page.");
     });
 
     it("renders a workcenter card only for a workcenter with relevant coverage that week", () => {

@@ -114,9 +114,9 @@ const visibleWorkcenters = computed(() =>
     <AppLayout>
         <Head :title="__('scheduling.title')" />
 
-        <div class="mx-auto max-w-4xl">
+        <div class="mx-auto max-w-6xl">
             <p v-if="!workcenters.length" class="py-6 text-center text-(--color-text-secondary)">
-                {{ __('scheduling.no_workcenters') }}
+                {{ __('scheduling.no_schedule') }}
             </p>
             <div v-else class="flex flex-col items-start gap-4 lg:flex-row">
                 <Calendar

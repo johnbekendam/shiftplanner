@@ -5,10 +5,11 @@ const bodyWrapper = () => new DOMWrapper(document.body);
 
 const en = {
     "scheduling.reset_spots": "Reset to the weekday default",
-    "scheduling.toggle_fixed": "Toggle fixed",
+    "scheduling.freeze": "Freeze",
+    "scheduling.unfreeze": "Unfreeze",
     "scheduling.remove": "Remove",
     "scheduling.no_eligible_employees": "No one eligible.",
-    "scheduling.open_spot": "Open",
+    "scheduling.open_spot": "Add employee",
 };
 
 const { routerCalls, failUrlsRef, router } = vi.hoisted(() => {
@@ -36,7 +37,6 @@ vi.mock("@/composables/useI18n", () => ({
 }));
 
 import ShiftWeekTable from "@/components/scheduling/ShiftWeekTable.vue";
-import { NumberInput } from "@/components/ui/Input";
 
 // A week of cells (Mon 14 .. Sun 20). Mon: 2 spots, 1 assigned (1 open row).
 // Tue: 1 spot, 1 assigned & fixed (row beyond spots is a dash). Wed: 0 spots.
@@ -62,40 +62,67 @@ beforeEach(() => {
 });
 
 describe("ShiftWeekTable", () => {
-    it("renders a spot count per day, with a reset icon only on the overridden day", () => {
+    it("renders a date label per day, with a reset icon only on the overridden day, and no spot count", () => {
         const w = mountTable();
 
-        expect(w.get('[data-testid="spots-9-2026-09-14"]').text()).toBe("2");
-        expect(w.get('[data-testid="spots-9-2026-09-17"]').text()).toBe("2");
+        expect(w.get('[data-testid="spots-9-2026-09-14"]').text()).toContain("14");
         expect(w.findAll('[aria-label="Reset to the weekday default"]')).toHaveLength(1);
+        expect(w.text()).not.toContain("2/");
     });
 
-    it("renders filled cells with the employee name, open cells as Open, and cells beyond that day's spot count as a dash", () => {
+    it("keeps the spots selection menu hidden until the date is clicked, then toggles it on a second click", async () => {
+        const w = mountTable();
+
+        expect(bodyWrapper().find('[data-testid="spots-menu"]').exists()).toBe(false);
+
+        await w.get('[data-testid="spots-9-2026-09-14"]').trigger("click");
+        expect(bodyWrapper().find('[data-testid="spots-menu"]').exists()).toBe(true);
+
+        await w.get('[data-testid="spots-9-2026-09-14"]').trigger("click");
+        expect(bodyWrapper().find('[data-testid="spots-menu"]').exists()).toBe(false);
+        w.unmount();
+    });
+
+    it("renders filled cells with the employee name, open cells as an add-employee icon, and cells beyond that day's spot count as a dash", () => {
         const w = mountTable();
 
         expect(w.get('[data-testid="cell-9-2026-09-14-0"]').text()).toBe("Bram Bakker");
-        expect(w.get('[data-testid="cell-9-2026-09-14-1"]').text()).toBe("Open");
+        expect(w.get('[data-testid="cell-9-2026-09-14-1"]').find('[aria-label="Add employee"]').exists()).toBe(true);
         expect(w.get('[data-testid="cell-9-2026-09-15-0"]').text()).toBe("Anna Jansen");
         expect(w.get('[data-testid="cell-9-2026-09-15-1"]').text()).toBe("—");
         expect(w.get('[data-testid="cell-9-2026-09-16-0"]').text()).toBe("—");
-        expect(w.get('[data-testid="cell-9-2026-09-17-0"]').text()).toBe("Open");
+        expect(w.get('[data-testid="cell-9-2026-09-17-0"]').find('[aria-label="Add employee"]').exists()).toBe(true);
     });
 
-    it("committing a changed spot value fires a PUT; an unchanged one fires nothing", async () => {
+    it("shows a frozen assignee's name with a pin icon, and a non-frozen one as plain text with no icon", () => {
         const w = mountTable();
-        await w.get('[data-testid="spots-9-2026-09-14"]').trigger("click");
 
-        w.findComponent(NumberInput).vm.$emit("update:modelValue", 3);
-        await flushPromises();
+        // Bram Bakker (Mon, row 0) is not fixed.
+        expect(w.get('[data-testid="cell-9-2026-09-14-0"]').find("svg").exists()).toBe(false);
+
+        // Anna Jansen (Tue, row 0) is fixed.
+        const cell = w.get('[data-testid="cell-9-2026-09-15-0"]');
+        expect(cell.text()).toBe("Anna Jansen");
+        expect(cell.find("svg").exists()).toBe(true);
+    });
+
+    it("picking a value from the menu fires a PUT and closes the menu; picking the current value fires nothing", async () => {
+        const w = mountTable();
+        await w.get('[data-testid="spots-9-2026-09-14"]').trigger("click"); // Mon: 2 spots
+
+        const menu = bodyWrapper().get('[data-testid="spots-menu"]');
+        const options = menu.findAll("button");
+        await options[3].trigger("click"); // "3"
 
         expect(routerCalls).toContainEqual(["put", "/scheduling/spots/1/9/2026-09-14", { spots: 3 }]);
+        expect(bodyWrapper().find('[data-testid="spots-menu"]').exists()).toBe(false);
 
         routerCalls.length = 0;
-        await w.get('[data-testid="spots-9-2026-09-15"]').trigger("click");
-        w.findComponent(NumberInput).vm.$emit("update:modelValue", 1);
-        await flushPromises();
+        await w.get('[data-testid="spots-9-2026-09-14"]').trigger("click");
+        await bodyWrapper().get('[data-testid="spots-menu"]').findAll("button")[2].trigger("click"); // "2", unchanged
 
         expect(routerCalls).toEqual([]);
+        w.unmount();
     });
 
     it("clicking the reset icon fires a DELETE for that day", async () => {
@@ -105,15 +132,48 @@ describe("ShiftWeekTable", () => {
         expect(routerCalls).toContainEqual(["delete", "/scheduling/spots/1/9/2026-09-17"]);
     });
 
-    it("clicking a filled cell reveals pin/remove controls; toggling pin fires a PUT and remove fires a DELETE", async () => {
+    it("clicking a filled cell opens a Freeze/Remove menu, not inline icons", async () => {
         const w = mountTable();
         await w.get('[data-testid="cell-9-2026-09-14-0"] button').trigger("click");
 
-        await w.get('[aria-label="Toggle fixed"]').trigger("click");
-        expect(routerCalls).toContainEqual(["put", "/scheduling/assignments/1", { fixed: true }]);
+        expect(w.find('[aria-label="Toggle fixed"]').exists()).toBe(false);
+        const menu = bodyWrapper().get('[data-testid="assignment-menu"]');
+        expect(menu.text()).toContain("Freeze");
+        expect(menu.text()).toContain("Remove");
+        w.unmount();
+    });
 
-        await w.get('[aria-label="Remove"]').trigger("click");
+    it("the menu offers Unfreeze for an already-fixed assignment", async () => {
+        const w = mountTable();
+        await w.get('[data-testid="cell-9-2026-09-15-0"] button').trigger("click"); // Anna, fixed: true
+
+        const menu = bodyWrapper().get('[data-testid="assignment-menu"]');
+        expect(menu.text()).toContain("Unfreeze");
+        w.unmount();
+    });
+
+    it("picking Freeze fires a PUT with fixed flipped, and closes the menu", async () => {
+        const w = mountTable();
+        await w.get('[data-testid="cell-9-2026-09-14-0"] button').trigger("click"); // Bram, fixed: false
+
+        const menu = bodyWrapper().get('[data-testid="assignment-menu"]');
+        await menu.findAll("button")[0].trigger("click");
+
+        expect(routerCalls).toContainEqual(["put", "/scheduling/assignments/1", { fixed: true }]);
+        expect(bodyWrapper().find('[data-testid="assignment-menu"]').exists()).toBe(false);
+        w.unmount();
+    });
+
+    it("picking Remove fires a DELETE and closes the menu", async () => {
+        const w = mountTable();
+        await w.get('[data-testid="cell-9-2026-09-14-0"] button').trigger("click");
+
+        const menu = bodyWrapper().get('[data-testid="assignment-menu"]');
+        await menu.findAll("button")[1].trigger("click");
+
         expect(routerCalls).toContainEqual(["delete", "/scheduling/assignments/1"]);
+        expect(bodyWrapper().find('[data-testid="assignment-menu"]').exists()).toBe(false);
+        w.unmount();
     });
 
     it("clicking an Open cell fetches eligible employees and lists them; clicking one assigns and closes the popover", async () => {
