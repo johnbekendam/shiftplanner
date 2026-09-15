@@ -2,10 +2,14 @@
 import Card from '@/components/ui/Card.vue'
 import CardSeparator from '@/components/ui/CardSeparator.vue'
 import ShiftWeekTable from '@/components/scheduling/ShiftWeekTable.vue'
+import { useI18n } from '@/composables/useI18n'
+
+const __ = useI18n()
 
 defineProps({
     workcenter: { type: Object, required: true }, // { id, name }
-    // [{ shift: { id, name, start_time, end_time }, cells: [7 cell objects] }]
+    weekPublished: { type: Boolean, default: false },
+    // [{ shift: { id, name }, cells: [7 cell objects] }]
     schedule: { type: Array, required: true },
 })
 </script>
@@ -13,7 +17,15 @@ defineProps({
 <template>
     <Card>
         <template #header>
-            <div class="px-6 py-3 text-base font-semibold">{{ workcenter.name }}</div>
+            <div class="flex items-center justify-between gap-3 px-6 py-3">
+                <div class="text-base font-semibold">{{ workcenter.name }}</div>
+                <span
+                    v-if="weekPublished"
+                    class="rounded-full border border-(--color-badge-warning-border) bg-(--color-badge-warning-bg) px-2 py-0.5 text-xs font-medium text-(--color-badge-warning-text)"
+                >
+                    {{ __('scheduling.published_label') }}
+                </span>
+            </div>
         </template>
 
         <div class="p-6">
@@ -22,9 +34,6 @@ defineProps({
                 <div>
                     <h3 class="mb-2 text-sm font-semibold text-(--color-text-primary)">
                         {{ entry.shift.name }}
-                        <span class="font-normal text-(--color-text-secondary)">
-                            {{ entry.shift.start_time }}–{{ entry.shift.end_time }}
-                        </span>
                     </h3>
                     <ShiftWeekTable :workcenter-id="workcenter.id" :shift-id="entry.shift.id" :cells="entry.cells" />
                 </div>

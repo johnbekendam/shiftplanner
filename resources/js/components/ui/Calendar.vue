@@ -47,7 +47,7 @@
                         <div v-if="cell.type === 'pad'"></div>
                         <button
                             v-else
-                            :class="dayClass(colorForDay(cell.day), selectedDay === cell.day, isToday(cell.day), isDisabled(cell.day))"
+                            :class="dayClass(colorForDay(cell.day), isDaySelected(cell.day), isToday(cell.day), isDisabled(cell.day))"
                             :disabled="isDisabled(cell.day)"
                             @click="!isDisabled(cell.day) && enableDaySelection && selectDay(cell.day)"
                         >
@@ -105,7 +105,7 @@ const BORDER_CLASS = {
     success: 'border-(--color-badge-success-border)',
     custom: 'border-(--color-badge-custom-border)',
     error: 'border-(--color-badge-error-border)',
-    warning: 'border-(--color-badge-warning-border)',
+    warning: 'border-(--color-btn-danger-bg)',
     standard: 'border-(--color-badge-standard-border)',
     muted: 'border-(--color-badge-muted-border)',
 }
@@ -141,6 +141,7 @@ const todayDow = (todayDate.getDay() + 6) % 7 // Mon=0 … Sun=6
 const onToday = props.year === todayY && props.month === todayM
 const selectedDay = ref(props.initialDay ?? (onToday ? todayD : 1))
 const selectedDayOfWeek = ref(onToday ? todayDow : isoWeekday(1))
+const selectedWeekStart = ref(dateString(weekStartForDay(selectedDay.value)))
 
 // ── Computed ──────────────────────────────────────────────────────────────────
 
@@ -202,6 +203,23 @@ function isToday(day) {
     return props.year === todayY && props.month === todayM && day === todayD
 }
 
+function weekStartForDay(day, y = props.year, m = props.month) {
+    const date = new Date(y, m - 1, day)
+    date.setDate(date.getDate() - isoWeekday(day, y, m))
+    return date
+}
+
+function dateString(date) {
+    const pad = (n) => String(n).padStart(2, '0')
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
+}
+
+function isDaySelected(day) {
+    return selectedWeekStart.value
+        ? dateString(weekStartForDay(day)) === selectedWeekStart.value
+        : selectedDay.value === day
+}
+
 // Returns ISO weekday (Mon=0 … Sun=6) for a day in the given year/month (defaults to current props)
 function isoWeekday(day, y = props.year, m = props.month) {
     const dow = new Date(y, m - 1, day).getDay()
@@ -256,6 +274,7 @@ function emitChange(year = props.year, month = props.month) {
 function onReset() {
     selectedDay.value = todayD
     selectedDayOfWeek.value = todayDow
+    selectedWeekStart.value = dateString(weekStartForDay(todayD, todayY, todayM))
     emitChange(todayY, todayM)
 }
 
@@ -265,6 +284,7 @@ function onPrev() {
     const newMonth = d.getMonth() + 1
     selectedDay.value = 1
     selectedDayOfWeek.value = isoWeekday(1, newYear, newMonth)
+    selectedWeekStart.value = dateString(weekStartForDay(1, newYear, newMonth))
     emitChange(newYear, newMonth)
 }
 
@@ -274,12 +294,14 @@ function onNext() {
     const newMonth = d.getMonth() + 1
     selectedDay.value = 1
     selectedDayOfWeek.value = isoWeekday(1, newYear, newMonth)
+    selectedWeekStart.value = dateString(weekStartForDay(1, newYear, newMonth))
     emitChange(newYear, newMonth)
 }
 
 function selectWeekday(i) {
     selectedDay.value = null
     selectedDayOfWeek.value = i
+    selectedWeekStart.value = null
     emitChange()
 }
 
@@ -287,6 +309,7 @@ function selectDay(day) {
     const dow = isoWeekday(day)
     selectedDay.value = day
     selectedDayOfWeek.value = dow
+    selectedWeekStart.value = dateString(weekStartForDay(day))
     emitChange()
 }
 

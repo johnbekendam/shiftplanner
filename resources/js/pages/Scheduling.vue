@@ -4,7 +4,8 @@ import { Head, router } from '@inertiajs/vue3'
 import AppLayout from '@/layouts/AppLayout.vue'
 import Card from '@/components/ui/Card.vue'
 import Calendar from '@/components/ui/Calendar.vue'
-import ButtonSecondary from '@/components/ui/ButtonSecondary.vue'
+import ButtonPrimary from '@/components/ui/ButtonPrimary.vue'
+import ButtonDanger from '@/components/ui/ButtonDanger.vue'
 import WorkcenterScheduleCard from '@/components/scheduling/WorkcenterScheduleCard.vue'
 import { CheckboxInput } from '@/components/ui/Input'
 import { useI18n } from '@/composables/useI18n'
@@ -141,6 +142,7 @@ async function togglePublish() {
                     :enable-day-selection="true"
                     :enable-week-day-selection="false"
                     :week-marker-days="publishedDays"
+                    week-marker-color="warning"
                     @change="onCalendarChange"
                 />
 
@@ -182,15 +184,17 @@ async function togglePublish() {
             </div>
 
             <div v-if="workcenters.length" class="mt-4 flex items-center gap-3">
-                <span
+                <ButtonDanger
                     v-if="weekPublished"
-                    class="rounded-full border border-(--color-badge-custom-border) bg-(--color-badge-custom-bg) px-2 py-0.5 text-xs font-medium text-(--color-badge-custom-text)"
+                    type="button"
+                    data-testid="publish-week-button"
+                    @click="togglePublish"
                 >
-                    {{ __('scheduling.published_label') }}
-                </span>
-                <ButtonSecondary type="button" data-testid="publish-week-button" @click="togglePublish">
                     {{ weekPublished ? __('scheduling.unpublish') : __('scheduling.publish') }}
-                </ButtonSecondary>
+                </ButtonDanger>
+                <ButtonPrimary v-else type="button" data-testid="publish-week-button" @click="togglePublish">
+                    {{ __('scheduling.publish') }}
+                </ButtonPrimary>
             </div>
 
             <div v-if="visibleWorkcenters.length" class="mt-4 flex flex-col gap-4">
@@ -199,6 +203,7 @@ async function togglePublish() {
                     :key="workcenter.id"
                     :workcenter="workcenter"
                     :schedule="schedule"
+                    :week-published="weekPublished"
                 />
             </div>
         </div>

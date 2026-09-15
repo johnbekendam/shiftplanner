@@ -225,6 +225,6 @@ describe("Scheduling", () => {
         const day10 = w.findAll("button").find((b) => b.text() === "10");
         const row = day10.element.closest('[data-testid^="calendar-week-"]');
 
-        expect(row.className).toContain("border-(--color-badge-custom-border)");
+        expect(row.className).toContain("border-(--color-btn-danger-bg)");
     });
 });

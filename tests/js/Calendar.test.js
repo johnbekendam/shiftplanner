@@ -40,6 +40,17 @@ describe("Calendar", () => {
         expect(w.emitted("change").at(-1)[0]).toMatchObject({ day: 10 });
     });
 
+    it("selects the whole week when a day is clicked", async () => {
+        const w = mount(Calendar, { props: { year: 2026, month: 9 } });
+        const day10 = w.findAll("button").find((b) => b.text() === "10");
+
+        await day10.trigger("click");
+
+        expect(w.findAll("button").filter((b) => /^(7|8|9|10|11|12|13)$/.test(b.text())).every((b) =>
+            b.classes().join(" ").includes("border-(--color-tab-active-border)"),
+        )).toBe(true);
+    });
+
     it("does not select a day when enableDaySelection is false", async () => {
         const w = mount(Calendar, { props: { year: 2026, month: 9, enableDaySelection: false } });
         const day10 = w.findAll("button").find((b) => b.text() === "10");
@@ -116,6 +127,6 @@ describe("Calendar", () => {
         const day10 = w.findAll("button").find((b) => b.text() === "10");
         const row = day10.element.closest('[data-testid^="calendar-week-"]');
 
-        expect(row.className).toContain("border-(--color-badge-warning-border)");
+        expect(row.className).toContain("border-(--color-btn-danger-bg)");
     });
 });
