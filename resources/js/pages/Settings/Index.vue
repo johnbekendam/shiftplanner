@@ -12,7 +12,7 @@ import WorkcenterList from '@/components/WorkcenterList.vue'
 import ShiftNoteForm from '@/components/ShiftNoteForm.vue'
 import ScheduleNoteForm from '@/components/ScheduleNoteForm.vue'
 import PeriodSettingsForm from '@/components/PeriodSettingsForm.vue'
-import PlanningRulesForm from '@/components/PlanningRulesForm.vue'
+import PlanningRuleList from '@/components/PlanningRuleList.vue'
 import TabSaveBar from '@/components/ui/TabSaveBar.vue'
 import { useI18n } from '@/composables/useI18n'
 import { useUnsavedChangesGuard } from '@/composables/useUnsavedChangesGuard'
@@ -29,7 +29,7 @@ const props = defineProps({
     scheduleNote: { type: String, default: '' },
     questions: { type: Array, default: () => [] },
     period: { type: Object, default: () => ({}) },
-    planningRules: { type: Object, default: () => ({}) },
+    planningRules: { type: Array, default: () => [] },
 })
 
 const tab = ref('general')
@@ -40,7 +40,7 @@ const tabs = computed(() => [
     { value: 'workcenters', label: __('settings.tab.workcenters'), dirty: workcentersDirty.value },
     { value: 'questions', label: __('settings.tab.questions'), dirty: questionsTab.dirty.value },
     { value: 'competences', label: __('settings.tab.competences'), dirty: competencesTab.dirty.value },
-    { value: 'planning_rules', label: __('settings.tab.planning_rules'), dirty: planningRulesFormRef.value?.isDirty ?? false },
+    { value: 'planning_rules', label: __('settings.tab.planning_rules'), dirty: planningRulesDirty.value },
     { value: 'information', label: __('settings.tab.information'), dirty: shiftNoteFormRef.value?.isDirty ?? false },
 ])
 
@@ -402,16 +402,75 @@ async function savePeriod() {
     return ok
 }
 
-const planningRulesFormRef = ref(null)
+// ── Planning Rules: local edit/add/delete, one Save/Cancel. A rule's type,
+// and for a scoped type what it targets, is fixed once created — only
+// mode/severity and a type's own mutable field (value, business_line_ids)
+// can change in place. ───────────────────────────────────────────────────
+const planningRulesVersion = ref(0)
+const committedPlanningRules = ref(props.planningRules)
+const currentPlanningRules = ref(props.planningRules)
+const planningRulesSaving = ref(false)
 const planningRulesJustSaved = ref(false)
 
+function onPlanningRulesChange(rows) {
+    currentPlanningRules.value = rows
+}
+
+function planningRuleEquals(a, b) {
+    return a.mode === b.mode && a.severity === b.severity && JSON.stringify(a.config) === JSON.stringify(b.config)
+}
+
+function planningRulePayload(row) {
+    return { type: row.type, mode: row.mode, severity: row.severity, ...row.config }
+}
+
+const planningRulesDirty = computed(() => {
+    const committed = committedPlanningRules.value
+    const current = currentPlanningRules.value
+
+    if (current.some((r) => r.id === null)) return true
+    if (committed.some((c) => !current.some((r) => r.id === c.id))) return true
+
+    return current.some((row) => {
+        if (row.id === null) return false
+        const orig = committed.find((c) => c.id === row.id)
+        return orig && !planningRuleEquals(orig, row)
+    })
+})
+
 async function savePlanningRules() {
-    const ok = await planningRulesFormRef.value.submit()
+    planningRulesSaving.value = true
+    const committed = committedPlanningRules.value
+    const current = currentPlanningRules.value
+    const toDelete = committed.filter((c) => !current.some((r) => r.id === c.id))
+    const toAdd = current.filter((r) => r.id === null)
+    const toEdit = current.filter((r) => {
+        if (r.id === null) return false
+        const orig = committed.find((c) => c.id === r.id)
+        return orig && !planningRuleEquals(orig, r)
+    })
+
+    const results = await Promise.allSettled([
+        ...toDelete.map((r) => deleteAsync(`/settings/planning-rules/${r.id}`)),
+        ...toEdit.map((r) => putAsync(`/settings/planning-rules/${r.id}`, planningRulePayload(r))),
+        ...toAdd.map((r) => postAsync('/settings/planning-rules', planningRulePayload(r))),
+    ])
+
+    planningRulesSaving.value = false
+    const ok = results.every((r) => r.status === 'fulfilled')
     if (ok) {
+        committedPlanningRules.value = props.planningRules
+        currentPlanningRules.value = props.planningRules
+        planningRulesVersion.value++
         planningRulesJustSaved.value = true
         setTimeout(() => { planningRulesJustSaved.value = false }, 2000)
     }
     return ok
+}
+
+function cancelPlanningRules() {
+    currentPlanningRules.value = committedPlanningRules.value
+    planningRulesVersion.value++
 }
 
 const shiftNoteFormRef = ref(null)
@@ -433,7 +492,7 @@ useUnsavedChangesGuard(() => (
     || questionsTab.dirty.value
     || competencesTab.dirty.value
     || (periodFormRef.value?.isDirty ?? false)
-    || (planningRulesFormRef.value?.isDirty ?? false)
+    || planningRulesDirty.value
     || (shiftNoteFormRef.value?.isDirty ?? false)
 ))
 </script>
@@ -502,13 +561,21 @@ useUnsavedChangesGuard(() => (
             </div>
 
             <div v-show="tab === 'planning_rules'" data-testid="panel-planning-rules" class="p-6">
-                <PlanningRulesForm ref="planningRulesFormRef" :planning-rules="planningRules" />
+                <PlanningRuleList
+                    :key="planningRulesVersion"
+                    :items="committedPlanningRules"
+                    :workcenters="workcenters"
+                    :shifts="shifts"
+                    :competences="competences"
+                    :business-lines="businessLines"
+                    @update:items="onPlanningRulesChange"
+                />
                 <TabSaveBar
-                    :dirty="planningRulesFormRef?.isDirty ?? false"
-                    :saving="planningRulesFormRef?.processing ?? false"
+                    :dirty="planningRulesDirty"
+                    :saving="planningRulesSaving"
                     :just-saved="planningRulesJustSaved"
                     @save="savePlanningRules"
-                    @cancel="planningRulesFormRef?.cancel()"
+                    @cancel="cancelPlanningRules"
                 />
             </div>
 

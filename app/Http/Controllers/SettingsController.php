@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\AvailabilityQuestion;
 use App\Models\BusinessLine;
 use App\Models\Competence;
+use App\Models\PlanningRule;
 use App\Models\PlanningSettings;
 use App\Models\Shift;
 use App\Models\Workcenter;
@@ -23,7 +24,7 @@ class SettingsController extends Controller
             'scheduleNote' => PlanningSettings::current()->shift_schedule_note ?? '',
             'questions' => $this->questions(),
             'period' => PlanningSettings::current()->toPayload(),
-            'planningRules' => PlanningSettings::current()->rulesPayload(),
+            'planningRules' => PlanningRule::all()->map->toPayload()->all(),
         ]);
     }
 

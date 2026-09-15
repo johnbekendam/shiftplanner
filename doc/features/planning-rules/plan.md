@@ -1,107 +1,80 @@
 # Planning Rules — Plan
 
-Status: in progress — 1/4
+Status: in progress — 1/2
 
-Spec: `spec.md`. Four slices: global rule fields on `planning_settings`,
-competence-requirement rows, business-line-preference rows, then docs
-and full checks. Each slice ships its own migration, model/controller
-change, and Settings tab section.
+Spec: `spec.md`. One generic `planning_rules` table (`type` + `mode` +
+`severity` + JSON `config`) replaces the original per-type-table design
+after a mid-build redesign — see the note below before touching the
+migration.
 
-- [x] 1. **Backend + UI: global rules on `planning_settings`.**
-  Migration adds `max_hours_per_week_mode` (string, default `hard`),
-  `max_hours_per_week_severity` (nullable unsigned tinyint),
-  `max_shifts_per_day` (unsigned integer, default `1`),
-  `max_shifts_per_day_mode` (default `hard`),
-  `max_shifts_per_day_severity` (nullable), `not_preferred_shift_mode`
-  (default `soft`), `not_preferred_shift_severity` (nullable) to
-  `planning_settings`. `PlanningSettings`: added the seven fields to
-  `$fillable` and casts, a new `rulesPayload()` alongside `toPayload()`
-  (kept separate so `period` and `planningRules` stay independent
-  Inertia props), extended `current()`'s defaults. New
-  `PlanningRuleController::update(Request)` validates the three modes
-  (`in:hard,soft`), the three severities (`required_if`/
-  `prohibited_unless` paired with each mode field, `between:1,10`), and
-  `max_shifts_per_day` (`integer|min:1`). Updates the singleton row,
-  redirects back with a flash. Route: `PUT /settings/planning-rules`,
-  admin-only, alongside the other `/settings/*` routes.
-  `SettingsController::index()` passes `planningRules`. New Settings
-  tab (`settings.tab.planning_rules`) added to `Settings/Index.vue`
-  next to Competences, driven by a new `PlanningRulesForm.vue`
-  (mirrors `PeriodSettingsForm.vue`'s exposed `isDirty`/`processing`/
-  `submit`/`cancel` surface): a hard/soft `SelectInput` per rule, a
-  conditional severity `NumberInput` (1-10) shown only when soft, and
-  `max_shifts_per_day`'s own `NumberInput`. Same explicit-save
-  `TabSaveBar` pattern as `Period`. `en.json`: `planning_rules.*` and
-  `settings.tab.planning_rules` keys. Feature test
-  `PlanningRuleGlobalTest` (9 tests: guest/manager blocked; index
-  payload defaults; update persists all seven fields; soft without a
-  severity rejected; hard with a severity rejected; severity out of
-  1-10 range rejected; `max_shifts_per_day` below 1 rejected; an
-  invalid mode rejected). Vitest `PlanningRulesForm.test.js` (5 tests:
-  seeds from props; defaults hard/hard/soft; toggling to soft reveals
-  the severity field; submit nulls severity for hard rules; isDirty/
-  cancel). Full PHP suite green (533 passed — one pre-existing,
-  unrelated failure in `EmployeeAdminTest` confirmed present on `main`
-  before this change). Full JS suite green (502 passed). `npm run
-  build` green. Pint clean on all touched/new files.
+**Migration note:** the schema is still being iterated on. Per
+instruction, edit the existing migration
+(`2026_09_15_150000_add_global_planning_rules_to_planning_settings.php`)
+in place rather than adding new migration files, until this feature's
+data model is settled. A fresh, correctly-named migration replaces it
+once the design is final.
 
-- [ ] 2. **Backend + UI: competence requirements.** Migration creates
-  `workcenter_shift_competence_requirements` (`id`, `workcenter_id` FK,
-  `shift_id` FK, `competence_id` FK, `mode`, `severity` nullable,
-  timestamps; unique on the three FKs). Model
-  `WorkcenterShiftCompetenceRequirement` with the three `belongsTo`
-  relations. `PlanningRuleController` (or a new
-  `CompetenceRequirementController`, matching whichever the previous
-  step chose): `store` validates the three FKs (`exists`, pair not
-  already present — `ValidationException`, same guard style as
-  `WorkcenterShiftAssignmentController`), `mode`, `severity` (same
-  soft/hard rule as step 1). `update($requirement)` — mode/severity
-  only, the three FKs stay fixed once a row exists. `destroy($requirement)`.
-  Routes: `POST /settings/planning-rules/competence-requirements`,
-  `PUT .../{competenceRequirement}`, `DELETE .../{competenceRequirement}`.
-  Settings tab section: an add/remove list — workcenter `SelectInput`,
-  shift `SelectInput`, competence `SelectInput`, hard/soft toggle,
-  conditional severity field — same explicit-save diff shape as
-  `WorkcenterShifts.vue`'s row list. `en.json` keys for the section.
-  Feature test `CompetenceRequirementTest` (guest/manager blocked;
-  store creates a row; store rejects a duplicate triple, a missing FK,
-  a bad mode/severity combination; update changes mode/severity only;
-  destroy removes the row). Vitest for the section (add row, remove
-  row, save diff, soft reveals severity). Full suites and build green.
+- [x] 1. **Backend + UI: `planning_rules` table and full CRUD for all
+  five types.** Migration (rewritten in place) creates `planning_rules`
+  (`id`, `type` string, `mode` string default `hard`, `severity`
+  nullable unsigned tinyint, `config` nullable json, timestamps) —
+  replaces the earlier `planning_settings` column approach entirely;
+  `PlanningSettings` reverted to its pre-feature state. New
+  `PlanningRule` model (`SINGLETON_TYPES`, `SCOPED_TYPES`, `TYPES`
+  constants; `config` cast to array; `toPayload()`). Rewritten
+  `PlanningRuleController`: `store` validates `type`/`mode`/`severity`
+  plus whichever fields `required_if:type,...` pulls in for the five
+  types, rejects a duplicate singleton type or duplicate scope
+  (competence triple, or a second business-line preference for the
+  same workcenter), builds `config` per type, creates the row.
+  `update` merges the existing row's identity fields over any
+  client-supplied ones before validating, so `type` and a scoped
+  rule's target cannot change from the client — only `mode`,
+  `severity`, and a type's own mutable field (`value`,
+  `business_line_ids`). `destroy` deletes. Routes:
+  `POST /settings/planning-rules`,
+  `PUT /settings/planning-rules/{planningRule}`,
+  `DELETE /settings/planning-rules/{planningRule}`.
+  `SettingsController::index()` passes `planningRules` as
+  `PlanningRule::all()->map->toPayload()`, reusing the existing
+  `workcenters`/`shifts`/`competences`/`businessLines` props as lookup
+  lists. New Settings tab (`settings.tab.planning_rules`) driven by
+  `PlanningRuleList.vue` — a `BusinessLineList`-style controlled child
+  (seeds local rows from `items`, emits `update:items`, no network
+  calls of its own): one card per rule (type, target summary, its
+  mutable field, mode/severity), an add section that reveals only the
+  fields the chosen type needs and hides singleton types already
+  present, business-line selection via the existing `TagChecklist`.
+  `Settings/Index.vue` owns the diff/save/cancel logic and
+  `TabSaveBar`, matching the Business Lines tab's shape. `en.json`:
+  `planning_rules.*` keys for all five type labels, field labels,
+  placeholders, and error messages. Feature test `PlanningRuleTest`
+  (16 tests: guest/manager blocked; index payload; create each
+  singleton type; create competence_required and
+  business_line_preference with their config; reject a duplicate
+  singleton, a duplicate competence triple, a duplicate business-line
+  workcenter, soft-without-severity, hard-with-severity; update
+  changes mode/severity; update ignores a client-supplied identity
+  field; update changes a business-line preference's lines; destroy
+  removes a row). Vitest `PlanningRuleList.test.js` (6 tests: renders
+  rows and empty state; hides an already-present singleton type from
+  the add form; adds a `max_shifts_per_day` and a
+  `competence_required` rule locally and emits `update:items`; reveals
+  severity only when soft; removes a row locally). Full PHP suite
+  green (539 passed — one pre-existing, unrelated `EmployeeAdminTest`
+  failure confirmed present on `main` before this feature). Full JS
+  suite green (503 passed). `npm run build` green. Pint clean on all
+  touched/new files.
 
-- [ ] 3. **Backend + UI: business-line preferences.** Migration creates
-  `workcenter_business_line_preferences` (`id`, `workcenter_id` FK,
-  `business_line_id` FK, `mode`, `severity` nullable, timestamps;
-  unique on the two FKs). Model `WorkcenterBusinessLinePreference` with
-  `belongsTo` relations. Controller action(s) treat one workcenter's
-  preference set as a unit: `store`/`update`
-  (`replaceForWorkcenter($workcenterId, Request)`) validates
-  `workcenter_id`, `business_line_ids` (array, each `exists`, at least
-  one), `mode`, `severity` (same rule as step 1), deletes existing rows
-  for that workcenter and inserts the new set in one transaction.
-  `destroy($workcenterId)` removes the whole set. Routes:
-  `PUT /settings/planning-rules/business-line-preferences/{workcenter}`,
-  `DELETE .../{workcenter}`. Settings tab section: one row per
-  workcenter with a preference set — workcenter `SelectInput` (only
-  workcenters without an existing set, in the add row), a business-line
-  multi-select, hard/soft toggle, conditional severity field. Save
-  diffs by workcenter (whole-set PUT per changed/added workcenter,
-  DELETE per removed one) — not per business line. `en.json` keys.
-  Feature test `BusinessLinePreferenceTest` (guest/manager blocked;
-  replace creates rows for a new workcenter; replace swaps a workcenter's
-  set atomically; rejects an empty business-line list, a missing FK, a
-  bad mode/severity combination; destroy removes a workcenter's set).
-  Vitest for the section (add a workcenter's preference set, edit its
-  business lines, remove it, save diff). Full suites and build green.
-
-- [ ] 4. **Docs and full checks.** `doc/roadmap.md`: phase 3's status
-  row and Phase 3 section note that rule-based planning's data model
-  and settings UI shipped (`features/planning-rules/`), still nothing
-  enforces the rules and `/solve` remains phase 5. `doc/concept.md`
-  updated if it lists phase-3 scope. `AppLayout.vue`/nav unaffected —
-  this lives on the existing `/settings` route. Pint clean. Full PHP
-  suite green. Full JS suite green. `npm run build` green.
-  `php artisan migrate` clean on a fresh database.
+- [ ] 2. **Docs and full checks.** Once the data model is settled and
+  the user has replaced the in-place migration with a fresh,
+  correctly-named one: `doc/roadmap.md` — phase 3's status row and
+  section note that rule-based planning's data model and settings UI
+  shipped (`features/planning-rules/`), still nothing enforces the
+  rules and `/solve` remains phase 5. `doc/concept.md` updated if it
+  lists phase-3 scope. Pint clean. Full PHP suite green. Full JS suite
+  green. `npm run build` green. `php artisan migrate` clean on a fresh
+  database.
 
 ## Not done / deferred
 

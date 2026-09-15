@@ -24,8 +24,7 @@ Every rule carries a **mode** (`hard` or `soft`) and, when soft, a
 relative weight. Phase 5 maps severity to its own objective-function
 coefficients; this feature only stores it.
 
-Three global, singleton rules, extending the existing `planning_settings`
-table (`PlanningSettings` model, already a current-settings singleton):
+Three global, singleton rules:
 
 1. **Max hours per week** — capped at the employee's own `weekly_hours`
    field, no overage allowed. Evaluated as an average over a 2-week
@@ -39,7 +38,7 @@ table (`PlanningSettings` model, already a current-settings singleton):
    recurring availability grid (`employee-availability`). Reuses that
    existing data; adds no new table.
 
-Two scoped, multi-instance rule types, each its own table:
+Two scoped, multi-instance rule types:
 
 4. **Competence required for a workcenter+shift pairing.** A manager
    picks a workcenter, a shift, and a competence; assigning that
@@ -48,61 +47,70 @@ Two scoped, multi-instance rule types, each its own table:
    workcenter and one or more business lines; filling that workcenter
    is expected to prefer employees from one of the listed lines.
 
+Adding a sixth rule type later is application code — a new entry in
+the type list, its validation, and its slice of the settings UI — not
+a migration. See Key decisions.
+
 ### Data
 
-- `planning_settings` — add columns:
-  - `max_hours_per_week_mode` (`hard`/`soft`, default `hard`),
-    `max_hours_per_week_severity` (nullable, 1-10, required when soft).
-  - `max_shifts_per_day` (unsigned integer, default `1`),
-    `max_shifts_per_day_mode`, `max_shifts_per_day_severity` (same
-    shape as above).
-  - `not_preferred_shift_mode` (default `soft`),
-    `not_preferred_shift_severity`.
-- `workcenter_shift_competence_requirements` — one row per
-  (workcenter, shift, competence): `workcenter_id`, `shift_id`,
-  `competence_id`, `mode`, `severity`. Unique on the three FKs.
-- `workcenter_business_line_preferences` — one row per (workcenter,
-  business line): `workcenter_id`, `business_line_id`, `mode`,
-  `severity`. Unique on the two FKs. `mode`/`severity` are set once per
-  workcenter in the UI and written identically to every row under that
-  workcenter — see Key decisions.
+One table, `planning_rules`, holds every rule of every type:
+
+- `type` — one of the five type strings above.
+- `mode` — `hard` or `soft`.
+- `severity` — nullable, 1-10, required exactly when `mode` is `soft`.
+- `config` — a nullable JSON column holding whatever the type needs:
+
+  | Type | `config` |
+  | --- | --- |
+  | `max_hours_per_week` | `{}` — reads the employee's own `weekly_hours` field, no config |
+  | `max_shifts_per_day` | `{"value": 2}` |
+  | `not_preferred_shift` | `{}` — reads the existing availability grid |
+  | `competence_required` | `{"workcenter_id": 1, "shift_id": 2, "competence_id": 3}` |
+  | `business_line_preference` | `{"workcenter_id": 1, "business_line_ids": [1, 2]}` |
+
+`max_hours_per_week`, `max_shifts_per_day`, and `not_preferred_shift`
+are **singleton types** — the application rejects a second row of the
+same type. `competence_required` and `business_line_preference` are
+**scoped types** — many rows allowed, but a duplicate scope is
+rejected (the same workcenter+shift+competence triple, or a second
+preference rule for the same workcenter).
+
+A row's `type`, and for a scoped type what it targets (the
+workcenter/shift/competence combination, or which workcenter a
+business-line preference is for), is fixed once created — the
+application ignores client-supplied identity fields on update. Only
+`mode`, `severity`, and a type's own mutable data (`max_shifts_per_day`'s
+`value`, `business_line_preference`'s `business_line_ids`) change in
+place; anything else means deleting the row and adding a new one.
 
 ### Settings tab — Planning Rules
 
 A new tab on `/settings`, admin-only, alongside Competences, Business
-Lines, Shifts, Workcenters. Same explicit-save model as the rest of
-Settings (`settings-explicit-save/spec.md`): local edit state, one
-Save/Cancel pair, nothing written until Save.
-
-Layout:
-
-- **Global rules** — three rows, each a hard/soft toggle; switching to
-  soft reveals a severity input (1-10). Max shifts/day also has its
-  integer value field. Max hours/week and not-preferred-shift need no
-  extra value — they read from existing employee/availability data.
-- **Competence requirements** — an `OrderedNameList`-style add/remove
-  table: workcenter `SelectInput`, shift `SelectInput`, competence
-  `SelectInput`, hard/soft toggle, severity input when soft. No
-  reordering — this is a set, not a sequence.
-- **Business-line preferences** — one row per workcenter that has a
-  preference rule: workcenter `SelectInput`, a multi-select of business
-  lines, hard/soft toggle, severity input when soft.
+Lines, Shifts, Workcenters. One list of rule cards, regardless of
+type, each showing its type, its target (for a scoped type), its
+mutable field, and a hard/soft toggle with a conditional severity
+field. An add section below picks a type first — a singleton type
+already present is not offered — then reveals only the fields that
+type needs, mirroring the row layout above. Same explicit-save model
+as the rest of Settings (`settings-explicit-save/spec.md`): local
+edit-until-Save state, one Save/Cancel pair, nothing written until
+Save.
 
 ### Controller
 
-A new `PlanningRuleController` (or folded into the existing
-`SettingsController`/`PeriodController` pattern, whichever the plan
-step finds cleaner):
+`PlanningRuleController`, generic across all five types:
 
-- Update the three global fields on `planning_settings` in one request,
-  same shape as `PeriodController::update`.
-- CRUD for `workcenter_shift_competence_requirements`: store, update
-  (mode/severity only — the three FKs are fixed once a row exists, same
-  rule as `workcenter-shift-assignments`), destroy.
-- CRUD for `workcenter_business_line_preferences`: store/update writes
-  the whole set of business-line rows for one workcenter in a single
-  request (delete-and-reinsert under that workcenter_id), destroy
-  removes a workcenter's whole preference set.
+- `store(Request)` — validates `type`, `mode`, `severity`, and
+  whichever type-specific fields `required_if:type,...` pulls in
+  (`value`; `workcenter_id`/`shift_id`/`competence_id`;
+  `workcenter_id`/`business_line_ids`). Rejects a duplicate singleton
+  type or a duplicate scope, builds the `config` JSON for the given
+  type, creates the row.
+- `update(Request, PlanningRule)` — re-validates the same shape, but
+  overwrites any client-supplied identity field with what is already
+  stored before validating, so identity cannot change from the
+  client.
+- `destroy(PlanningRule)`.
 
 ## Key decisions
 
@@ -125,20 +133,39 @@ step finds cleaner):
 - **2-week averaging uses fixed calendar pairs, not a rolling window.**
   Simpler to compute and to explain to a manager than a sliding
   2-week span.
-- **Business-line preference duplicates mode/severity across a
-  workcenter's rows** rather than adding a second table to hold them
-  once. The set is small (a handful of business lines per workcenter)
-  and always written together from one form, so the duplication never
-  drifts.
-- **Fixed set of typed rule tables, not one generic rule engine.**
-  Matches how `workcenter_shift_capacities` and similar features are
-  already modeled — a real column per concept, not a JSON blob a form
-  has to interpret. Adding a sixth rule type later is a migration, the
-  same cost as any other new concept in this codebase.
+- **One `planning_rules` table for every type, not a table per type.**
+  Reversed from this spec's first draft, which modeled each type as
+  its own table (or its own columns on `planning_settings`). A
+  manager adds "a rule," picks its type, and the type determines what
+  else the form asks for — the UI and the data model should say the
+  same thing. A single table also means the Settings tab reads and
+  writes one list instead of a form plus several separate lists.
+- **Type-specific data lives in one JSON `config` column**, not a
+  shared set of nullable typed columns. Adding a sixth rule type is
+  then pure application code — a new type string, its validation, and
+  its slice of the settings UI — never a migration. The tradeoff: the
+  database cannot enforce a foreign key or a column type inside
+  `config`, so referential integrity (a competence or workcenter that
+  still exists) is the controller's job via `exists:` validation
+  rules, not the schema's.
+- **Most types are capped at one row; the two scoped types allow
+  many.** `max_hours_per_week`, `max_shifts_per_day`, and
+  `not_preferred_shift` have no scope to tell two instances apart, so
+  a second one is meaningless. Nothing in the schema can express "one
+  row per type, but only for some types" against an opaque JSON
+  `config`, so this guard — and the scoped types' duplicate-scope
+  guard — lives entirely in the controller, not a database
+  constraint.
+- **A rule's identity is fixed once created; its data can still
+  change.** Matches `workcenter-shift-assignments`' rule for its own
+  pivot: the workcenter/shift pair cannot change in place, but spot
+  counts can. Here, `type` and a scoped rule's target never change in
+  place; `mode`, `severity`, and a type's own mutable field
+  (`value`, `business_line_ids`) do.
 - **One Settings tab for everything**, not splitting the workcenter-
-  scoped rules onto `/schedule`. Keeps every planning
-  constraint discoverable in one place; `/schedule` stays
-  about capacity, not rules.
+  scoped rules onto `/schedule`. Keeps every planning constraint
+  discoverable in one place; `/schedule` stays about capacity, not
+  rules.
 
 ## Non-goals
 

@@ -1,0 +1,256 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Models\BusinessLine;
+use App\Models\Competence;
+use App\Models\PlanningRule;
+use App\Models\Shift;
+use App\Models\User;
+use App\Models\Workcenter;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
+
+class PlanningRuleTest extends TestCase
+{
+    use RefreshDatabase;
+
+    private function actingAsAdmin(): User
+    {
+        $user = User::factory()->admin()->create();
+        $this->actingAs($user);
+
+        return $user;
+    }
+
+    public function test_guest_cannot_manage_planning_rules(): void
+    {
+        $this->post('/settings/planning-rules', ['type' => 'max_shifts_per_day', 'mode' => 'hard', 'value' => 1])
+            ->assertRedirect('/login');
+    }
+
+    public function test_manager_cannot_manage_planning_rules(): void
+    {
+        $this->actingAs(User::factory()->create());
+
+        $this->post('/settings/planning-rules', ['type' => 'max_shifts_per_day', 'mode' => 'hard', 'value' => 1])
+            ->assertForbidden();
+    }
+
+    public function test_settings_index_carries_existing_rules(): void
+    {
+        $this->actingAsAdmin();
+        PlanningRule::create(['type' => 'max_hours_per_week', 'mode' => 'hard']);
+
+        $this->get('/settings')->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->has('planningRules', 1)
+                ->where('planningRules.0.type', 'max_hours_per_week')
+            );
+    }
+
+    public function test_admin_creates_a_singleton_rule_with_no_extra_config(): void
+    {
+        $this->actingAsAdmin();
+
+        $this->post('/settings/planning-rules', ['type' => 'max_hours_per_week', 'mode' => 'hard'])
+            ->assertRedirect()->assertSessionHasNoErrors();
+
+        $rule = PlanningRule::sole();
+        $this->assertSame('max_hours_per_week', $rule->type);
+        $this->assertSame('hard', $rule->mode);
+        $this->assertNull($rule->severity);
+        $this->assertSame([], $rule->config);
+    }
+
+    public function test_admin_creates_max_shifts_per_day_with_a_value(): void
+    {
+        $this->actingAsAdmin();
+
+        $this->post('/settings/planning-rules', ['type' => 'max_shifts_per_day', 'mode' => 'soft', 'severity' => 6, 'value' => 2])
+            ->assertRedirect()->assertSessionHasNoErrors();
+
+        $rule = PlanningRule::sole();
+        $this->assertSame('soft', $rule->mode);
+        $this->assertSame(6, $rule->severity);
+        $this->assertSame(['value' => 2], $rule->config);
+    }
+
+    public function test_a_second_rule_of_the_same_singleton_type_is_rejected(): void
+    {
+        $this->actingAsAdmin();
+        PlanningRule::create(['type' => 'max_hours_per_week', 'mode' => 'hard']);
+
+        $this->post('/settings/planning-rules', ['type' => 'max_hours_per_week', 'mode' => 'hard'])
+            ->assertSessionHasErrors('type');
+    }
+
+    public function test_soft_without_a_severity_is_rejected(): void
+    {
+        $this->actingAsAdmin();
+
+        $this->post('/settings/planning-rules', ['type' => 'not_preferred_shift', 'mode' => 'soft'])
+            ->assertSessionHasErrors('severity');
+    }
+
+    public function test_hard_with_a_severity_is_rejected(): void
+    {
+        $this->actingAsAdmin();
+
+        $this->post('/settings/planning-rules', ['type' => 'not_preferred_shift', 'mode' => 'hard', 'severity' => 5])
+            ->assertSessionHasErrors('severity');
+    }
+
+    public function test_admin_creates_a_competence_requirement(): void
+    {
+        $this->actingAsAdmin();
+        $workcenter = Workcenter::factory()->create();
+        $shift = Shift::factory()->create();
+        $competence = Competence::factory()->create();
+
+        $this->post('/settings/planning-rules', [
+            'type' => 'competence_required',
+            'mode' => 'hard',
+            'workcenter_id' => $workcenter->id,
+            'shift_id' => $shift->id,
+            'competence_id' => $competence->id,
+        ])->assertRedirect()->assertSessionHasNoErrors();
+
+        $rule = PlanningRule::sole();
+        $this->assertSame([
+            'workcenter_id' => $workcenter->id,
+            'shift_id' => $shift->id,
+            'competence_id' => $competence->id,
+        ], $rule->config);
+    }
+
+    public function test_a_duplicate_competence_requirement_is_rejected(): void
+    {
+        $this->actingAsAdmin();
+        $workcenter = Workcenter::factory()->create();
+        $shift = Shift::factory()->create();
+        $competence = Competence::factory()->create();
+        PlanningRule::create([
+            'type' => 'competence_required',
+            'mode' => 'hard',
+            'config' => ['workcenter_id' => $workcenter->id, 'shift_id' => $shift->id, 'competence_id' => $competence->id],
+        ]);
+
+        $this->post('/settings/planning-rules', [
+            'type' => 'competence_required',
+            'mode' => 'hard',
+            'workcenter_id' => $workcenter->id,
+            'shift_id' => $shift->id,
+            'competence_id' => $competence->id,
+        ])->assertSessionHasErrors('competence_id');
+    }
+
+    public function test_admin_creates_a_business_line_preference(): void
+    {
+        $this->actingAsAdmin();
+        $workcenter = Workcenter::factory()->create();
+        $lineA = BusinessLine::factory()->create();
+        $lineB = BusinessLine::factory()->create();
+
+        $this->post('/settings/planning-rules', [
+            'type' => 'business_line_preference',
+            'mode' => 'soft',
+            'severity' => 4,
+            'workcenter_id' => $workcenter->id,
+            'business_line_ids' => [$lineA->id, $lineB->id],
+        ])->assertRedirect()->assertSessionHasNoErrors();
+
+        $rule = PlanningRule::sole();
+        $this->assertSame($workcenter->id, $rule->config['workcenter_id']);
+        $this->assertSame([$lineA->id, $lineB->id], $rule->config['business_line_ids']);
+    }
+
+    public function test_a_second_business_line_preference_for_the_same_workcenter_is_rejected(): void
+    {
+        $this->actingAsAdmin();
+        $workcenter = Workcenter::factory()->create();
+        $line = BusinessLine::factory()->create();
+        PlanningRule::create([
+            'type' => 'business_line_preference',
+            'mode' => 'soft',
+            'severity' => 3,
+            'config' => ['workcenter_id' => $workcenter->id, 'business_line_ids' => [$line->id]],
+        ]);
+
+        $this->post('/settings/planning-rules', [
+            'type' => 'business_line_preference',
+            'mode' => 'soft',
+            'severity' => 3,
+            'workcenter_id' => $workcenter->id,
+            'business_line_ids' => [$line->id],
+        ])->assertSessionHasErrors('workcenter_id');
+    }
+
+    public function test_update_changes_mode_and_severity(): void
+    {
+        $this->actingAsAdmin();
+        $rule = PlanningRule::create(['type' => 'max_hours_per_week', 'mode' => 'hard']);
+
+        $this->put("/settings/planning-rules/{$rule->id}", ['mode' => 'soft', 'severity' => 7])
+            ->assertRedirect()->assertSessionHasNoErrors();
+
+        $rule->refresh();
+        $this->assertSame('soft', $rule->mode);
+        $this->assertSame(7, $rule->severity);
+    }
+
+    public function test_update_ignores_client_supplied_identity_fields(): void
+    {
+        $this->actingAsAdmin();
+        $workcenter = Workcenter::factory()->create();
+        $otherWorkcenter = Workcenter::factory()->create();
+        $shift = Shift::factory()->create();
+        $competence = Competence::factory()->create();
+        $rule = PlanningRule::create([
+            'type' => 'competence_required',
+            'mode' => 'hard',
+            'config' => ['workcenter_id' => $workcenter->id, 'shift_id' => $shift->id, 'competence_id' => $competence->id],
+        ]);
+
+        $this->put("/settings/planning-rules/{$rule->id}", [
+            'mode' => 'hard',
+            'workcenter_id' => $otherWorkcenter->id,
+            'shift_id' => $shift->id,
+            'competence_id' => $competence->id,
+        ])->assertRedirect()->assertSessionHasNoErrors();
+
+        $this->assertSame($workcenter->id, $rule->refresh()->config['workcenter_id']);
+    }
+
+    public function test_update_changes_a_business_line_preferences_business_lines(): void
+    {
+        $this->actingAsAdmin();
+        $workcenter = Workcenter::factory()->create();
+        $lineA = BusinessLine::factory()->create();
+        $lineB = BusinessLine::factory()->create();
+        $rule = PlanningRule::create([
+            'type' => 'business_line_preference',
+            'mode' => 'soft',
+            'severity' => 5,
+            'config' => ['workcenter_id' => $workcenter->id, 'business_line_ids' => [$lineA->id]],
+        ]);
+
+        $this->put("/settings/planning-rules/{$rule->id}", [
+            'mode' => 'soft',
+            'severity' => 5,
+            'business_line_ids' => [$lineA->id, $lineB->id],
+        ])->assertRedirect()->assertSessionHasNoErrors();
+
+        $this->assertSame([$lineA->id, $lineB->id], $rule->refresh()->config['business_line_ids']);
+    }
+
+    public function test_destroy_removes_the_rule(): void
+    {
+        $this->actingAsAdmin();
+        $rule = PlanningRule::create(['type' => 'max_hours_per_week', 'mode' => 'hard']);
+
+        $this->delete("/settings/planning-rules/{$rule->id}")->assertRedirect();
+
+        $this->assertModelMissing($rule);
+    }
+}

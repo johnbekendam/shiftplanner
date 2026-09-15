@@ -83,7 +83,9 @@ Route::middleware('auth')->group(function () {
         Route::put('/settings/questions/{question}', [QuestionController::class, 'update'])->name('settings.questions.update');
         Route::delete('/settings/questions/{question}', [QuestionController::class, 'destroy'])->name('settings.questions.destroy');
         Route::put('/settings/period', [PeriodController::class, 'update'])->name('settings.period.update');
-        Route::put('/settings/planning-rules', [PlanningRuleController::class, 'update'])->name('settings.planning-rules.update');
+        Route::post('/settings/planning-rules', [PlanningRuleController::class, 'store'])->name('settings.planning-rules.store');
+        Route::put('/settings/planning-rules/{planningRule}', [PlanningRuleController::class, 'update'])->name('settings.planning-rules.update');
+        Route::delete('/settings/planning-rules/{planningRule}', [PlanningRuleController::class, 'destroy'])->name('settings.planning-rules.destroy');
         Route::post('/settings/workcenters', [WorkcenterController::class, 'store'])->name('settings.workcenters.store');
         Route::put('/settings/workcenters/reorder', [WorkcenterController::class, 'reorder'])->name('settings.workcenters.reorder');
         Route::put('/settings/workcenters/{workcenter}', [WorkcenterController::class, 'update'])->name('settings.workcenters.update');
