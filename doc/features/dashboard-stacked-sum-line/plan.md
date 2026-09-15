@@ -1,4 +1,4 @@
-Status: done — 3/3
+Status: done — 4/4
 
 - [x] 1. Stacked mode renders a single green sum line, no base line.
       In `Dashboard/Index.vue`, `baseAvailable` is `null` for the `both`
@@ -24,3 +24,10 @@ Status: done — 3/3
       gray) only when `both` is active. Update
       `tests/js/FteLineChart.test.js` and
       `tests/js/DashboardIndex.test.js` accordingly.
+- [x] 4. Reorder the selector to Unconfirmed, Confirmed, Stacked and
+      swap colors: Unconfirmed stays gray, Confirmed becomes green
+      (`--color-badge-success-text`), Stacked becomes blue
+      (`--color-brand-bg`). Update `employeeFilterOptions` order and
+      `lineClass` values, `confirmedLineColor`/`stackedLineColor`
+      constants, and the affected assertions in
+      `tests/js/DashboardIndex.test.js`.

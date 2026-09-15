@@ -21,14 +21,14 @@ const props = defineProps({
 })
 
 const employeeFilterOptions = [
-    { value: 'confirmed', label: 'dashboard.employee_filter.confirmed', lineClass: 'bg-[var(--color-brand-bg)]' },
     { value: 'unconfirmed', label: 'dashboard.employee_filter.unconfirmed', lineClass: 'bg-[var(--color-text-secondary)]' },
-    { value: 'both', label: 'dashboard.employee_filter.both', lineClass: 'bg-[var(--color-badge-success-text)]' },
+    { value: 'confirmed', label: 'dashboard.employee_filter.confirmed', lineClass: 'bg-[var(--color-badge-success-text)]' },
+    { value: 'both', label: 'dashboard.employee_filter.both', lineClass: 'bg-[var(--color-brand-bg)]' },
 ]
 
-const confirmedLineColor = 'var(--color-brand-bg)'
+const confirmedLineColor = 'var(--color-badge-success-text)'
 const unconfirmedLineColor = 'var(--color-text-secondary)'
-const stackedLineColor = 'var(--color-badge-success-text)'
+const stackedLineColor = 'var(--color-brand-bg)'
 
 const activeEmployeeFilter = computed(() =>
     ['confirmed', 'unconfirmed', 'both'].includes(props.employeeStatusFilter) ? props.employeeStatusFilter : 'both',

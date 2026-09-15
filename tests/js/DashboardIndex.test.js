@@ -51,7 +51,7 @@ describe("Dashboard/Index", () => {
         const options = w.findAll('[data-testid="dashboard-employee-filter"]');
         expect(options).toHaveLength(3);
         expect(options[2].element.tagName).toBe("BUTTON");
-        expect(options.map((option) => option.text())).toEqual(["Confirmed", "Unconfirmed", "Stacked"]);
+        expect(options.map((option) => option.text())).toEqual(["Unconfirmed", "Confirmed", "Stacked"]);
         expect(options[2].attributes("aria-pressed")).toBe("true");
         expect(options[2].classes()).toContain("outline");
         expect(options[2].classes()).toContain("outline-2");
@@ -61,9 +61,9 @@ describe("Dashboard/Index", () => {
 
         const legendLines = w.findAll('[data-testid="dashboard-employee-filter-line"]');
         expect(legendLines).toHaveLength(3);
-        expect(legendLines[0].classes()).toContain("bg-[var(--color-brand-bg)]");
-        expect(legendLines[1].classes()).toContain("bg-[var(--color-text-secondary)]");
-        expect(legendLines[2].classes()).toContain("bg-[var(--color-badge-success-text)]");
+        expect(legendLines[0].classes()).toContain("bg-[var(--color-text-secondary)]");
+        expect(legendLines[1].classes()).toContain("bg-[var(--color-badge-success-text)]");
+        expect(legendLines[2].classes()).toContain("bg-[var(--color-brand-bg)]");
     });
 
     it("navigates with a query string when confirmed is selected", async () => {
@@ -75,7 +75,7 @@ describe("Dashboard/Index", () => {
             lines: [],
         });
 
-        await w.findAll('[data-testid="dashboard-employee-filter"]')[0].trigger("click");
+        await w.findAll('[data-testid="dashboard-employee-filter"]')[1].trigger("click");
 
         expect(routerGet).toHaveBeenCalledWith("/dashboard", { employees: "confirmed" }, { preserveScroll: true, preserveState: true });
     });
@@ -157,7 +157,7 @@ describe("Dashboard/Index", () => {
         expect(w.find('[data-testid="unconfirmed-employees-notice"]').exists()).toBe(false);
     });
 
-    it("renders confirmed, unconfirmed, and the green sum line in stacked (both) mode", () => {
+    it("renders confirmed, unconfirmed, and the blue sum line in stacked (both) mode", () => {
         const w = mountPage({
             period: { start: "2026-01-05", end: "2026-01-06", fte_hours: 40 },
             days: ["2026-01-05", "2026-01-06"],
@@ -175,9 +175,9 @@ describe("Dashboard/Index", () => {
 
         const chart = w.getComponent(FteLineChart);
         expect(chart.props("available")).toEqual([1.5, 1.25]);
-        expect(chart.props("availableStroke")).toBe("var(--color-badge-success-text)");
+        expect(chart.props("availableStroke")).toBe("var(--color-brand-bg)");
         expect(chart.props("baseAvailable")).toEqual([1, 1]);
-        expect(chart.props("baseAvailableStroke")).toBe("var(--color-brand-bg)");
+        expect(chart.props("baseAvailableStroke")).toBe("var(--color-badge-success-text)");
         expect(chart.props("secondaryAvailable")).toEqual([0.5, 0.25]);
         expect(chart.props("secondaryAvailableStroke")).toBe("var(--color-text-secondary)");
     });
@@ -207,6 +207,19 @@ describe("Dashboard/Index", () => {
 
         const chart = w.getComponent(FteLineChart);
         expect(chart.props("availableStroke")).toBe("var(--color-text-secondary)");
+    });
+
+    it("uses green for the confirmed-only line", () => {
+        const w = mountPage({
+            period: { start: "2026-01-05", end: "2026-01-06", fte_hours: 40 },
+            days: ["2026-01-05", "2026-01-06"],
+            employeeStatusFilter: "confirmed",
+            overall: { available: [1, 1], target: 8, available_hours: 16, required_hours: 64 },
+            lines: [],
+        });
+
+        const chart = w.getComponent(FteLineChart);
+        expect(chart.props("availableStroke")).toBe("var(--color-badge-success-text)");
     });
 
     it("gives each block a coverage donut fed the block's hours", () => {
