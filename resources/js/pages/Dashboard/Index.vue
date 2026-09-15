@@ -40,6 +40,16 @@ const lineStrokeFor = (filter) => {
     return stackedLineColor
 }
 
+const stackedLines = (block) =>
+    activeEmployeeFilter.value === 'both'
+        ? {
+              baseAvailable: block.available_confirmed,
+              baseAvailableStroke: confirmedLineColor,
+              secondaryAvailable: block.available_unconfirmed,
+              secondaryAvailableStroke: unconfirmedLineColor,
+          }
+        : { baseAvailable: null, secondaryAvailable: null }
+
 const selectEmployeeFilter = (filter) => {
     if (filter === activeEmployeeFilter.value) return
 
@@ -61,6 +71,7 @@ const blocks = computed(() => {
             target: props.overall.target,
             availableHours: props.overall.available_hours,
             requiredHours: props.overall.required_hours,
+            ...stackedLines(props.overall),
         },
         ...props.lines.map((line) => ({
             key: line.abbreviation,
@@ -70,6 +81,7 @@ const blocks = computed(() => {
             target: line.target,
             availableHours: line.available_hours,
             requiredHours: line.required_hours,
+            ...stackedLines(line),
         })),
     ]
 })
@@ -128,6 +140,10 @@ const blocks = computed(() => {
                             :days="days"
                             :available="block.available"
                             :available-stroke="block.availableStroke"
+                            :base-available="block.baseAvailable"
+                            :base-available-stroke="block.baseAvailableStroke"
+                            :secondary-available="block.secondaryAvailable"
+                            :secondary-available-stroke="block.secondaryAvailableStroke"
                             :target="block.target"
                             :show-caption="false"
                         />

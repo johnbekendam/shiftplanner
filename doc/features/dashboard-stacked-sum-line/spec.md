@@ -6,25 +6,28 @@ The Stacked dashboard view draws two lines per chart: confirmed
 availability (brand blue, bottom) and the confirmed+unconfirmed total
 (gray, top boundary). The gray top line already equals the sum, but it
 reuses the same gray as the Unconfirmed-only view, so a manager cannot
-tell the two apart at a glance. Two lines also read as more detail than
-Stacked mode intends to show.
+tell the two apart at a glance.
 
 ## Solution
 
-In Stacked mode, the chart shows one line only: confirmed +
-unconfirmed, in a new dedicated color. The confirmed line and the gray
-total-boundary line no longer render in this mode.
+In Stacked mode, the chart shows three independent lines, each at its
+own true height: confirmed (brand blue), unconfirmed (gray), and the
+confirmed+unconfirmed sum (a new dedicated green). None of the three is
+drawn as a stack boundary — each plots its own raw series.
 
-- `FteLineChart` already receives `available` as the combined series
-  when `both` is active (`DashboardController` sums confirmed and
-  unconfirmed). `Dashboard/Index.vue` stops passing `baseAvailable` for
-  the `both` filter, so the base line never renders.
-- `availableStroke` for the `both` filter becomes
-  `var(--color-badge-success-text)` (green), replacing the current gray.
-  Confirmed-only and Unconfirmed-only modes are unchanged.
-- The Stacked button in the employee-status selector gains a line
-  marker in the same green, matching the existing pattern where
-  Confirmed and Unconfirmed buttons carry a marker in their line color.
+- `FteLineChart` gains a third line pair, `secondaryAvailable` /
+  `secondaryAvailableStroke`, alongside the existing main
+  (`available`/`availableStroke`) and base
+  (`baseAvailable`/`baseAvailableStroke`) pair. All three render
+  independently; none is computed from the others inside the chart.
+- `Dashboard/Index.vue`, for the `both` filter: `available` is the
+  confirmed+unconfirmed sum (green), `baseAvailable` is
+  `available_confirmed` (brand blue), `secondaryAvailable` is
+  `available_unconfirmed` (gray). Confirmed-only and Unconfirmed-only
+  modes pass only the main line, as before.
+- The Stacked button in the employee-status selector keeps its green
+  marker, matching the sum line — Confirmed and Unconfirmed already
+  carry markers in their own line colors.
 - The coverage donut is unchanged: it already sums confirmed and
   unconfirmed hours regardless of which lines are drawn.
 
@@ -37,10 +40,12 @@ total-boundary line no longer render in this mode.
   keeps `--color-brand-bg`; Unconfirmed keeps `--color-text-secondary`;
   Stacked's sum line takes `--color-badge-success-text`. Three visually
   distinct colors, zero new tokens.
-- **Drop the base line in Stacked mode, don't add a fourth series.** The
-  combined total is already the only figure Stacked mode is meant to
-  show per the new requirement. Removing `baseAvailable` for `both` is
-  simpler than teaching `FteLineChart` a new "solo stacked" prop.
+- **Three independent lines, not a stack.** Each of confirmed,
+  unconfirmed, and the sum plots its own raw values. Keeping the old
+  stacking geometry (unconfirmed drawn on top of confirmed) would make
+  the unconfirmed line and the sum line coincide, since unconfirmed's
+  stacked height already equals the sum — indistinguishable on the
+  chart.
 - **Selector gets a matching marker.** The selector already acts as the
   chart legend for Confirmed and Unconfirmed. Leaving Stacked without a
   marker would break that pattern now that Stacked has its own

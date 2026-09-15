@@ -1,4 +1,4 @@
-Status: done — 2/2
+Status: done — 3/3
 
 - [x] 1. Stacked mode renders a single green sum line, no base line.
       In `Dashboard/Index.vue`, `baseAvailable` is `null` for the `both`
@@ -14,3 +14,13 @@ Status: done — 2/2
       `both` entry in `employeeFilterOptions`. Add/update a
       `tests/js/DashboardIndex.test.js` assertion that the Stacked
       button renders `dashboard-employee-filter-line` in that color.
+- [x] 3. Stacked mode also draws confirmed and unconfirmed as their own
+      lines. `FteLineChart` gains `secondaryAvailable` /
+      `secondaryAvailableStroke` props, rendered as a third independent
+      polyline (`data-testid="fte-secondary-line"`), styled like the
+      existing base line. `Dashboard/Index.vue` passes
+      `baseAvailable`/`baseAvailableStroke` (confirmed, brand blue) and
+      `secondaryAvailable`/`secondaryAvailableStroke` (unconfirmed,
+      gray) only when `both` is active. Update
+      `tests/js/FteLineChart.test.js` and
+      `tests/js/DashboardIndex.test.js` accordingly.

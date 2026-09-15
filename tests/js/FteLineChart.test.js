@@ -58,4 +58,23 @@ describe("FteLineChart", () => {
         expect(w.get('[data-testid="fte-base-line"]').attributes("stroke")).toBe("var(--color-brand-bg)");
         expect(w.get('[data-testid="fte-line"]').attributes("stroke")).toBe("var(--color-text-secondary)");
     });
+
+    it("draws a third independent line when secondaryAvailable is given", () => {
+        const w = mount(FteLineChart, {
+            props: {
+                ...base,
+                available: [1.5, 2.5, 2],
+                baseAvailable: [1, 2, 1.5],
+                baseAvailableStroke: "var(--color-brand-bg)",
+                secondaryAvailable: [0.5, 0.5, 0.5],
+                secondaryAvailableStroke: "var(--color-text-secondary)",
+                availableStroke: "var(--color-badge-success-text)",
+            },
+        });
+
+        const secondaryPoints = w.get('[data-testid="fte-secondary-line"]').attributes("points").trim().split(/\s+/);
+        expect(secondaryPoints).toHaveLength(3);
+        expect(w.get('[data-testid="fte-secondary-line"]').attributes("stroke")).toBe("var(--color-text-secondary)");
+        expect(w.get('[data-testid="fte-line"]').attributes("stroke")).toBe("var(--color-badge-success-text)");
+    });
 });

@@ -157,7 +157,7 @@ describe("Dashboard/Index", () => {
         expect(w.find('[data-testid="unconfirmed-employees-notice"]').exists()).toBe(false);
     });
 
-    it("renders a single green sum line in stacked (both) mode", () => {
+    it("renders confirmed, unconfirmed, and the green sum line in stacked (both) mode", () => {
         const w = mountPage({
             period: { start: "2026-01-05", end: "2026-01-06", fte_hours: 40 },
             days: ["2026-01-05", "2026-01-06"],
@@ -175,8 +175,25 @@ describe("Dashboard/Index", () => {
 
         const chart = w.getComponent(FteLineChart);
         expect(chart.props("available")).toEqual([1.5, 1.25]);
-        expect(chart.props("baseAvailable")).toBe(null);
         expect(chart.props("availableStroke")).toBe("var(--color-badge-success-text)");
+        expect(chart.props("baseAvailable")).toEqual([1, 1]);
+        expect(chart.props("baseAvailableStroke")).toBe("var(--color-brand-bg)");
+        expect(chart.props("secondaryAvailable")).toEqual([0.5, 0.25]);
+        expect(chart.props("secondaryAvailableStroke")).toBe("var(--color-text-secondary)");
+    });
+
+    it("shows only the main line in confirmed-only and unconfirmed-only modes", () => {
+        const w = mountPage({
+            period: { start: "2026-01-05", end: "2026-01-06", fte_hours: 40 },
+            days: ["2026-01-05", "2026-01-06"],
+            employeeStatusFilter: "confirmed",
+            overall: { available: [1, 1], target: 8, available_hours: 16, required_hours: 64 },
+            lines: [],
+        });
+
+        const chart = w.getComponent(FteLineChart);
+        expect(chart.props("baseAvailable")).toBe(null);
+        expect(chart.props("secondaryAvailable")).toBe(null);
     });
 
     it("uses gray for the unconfirmed-only line", () => {

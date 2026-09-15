@@ -7,10 +7,13 @@ const props = defineProps({
     days: { type: Array, default: () => [] },
     // Available FTE, one value per day.
     available: { type: Array, default: () => [] },
-    // Optional lower line for stacked views. The main available line remains the stacked total.
+    // Optional independent second line (e.g. confirmed availability).
     baseAvailable: { type: Array, default: null },
+    // Optional independent third line (e.g. unconfirmed availability).
+    secondaryAvailable: { type: Array, default: null },
     availableStroke: { type: String, default: 'var(--color-brand-bg)' },
     baseAvailableStroke: { type: String, default: 'var(--color-brand-bg)' },
+    secondaryAvailableStroke: { type: String, default: 'var(--color-text-secondary)' },
     // Target FTE — a flat reference line.
     target: { type: Number, default: 0 },
     // Show the title as a visible caption above the chart. Turn off when a
@@ -29,7 +32,8 @@ const Y_STEPS = 4
 
 const maxValue = computed(() => {
     const baseValues = Array.isArray(props.baseAvailable) ? props.baseAvailable : []
-    const peak = Math.max(props.target, ...props.available, ...baseValues, 1)
+    const secondaryValues = Array.isArray(props.secondaryAvailable) ? props.secondaryAvailable : []
+    const peak = Math.max(props.target, ...props.available, ...baseValues, ...secondaryValues, 1)
     // Round up to a whole-number axis top that divides evenly into Y_STEPS,
     // so every tick lands on an integer.
     const step = Math.max(1, Math.ceil((peak * 1.1) / Y_STEPS))
@@ -51,6 +55,17 @@ const hasBaseLine = computed(
 
 const baseLinePoints = computed(() =>
     hasBaseLine.value ? props.baseAvailable.map((v, i) => `${x(i)},${y(v)}`).join(' ') : '',
+)
+
+const hasSecondaryLine = computed(
+    () =>
+        Array.isArray(props.secondaryAvailable) &&
+        props.secondaryAvailable.length === props.available.length &&
+        props.secondaryAvailable.length > 0,
+)
+
+const secondaryLinePoints = computed(() =>
+    hasSecondaryLine.value ? props.secondaryAvailable.map((v, i) => `${x(i)},${y(v)}`).join(' ') : '',
 )
 
 const targetY = computed(() => y(props.target))
@@ -179,6 +194,17 @@ const xTicks = computed(() => {
                 :points="baseLinePoints"
                 fill="none"
                 :stroke="baseAvailableStroke"
+                stroke-width="2"
+                stroke-linejoin="round"
+                stroke-linecap="round"
+            />
+
+            <polyline
+                v-if="hasSecondaryLine"
+                data-testid="fte-secondary-line"
+                :points="secondaryLinePoints"
+                fill="none"
+                :stroke="secondaryAvailableStroke"
                 stroke-width="2"
                 stroke-linejoin="round"
                 stroke-linecap="round"
