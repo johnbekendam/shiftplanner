@@ -24,7 +24,7 @@ class ScheduleSpotTest extends TestCase
 
     private function url(Workcenter $workcenter, Shift $shift, string $date = '2026-09-15'): string
     {
-        return "/scheduling/spots/{$workcenter->id}/{$shift->id}/{$date}";
+        return "/planning/spots/{$workcenter->id}/{$shift->id}/{$date}";
     }
 
     // ── Access ──────────────────────────────────────────────────────────

@@ -28,14 +28,14 @@ class SchedulingIndexTest extends TestCase
 
     public function test_guest_is_redirected(): void
     {
-        $this->get('/scheduling')->assertRedirect('/login');
+        $this->get('/planning')->assertRedirect('/login');
     }
 
     public function test_manager_is_forbidden(): void
     {
         $this->actingAs(User::factory()->create());
 
-        $this->get('/scheduling')->assertForbidden();
+        $this->get('/planning')->assertForbidden();
     }
 
     public function test_index_defaults_to_the_current_month_with_active_workcenters_and_all_shifts(): void
@@ -46,7 +46,7 @@ class SchedulingIndexTest extends TestCase
         Shift::factory()->create(['name' => 'Early']);
         $now = Carbon::now();
 
-        $this->get('/scheduling')->assertOk()
+        $this->get('/planning')->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->component('Scheduling')
                 ->has('workcenters', 1)
@@ -62,7 +62,7 @@ class SchedulingIndexTest extends TestCase
     {
         $this->actingAsAdmin();
 
-        $this->get('/scheduling?year=2026&month=3')->assertOk()
+        $this->get('/planning?year=2026&month=3')->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->where('year', 2026)
                 ->where('month', 3)
@@ -87,7 +87,7 @@ class SchedulingIndexTest extends TestCase
             'date' => $date->toDateString(),
         ]);
 
-        $response = $this->get('/scheduling?year=2026&month=9')->assertOk();
+        $response = $this->get('/planning?year=2026&month=9')->assertOk();
         $coverage = collect($response->viewData('page')['props']['coverage']);
         $entry = $coverage->firstWhere('date', '2026-09-10');
 
@@ -106,7 +106,7 @@ class SchedulingIndexTest extends TestCase
         $workcenter->shifts()->attach($shift);
         // No capacity row for any weekday in September 2026 → spots is 0 every day.
 
-        $this->get('/scheduling?year=2026&month=9')->assertOk()
+        $this->get('/planning?year=2026&month=9')->assertOk()
             ->assertInertia(fn ($page) => $page->where('coverage', []));
     }
 
@@ -124,7 +124,7 @@ class SchedulingIndexTest extends TestCase
             'workcenter_id' => $workcenter->id, 'shift_id' => $shift->id, 'date' => $date->toDateString(), 'spots' => 5,
         ]);
 
-        $response = $this->get('/scheduling?year=2026&month=9')->assertOk();
+        $response = $this->get('/planning?year=2026&month=9')->assertOk();
         $coverage = collect($response->viewData('page')['props']['coverage']);
         $entry = $coverage->firstWhere('date', '2026-09-10');
 
@@ -143,7 +143,7 @@ class SchedulingIndexTest extends TestCase
             'workcenter_id' => $workcenter->id, 'shift_id' => $shift->id, 'weekday' => $date->isoWeekday(), 'spots' => 3,
         ]);
 
-        $this->get('/scheduling?year=2026&month=9')->assertOk()
+        $this->get('/planning?year=2026&month=9')->assertOk()
             ->assertInertia(fn ($page) => $page->where('coverage', []));
     }
 
@@ -162,7 +162,7 @@ class SchedulingIndexTest extends TestCase
             'workcenter_id' => $workcenter->id, 'shift_id' => $shift->id, 'date' => '2026-08-13',
         ]);
 
-        $this->get('/scheduling?year=2026&month=9')->assertOk()
+        $this->get('/planning?year=2026&month=9')->assertOk()
             ->assertInertia(fn ($page) => $page->where('coverage.0.assigned', 0));
     }
 
@@ -172,7 +172,7 @@ class SchedulingIndexTest extends TestCase
         $now = Carbon::now();
         $mondayOfThisWeek = $now->copy()->startOfWeek(Carbon::MONDAY)->toDateString();
 
-        $this->get('/scheduling')->assertOk()
+        $this->get('/planning')->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->where('date', $now->toDateString())
                 ->where('weekStart', $mondayOfThisWeek)
@@ -184,7 +184,7 @@ class SchedulingIndexTest extends TestCase
         $this->actingAsAdmin();
 
         // 2026-03-01 is a Sunday; the Monday of its week is 2026-02-23.
-        $this->get('/scheduling?year=2026&month=3')->assertOk()
+        $this->get('/planning?year=2026&month=3')->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->where('date', '2026-03-01')
                 ->where('weekStart', '2026-02-23')
@@ -196,7 +196,7 @@ class SchedulingIndexTest extends TestCase
         $this->actingAsAdmin();
 
         // 2026-09-17 is a Thursday; the Monday of its week is 2026-09-14.
-        $this->get('/scheduling?year=2026&month=9&date=2026-09-17')->assertOk()
+        $this->get('/planning?year=2026&month=9&date=2026-09-17')->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->where('date', '2026-09-17')
                 ->where('weekStart', '2026-09-14')
@@ -215,7 +215,7 @@ class SchedulingIndexTest extends TestCase
         ]);
 
         // 2026-09-01 is a Tuesday; its week starts 2026-08-31 (August).
-        $response = $this->get('/scheduling?year=2026&month=9&date=2026-09-01')->assertOk();
+        $response = $this->get('/planning?year=2026&month=9&date=2026-09-01')->assertOk();
         $cells = collect($response->viewData('page')['props']['weekCells']);
         $entry = $cells->firstWhere('date', '2026-08-31');
 
@@ -245,7 +245,7 @@ class SchedulingIndexTest extends TestCase
             'fixed' => true,
         ]);
 
-        $response = $this->get('/scheduling?year=2026&month=9&date=2026-09-10')->assertOk();
+        $response = $this->get('/planning?year=2026&month=9&date=2026-09-10')->assertOk();
         $cells = collect($response->viewData('page')['props']['weekCells']);
         $entry = $cells->firstWhere('date', '2026-09-10');
 
@@ -265,7 +265,7 @@ class SchedulingIndexTest extends TestCase
         $workcenter->shifts()->attach($shift);
         // No capacity for Thursday (2026-09-10) → 0 spots that day, but the shift is attached.
 
-        $response = $this->get('/scheduling?year=2026&month=9&date=2026-09-10')->assertOk();
+        $response = $this->get('/planning?year=2026&month=9&date=2026-09-10')->assertOk();
         $cells = collect($response->viewData('page')['props']['weekCells']);
         $entry = $cells->firstWhere('date', '2026-09-10');
 
@@ -280,7 +280,7 @@ class SchedulingIndexTest extends TestCase
         Workcenter::factory()->create();
         Shift::factory()->create(); // not attached to any workcenter
 
-        $response = $this->get('/scheduling?year=2026&month=9&date=2026-09-10')->assertOk();
+        $response = $this->get('/planning?year=2026&month=9&date=2026-09-10')->assertOk();
         $cells = collect($response->viewData('page')['props']['weekCells']);
 
         $this->assertCount(0, $cells);
@@ -296,7 +296,7 @@ class SchedulingIndexTest extends TestCase
             'workcenter_id' => $workcenter->id, 'shift_id' => $shift->id, 'weekday' => 4, 'spots' => 3,
         ]);
 
-        $response = $this->get('/scheduling?year=2026&month=9&date=2026-09-10')->assertOk();
+        $response = $this->get('/planning?year=2026&month=9&date=2026-09-10')->assertOk();
         $cells = collect($response->viewData('page')['props']['weekCells']);
 
         $this->assertCount(0, $cells);
@@ -310,7 +310,7 @@ class SchedulingIndexTest extends TestCase
         $workcenter->shifts()->attach($shift);
 
         // 2026-09-10 is a Thursday; its week runs 2026-09-07 through 2026-09-13.
-        $response = $this->get('/scheduling?year=2026&month=9&date=2026-09-10')->assertOk();
+        $response = $this->get('/planning?year=2026&month=9&date=2026-09-10')->assertOk();
         $cells = collect($response->viewData('page')['props']['weekCells']);
 
         $this->assertCount(7, $cells);
@@ -325,7 +325,7 @@ class SchedulingIndexTest extends TestCase
         $this->actingAsAdmin();
         PublishedWeek::query()->create(['week_start' => '2026-09-07']);
 
-        $this->get('/scheduling?year=2026&month=9&date=2026-09-10')->assertOk()
+        $this->get('/planning?year=2026&month=9&date=2026-09-10')->assertOk()
             ->assertInertia(fn ($page) => $page->where('weekPublished', true));
     }
 
@@ -333,7 +333,7 @@ class SchedulingIndexTest extends TestCase
     {
         $this->actingAsAdmin();
 
-        $this->get('/scheduling?year=2026&month=9&date=2026-09-10')->assertOk()
+        $this->get('/planning?year=2026&month=9&date=2026-09-10')->assertOk()
             ->assertInertia(fn ($page) => $page->where('weekPublished', false));
     }
 
@@ -343,7 +343,7 @@ class SchedulingIndexTest extends TestCase
         // 2026-09-10 is a Thursday; its week runs 2026-09-07 through 2026-09-13.
         PublishedWeek::query()->create(['week_start' => '2026-09-07']);
 
-        $response = $this->get('/scheduling?year=2026&month=9')->assertOk();
+        $response = $this->get('/planning?year=2026&month=9')->assertOk();
         $publishedDays = $response->viewData('page')['props']['publishedDays'];
 
         foreach ([7, 8, 9, 10, 11, 12, 13] as $day) {
@@ -359,7 +359,7 @@ class SchedulingIndexTest extends TestCase
         // 2026-09-01 is a Tuesday; its week starts 2026-08-31 (August).
         PublishedWeek::query()->create(['week_start' => '2026-08-31']);
 
-        $response = $this->get('/scheduling?year=2026&month=9')->assertOk();
+        $response = $this->get('/planning?year=2026&month=9')->assertOk();
         $publishedDays = $response->viewData('page')['props']['publishedDays'];
 
         foreach ([1, 2, 3, 4, 5, 6] as $day) {
@@ -372,7 +372,7 @@ class SchedulingIndexTest extends TestCase
     {
         $this->actingAsAdmin();
 
-        $this->get('/scheduling?year=2026&month=9')->assertOk()
+        $this->get('/planning?year=2026&month=9')->assertOk()
             ->assertInertia(fn ($page) => $page->where('publishedDays', []));
     }
 }

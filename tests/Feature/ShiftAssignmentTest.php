@@ -52,7 +52,7 @@ class ShiftAssignmentTest extends TestCase
         $shift = Shift::factory()->create();
         $this->setCapacity($workcenter, $shift, $this->aTuesday(), 1);
 
-        $this->post('/scheduling/assignments', $this->validPayload($employee, $workcenter, $shift))
+        $this->post('/planning/assignments', $this->validPayload($employee, $workcenter, $shift))
             ->assertRedirect('/login');
         $this->assertSame(0, ShiftAssignment::count());
     }
@@ -64,7 +64,7 @@ class ShiftAssignmentTest extends TestCase
         $workcenter = Workcenter::factory()->create();
         $shift = Shift::factory()->create();
         $this->setCapacity($workcenter, $shift, $this->aTuesday(), 1);
-        $this->post('/scheduling/assignments', $this->validPayload($employee, $workcenter, $shift))
+        $this->post('/planning/assignments', $this->validPayload($employee, $workcenter, $shift))
             ->assertForbidden();
     }
 
@@ -84,7 +84,7 @@ class ShiftAssignmentTest extends TestCase
             'level' => 'available',
         ]);
 
-        $this->post('/scheduling/assignments', $this->validPayload($employee, $workcenter, $shift))
+        $this->post('/planning/assignments', $this->validPayload($employee, $workcenter, $shift))
             ->assertRedirect();
 
         $this->assertDatabaseHas('shift_assignments', [
@@ -104,7 +104,7 @@ class ShiftAssignmentTest extends TestCase
         $shift = Shift::factory()->create();
         $this->setCapacity($workcenter, $shift, $this->aTuesday(), 1);
 
-        $this->post('/scheduling/assignments', $this->validPayload($employee, $workcenter, $shift))
+        $this->post('/planning/assignments', $this->validPayload($employee, $workcenter, $shift))
             ->assertSessionHasErrors('employee_id');
 
         $this->assertSame(0, ShiftAssignment::count());
@@ -121,7 +121,7 @@ class ShiftAssignmentTest extends TestCase
         ]);
         $employee = Employee::factory()->create();
 
-        $this->post('/scheduling/assignments', $this->validPayload($employee, $workcenter, $shift))
+        $this->post('/planning/assignments', $this->validPayload($employee, $workcenter, $shift))
             ->assertSessionHasErrors('employee_id');
         $this->assertSame(1, ShiftAssignment::count());
     }
@@ -138,7 +138,7 @@ class ShiftAssignmentTest extends TestCase
             'shift_id' => $shift->id, 'date' => $this->aTuesday(),
         ]);
 
-        $this->post('/scheduling/assignments', $this->validPayload($employee, $workcenter, $shift))
+        $this->post('/planning/assignments', $this->validPayload($employee, $workcenter, $shift))
             ->assertSessionHasErrors('employee_id');
         $this->assertSame(1, ShiftAssignment::count());
     }
@@ -156,7 +156,7 @@ class ShiftAssignmentTest extends TestCase
         $shift = Shift::factory()->create();
         $this->setCapacity($workcenter, $shift, $this->aTuesday(), 5);
 
-        $this->post('/scheduling/assignments', $this->validPayload($employee, $workcenter, $shift))
+        $this->post('/planning/assignments', $this->validPayload($employee, $workcenter, $shift))
             ->assertSessionHasErrors('employee_id');
         $this->assertSame(0, ShiftAssignment::count());
     }
@@ -175,7 +175,7 @@ class ShiftAssignmentTest extends TestCase
             'level' => 'unavailable',
         ]);
 
-        $this->post('/scheduling/assignments', $this->validPayload($employee, $workcenter, $shift))
+        $this->post('/planning/assignments', $this->validPayload($employee, $workcenter, $shift))
             ->assertSessionHasErrors('employee_id');
         $this->assertSame(0, ShiftAssignment::count());
     }
@@ -188,7 +188,7 @@ class ShiftAssignmentTest extends TestCase
         $shift = Shift::factory()->create(['visible_by_default' => false]);
         $this->setCapacity($workcenter, $shift, $this->aTuesday(), 5);
 
-        $this->post('/scheduling/assignments', $this->validPayload($employee, $workcenter, $shift))
+        $this->post('/planning/assignments', $this->validPayload($employee, $workcenter, $shift))
             ->assertSessionHasErrors('employee_id');
 
         $this->assertSame(0, ShiftAssignment::count());
@@ -217,7 +217,7 @@ class ShiftAssignmentTest extends TestCase
             'level' => 'not_preferred',
         ]);
 
-        $this->post('/scheduling/assignments', $this->validPayload($employee, $workcenter, $shift))
+        $this->post('/planning/assignments', $this->validPayload($employee, $workcenter, $shift))
             ->assertSessionHasNoErrors();
         $this->assertSame(1, ShiftAssignment::count());
     }
@@ -238,7 +238,7 @@ class ShiftAssignmentTest extends TestCase
         $shiftB = Shift::factory()->create(['start_time' => '08:00', 'end_time' => '16:00']);
         $this->setCapacity($workcenterB, $shiftB, $this->aTuesday(), 5);
 
-        $this->post('/scheduling/assignments', $this->validPayload($employee, $workcenterB, $shiftB))
+        $this->post('/planning/assignments', $this->validPayload($employee, $workcenterB, $shiftB))
             ->assertSessionHasErrors('employee_id');
         $this->assertSame(1, ShiftAssignment::count());
     }
@@ -265,7 +265,7 @@ class ShiftAssignmentTest extends TestCase
             'level' => 'available',
         ]);
 
-        $this->post('/scheduling/assignments', $this->validPayload($employee, $workcenterB, $shiftB))
+        $this->post('/planning/assignments', $this->validPayload($employee, $workcenterB, $shiftB))
             ->assertSessionHasNoErrors();
         $this->assertSame(2, ShiftAssignment::count());
     }
@@ -277,7 +277,7 @@ class ShiftAssignmentTest extends TestCase
         $this->actingAsAdmin();
         $assignment = ShiftAssignment::factory()->create(['fixed' => false]);
 
-        $this->put("/scheduling/assignments/{$assignment->id}", ['fixed' => true])->assertRedirect();
+        $this->put("/planning/assignments/{$assignment->id}", ['fixed' => true])->assertRedirect();
 
         $this->assertTrue($assignment->fresh()->fixed);
     }
@@ -286,7 +286,7 @@ class ShiftAssignmentTest extends TestCase
     {
         $assignment = ShiftAssignment::factory()->create(['fixed' => false]);
 
-        $this->put("/scheduling/assignments/{$assignment->id}", ['fixed' => true])->assertRedirect('/login');
+        $this->put("/planning/assignments/{$assignment->id}", ['fixed' => true])->assertRedirect('/login');
         $this->assertFalse($assignment->fresh()->fixed);
     }
 
@@ -297,7 +297,7 @@ class ShiftAssignmentTest extends TestCase
         $this->actingAsAdmin();
         $assignment = ShiftAssignment::factory()->create(['fixed' => true]);
 
-        $this->delete("/scheduling/assignments/{$assignment->id}")->assertRedirect();
+        $this->delete("/planning/assignments/{$assignment->id}")->assertRedirect();
 
         $this->assertDatabaseMissing('shift_assignments', ['id' => $assignment->id]);
     }
@@ -306,7 +306,7 @@ class ShiftAssignmentTest extends TestCase
     {
         $assignment = ShiftAssignment::factory()->create();
 
-        $this->delete("/scheduling/assignments/{$assignment->id}")->assertRedirect('/login');
+        $this->delete("/planning/assignments/{$assignment->id}")->assertRedirect('/login');
         $this->assertDatabaseHas('shift_assignments', ['id' => $assignment->id]);
     }
 

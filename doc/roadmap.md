@@ -12,7 +12,7 @@ starts, a `plan.md` (the steps and progress).
 | 0 | Scaffold — TeamApps template snapshot, SQLite dev DB, compose stub | Done | — |
 | 1 | Employee admin prototype — manager employee list/editor, personal-page preview link | Done | `features/employee-admin/spec.md`, `features/employee-admin/plan.md` |
 | 2 | Auth hardening — manager Entra ID (OIDC), employee token hardening | Planned | grill first, then `features/auth-hardening/spec.md` |
-| 3 | Business Lines and standard day schedules — config list, per-employee assignment, FTE dashboard; then schedules and coverage | In progress | Business Lines shipped (`features/business-lines/`). Shift definitions shipped (`features/shift-definitions/`). Workcenters shipped (`features/workcenters/`): a Settings tab maintains the named workcenter list. Workcenter shift assignment shipped (`features/workcenter-shift-assignments/`): its own `/workcenter-shifts` page links workcenters to shifts and sets per-weekday open-spot capacity, one flat table across every workcenter. Scheduling shipped (`features/scheduling/`): a `/scheduling` page assigns employees into those spots, one workcenter and one week at a time, with per-date capacity overrides and a "fixed" flag against future automatic re-planning. Rule-based automatic planning still needs a design session. |
+| 3 | Business Lines and standard day schedules — config list, per-employee assignment, FTE dashboard; then schedules and coverage | In progress | Business Lines shipped (`features/business-lines/`). Shift definitions shipped (`features/shift-definitions/`). Workcenters shipped (`features/workcenters/`): a Settings tab maintains the named workcenter list. Workcenter shift assignment shipped (`features/workcenter-shift-assignments/`): its own `/schedule` page links workcenters to shifts and sets per-weekday open-spot capacity, one flat table across every workcenter. Scheduling shipped (`features/scheduling/`): a `/planning` page assigns employees into those spots, one workcenter and one week at a time, with per-date capacity overrides and a "fixed" flag against future automatic re-planning. Rule-based automatic planning still needs a design session. |
 | 3.5 | Competences — config list on a Settings page, per-employee checkmarks | Done | `features/competences/spec.md`, `features/competences/plan.md`. Planning use is out of scope. |
 | 3.6 | Product groups | Removed | Shipped, then removed from the product. Tables dropped by `2026_09_09_000007`; the config tab, per-employee checklist, routes, and language keys are gone. |
 | 3.7 | Account management (interim auth) — admin/manager roles, password or email code, admin `/users`, account page | Done | `features/account-management/`. The email-code passwordless path is superseded by phase 3.10. Entra ID, the PostgreSQL switch, and employee token hardening stay in phase 2. |
@@ -21,7 +21,7 @@ starts, a `plan.md` (the steps and progress).
 | 3.10 | Login links — admin-created users get an emailed invite link to set a password; the login page's passwordless action emails a sign-in link, covering forgot-password too | Done | `features/login-links/`. Replaces phase 3.7's email-code path. |
 | 4 | Availability and wishes — recurring availability, date-specific exceptions, fairness model | In progress | Holidays and the recurring availability grid shipped (`features/employee-availability/`); the grid is weekday-only and carries manager-defined yes/no questions (`features/availability-questions/`). Fairness model still needs a design session. |
 | 5 | Scheduling engine — Python OR-Tools `/solve` service, JSON contract, `GeneratePlan` job, draft review and edit | Planned | depends on phases 3 and 4 |
-| 6 | Publish and employee schedule view — publish a plan, employees see own assignments only | Done | `features/publish-planning/`, built ahead of phase 5. Publishing is a per-week, all-workcenters toggle on `/scheduling`; it never gates editing. Nothing enforces it against an auto-planner yet — there isn't one. |
+| 6 | Publish and employee schedule view — publish a plan, employees see own assignments only | Done | `features/publish-planning/`, built ahead of phase 5. Publishing is a per-week, all-workcenters toggle on `/planning`; it never gates editing. Nothing enforces it against an auto-planner yet — there isn't one. |
 
 ## Phase 0 — Scaffold
 
@@ -112,7 +112,7 @@ maintains a named, orderable workcenter list — one field, the name. A
 workcenter is independent of Business Line.
 
 Also shipped (`features/workcenter-shift-assignments/`): a dedicated
-`/workcenter-shifts` page, admin-only, off the sidebar. Defining
+`/schedule` page, admin-only, off the sidebar. Defining
 workcenters and shifts happens on Settings; relating them happens here.
 One flat table lists every (workcenter, shift) pairing across every
 workcenter — a shift can serve more than one workcenter — with a
@@ -121,7 +121,7 @@ edited here; that shipped with `features/scheduling/` instead.
 
 Also shipped (`features/scheduling/`; its one-workcenter-at-a-time
 landing view below is superseded by the calendar-first rework
-described next): a `/scheduling` page, admin-only, off the sidebar.
+described next): a `/planning` page, admin-only, off the sidebar.
 One workcenter and one week at a time: a shift×day
 grid where each cell shows its open-spot count against the employees
 assigned, editable inline. Spot counts there are per-date overrides
@@ -135,7 +135,7 @@ assignment can be marked "fixed," which will protect it from a future
 automatic re-planning run; today it changes nothing else.
 
 Also shipped (`features/scheduling-calendar/` and
-`features/scheduling-week-drilldown/`): `/scheduling`'s landing view is
+`features/scheduling-week-drilldown/`): `/planning`'s landing view is
 now a month calendar with a workcenter/shift filter, coloring each day
 by whether every checked pairing is fully staffed. Clicking a day
 shows that week's schedule below the calendar: one card per visible
@@ -283,11 +283,11 @@ Still open: the fairness definitions and objective-term weights, and the
 
 Shipped (`features/publish-planning/`), ahead of phase 5 — publishing
 doesn't wait on the auto-planner, it applies to whatever's on
-`/scheduling` today, hand-built or (later) generated alike.
+`/planning` today, hand-built or (later) generated alike.
 
 A `published_weeks` table (a row's existence means that Monday–Sunday
 week is published) covers every active workcenter at once — there's no
-per-workcenter publish state. `/scheduling`'s calendar marks a
+per-workcenter publish state. `/planning`'s calendar marks a
 published week with a left-border bar down its row; a Publish/Unpublish
 button sits above the week's schedule cards, immediate, no
 confirmation, no precondition. Publishing never locks editing — a
@@ -299,7 +299,7 @@ assignments grouped by week: the employee's own personal page shows
 published weeks only (`doc/concept.md`'s original rule — "employees
 view their own published assignments"); the admin's employee editor
 shows everything, draft included, each week marked published or not,
-since the admin already sees everything else on `/scheduling`.
+since the admin already sees everything else on `/planning`.
 
 Nothing here enforces the invariant against an auto-planner — Phase 5
 still doesn't exist. Whenever `PlanGenerator` is built, it must skip

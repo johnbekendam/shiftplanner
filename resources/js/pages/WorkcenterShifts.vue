@@ -96,9 +96,9 @@ async function save() {
     })
 
     const results = await Promise.allSettled([
-        ...toDelete.map((r) => deleteAsync(`/workcenter-shifts/${r.workcenter_id}/${r.shift_id}`)),
-        ...toEdit.map((r) => putAsync(`/workcenter-shifts/${r.workcenter_id}/${r.shift_id}`, { spots: r.spots })),
-        ...toAdd.map((r) => postAsync('/workcenter-shifts', {
+        ...toDelete.map((r) => deleteAsync(`/schedule/${r.workcenter_id}/${r.shift_id}`)),
+        ...toEdit.map((r) => putAsync(`/schedule/${r.workcenter_id}/${r.shift_id}`, { spots: r.spots })),
+        ...toAdd.map((r) => postAsync('/schedule', {
             workcenter_id: r.workcenter_id,
             shift_id: r.shift_id,
             spots: r.spots,

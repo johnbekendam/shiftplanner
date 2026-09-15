@@ -26,14 +26,14 @@ class WorkcenterShiftAssignmentTest extends TestCase
 
     public function test_guest_is_redirected_from_the_index(): void
     {
-        $this->get('/workcenter-shifts')->assertRedirect('/login');
+        $this->get('/schedule')->assertRedirect('/login');
     }
 
     public function test_manager_is_forbidden_from_the_index(): void
     {
         $this->actingAs(User::factory()->create());
 
-        $this->get('/workcenter-shifts')->assertForbidden();
+        $this->get('/schedule')->assertForbidden();
     }
 
     public function test_guest_cannot_create_an_assignment(): void
@@ -41,7 +41,7 @@ class WorkcenterShiftAssignmentTest extends TestCase
         $workcenter = Workcenter::factory()->create();
         $shift = Shift::factory()->create();
 
-        $this->post('/workcenter-shifts', $this->validPayload($workcenter, $shift))->assertRedirect('/login');
+        $this->post('/schedule', $this->validPayload($workcenter, $shift))->assertRedirect('/login');
         $this->assertSame(0, $workcenter->shifts()->count());
     }
 
@@ -51,7 +51,7 @@ class WorkcenterShiftAssignmentTest extends TestCase
         $workcenter = Workcenter::factory()->create();
         $shift = Shift::factory()->create();
 
-        $this->post('/workcenter-shifts', $this->validPayload($workcenter, $shift))->assertForbidden();
+        $this->post('/schedule', $this->validPayload($workcenter, $shift))->assertForbidden();
     }
 
     // ── Index payload ───────────────────────────────────────────────────
@@ -67,7 +67,7 @@ class WorkcenterShiftAssignmentTest extends TestCase
             'workcenter_id' => $active->id, 'shift_id' => $shift->id, 'weekday' => 1, 'spots' => 4,
         ]);
 
-        $this->get('/workcenter-shifts')->assertOk()
+        $this->get('/schedule')->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->component('WorkcenterShifts')
                 ->has('workcenters', 1)
@@ -90,7 +90,7 @@ class WorkcenterShiftAssignmentTest extends TestCase
         $workcenter = Workcenter::factory()->create();
         $shift = Shift::factory()->create();
 
-        $this->post('/workcenter-shifts', $this->validPayload($workcenter, $shift, [4, 4, 4, 4, 2, 0, 0]))
+        $this->post('/schedule', $this->validPayload($workcenter, $shift, [4, 4, 4, 4, 2, 0, 0]))
             ->assertRedirect();
 
         $this->assertSame(1, $workcenter->shifts()->count());
@@ -111,7 +111,7 @@ class WorkcenterShiftAssignmentTest extends TestCase
         $shift = Shift::factory()->create();
         $workcenter->shifts()->attach($shift);
 
-        $this->post('/workcenter-shifts', $this->validPayload($workcenter, $shift))
+        $this->post('/schedule', $this->validPayload($workcenter, $shift))
             ->assertSessionHasErrors('shift_id');
     }
 
@@ -121,7 +121,7 @@ class WorkcenterShiftAssignmentTest extends TestCase
         $workcenter = Workcenter::factory()->create(['archived_at' => now()]);
         $shift = Shift::factory()->create();
 
-        $this->post('/workcenter-shifts', $this->validPayload($workcenter, $shift))
+        $this->post('/schedule', $this->validPayload($workcenter, $shift))
             ->assertSessionHasErrors('workcenter_id');
     }
 
@@ -130,7 +130,7 @@ class WorkcenterShiftAssignmentTest extends TestCase
         $this->actingAsAdmin();
         $shift = Shift::factory()->create();
 
-        $this->post('/workcenter-shifts', [
+        $this->post('/schedule', [
             'workcenter_id' => 999999,
             'shift_id' => $shift->id,
             'spots' => array_fill(0, 7, 0),
@@ -143,7 +143,7 @@ class WorkcenterShiftAssignmentTest extends TestCase
         $workcenter = Workcenter::factory()->create();
         $shift = Shift::factory()->create();
 
-        $this->post('/workcenter-shifts', $this->validPayload($workcenter, $shift, [4, 4, 4, 4, -1, 0, 0]))
+        $this->post('/schedule', $this->validPayload($workcenter, $shift, [4, 4, 4, 4, -1, 0, 0]))
             ->assertSessionHasErrors('spots.4');
     }
 
@@ -153,7 +153,7 @@ class WorkcenterShiftAssignmentTest extends TestCase
         $workcenter = Workcenter::factory()->create();
         $shift = Shift::factory()->create();
 
-        $this->post('/workcenter-shifts', [
+        $this->post('/schedule', [
             'workcenter_id' => $workcenter->id,
             'shift_id' => $shift->id,
             'spots' => [1, 2, 3],
@@ -170,7 +170,7 @@ class WorkcenterShiftAssignmentTest extends TestCase
         $workcenter->shifts()->attach($shift);
 
         $spots = [4, 4, 4, 4, 2, 0, 0];
-        $this->put("/workcenter-shifts/{$workcenter->id}/{$shift->id}", ['spots' => $spots])
+        $this->put("/schedule/{$workcenter->id}/{$shift->id}", ['spots' => $spots])
             ->assertRedirect();
 
         foreach ($spots as $index => $expected) {
@@ -189,7 +189,7 @@ class WorkcenterShiftAssignmentTest extends TestCase
         $workcenter = Workcenter::factory()->create();
         $shift = Shift::factory()->create();
 
-        $this->put("/workcenter-shifts/{$workcenter->id}/{$shift->id}", ['spots' => array_fill(0, 7, 1)])
+        $this->put("/schedule/{$workcenter->id}/{$shift->id}", ['spots' => array_fill(0, 7, 1)])
             ->assertNotFound();
     }
 
@@ -208,7 +208,7 @@ class WorkcenterShiftAssignmentTest extends TestCase
             'workcenter_id' => $workcenter->id, 'shift_id' => $shift->id, 'date' => '2026-12-24', 'spots' => 1,
         ]);
 
-        $this->delete("/workcenter-shifts/{$workcenter->id}/{$shift->id}")->assertRedirect();
+        $this->delete("/schedule/{$workcenter->id}/{$shift->id}")->assertRedirect();
 
         $this->assertSame(0, $workcenter->shifts()->count());
         $this->assertSame(0, WorkcenterShiftCapacity::query()->where('workcenter_id', $workcenter->id)->count());
@@ -221,7 +221,7 @@ class WorkcenterShiftAssignmentTest extends TestCase
         $workcenter = Workcenter::factory()->create();
         $shift = Shift::factory()->create();
 
-        $this->delete("/workcenter-shifts/{$workcenter->id}/{$shift->id}")->assertNotFound();
+        $this->delete("/schedule/{$workcenter->id}/{$shift->id}")->assertNotFound();
     }
 
     /** @return array<string, mixed> */

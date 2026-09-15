@@ -86,7 +86,7 @@ function addDays(dateString, offset) {
 function onCalendarChange({ year, month, day }) {
     const date = dateStr(year, month, day)
     if (year !== props.year || month !== props.month || date !== props.date) {
-        router.get('/scheduling', { year, month, date }, { preserveState: true, preserveScroll: true })
+        router.get('/planning', { year, month, date }, { preserveState: true, preserveScroll: true })
     }
 }
 
@@ -115,7 +115,7 @@ const visibleWorkcenters = computed(() =>
 )
 
 async function togglePublish() {
-    const url = `/scheduling/weeks/${props.weekStart}/publish`
+    const url = `/planning/weeks/${props.weekStart}/publish`
     if (props.weekPublished) {
         await deleteAsync(url).catch(() => {})
     } else {

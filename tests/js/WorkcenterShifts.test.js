@@ -114,7 +114,7 @@ describe("WorkcenterShifts", () => {
 
         expect(routerCalls).toContainEqual([
             "put",
-            "/workcenter-shifts/1/9",
+            "/schedule/1/9",
             { spots: [5, 4, 4, 4, 2, 0, 0] },
         ]);
     });
@@ -147,7 +147,7 @@ describe("WorkcenterShifts", () => {
 
         expect(routerCalls).toContainEqual([
             "post",
-            "/workcenter-shifts",
+            "/schedule",
             { workcenter_id: 1, shift_id: 9, spots: [0, 0, 0, 0, 0, 0, 0] },
         ]);
     });
@@ -164,7 +164,7 @@ describe("WorkcenterShifts", () => {
         await findSaveButton(w).trigger("click");
         await flushPromises();
 
-        expect(routerCalls.some((c) => c[0] === "delete" && c[1] === "/workcenter-shifts/1/9")).toBe(true);
+        expect(routerCalls.some((c) => c[0] === "delete" && c[1] === "/schedule/1/9")).toBe(true);
     });
 
     it("Cancel reverts to the last-saved state without saving", async () => {

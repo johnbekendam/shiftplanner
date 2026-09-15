@@ -32,7 +32,7 @@ class EligibleEmployeeTest extends TestCase
 
     private function url(Workcenter $workcenter, Shift $shift): string
     {
-        return "/scheduling/eligible-employees?workcenter_id={$workcenter->id}&shift_id={$shift->id}&date={$this->aTuesday()}";
+        return "/planning/eligible-employees?workcenter_id={$workcenter->id}&shift_id={$shift->id}&date={$this->aTuesday()}";
     }
 
     // ── Access ──────────────────────────────────────────────────────────

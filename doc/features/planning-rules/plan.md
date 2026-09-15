@@ -105,7 +105,7 @@ change, and Settings tab section.
 
 ## Not done / deferred
 
-- Everything under the spec's non-goals: enforcement on `/scheduling`,
+- Everything under the spec's non-goals: enforcement on `/planning`,
   the `/solve` service and `GeneratePlan` job, fairness, a rolling
   2-week window, a configurable overage percentage, per-business-line
   or per-employee overrides of the two global caps, min-rest-between-

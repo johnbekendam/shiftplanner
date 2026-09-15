@@ -56,7 +56,7 @@ function formatDay(dateStr) {
 }
 
 function spotsUrl(date) {
-    return `/scheduling/spots/${props.workcenterId}/${props.shiftId}/${date}`
+    return `/planning/spots/${props.workcenterId}/${props.shiftId}/${date}`
 }
 
 // ── Spot count ──────────────────────────────────────────────────────────
@@ -135,14 +135,14 @@ async function selectFreeze() {
     const assignment = assignmentMenuAssignment.value
     closeAssignmentMenu()
     if (!assignment) return
-    await putAsync(`/scheduling/assignments/${assignment.id}`, { fixed: !assignment.fixed }).catch(() => {})
+    await putAsync(`/planning/assignments/${assignment.id}`, { fixed: !assignment.fixed }).catch(() => {})
 }
 
 async function selectRemove() {
     const assignment = assignmentMenuAssignment.value
     closeAssignmentMenu()
     if (!assignment) return
-    await deleteAsync(`/scheduling/assignments/${assignment.id}`).catch(() => {})
+    await deleteAsync(`/planning/assignments/${assignment.id}`).catch(() => {})
 }
 
 // ── Assign (open spot) ─────────────────────────────────────────────────
@@ -166,7 +166,7 @@ async function openAssign(date, event) {
     panelStyle.value = positionPanel(openTriggerEl.value, null)
     await nextTick()
     computePanelPosition()
-    const response = await axios.get('/scheduling/eligible-employees', {
+    const response = await axios.get('/planning/eligible-employees', {
         params: { workcenter_id: props.workcenterId, shift_id: props.shiftId, date },
     })
     eligible.value = response.data
@@ -189,7 +189,7 @@ const filteredEligible = computed(() => {
 async function assign(employee) {
     const date = openAssignDate.value
     closeAssign()
-    await postAsync('/scheduling/assignments', {
+    await postAsync('/planning/assignments', {
         employee_id: employee.id,
         workcenter_id: props.workcenterId,
         shift_id: props.shiftId,

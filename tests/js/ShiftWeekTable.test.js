@@ -114,7 +114,7 @@ describe("ShiftWeekTable", () => {
         const options = menu.findAll("button");
         await options[3].trigger("click"); // "3"
 
-        expect(routerCalls).toContainEqual(["put", "/scheduling/spots/1/9/2026-09-14", { spots: 3 }]);
+        expect(routerCalls).toContainEqual(["put", "/planning/spots/1/9/2026-09-14", { spots: 3 }]);
         expect(bodyWrapper().find('[data-testid="spots-menu"]').exists()).toBe(false);
 
         routerCalls.length = 0;
@@ -129,7 +129,7 @@ describe("ShiftWeekTable", () => {
         const w = mountTable();
         await w.get('[aria-label="Reset to the weekday default"]').trigger("click");
 
-        expect(routerCalls).toContainEqual(["delete", "/scheduling/spots/1/9/2026-09-17"]);
+        expect(routerCalls).toContainEqual(["delete", "/planning/spots/1/9/2026-09-17"]);
     });
 
     it("clicking a filled cell opens a Freeze/Remove menu, not inline icons", async () => {
@@ -159,7 +159,7 @@ describe("ShiftWeekTable", () => {
         const menu = bodyWrapper().get('[data-testid="assignment-menu"]');
         await menu.findAll("button")[0].trigger("click");
 
-        expect(routerCalls).toContainEqual(["put", "/scheduling/assignments/1", { fixed: true }]);
+        expect(routerCalls).toContainEqual(["put", "/planning/assignments/1", { fixed: true }]);
         expect(bodyWrapper().find('[data-testid="assignment-menu"]').exists()).toBe(false);
         w.unmount();
     });
@@ -171,7 +171,7 @@ describe("ShiftWeekTable", () => {
         const menu = bodyWrapper().get('[data-testid="assignment-menu"]');
         await menu.findAll("button")[1].trigger("click");
 
-        expect(routerCalls).toContainEqual(["delete", "/scheduling/assignments/1"]);
+        expect(routerCalls).toContainEqual(["delete", "/planning/assignments/1"]);
         expect(bodyWrapper().find('[data-testid="assignment-menu"]').exists()).toBe(false);
         w.unmount();
     });
@@ -183,7 +183,7 @@ describe("ShiftWeekTable", () => {
         await w.get('[data-testid="cell-9-2026-09-17-0"] button').trigger("click");
         await flushPromises();
 
-        expect(axiosGet).toHaveBeenCalledWith("/scheduling/eligible-employees", {
+        expect(axiosGet).toHaveBeenCalledWith("/planning/eligible-employees", {
             params: { workcenter_id: 1, shift_id: 9, date: "2026-09-17" },
         });
         const popover = bodyWrapper().get('[data-testid="assign-popover"]');
@@ -194,7 +194,7 @@ describe("ShiftWeekTable", () => {
 
         expect(routerCalls).toContainEqual([
             "post",
-            "/scheduling/assignments",
+            "/planning/assignments",
             { employee_id: 3, workcenter_id: 1, shift_id: 9, date: "2026-09-17" },
         ]);
         expect(bodyWrapper().find('[data-testid="assign-popover"]').exists()).toBe(false);

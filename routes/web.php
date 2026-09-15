@@ -89,24 +89,24 @@ Route::middleware('auth')->group(function () {
         Route::put('/settings/workcenters/{workcenter}', [WorkcenterController::class, 'update'])->name('settings.workcenters.update');
         Route::delete('/settings/workcenters/{workcenter}', [WorkcenterController::class, 'destroy'])->name('settings.workcenters.destroy');
 
-        Route::get('/workcenter-shifts', [WorkcenterShiftAssignmentController::class, 'index'])->name('workcenter-shifts.index');
-        Route::post('/workcenter-shifts', [WorkcenterShiftAssignmentController::class, 'store'])->name('workcenter-shifts.store');
-        Route::put('/workcenter-shifts/{workcenter}/{shift}', [WorkcenterShiftAssignmentController::class, 'update'])->name('workcenter-shifts.update');
-        Route::delete('/workcenter-shifts/{workcenter}/{shift}', [WorkcenterShiftAssignmentController::class, 'destroy'])->name('workcenter-shifts.destroy');
+        Route::get('/schedule', [WorkcenterShiftAssignmentController::class, 'index'])->name('schedule.index');
+        Route::post('/schedule', [WorkcenterShiftAssignmentController::class, 'store'])->name('schedule.store');
+        Route::put('/schedule/{workcenter}/{shift}', [WorkcenterShiftAssignmentController::class, 'update'])->name('schedule.update');
+        Route::delete('/schedule/{workcenter}/{shift}', [WorkcenterShiftAssignmentController::class, 'destroy'])->name('schedule.destroy');
 
-        Route::get('/scheduling', [SchedulingController::class, 'index'])->name('scheduling.index');
-        Route::post('/scheduling/assignments', [ShiftAssignmentController::class, 'store'])->name('scheduling.assignments.store');
-        Route::put('/scheduling/assignments/{shiftAssignment}', [ShiftAssignmentController::class, 'updateFixed'])->name('scheduling.assignments.update');
-        Route::delete('/scheduling/assignments/{shiftAssignment}', [ShiftAssignmentController::class, 'destroy'])->name('scheduling.assignments.destroy');
-        Route::put('/scheduling/spots/{workcenter}/{shift}/{date}', [ScheduleSpotController::class, 'update'])
-            ->where('date', '\d{4}-\d{2}-\d{2}')->name('scheduling.spots.update');
-        Route::delete('/scheduling/spots/{workcenter}/{shift}/{date}', [ScheduleSpotController::class, 'destroy'])
-            ->where('date', '\d{4}-\d{2}-\d{2}')->name('scheduling.spots.destroy');
-        Route::get('/scheduling/eligible-employees', [EligibleEmployeeController::class, 'index'])->name('scheduling.eligible-employees');
-        Route::post('/scheduling/weeks/{weekStart}/publish', [PublishedWeekController::class, 'store'])
-            ->where('weekStart', '\d{4}-\d{2}-\d{2}')->name('scheduling.weeks.publish');
-        Route::delete('/scheduling/weeks/{weekStart}/publish', [PublishedWeekController::class, 'destroy'])
-            ->where('weekStart', '\d{4}-\d{2}-\d{2}')->name('scheduling.weeks.unpublish');
+        Route::get('/planning', [SchedulingController::class, 'index'])->name('planning.index');
+        Route::post('/planning/assignments', [ShiftAssignmentController::class, 'store'])->name('planning.assignments.store');
+        Route::put('/planning/assignments/{shiftAssignment}', [ShiftAssignmentController::class, 'updateFixed'])->name('planning.assignments.update');
+        Route::delete('/planning/assignments/{shiftAssignment}', [ShiftAssignmentController::class, 'destroy'])->name('planning.assignments.destroy');
+        Route::put('/planning/spots/{workcenter}/{shift}/{date}', [ScheduleSpotController::class, 'update'])
+            ->where('date', '\d{4}-\d{2}-\d{2}')->name('planning.spots.update');
+        Route::delete('/planning/spots/{workcenter}/{shift}/{date}', [ScheduleSpotController::class, 'destroy'])
+            ->where('date', '\d{4}-\d{2}-\d{2}')->name('planning.spots.destroy');
+        Route::get('/planning/eligible-employees', [EligibleEmployeeController::class, 'index'])->name('planning.eligible-employees');
+        Route::post('/planning/weeks/{weekStart}/publish', [PublishedWeekController::class, 'store'])
+            ->where('weekStart', '\d{4}-\d{2}-\d{2}')->name('planning.weeks.publish');
+        Route::delete('/planning/weeks/{weekStart}/publish', [PublishedWeekController::class, 'destroy'])
+            ->where('weekStart', '\d{4}-\d{2}-\d{2}')->name('planning.weeks.unpublish');
 
         Route::get('/mailbox', [MailboxController::class, 'index'])->name('mailbox.index');
         Route::post('/mailbox/compose', [MailboxController::class, 'store'])->name('mailbox.compose');

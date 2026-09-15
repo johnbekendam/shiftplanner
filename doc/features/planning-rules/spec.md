@@ -3,7 +3,7 @@
 Roadmap phase 3's last open item: "Rule-based automatic planning still
 needs a design session" (`doc/roadmap.md:15`). This feature closes that
 gap with data and a settings UI only. It does not enforce anything on
-`/scheduling` and does not build the OR-Tools `/solve` service — that
+`/planning` and does not build the OR-Tools `/solve` service — that
 stays phase 5, which also needs phase 4's fairness design first.
 
 ## Problem
@@ -106,7 +106,7 @@ step finds cleaner):
 
 ## Key decisions
 
-- **Data and UI only, no enforcement.** `/scheduling`'s existing
+- **Data and UI only, no enforcement.** `/planning`'s existing
   server-side checks (capacity, holidays, availability, overlap) are
   untouched. A manager can still assign an employee that breaks a rule
   defined here — these rules exist so phase 5 has something to read,
@@ -136,13 +136,13 @@ step finds cleaner):
   has to interpret. Adding a sixth rule type later is a migration, the
   same cost as any other new concept in this codebase.
 - **One Settings tab for everything**, not splitting the workcenter-
-  scoped rules onto `/workcenter-shifts`. Keeps every planning
-  constraint discoverable in one place; `/workcenter-shifts` stays
+  scoped rules onto `/schedule`. Keeps every planning
+  constraint discoverable in one place; `/schedule` stays
   about capacity, not rules.
 
 ## Non-goals
 
-- Enforcing any rule on `/scheduling` (blocking or warning on an
+- Enforcing any rule on `/planning` (blocking or warning on an
   assignment that breaks one).
 - The OR-Tools `/solve` service, the `GeneratePlan` job, or any JSON
   contract — phase 5, and it also needs phase 4's fairness design

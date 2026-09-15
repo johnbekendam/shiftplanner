@@ -82,7 +82,7 @@ preference signal, for example scheduling an employee toward their own
 line, but that is future, rule-engine work.
 
 Relating workcenters to shifts is a separate page, not a Settings tab:
-`/workcenter-shifts`, off the sidebar. Settings defines elements; this
+`/schedule`, off the sidebar. Settings defines elements; this
 page relates them, in one flat table across every workcenter (workcenter,
 shift, and a spot count per weekday). Attaching a shift to a workcenter
 there sets a default open-spot count per ISO weekday, Monday through
@@ -91,13 +91,13 @@ deleting, to keep that history intact.
 
 ### Scheduling
 
-`/scheduling`, off the sidebar, admin-only. Puts employees into the
-open spots `workcenter-shifts` defines. One workcenter and one week
+`/planning`, off the sidebar, admin-only. Puts employees into the
+open spots `/schedule` defines. One workcenter and one week
 (Monday to Sunday) at a time: a grid of that workcenter's shifts by
 day. Each cell holds its spot count and the employees assigned to it.
 
 A cell's spot count is a per-date override on the weekday default —
-the exception `workcenter-shifts` deliberately left unhandled — with a
+the exception `/schedule` deliberately left unhandled — with a
 reset back to the default. Lowering it below the number already
 assigned is rejected. Assigning an employee is blocked by a holiday, a
 recurring `unavailable` day, a same-day overlapping assignment

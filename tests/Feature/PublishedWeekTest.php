@@ -21,7 +21,7 @@ class PublishedWeekTest extends TestCase
 
     private function url(string $weekStart = '2026-09-14'): string
     {
-        return "/scheduling/weeks/{$weekStart}/publish";
+        return "/planning/weeks/{$weekStart}/publish";
     }
 
     // ── Access ──────────────────────────────────────────────────────────

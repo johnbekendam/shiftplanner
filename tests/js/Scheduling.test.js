@@ -147,7 +147,7 @@ describe("Scheduling", () => {
         await w.get('[aria-label="Next month"]').trigger("click");
 
         expect(routerGetCalls).toHaveLength(1);
-        expect(routerGetCalls[0][0]).toBe("/scheduling");
+        expect(routerGetCalls[0][0]).toBe("/planning");
         expect(routerGetCalls[0][1]).toEqual({ year: 2026, month: 10, date: "2026-10-01" });
     });
 
@@ -197,7 +197,7 @@ describe("Scheduling", () => {
 
         await w.get('[data-testid="publish-week-button"]').trigger("click");
 
-        expect(routerCalls).toContainEqual(["post", "/scheduling/weeks/2026-09-07/publish", undefined]);
+        expect(routerCalls).toContainEqual(["post", "/planning/weeks/2026-09-07/publish", undefined]);
     });
 
     it("shows Unpublish and a Published label for a published week; clicking it unpublishes", async () => {
@@ -208,7 +208,7 @@ describe("Scheduling", () => {
 
         await w.get('[data-testid="publish-week-button"]').trigger("click");
 
-        expect(routerCalls).toContainEqual(["delete", "/scheduling/weeks/2026-09-07/publish"]);
+        expect(routerCalls).toContainEqual(["delete", "/planning/weeks/2026-09-07/publish"]);
     });
 
     it("shows the publish header even when the filter hides every workcenter card", async () => {
