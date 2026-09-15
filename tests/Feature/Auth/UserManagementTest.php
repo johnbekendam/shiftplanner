@@ -119,16 +119,16 @@ class UserManagementTest extends TestCase
             ->assertForbidden();
     }
 
-    public function test_resend_invite_is_refused_once_the_user_has_a_password(): void
+    public function test_resend_invite_still_works_once_the_user_has_a_password(): void
     {
         Mail::fake();
         $target = User::factory()->create();
 
         $this->actingAs($this->admin())
             ->post("/users/{$target->id}/resend-invite")
-            ->assertNotFound();
+            ->assertRedirect();
 
-        Mail::assertNothingSent();
+        Mail::assertSent(ComposedMessage::class, 1);
     }
 
     public function test_admin_resends_an_invite_and_voids_the_previous_link(): void

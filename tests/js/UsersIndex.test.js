@@ -65,11 +65,11 @@ describe("Users/Index", () => {
         expect(w.text()).toContain("No users yet.");
     });
 
-    it("shows Resend invite only for a passwordless row", () => {
+    it("shows Resend invite for every row regardless of password status", () => {
         const w = mount(Index, { props: { users }, global: { stubs } });
         const rows = w.findAll('[data-testid="user-row"]');
 
-        expect(rows[0].find('[data-testid="resend-invite"]').exists()).toBe(false);
+        expect(rows[0].find('[data-testid="resend-invite"]').exists()).toBe(true);
         expect(rows[1].find('[data-testid="resend-invite"]').exists()).toBe(true);
     });
 

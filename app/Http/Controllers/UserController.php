@@ -21,7 +21,6 @@ class UserController extends Controller
             'email' => $user->email,
             'role' => $user->role,
             'is_active' => $user->is_active,
-            'has_password' => $user->password !== null,
         ]);
 
         return Inertia::render('Users/Index', ['users' => $users]);
@@ -47,8 +46,6 @@ class UserController extends Controller
 
     public function resendInvite(User $user)
     {
-        abort_if($user->password !== null, 404);
-
         $this->links->sendInvite($user);
 
         return back()->with('success', __('users.flash.invite_resent'));
