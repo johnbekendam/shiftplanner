@@ -84,30 +84,19 @@ class EmployeeAdminTest extends TestCase
             'end_time' => '23:00',
             'visible_by_default' => false,
         ]);
-        RecurringAvailability::factory()->create([
-            'employee_id' => $employee->id,
-            'shift_id' => $morning->id,
-            'weekday' => 1,
-            'level' => 'unavailable',
-        ]);
-        RecurringAvailability::factory()->create([
-            'employee_id' => $employee->id,
-            'shift_id' => $morning->id,
-            'weekday' => 2,
-            'level' => 'unavailable',
-        ]);
-        RecurringAvailability::factory()->create([
-            'employee_id' => $employee->id,
-            'shift_id' => $evening->id,
-            'weekday' => 1,
-            'level' => 'not_preferred',
-        ]);
-        RecurringAvailability::factory()->create([
-            'employee_id' => $employee->id,
-            'shift_id' => $evening->id,
-            'weekday' => 5,
-            'level' => 'unavailable',
-        ]);
+        // Morning: unavailable Mon/Tue, explicitly available Wed-Fri (60% covered).
+        RecurringAvailability::factory()->create(['employee_id' => $employee->id, 'shift_id' => $morning->id, 'weekday' => 1, 'level' => 'unavailable']);
+        RecurringAvailability::factory()->create(['employee_id' => $employee->id, 'shift_id' => $morning->id, 'weekday' => 2, 'level' => 'unavailable']);
+        RecurringAvailability::factory()->create(['employee_id' => $employee->id, 'shift_id' => $morning->id, 'weekday' => 3, 'level' => 'available']);
+        RecurringAvailability::factory()->create(['employee_id' => $employee->id, 'shift_id' => $morning->id, 'weekday' => 4, 'level' => 'available']);
+        RecurringAvailability::factory()->create(['employee_id' => $employee->id, 'shift_id' => $morning->id, 'weekday' => 5, 'level' => 'available']);
+
+        // Evening: not preferred Mon, available Tue-Thu, unavailable Fri (80% covered).
+        RecurringAvailability::factory()->create(['employee_id' => $employee->id, 'shift_id' => $evening->id, 'weekday' => 1, 'level' => 'not_preferred']);
+        RecurringAvailability::factory()->create(['employee_id' => $employee->id, 'shift_id' => $evening->id, 'weekday' => 2, 'level' => 'available']);
+        RecurringAvailability::factory()->create(['employee_id' => $employee->id, 'shift_id' => $evening->id, 'weekday' => 3, 'level' => 'available']);
+        RecurringAvailability::factory()->create(['employee_id' => $employee->id, 'shift_id' => $evening->id, 'weekday' => 4, 'level' => 'available']);
+        RecurringAvailability::factory()->create(['employee_id' => $employee->id, 'shift_id' => $evening->id, 'weekday' => 5, 'level' => 'unavailable']);
 
         $this->actingAs($user)->get('/employees')->assertOk()
             ->assertInertia(fn ($page) => $page
