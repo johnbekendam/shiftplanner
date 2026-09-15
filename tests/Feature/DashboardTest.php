@@ -268,8 +268,10 @@ class DashboardTest extends TestCase
         $this->get('/dashboard')->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->where('overall.target', 11)
+                ->where('lines.0.id', $first->id)
                 ->where('lines.0.abbreviation', 'PMP')
                 ->where('lines.0.available', [1])
+                ->where('lines.1.id', $second->id)
                 ->where('lines.1.abbreviation', 'VLV')
                 ->where('lines.1.available', [0])
             );

@@ -1,4 +1,4 @@
-Status: in progress — 2/4
+Status: in progress — 3/4
 
 - [x] 1. Backend: filter the employees index by business line.
       `EmployeeController::index` reads `business_lines[]` from the
@@ -29,7 +29,7 @@ Status: in progress — 2/4
       triggers `router.get` with the right `business_lines[]` query;
       checking every box again drops the param; the panel opens/closes
       on trigger click and outside click.
-- [ ] 3. Backend: business line id on dashboard payload.
+- [x] 3. Backend: business line id on dashboard payload.
       `DashboardController::index`'s `lines` array currently omits the
       business line's `id`. Add it so the frontend can build the link
       target. Extend the existing dashboard feature test to assert the

@@ -92,6 +92,7 @@ class DashboardController extends Controller
                 $available = $this->selectedSeries($employeeStatusFilter, $confirmed, $unconfirmed);
 
                 return [
+                    'id' => $line->id,
                     'abbreviation' => $line->abbreviation,
                     'description' => $line->description,
                     'available' => $available,
