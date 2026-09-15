@@ -4,6 +4,7 @@ import { Head, router } from '@inertiajs/vue3'
 import AppLayout from '@/layouts/AppLayout.vue'
 import Card from '@/components/ui/Card.vue'
 import Calendar from '@/components/ui/Calendar.vue'
+import WorkcenterScheduleCard from '@/components/scheduling/WorkcenterScheduleCard.vue'
 import { CheckboxInput } from '@/components/ui/Input'
 import { useI18n } from '@/composables/useI18n'
 
@@ -11,10 +12,13 @@ const __ = useI18n()
 
 const props = defineProps({
     workcenters: { type: Array, default: () => [] }, // { id, name }, active only
-    shifts: { type: Array, default: () => [] }, // { id, name }, all shift definitions
+    shifts: { type: Array, default: () => [] }, // { id, name, start_time, end_time }, all shift definitions
     year: { type: Number, required: true },
     month: { type: Number, required: true },
     coverage: { type: Array, default: () => [] }, // { workcenter_id, shift_id, date, spots, assigned }
+    date: { type: String, required: true }, // Y-m-d, the currently selected day
+    weekStart: { type: String, required: true }, // Y-m-d, the Monday of the selected day's week
+    weekCells: { type: Array, default: () => [] }, // { workcenter_id, shift_id, date, spots, overridden, assignments }
 })
 
 const checkedWorkcenterIds = ref(props.workcenters.map((w) => w.id))
@@ -58,11 +62,52 @@ const legenda = computed(() => ({
     warning: __('scheduling.legend_open_spots'),
 }))
 
-function onCalendarChange({ year, month }) {
-    if (year !== props.year || month !== props.month) {
-        router.get('/scheduling', { year, month }, { preserveState: true, preserveScroll: true })
+const selectedDay = computed(() => Number(props.date.split('-')[2]))
+
+function pad(n) {
+    return String(n).padStart(2, '0')
+}
+
+function dateStr(year, month, day) {
+    return `${year}-${pad(month)}-${pad(day)}`
+}
+
+function addDays(dateString, offset) {
+    const [y, m, d] = dateString.split('-').map(Number)
+    const date = new Date(y, m - 1, d + offset)
+    return dateStr(date.getFullYear(), date.getMonth() + 1, date.getDate())
+}
+
+function onCalendarChange({ year, month, day }) {
+    const date = dateStr(year, month, day)
+    if (year !== props.year || month !== props.month || date !== props.date) {
+        router.get('/scheduling', { year, month, date }, { preserveState: true, preserveScroll: true })
     }
 }
+
+const weekDays = computed(() => Array.from({ length: 7 }, (_, i) => addDays(props.weekStart, i)))
+
+function cellsFor(workcenterId, shiftId) {
+    return weekDays.value.map(
+        (date) =>
+            props.weekCells.find((c) => c.workcenter_id === workcenterId && c.shift_id === shiftId && c.date === date)
+                ?? { date, spots: 0, overridden: false, assignments: [] },
+    )
+}
+
+function scheduleFor(workcenterId) {
+    return props.shifts
+        .filter((s) => checkedShiftIds.value.includes(s.id))
+        .map((s) => ({ shift: s, cells: cellsFor(workcenterId, s.id) }))
+        .filter((entry) => entry.cells.some((c) => c.spots > 0))
+}
+
+const visibleWorkcenters = computed(() =>
+    props.workcenters
+        .filter((w) => checkedWorkcenterIds.value.includes(w.id))
+        .map((w) => ({ workcenter: w, schedule: scheduleFor(w.id) }))
+        .filter(({ schedule }) => schedule.length > 0),
+)
 </script>
 
 <template>
@@ -77,9 +122,10 @@ function onCalendarChange({ year, month }) {
                 <Calendar
                     :year="year"
                     :month="month"
+                    :initial-day="selectedDay"
                     :day-states="dayStates"
                     :legenda="legenda"
-                    :enable-day-selection="false"
+                    :enable-day-selection="true"
                     :enable-week-day-selection="false"
                     @change="onCalendarChange"
                 />
@@ -119,6 +165,15 @@ function onCalendarChange({ year, month }) {
                         </div>
                     </Card>
                 </div>
+            </div>
+
+            <div v-if="visibleWorkcenters.length" class="mt-4 flex flex-col gap-4">
+                <WorkcenterScheduleCard
+                    v-for="{ workcenter, schedule } in visibleWorkcenters"
+                    :key="workcenter.id"
+                    :workcenter="workcenter"
+                    :schedule="schedule"
+                />
             </div>
         </div>
     </AppLayout>

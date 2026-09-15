@@ -22,6 +22,7 @@ vi.mock("@inertiajs/vue3", () => ({
 }));
 
 import Scheduling from "@/pages/Scheduling.vue";
+import WorkcenterScheduleCard from "@/components/scheduling/WorkcenterScheduleCard.vue";
 
 const stubs = { AppLayout: { template: "<div><slot /></div>" } };
 
@@ -31,8 +32,8 @@ const baseProps = {
         { id: 2, name: "Line 2" },
     ],
     shifts: [
-        { id: 9, name: "Early" },
-        { id: 10, name: "Late" },
+        { id: 9, name: "Early", start_time: "06:00", end_time: "14:00" },
+        { id: 10, name: "Late", start_time: "14:00", end_time: "22:00" },
     ],
     year: 2026,
     month: 9,
@@ -40,6 +41,24 @@ const baseProps = {
         { workcenter_id: 1, shift_id: 9, date: "2026-09-10", spots: 3, assigned: 3 },
         { workcenter_id: 1, shift_id: 9, date: "2026-09-11", spots: 3, assigned: 1 },
         { workcenter_id: 2, shift_id: 10, date: "2026-09-12", spots: 2, assigned: 2 },
+    ],
+    date: "2026-09-10",
+    weekStart: "2026-09-07",
+    weekCells: [
+        { workcenter_id: 1, shift_id: 9, date: "2026-09-07", spots: 1, overridden: false, assignments: [] },
+        { workcenter_id: 1, shift_id: 9, date: "2026-09-08", spots: 1, overridden: false, assignments: [] },
+        { workcenter_id: 1, shift_id: 9, date: "2026-09-09", spots: 1, overridden: false, assignments: [] },
+        {
+            workcenter_id: 1,
+            shift_id: 9,
+            date: "2026-09-10",
+            spots: 1,
+            overridden: false,
+            assignments: [{ id: 1, employee_id: 5, employee_name: "Anna Jansen", fixed: false }],
+        },
+        { workcenter_id: 1, shift_id: 9, date: "2026-09-11", spots: 0, overridden: false, assignments: [] },
+        { workcenter_id: 1, shift_id: 9, date: "2026-09-12", spots: 0, overridden: false, assignments: [] },
+        { workcenter_id: 1, shift_id: 9, date: "2026-09-13", spots: 0, overridden: false, assignments: [] },
     ],
 };
 
@@ -104,13 +123,22 @@ describe("Scheduling", () => {
         expect(routerGetCalls).toHaveLength(0);
     });
 
-    it("navigates to the next month via the calendar, carrying year/month", async () => {
+    it("navigates to the next month via the calendar, carrying year/month/date", async () => {
         const w = mountPage();
         await w.get('[aria-label="Next month"]').trigger("click");
 
         expect(routerGetCalls).toHaveLength(1);
         expect(routerGetCalls[0][0]).toBe("/scheduling");
-        expect(routerGetCalls[0][1]).toEqual({ year: 2026, month: 10 });
+        expect(routerGetCalls[0][1]).toEqual({ year: 2026, month: 10, date: "2026-10-01" });
+    });
+
+    it("clicking a day navigates with that day's date, same year/month", async () => {
+        const w = mountPage();
+        const day20 = w.findAll("button").find((b) => b.text() === "20");
+        await day20.trigger("click");
+
+        expect(routerGetCalls).toHaveLength(1);
+        expect(routerGetCalls[0][1]).toEqual({ year: 2026, month: 9, date: "2026-09-20" });
     });
 
     it("does not navigate on initial mount", () => {
@@ -121,5 +149,23 @@ describe("Scheduling", () => {
     it("shows a message when there are no active workcenters", () => {
         const w = mountPage({ workcenters: [], coverage: [] });
         expect(w.text()).toContain("No active workcenters yet. Add one on the Settings page.");
+    });
+
+    it("renders a workcenter card only for a workcenter with relevant coverage that week", () => {
+        const w = mountPage();
+        const cards = w.findAllComponents(WorkcenterScheduleCard);
+
+        expect(cards).toHaveLength(1);
+        expect(cards[0].props("workcenter")).toEqual({ id: 1, name: "Line 1" });
+        expect(w.text()).toContain("Anna Jansen");
+    });
+
+    it("unchecking the only relevant workcenter removes its schedule card", async () => {
+        const w = mountPage();
+        const line1Checkbox = w.findAll('input[type="checkbox"]').at(0);
+
+        await line1Checkbox.setValue(false);
+
+        expect(w.findAllComponents(WorkcenterScheduleCard)).toHaveLength(0);
     });
 });

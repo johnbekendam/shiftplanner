@@ -354,6 +354,7 @@
     "scheduling.remove": "Remove",
     "scheduling.add": "Add",
     "scheduling.no_eligible_employees": "No one eligible.",
+    "scheduling.open_spot": "Open",
     "scheduling.error.duplicate": "This employee is already assigned to this shift on this day.",
     "scheduling.error.cell_full": "No open spots left on this shift for this day.",
     "scheduling.error.holiday": "This employee is on holiday that day.",

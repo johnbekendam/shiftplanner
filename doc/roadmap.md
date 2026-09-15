@@ -119,8 +119,10 @@ workcenter — a shift can serve more than one workcenter — with a
 per-weekday open-spot default per pairing. Per-date overrides are not
 edited here; that shipped with `features/scheduling/` instead.
 
-Also shipped (`features/scheduling/`): a `/scheduling` page, admin-only,
-off the sidebar. One workcenter and one week at a time: a shift×day
+Also shipped (`features/scheduling/`; its one-workcenter-at-a-time
+landing view below is superseded by the calendar-first rework
+described next): a `/scheduling` page, admin-only, off the sidebar.
+One workcenter and one week at a time: a shift×day
 grid where each cell shows its open-spot count against the employees
 assigned, editable inline. Spot counts there are per-date overrides
 (`workcenter_shift_date_overrides`, `workcenter-shift-assignments`'
@@ -132,12 +134,15 @@ the rest of the app — since this page is a live roster, not a form. An
 assignment can be marked "fixed," which will protect it from a future
 automatic re-planning run; today it changes nothing else.
 
-In progress (`features/scheduling-calendar/`): `/scheduling`'s landing
-view is being reworked into a month calendar with a workcenter/shift
-filter, coloring each day by whether every checked pairing is fully
-staffed. Step 1 (this calendar, read-only, filter-driven coloring)
-shipped; the week-grid editing UI is temporarily off the page pending a
-later day-drill-down step.
+Also shipped (`features/scheduling-calendar/` and
+`features/scheduling-week-drilldown/`): `/scheduling`'s landing view is
+now a month calendar with a workcenter/shift filter, coloring each day
+by whether every checked pairing is fully staffed. Clicking a day
+shows that week's schedule below the calendar: one card per visible
+workcenter, one spot-rows × day-columns table per relevant shift,
+editable the same way the old week-grid was (assign/remove/pin,
+per-date spot overrides) — the original single-workcenter week-grid
+page these replaced is gone.
 
 Still to design: rule-based automatic planning (hard/soft rules, the
 OR-Tools `/solve` contract) and, further out, an employee-facing

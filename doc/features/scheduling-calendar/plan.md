@@ -76,5 +76,6 @@ per-cell loop.
 ## Not done / deferred
 
 - Day drill-down into per-cell editing (assign/remove/pin, spot-count
-  override) — a later step, per spec non-goals.
+  override) — a later step, per spec non-goals. Shipped in
+  `doc/features/scheduling-week-drilldown/`.
 - Filter persistence across page loads.
