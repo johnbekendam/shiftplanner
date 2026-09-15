@@ -21,14 +21,18 @@ class PersonalCompetenceController extends Controller
 
     public function update(string $token, Competence $competence)
     {
-        $this->attachCompetence($this->resolveOrFail($token), $competence);
+        $employee = $this->resolveOrFail($token);
+        abort_if($competence->read_only, 403);
+        $this->attachCompetence($employee, $competence);
 
         return redirect("/personal/{$token}");
     }
 
     public function destroy(string $token, Competence $competence)
     {
-        $this->detachCompetence($this->resolveOrFail($token), $competence);
+        $employee = $this->resolveOrFail($token);
+        abort_if($competence->read_only, 403);
+        $this->detachCompetence($employee, $competence);
 
         return redirect("/personal/{$token}");
     }

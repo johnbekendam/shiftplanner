@@ -73,6 +73,20 @@ class EmployeeCompetenceTest extends TestCase
         $this->assertDatabaseCount('competence_employee', 0);
     }
 
+    public function test_manager_can_attach_and_detach_a_read_only_competence(): void
+    {
+        $user = User::factory()->create();
+        $employee = Employee::factory()->create();
+        $competence = Competence::factory()->create(['read_only' => true]);
+        $base = "/employees/{$employee->id}/competences/{$competence->id}";
+
+        $this->actingAs($user)->put($base)->assertRedirect();
+        $this->assertDatabaseHas('competence_employee', ['employee_id' => $employee->id, 'competence_id' => $competence->id]);
+
+        $this->actingAs($user)->delete($base)->assertRedirect();
+        $this->assertDatabaseMissing('competence_employee', ['employee_id' => $employee->id, 'competence_id' => $competence->id]);
+    }
+
     public function test_an_unknown_competence_is_not_found(): void
     {
         $user = User::factory()->create();
@@ -95,6 +109,7 @@ class EmployeeCompetenceTest extends TestCase
                 ->component('Employees/Form')
                 ->has('competences', 2)
                 ->where('competences.0.name', 'A')
+                ->where('competences.0.read_only', false)
                 ->where('competences.1.name', 'B')
                 ->where('competenceIds', [$b->id])
             );
@@ -127,6 +142,27 @@ class EmployeeCompetenceTest extends TestCase
         $this->assertDatabaseCount('competence_employee', 0);
     }
 
+    public function test_a_bad_token_is_404_for_a_read_only_competence(): void
+    {
+        $competence = Competence::factory()->create(['read_only' => true]);
+
+        $this->put("/personal/not-a-token/competences/{$competence->id}")->assertNotFound();
+        $this->assertDatabaseCount('competence_employee', 0);
+    }
+
+    public function test_employee_cannot_change_a_read_only_competence_by_token(): void
+    {
+        $employee = Employee::factory()->create();
+        $competence = Competence::factory()->create(['read_only' => true]);
+        $employee->competences()->attach($competence);
+        $token = $this->token($employee);
+        $base = "/personal/{$token}/competences/{$competence->id}";
+
+        $this->put($base)->assertForbidden();
+        $this->delete($base)->assertForbidden();
+        $this->assertDatabaseHas('competence_employee', ['employee_id' => $employee->id, 'competence_id' => $competence->id]);
+    }
+
     public function test_show_payload_lists_all_competences_and_the_held_ids(): void
     {
         $employee = Employee::factory()->create();
@@ -140,6 +176,7 @@ class EmployeeCompetenceTest extends TestCase
                 ->component('Personal/Show')
                 ->has('competences', 2)
                 ->where('competences.0.name', 'A')
+                ->where('competences.0.read_only', false)
                 ->where('competenceIds', [$a->id])
             );
     }

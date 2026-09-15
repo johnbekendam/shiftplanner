@@ -34,6 +34,7 @@ class SettingsController extends Controller
             ->map(fn ($row) => [
                 'id' => $row->id,
                 'name' => $row->name,
+                'read_only' => $row->read_only,
                 'position' => $row->position,
                 'holder_count' => $row->employees_count,
             ])

@@ -372,6 +372,27 @@ describe("Settings/Index", () => {
         expect(list.props("items")).toHaveLength(1);
     });
 
+    it("saves the read-only state of a competence", async () => {
+        const w = mountPage({ competences: [{ id: 3, name: "Forklift", read_only: false }] });
+        const panel = w.get('[data-testid="panel-competences"]');
+        const list = panel.findComponent(OrderedNameList);
+
+        list.vm.$emit("update:items", [{ id: 3, name: "Forklift", read_only: true }]);
+        await w.vm.$nextTick();
+
+        const save = panel.findAll("button").find((button) => button.text() === "Save");
+        expect(save.attributes("disabled")).toBeUndefined();
+
+        await save.trigger("click");
+        await flushPromises();
+
+        expect(routerCalls).toContainEqual([
+            "put",
+            "/settings/competences/3",
+            { name: "Forklift", read_only: true },
+        ]);
+    });
+
     it("the Workcenters Save/Cancel are disabled with nothing changed", () => {
         const w = mountPage({
             workcenters: [{ id: 3, name: "Line 1", position: 1, archived_at: null, shifts: [] }],

@@ -12,10 +12,12 @@ class CompetenceController extends Controller
     {
         $data = $request->validate([
             'name' => ['required', 'string', 'max:100', $this->uniqueName()],
+            'read_only' => ['sometimes', 'boolean'],
         ]);
 
         Competence::create([
             'name' => $data['name'],
+            'read_only' => $data['read_only'] ?? false,
             'position' => (int) Competence::max('position') + 1,
         ]);
 
@@ -26,9 +28,10 @@ class CompetenceController extends Controller
     {
         $data = $request->validate([
             'name' => ['required', 'string', 'max:100', $this->uniqueName($competence)],
+            'read_only' => ['sometimes', 'boolean'],
         ]);
 
-        $competence->update(['name' => $data['name']]);
+        $competence->update($data);
 
         return back()->with('success', __('competences.flash.renamed'));
     }

@@ -51,6 +51,7 @@ class CompetenceConfigTest extends TestCase
                 ->has('competences', 2)
                 ->where('competences.0.name', 'Forklift')
                 ->where('competences.0.holder_count', 3)
+                ->where('competences.0.read_only', false)
                 ->where('competences.1.name', 'Cleanroom')
                 ->where('competences.1.holder_count', 1)
             );
@@ -105,6 +106,19 @@ class CompetenceConfigTest extends TestCase
             ->assertRedirect();
 
         $this->assertDatabaseHas('competences', ['id' => $competence->id, 'name' => 'Forklift licence']);
+    }
+
+    public function test_admin_can_mark_a_competence_read_only(): void
+    {
+        $this->actingAsAdmin();
+        $competence = Competence::factory()->create(['name' => 'Forklift']);
+
+        $this->put("/settings/competences/{$competence->id}", [
+            'name' => 'Forklift',
+            'read_only' => true,
+        ])->assertRedirect();
+
+        $this->assertDatabaseHas('competences', ['id' => $competence->id, 'read_only' => true]);
     }
 
     public function test_renaming_to_another_competences_name_is_rejected(): void

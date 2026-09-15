@@ -20,7 +20,8 @@ gap. Clicking a day does nothing.
 ### Trigger
 
 `Calendar`'s `enable-day-selection` turns on. Clicking a day selects
-the Monday–Sunday week containing it. The week containing today shows
+all seven days in the Monday–Sunday week containing it. The week
+containing today shows
 automatically on first page load, matching `Calendar`'s own
 default-selected-day behavior (it already highlights today on mount).
 Month prev/next already resets `Calendar`'s selection to day 1, so
@@ -109,11 +110,8 @@ from `weekCells` — no new state needed for filter reactivity.
 
 ## Key decisions
 
-- **Week, not single day.** Raised during grilling: a single day's
-  schedule is a thin sliver: a week gives a manager useful context
-  (who's working the days around this one) for roughly the same number
-  of clicks, and the "click a day → see its week" model still works
-  since every week has 7 clickable entry points on the calendar.
+- **Week selection.** A day click selects all seven days in the week
+  containing that day.
 - **Spot-rows × day-columns matrix**, not 7 stacked single-day tables.
   Reads like a roster at a glance; 7 separate tables per shift would
   make each workcenter card very tall.
@@ -148,6 +146,6 @@ from `weekCells` — no new state needed for filter reactivity.
   validation — reused as-is from `SchedulingEligibility`.
 - A dedicated week-navigation control independent of the calendar —
   clicking any day within a different week on the currently-viewed
-  month already changes which week shows.
+  month changes which week shows.
 - Highlighting the specifically-clicked day within the week
   matrix — all 7 days render equally once a week is selected.

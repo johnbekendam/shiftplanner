@@ -319,6 +319,26 @@ describe("Employees/Form", () => {
         expect(w.findComponent(TagChecklist).props("selectedIds")).toEqual([1]);
     });
 
+    it("separates editable and read-only competences while keeping both editable for managers", () => {
+        const w = mount(Form, {
+            props: {
+                employee: { id: 3, name: "A", email: "a@b.c", weekly_hours: 24 },
+                holidays: [],
+                competences: [
+                    { id: 1, name: "Forklift", read_only: false },
+                    { id: 2, name: "Cleanroom", read_only: true },
+                ],
+            },
+            global: { stubs },
+        });
+
+        const lists = w.findAllComponents(TagChecklist);
+        expect(lists).toHaveLength(2);
+        expect(lists[0].props("items")).toEqual([{ id: 1, name: "Forklift", read_only: false }]);
+        expect(lists[1].props("items")).toEqual([{ id: 2, name: "Cleanroom", read_only: true }]);
+        expect(lists.every((list) => list.props("disabled") === false)).toBe(true);
+    });
+
     it("forwards the business lines to EmployeeFields and preselects the employee's line", () => {
         const w = mount(Form, {
             props: {

@@ -326,7 +326,7 @@ function useOrderedTab(freshItems, endpoint) {
         if (c.some((x) => !cur.some((r) => r.id === x.id))) return true
         if (cur.some((row) => {
             const orig = c.find((x) => x.id === row.id)
-            return orig && orig.name !== row.name
+            return orig && (orig.name !== row.name || orig.read_only !== row.read_only)
         })) return true
 
         return orderIds(cur, []).join(',') !== orderIds(c, []).join(',')
@@ -342,7 +342,7 @@ function useOrderedTab(freshItems, endpoint) {
         const toEdit = cur.filter((r) => {
             if (r.id === null || toDeleteIds.includes(r.id)) return false
             const orig = c.find((x) => x.id === r.id)
-            return orig && orig.name !== r.name
+            return orig && (orig.name !== r.name || orig.read_only !== r.read_only)
         })
         const newOrder = orderIds(cur, toDeleteIds)
         const oldOrder = orderIds(c, toDeleteIds)
@@ -350,9 +350,15 @@ function useOrderedTab(freshItems, endpoint) {
 
         const results = await Promise.allSettled([
             ...toDeleteIds.map((id) => deleteAsync(`${endpoint}/${id}`)),
-            ...toEdit.map((r) => putAsync(`${endpoint}/${r.id}`, { name: r.name })),
+            ...toEdit.map((r) => putAsync(`${endpoint}/${r.id}`, {
+                name: r.name,
+                ...(endpoint === '/settings/competences' ? { read_only: r.read_only } : {}),
+            })),
             ...(reorderNeeded ? [putAsync(`${endpoint}/reorder`, { ids: newOrder })] : []),
-            ...toAdd.map((r) => postAsync(endpoint, { name: r.name })),
+            ...toAdd.map((r) => postAsync(endpoint, {
+                name: r.name,
+                ...(endpoint === '/settings/competences' ? { read_only: r.read_only } : {}),
+            })),
         ])
 
         saving.value = false
@@ -511,6 +517,8 @@ useUnsavedChangesGuard(() => (
                     :key="competencesTab.version.value"
                     :items="competencesTab.committed.value"
                     i18n-prefix="competences"
+                    boolean-field="read_only"
+                    boolean-label="read_only"
                     @update:items="competencesTab.onChange"
                 />
                 <TabSaveBar

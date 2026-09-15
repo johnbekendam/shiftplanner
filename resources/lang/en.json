@@ -409,6 +409,7 @@
     "planning.published": "Published",
     "planning.draft": "Draft",
     "competences.name": "Name",
+    "competences.read_only": "Read-only",
     "competences.add": "Add competence",
     "competences.add_placeholder": "New competence",
     "competences.drag_handle": "Drag to reorder",

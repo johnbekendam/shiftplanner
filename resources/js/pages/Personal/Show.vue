@@ -226,9 +226,15 @@ registry.register('questions', {
 const competencesVersion = ref(0)
 const pendingCompetenceIds = ref([...props.competenceIds])
 const savedCompetenceIds = ref([...props.competenceIds])
+const editableCompetences = computed(() => props.competences.filter((competence) => !competence.read_only))
+const readOnlyCompetences = computed(() => props.competences.filter((competence) => competence.read_only))
 
-function onSelectedCompetenceIdsChange(ids) {
-    pendingCompetenceIds.value = ids
+function onSelectedCompetenceIdsChange(ids, items) {
+    const itemIds = new Set(items.map((item) => item.id))
+    pendingCompetenceIds.value = [
+        ...pendingCompetenceIds.value.filter((id) => !itemIds.has(id)),
+        ...ids,
+    ]
 }
 
 registry.register('competences', {
@@ -398,12 +404,21 @@ function onWithdrawConfirm() {
         <div v-show="tab === 'competences'" data-testid="panel-competences">
             <TagChecklist
                 :key="competencesVersion"
-                :items="competences"
-                :selected-ids="savedCompetenceIds"
+                :items="editableCompetences"
+                :selected-ids="savedCompetenceIds.filter((id) => editableCompetences.some((item) => item.id === id))"
                 empty-key="competences.checklist_empty"
                 :disabled="!editable"
-                @update:selected-ids="onSelectedCompetenceIdsChange"
+                @update:selected-ids="onSelectedCompetenceIdsChange($event, editableCompetences)"
             />
+            <template v-if="readOnlyCompetences.length">
+                <CardSeparator />
+                <TagChecklist
+                    :items="readOnlyCompetences"
+                    :selected-ids="savedCompetenceIds.filter((id) => readOnlyCompetences.some((item) => item.id === id))"
+                    empty-key="competences.checklist_empty"
+                    disabled
+                />
+            </template>
         </div>
 
         <div v-show="tab === 'planning'" data-testid="panel-planning">

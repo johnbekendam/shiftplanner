@@ -12,12 +12,14 @@ class Competence extends Model
 
     protected $fillable = [
         'name',
+        'read_only',
         'position',
     ];
 
     protected function casts(): array
     {
         return [
+            'read_only' => 'boolean',
             'position' => 'integer',
         ];
     }
@@ -38,6 +40,7 @@ class Competence extends Model
         return [
             'id' => $this->id,
             'name' => $this->name,
+            'read_only' => $this->read_only,
         ];
     }
 }

@@ -445,6 +445,23 @@ describe("Personal/Show", () => {
         expect(w.findComponent(TagChecklist).props("selectedIds")).toEqual([1]);
     });
 
+    it("shows read-only competences in a separate disabled checklist", () => {
+        const w = mountShow([], {
+            competences: [
+                { id: 1, name: "Forklift", read_only: false },
+                { id: 2, name: "Cleanroom", read_only: true },
+            ],
+            competenceIds: [2],
+        });
+
+        const lists = w.findAllComponents(TagChecklist);
+        expect(lists).toHaveLength(2);
+        expect(lists[0].props("items")).toEqual([{ id: 1, name: "Forklift", read_only: false }]);
+        expect(lists[0].props("disabled")).toBe(false);
+        expect(lists[1].props("items")).toEqual([{ id: 2, name: "Cleanroom", read_only: true }]);
+        expect(lists[1].props("disabled")).toBe(true);
+    });
+
     it("shows the questions checklist on the Availability tab", () => {
         const w = mountShow([], {
             questions: [{ id: 5, text: "Can we contact you to work in the weekend?" }],

@@ -15,7 +15,7 @@ const cells = Array.from({ length: 7 }, (_, i) => ({
 }));
 
 describe("WorkcenterScheduleCard", () => {
-    it("shows the workcenter name in the header and a table per shift with its name and time range", () => {
+    it("shows the workcenter name in the header and a table per shift without working hours", () => {
         const w = mount(WorkcenterScheduleCard, {
             props: {
                 workcenter: { id: 1, name: "Line 1" },
@@ -28,9 +28,9 @@ describe("WorkcenterScheduleCard", () => {
 
         expect(w.text()).toContain("Line 1");
         expect(w.text()).toContain("Early");
-        expect(w.text()).toContain("06:00–14:00");
         expect(w.text()).toContain("Late");
-        expect(w.text()).toContain("14:00–22:00");
+        expect(w.text()).not.toContain("06:00");
+        expect(w.text()).not.toContain("14:00");
         expect(w.findAll("table")).toHaveLength(2);
     });
 
