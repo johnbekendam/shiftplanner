@@ -38,9 +38,19 @@ const navItems = computed(() => {
     const items = [
         { label: __('nav.dashboard'), href: '/dashboard', icon: 'chart-bar' },
         { label: __('nav.employees'), href: '/employees', icon: 'users' },
-        // Read-only for a manager; only an admin can create or edit here.
-        { label: __('nav.users'), href: '/users', icon: 'user-plus' },
     ]
+
+    if (isAdmin.value) {
+        items.push(
+            { label: __('nav.workcenter_shifts'), href: '/workcenter-shifts', icon: 'table-cells' },
+            { label: __('nav.scheduling'), href: '/scheduling', icon: 'calendar-days' },
+            { label: __('nav.mailbox'), href: '/mailbox', icon: 'envelope' },
+            { separator: true },
+        )
+    }
+
+    // Read-only for a manager; only an admin can create or edit here.
+    items.push({ label: __('nav.users'), href: '/users', icon: 'user-plus' })
 
     if (user.value?.employee_id) {
         items.push({
@@ -52,9 +62,6 @@ const navItems = computed(() => {
 
     if (isAdmin.value) {
         items.push(
-            { label: __('nav.mailbox'), href: '/mailbox', icon: 'envelope' },
-            { label: __('nav.workcenter_shifts'), href: '/workcenter-shifts', icon: 'table-cells' },
-            { label: __('nav.scheduling'), href: '/scheduling', icon: 'calendar-days' },
             { label: __('nav.settings'), href: '/settings', icon: 'cog' },
             { label: __('nav.import'), href: '/import', icon: 'upload' },
         )
@@ -160,16 +167,18 @@ function isActive(href) {
         <!-- Sidebar nav -->
         <template #sidebar>
             <nav class="px-3 py-4 flex flex-col gap-1">
-                <NavLink
-                    v-for="item in navItems"
-                    :key="item.href"
-                    :href="item.href"
-                    :active="isActive(item.href)"
-                    @click="sidebarOpen = false"
-                >
-                    <Icon :name="item.icon" class="w-5 h-5 flex-shrink-0" />
-                    <span>{{ item.label }}</span>
-                </NavLink>
+                <template v-for="(item, index) in navItems" :key="item.href ?? `separator-${index}`">
+                    <hr v-if="item.separator" class="my-2 border-(--color-card-border)" />
+                    <NavLink
+                        v-else
+                        :href="item.href"
+                        :active="isActive(item.href)"
+                        @click="sidebarOpen = false"
+                    >
+                        <Icon :name="item.icon" class="w-5 h-5 flex-shrink-0" />
+                        <span>{{ item.label }}</span>
+                    </NavLink>
+                </template>
             </nav>
         </template>
 
