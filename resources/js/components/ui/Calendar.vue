@@ -53,7 +53,7 @@
 
         <!-- Footer: legenda + optional actions slot -->
         <template v-if="legendaEntries.length || $slots.footer" #footer>
-            <div v-if="legendaEntries.length" class="flex flex-col gap-1.5 px-3 py-2">
+            <div v-if="legendaEntries.length" class="flex flex-wrap items-center gap-4 px-3 py-2">
                 <div v-for="entry in legendaEntries" :key="entry.color" class="flex items-center gap-2">
                     <div
                         :class="[

@@ -56,7 +56,6 @@ const dayStates = computed(() => {
 const legenda = computed(() => ({
     success: __('scheduling.legend_staffed'),
     warning: __('scheduling.legend_open_spots'),
-    muted: __('scheduling.legend_nothing_scheduled'),
 }))
 
 function onCalendarChange({ year, month }) {
@@ -70,46 +69,11 @@ function onCalendarChange({ year, month }) {
     <AppLayout>
         <Head :title="__('scheduling.title')" />
 
-        <div class="mx-auto max-w-2xl space-y-4">
+        <div class="mx-auto max-w-4xl">
             <p v-if="!workcenters.length" class="py-6 text-center text-(--color-text-secondary)">
                 {{ __('scheduling.no_workcenters') }}
             </p>
-            <template v-else>
-                <Card>
-                    <div class="flex flex-wrap gap-8 p-4">
-                        <div>
-                            <h3 class="mb-2 text-sm font-semibold text-(--color-text-primary)">
-                                {{ __('scheduling.filter_workcenters') }}
-                            </h3>
-                            <div class="space-y-1.5">
-                                <CheckboxInput
-                                    v-for="workcenter in workcenters"
-                                    :key="workcenter.id"
-                                    :model-value="checkedWorkcenterIds.includes(workcenter.id)"
-                                    @update:model-value="(checked) => toggleWorkcenter(workcenter.id, checked)"
-                                >
-                                    {{ workcenter.name }}
-                                </CheckboxInput>
-                            </div>
-                        </div>
-                        <div>
-                            <h3 class="mb-2 text-sm font-semibold text-(--color-text-primary)">
-                                {{ __('scheduling.filter_shifts') }}
-                            </h3>
-                            <div class="space-y-1.5">
-                                <CheckboxInput
-                                    v-for="shift in shifts"
-                                    :key="shift.id"
-                                    :model-value="checkedShiftIds.includes(shift.id)"
-                                    @update:model-value="(checked) => toggleShift(shift.id, checked)"
-                                >
-                                    {{ shift.name }}
-                                </CheckboxInput>
-                            </div>
-                        </div>
-                    </div>
-                </Card>
-
+            <div v-else class="flex flex-col items-start gap-4 lg:flex-row">
                 <Calendar
                     :year="year"
                     :month="month"
@@ -119,7 +83,43 @@ function onCalendarChange({ year, month }) {
                     :enable-week-day-selection="false"
                     @change="onCalendarChange"
                 />
-            </template>
+
+                <div class="flex w-full flex-col gap-4 sm:flex-row lg:w-auto">
+                    <Card class="w-full sm:w-auto">
+                        <template #header>
+                            <div class="px-6 py-3 text-base font-semibold">{{ __('scheduling.filter_workcenters') }}</div>
+                        </template>
+
+                        <div class="flex flex-col gap-1.5 p-6">
+                            <CheckboxInput
+                                v-for="workcenter in workcenters"
+                                :key="workcenter.id"
+                                :model-value="checkedWorkcenterIds.includes(workcenter.id)"
+                                @update:model-value="(checked) => toggleWorkcenter(workcenter.id, checked)"
+                            >
+                                <span class="whitespace-nowrap">{{ workcenter.name }}</span>
+                            </CheckboxInput>
+                        </div>
+                    </Card>
+
+                    <Card class="w-full sm:w-48">
+                        <template #header>
+                            <div class="px-6 py-3 text-base font-semibold">{{ __('scheduling.filter_shifts') }}</div>
+                        </template>
+
+                        <div class="flex flex-col gap-1.5 p-6">
+                            <CheckboxInput
+                                v-for="shift in shifts"
+                                :key="shift.id"
+                                :model-value="checkedShiftIds.includes(shift.id)"
+                                @update:model-value="(checked) => toggleShift(shift.id, checked)"
+                            >
+                                {{ shift.name }}
+                            </CheckboxInput>
+                        </div>
+                    </Card>
+                </div>
+            </div>
         </div>
     </AppLayout>
 </template>

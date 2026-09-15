@@ -349,7 +349,6 @@
     "scheduling.no_workcenters": "No active workcenters yet. Add one on the Settings page.",
     "scheduling.legend_staffed": "Fully staffed",
     "scheduling.legend_open_spots": "Open spots",
-    "scheduling.legend_nothing_scheduled": "Nothing scheduled",
     "scheduling.reset_spots": "Reset to the weekday default",
     "scheduling.toggle_fixed": "Toggle fixed",
     "scheduling.remove": "Remove",

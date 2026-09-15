@@ -8,7 +8,6 @@ const en = {
     "scheduling.no_workcenters": "No active workcenters yet. Add one on the Settings page.",
     "scheduling.legend_staffed": "Fully staffed",
     "scheduling.legend_open_spots": "Open spots",
-    "scheduling.legend_nothing_scheduled": "Nothing scheduled",
     "calendar.reset": "Jump to today",
     "calendar.prev_month": "Previous month",
     "calendar.next_month": "Next month",
@@ -66,6 +65,13 @@ describe("Scheduling", () => {
         expect(w.text()).toContain("Line 2");
         expect(w.text()).toContain("Early");
         expect(w.text()).toContain("Late");
+    });
+
+    it("renders the workcenters and shifts lists as two separate cards", () => {
+        const w = mountPage();
+        const headers = w.findAll("h1, h2, h3, div").filter((el) => el.text() === "Workcenters" || el.text() === "Shifts");
+
+        expect(headers.length).toBeGreaterThanOrEqual(2);
     });
 
     it("renders the calendar for the given year and month", () => {
