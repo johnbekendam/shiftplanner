@@ -5,6 +5,10 @@ namespace Tests\Feature;
 use App\Models\BusinessLine;
 use App\Models\Employee;
 use App\Models\PlanningSettings;
+use App\Models\PublishedWeek;
+use App\Models\Shift;
+use App\Models\ShiftAssignment;
+use App\Models\Workcenter;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -210,5 +214,46 @@ class PersonalPageTest extends TestCase
     public function test_withdrawing_with_a_malformed_token_is_not_found(): void
     {
         $this->delete('/personal/definitely-not-a-real-token')->assertNotFound();
+    }
+
+    public function test_planned_shifts_only_includes_published_weeks(): void
+    {
+        [$employee, $token] = $this->linkedEmployee();
+        $workcenter = Workcenter::factory()->create(['name' => 'Line 1']);
+        $shift = Shift::factory()->create(['name' => 'Early', 'start_time' => '06:00', 'end_time' => '14:00']);
+        ShiftAssignment::factory()->create([
+            'employee_id' => $employee->id, 'workcenter_id' => $workcenter->id, 'shift_id' => $shift->id,
+            'date' => '2026-09-08', // Tuesday, week starting 2026-09-07
+        ]);
+        ShiftAssignment::factory()->create([
+            'employee_id' => $employee->id, 'workcenter_id' => $workcenter->id, 'shift_id' => $shift->id,
+            'date' => '2026-09-15', // Tuesday, week starting 2026-09-14, not published
+        ]);
+        PublishedWeek::query()->create(['week_start' => '2026-09-07']);
+
+        $this->get("/personal/{$token}")->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->has('plannedShifts', 1)
+                ->where('plannedShifts.0.weekStart', '2026-09-07')
+                ->where('plannedShifts.0.weekEnd', '2026-09-13')
+                ->where('plannedShifts.0.published', true)
+                ->has('plannedShifts.0.assignments', 1)
+                ->where('plannedShifts.0.assignments.0.date', '2026-09-08')
+                ->where('plannedShifts.0.assignments.0.workcenter_name', 'Line 1')
+                ->where('plannedShifts.0.assignments.0.shift_name', 'Early')
+            );
+    }
+
+    public function test_planned_shifts_is_empty_when_nothing_is_published(): void
+    {
+        [$employee, $token] = $this->linkedEmployee();
+        $workcenter = Workcenter::factory()->create();
+        $shift = Shift::factory()->create();
+        ShiftAssignment::factory()->create([
+            'employee_id' => $employee->id, 'workcenter_id' => $workcenter->id, 'shift_id' => $shift->id, 'date' => '2026-09-08',
+        ]);
+
+        $this->get("/personal/{$token}")->assertOk()
+            ->assertInertia(fn ($page) => $page->where('plannedShifts', []));
     }
 }

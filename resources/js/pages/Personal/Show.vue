@@ -11,6 +11,7 @@ import ShiftNote from '@/components/ShiftNote.vue'
 import HolidayList from '@/components/HolidayList.vue'
 import QuestionChecklist from '@/components/QuestionChecklist.vue'
 import TagChecklist from '@/components/TagChecklist.vue'
+import PlannedShiftsList from '@/components/PlannedShiftsList.vue'
 import ButtonPrimary from '@/components/ui/ButtonPrimary.vue'
 import ButtonSecondary from '@/components/ui/ButtonSecondary.vue'
 import ButtonDanger from '@/components/ui/ButtonDanger.vue'
@@ -37,6 +38,8 @@ const props = defineProps({
     competenceIds: { type: Array, default: () => [] },
     questions: { type: Array, default: () => [] },
     questionAnswers: { type: Array, default: () => [] },
+    // [{ weekStart, weekEnd, published, assignments }] — published weeks only.
+    plannedShifts: { type: Array, default: () => [] },
     // False when a manager has closed employee changes: the page stays
     // visible but every control is read-only.
     editable: { type: Boolean, default: true },
@@ -64,6 +67,7 @@ const tabs = computed(() => [
             || registry.hasError('holidays') || registry.hasError('questions'),
     },
     { value: 'competences', label: __('competences.tab'), hasError: registry.hasError('competences') },
+    { value: 'planning', label: __('planning.tab') },
 ])
 
 // ── Details + weekly hours: one backend resource (PUT /personal/{token}) ──
@@ -400,6 +404,10 @@ function onWithdrawConfirm() {
                 :disabled="!editable"
                 @update:selected-ids="onSelectedCompetenceIdsChange"
             />
+        </div>
+
+        <div v-show="tab === 'planning'" data-testid="panel-planning">
+            <PlannedShiftsList :weeks="plannedShifts" />
         </div>
 
         <template v-if="editable">

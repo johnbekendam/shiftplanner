@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\PublishedWeek;
 use App\Models\Shift;
 use App\Models\ShiftAssignment;
 use App\Models\Workcenter;
@@ -52,7 +53,28 @@ class SchedulingController extends Controller
             'date' => $selectedDate->toDateString(),
             'weekStart' => $weekStart->toDateString(),
             'weekCells' => $this->weekCells($attachments, $capacities, $workcenterIds, $weekStart),
+            'weekPublished' => PublishedWeek::query()->whereDate('week_start', $weekStart)->exists(),
+            'publishedDays' => $this->publishedDays($monthStart),
         ]);
+    }
+
+    /** { [day] => true } for every day in the visible month whose Monday–Sunday week is published. */
+    private function publishedDays(Carbon $monthStart): array
+    {
+        $weekStartsByDay = collect(range(1, $monthStart->daysInMonth))
+            ->mapWithKeys(fn (int $day) => [
+                $day => $monthStart->copy()->day($day)->startOfWeek(Carbon::MONDAY)->toDateString(),
+            ]);
+
+        $publishedWeekStarts = PublishedWeek::query()
+            ->whereIn('week_start', $weekStartsByDay->unique()->values())
+            ->pluck('week_start')
+            ->map(fn (Carbon $date) => $date->toDateString());
+
+        return $weekStartsByDay
+            ->filter(fn (string $weekStart) => $publishedWeekStarts->contains($weekStart))
+            ->map(fn () => true)
+            ->all();
     }
 
     private function resolveSelectedDate(Request $request, Carbon $monthStart, Carbon $now): Carbon

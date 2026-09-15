@@ -9,6 +9,7 @@ use App\Models\Employee;
 use App\Models\PlanningSettings;
 use App\Models\Shift;
 use App\Services\EmployeePersonalLinkService;
+use App\Services\PlannedShifts;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -25,7 +26,7 @@ use Inertia\Inertia;
  */
 class PersonalPageController extends Controller
 {
-    public function __construct(private EmployeePersonalLinkService $links) {}
+    public function __construct(private EmployeePersonalLinkService $links, private PlannedShifts $plannedShifts) {}
 
     public function show(string $token)
     {
@@ -61,6 +62,7 @@ class PersonalPageController extends Controller
             'competenceIds' => $employee->competences->pluck('id')->all(),
             'questions' => AvailabilityQuestion::all()->map->toPayload()->all(),
             'questionAnswers' => $employee->availabilityQuestions->pluck('id')->all(),
+            'plannedShifts' => $this->plannedShifts->forEmployee($employee, publishedOnly: true),
         ]);
     }
 

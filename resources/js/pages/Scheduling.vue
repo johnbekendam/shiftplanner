@@ -4,9 +4,11 @@ import { Head, router } from '@inertiajs/vue3'
 import AppLayout from '@/layouts/AppLayout.vue'
 import Card from '@/components/ui/Card.vue'
 import Calendar from '@/components/ui/Calendar.vue'
+import ButtonSecondary from '@/components/ui/ButtonSecondary.vue'
 import WorkcenterScheduleCard from '@/components/scheduling/WorkcenterScheduleCard.vue'
 import { CheckboxInput } from '@/components/ui/Input'
 import { useI18n } from '@/composables/useI18n'
+import { postAsync, deleteAsync } from '@/utils/inertiaAsync'
 
 const __ = useI18n()
 
@@ -19,6 +21,8 @@ const props = defineProps({
     date: { type: String, required: true }, // Y-m-d, the currently selected day
     weekStart: { type: String, required: true }, // Y-m-d, the Monday of the selected day's week
     weekCells: { type: Array, default: () => [] }, // { workcenter_id, shift_id, date, spots, overridden, assignments }
+    weekPublished: { type: Boolean, default: false },
+    publishedDays: { type: Object, default: () => ({}) }, // { [day]: true }, days in the visible month with a published week
 })
 
 const checkedWorkcenterIds = ref(props.workcenters.map((w) => w.id))
@@ -108,6 +112,15 @@ const visibleWorkcenters = computed(() =>
         .map((w) => ({ workcenter: w, schedule: scheduleFor(w.id) }))
         .filter(({ schedule }) => schedule.length > 0),
 )
+
+async function togglePublish() {
+    const url = `/scheduling/weeks/${props.weekStart}/publish`
+    if (props.weekPublished) {
+        await deleteAsync(url).catch(() => {})
+    } else {
+        await postAsync(url).catch(() => {})
+    }
+}
 </script>
 
 <template>
@@ -127,6 +140,7 @@ const visibleWorkcenters = computed(() =>
                     :legenda="legenda"
                     :enable-day-selection="true"
                     :enable-week-day-selection="false"
+                    :week-marker-days="publishedDays"
                     @change="onCalendarChange"
                 />
 
@@ -165,6 +179,18 @@ const visibleWorkcenters = computed(() =>
                         </div>
                     </Card>
                 </div>
+            </div>
+
+            <div v-if="workcenters.length" class="mt-4 flex items-center gap-3">
+                <span
+                    v-if="weekPublished"
+                    class="rounded-full border border-(--color-badge-custom-border) bg-(--color-badge-custom-bg) px-2 py-0.5 text-xs font-medium text-(--color-badge-custom-text)"
+                >
+                    {{ __('scheduling.published_label') }}
+                </span>
+                <ButtonSecondary type="button" data-testid="publish-week-button" @click="togglePublish">
+                    {{ weekPublished ? __('scheduling.unpublish') : __('scheduling.publish') }}
+                </ButtonSecondary>
             </div>
 
             <div v-if="visibleWorkcenters.length" class="mt-4 flex flex-col gap-4">

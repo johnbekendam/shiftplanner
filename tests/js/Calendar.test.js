@@ -90,4 +90,32 @@ describe("Calendar", () => {
 
         expect(w.text()).toContain("Open");
     });
+
+    it("marks the row of a week with a marked day, using the default weekMarkerColor", () => {
+        // 2026-09-10 is a Thursday, in the Mon 7 - Sun 13 row.
+        const w = mount(Calendar, { props: { year: 2026, month: 9, weekMarkerDays: { 10: true } } });
+        const day10 = w.findAll("button").find((b) => b.text() === "10");
+        const row = day10.element.closest('[data-testid^="calendar-week-"]');
+
+        expect(row).not.toBeNull();
+        expect(row.className).toContain("border-(--color-badge-custom-border)");
+    });
+
+    it("does not mark a week with no marked days", () => {
+        const w = mount(Calendar, { props: { year: 2026, month: 9, weekMarkerDays: { 10: true } } });
+        const day20 = w.findAll("button").find((b) => b.text() === "20");
+        const row = day20.element.closest('[data-testid^="calendar-week-"]');
+
+        expect(row.className).not.toContain("border-(--color-badge-custom-border)");
+    });
+
+    it("supports a custom weekMarkerColor", () => {
+        const w = mount(Calendar, {
+            props: { year: 2026, month: 9, weekMarkerDays: { 10: true }, weekMarkerColor: "warning" },
+        });
+        const day10 = w.findAll("button").find((b) => b.text() === "10");
+        const row = day10.element.closest('[data-testid^="calendar-week-"]');
+
+        expect(row.className).toContain("border-(--color-badge-warning-border)");
+    });
 });

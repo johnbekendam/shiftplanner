@@ -20,6 +20,7 @@ use App\Http\Controllers\PersonalLinkController;
 use App\Http\Controllers\PersonalPageController;
 use App\Http\Controllers\PersonalQuestionController;
 use App\Http\Controllers\PersonalRecurringAvailabilityController;
+use App\Http\Controllers\PublishedWeekController;
 use App\Http\Controllers\QuestionController;
 use App\Http\Controllers\RecurringAvailabilityController;
 use App\Http\Controllers\ScheduleSpotController;
@@ -100,6 +101,10 @@ Route::middleware('auth')->group(function () {
         Route::delete('/scheduling/spots/{workcenter}/{shift}/{date}', [ScheduleSpotController::class, 'destroy'])
             ->where('date', '\d{4}-\d{2}-\d{2}')->name('scheduling.spots.destroy');
         Route::get('/scheduling/eligible-employees', [EligibleEmployeeController::class, 'index'])->name('scheduling.eligible-employees');
+        Route::post('/scheduling/weeks/{weekStart}/publish', [PublishedWeekController::class, 'store'])
+            ->where('weekStart', '\d{4}-\d{2}-\d{2}')->name('scheduling.weeks.publish');
+        Route::delete('/scheduling/weeks/{weekStart}/publish', [PublishedWeekController::class, 'destroy'])
+            ->where('weekStart', '\d{4}-\d{2}-\d{2}')->name('scheduling.weeks.unpublish');
 
         Route::get('/mailbox', [MailboxController::class, 'index'])->name('mailbox.index');
         Route::post('/mailbox/compose', [MailboxController::class, 'store'])->name('mailbox.compose');

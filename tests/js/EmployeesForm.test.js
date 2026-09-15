@@ -15,6 +15,10 @@ const en = {
     "availability.questions.heading": "Questions",
     "competences.tab": "Competences",
     "competences.checklist_empty": "No competences have been set up yet.",
+    "planning.tab": "Planning",
+    "planning.empty": "No planned shifts yet.",
+    "planning.published": "Published",
+    "planning.draft": "Draft",
     "employees.field.first_name": "First name",
     "employees.field.last_name": "Last name",
     "employees.field.email": "Email",
@@ -118,8 +122,32 @@ describe("Employees/Form", () => {
         expect(tabs[0]).toBe("Settings");
         expect(tabs).toContain("Details");
         expect(tabs).toContain("Availability");
+        expect(tabs).toContain("Planning");
         expect(tabs).not.toContain("Information");
         expect(w.find('[data-testid="panel-information"]').exists()).toBe(false);
+    });
+
+    it("shows every assignment on the Planning tab, marked published or draft", () => {
+        const plannedShifts = [
+            {
+                weekStart: "2026-09-07", weekEnd: "2026-09-13", published: true,
+                assignments: [{ date: "2026-09-08", workcenter_name: "Line 1", shift_name: "Early", start_time: "06:00", end_time: "14:00" }],
+            },
+            {
+                weekStart: "2026-09-14", weekEnd: "2026-09-20", published: false,
+                assignments: [{ date: "2026-09-15", workcenter_name: "Line 2", shift_name: "Late", start_time: "14:00", end_time: "22:00" }],
+            },
+        ];
+        const w = mount(Form, {
+            props: { employee: { id: 3, name: "A", email: "a@b.c", weekly_hours: 24 }, holidays: [], plannedShifts },
+            global: { stubs },
+        });
+
+        const panel = w.get('[data-testid="panel-planning"]');
+        expect(panel.text()).toContain("Line 1");
+        expect(panel.text()).toContain("Published");
+        expect(panel.text()).toContain("Line 2");
+        expect(panel.text()).toContain("Draft");
     });
 
     it("shows employee planning rules only on the manager edit page", () => {

@@ -34,6 +34,8 @@ const en = {
     "availability.questions.heading": "Questions",
     "competences.tab": "Competences",
     "competences.checklist_empty": "No competences have been set up yet.",
+    "planning.tab": "Planning",
+    "planning.empty": "No planned shifts yet.",
 };
 
 // Requests fired by putAsync/postAsync/deleteAsync (availability, holidays,
@@ -404,9 +406,22 @@ describe("Personal/Show", () => {
         expect(w.text()).toContain("Details");
         expect(w.text()).toContain("Availability");
         expect(w.text()).toContain("Competences");
+        expect(w.text()).toContain("Planning");
         expect(hidden(w, '[data-testid="panel-information"]')).toBe(false);
         expect(hidden(w, '[data-testid="panel-details"]')).toBe(true);
         expect(hidden(w, '[data-testid="panel-availability"]')).toBe(true);
+    });
+
+    it("renders the planned shifts list on the Planning tab", () => {
+        const plannedShifts = [{
+            weekStart: "2026-09-07",
+            weekEnd: "2026-09-13",
+            published: true,
+            assignments: [{ date: "2026-09-08", workcenter_name: "Line 1", shift_name: "Early", start_time: "06:00", end_time: "14:00" }],
+        }];
+        const w = mountShow([], { plannedShifts });
+
+        expect(w.get('[data-testid="panel-planning"]').text()).toContain("Line 1");
     });
 
     it("renders the shift note on the Information tab when set", () => {

@@ -34,20 +34,27 @@
                 </button>
             </div>
 
-            <!-- Day grid -->
-            <div class="grid grid-cols-7 justify-items-center gap-x-0 gap-y-1">
-                <!-- Offset padding for first weekday -->
-                <div v-for="n in firstDayOffset" :key="'pad-' + n"></div>
-
-                <button
-                    v-for="day in daysInMonth"
-                    :key="'day-' + day"
-                    :class="dayClass(colorForDay(day), selectedDay === day, isToday(day), isDisabled(day))"
-                    :disabled="isDisabled(day)"
-                    @click="!isDisabled(day) && enableDaySelection && selectDay(day)"
+            <!-- Day grid: one row per week, so a whole week can carry a left-border marker -->
+            <div class="flex flex-col gap-y-1">
+                <div
+                    v-for="(week, wi) in weeks"
+                    :key="'week-' + wi"
+                    :data-testid="'calendar-week-' + wi"
+                    class="grid grid-cols-7 justify-items-center gap-x-0 border-l-4 pl-0.5"
+                    :class="isWeekMarked(week) ? weekMarkerBorderClass : 'border-transparent'"
                 >
-                    {{ day }}
-                </button>
+                    <template v-for="(cell, ci) in week" :key="ci">
+                        <div v-if="cell.type === 'pad'"></div>
+                        <button
+                            v-else
+                            :class="dayClass(colorForDay(cell.day), selectedDay === cell.day, isToday(cell.day), isDisabled(cell.day))"
+                            :disabled="isDisabled(cell.day)"
+                            @click="!isDisabled(cell.day) && enableDaySelection && selectDay(cell.day)"
+                        >
+                            {{ cell.day }}
+                        </button>
+                    </template>
+                </div>
             </div>
         </div>
 
@@ -94,6 +101,15 @@ const COLOR_CLASS = {
     muted: 'bg-(--color-badge-muted-bg) text-(--color-badge-muted-text)',
 }
 
+const BORDER_CLASS = {
+    success: 'border-(--color-badge-success-border)',
+    custom: 'border-(--color-badge-custom-border)',
+    error: 'border-(--color-badge-error-border)',
+    warning: 'border-(--color-badge-warning-border)',
+    standard: 'border-(--color-badge-standard-border)',
+    muted: 'border-(--color-badge-muted-border)',
+}
+
 const props = defineProps({
     year: { type: Number, required: true },
     month: { type: Number, required: true },
@@ -105,6 +121,9 @@ const props = defineProps({
     dateRangeStart: { type: String, default: null },
     dateRangeEnd: { type: String, default: null },
     initialDay: { type: Number, default: null },
+    // { [day]: true } — marks the whole week-row containing that day.
+    weekMarkerDays: { type: Object, default: () => ({}) },
+    weekMarkerColor: { type: String, default: 'custom' },
 })
 
 const emit = defineEmits(['change'])
@@ -156,6 +175,26 @@ const legendaEntries = computed(() =>
         .filter(([, text]) => text)
         .map(([color, text]) => ({ color, text })),
 )
+
+// Day cells chunked into week-rows (7 per row), the first row's leading
+// slots padded so day 1 lands under its actual weekday.
+const weeks = computed(() => {
+    const cells = [
+        ...Array.from({ length: firstDayOffset.value }, () => ({ type: 'pad' })),
+        ...Array.from({ length: daysInMonth.value }, (_, i) => ({ type: 'day', day: i + 1 })),
+    ]
+    const rows = []
+    for (let i = 0; i < cells.length; i += 7) {
+        rows.push(cells.slice(i, i + 7))
+    }
+    return rows
+})
+
+const weekMarkerBorderClass = computed(() => BORDER_CLASS[props.weekMarkerColor] ?? '')
+
+function isWeekMarked(week) {
+    return week.some((cell) => cell.type === 'day' && props.weekMarkerDays[cell.day])
+}
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 

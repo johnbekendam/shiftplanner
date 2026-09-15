@@ -78,6 +78,11 @@ class Employee extends Model
         return $this->hasMany(RecurringAvailability::class);
     }
 
+    public function shiftAssignments(): HasMany
+    {
+        return $this->hasMany(ShiftAssignment::class);
+    }
+
     public function shiftVisibilityOverrides(): BelongsToMany
     {
         return $this->belongsToMany(Shift::class, 'employee_shift_visibility_overrides')

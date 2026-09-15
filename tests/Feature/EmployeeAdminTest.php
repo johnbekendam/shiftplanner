@@ -9,9 +9,12 @@ use App\Models\Competence;
 use App\Models\Employee;
 use App\Models\EmployeeHoliday;
 use App\Models\Message;
+use App\Models\PublishedWeek;
 use App\Models\RecurringAvailability;
 use App\Models\Shift;
+use App\Models\ShiftAssignment;
 use App\Models\User;
+use App\Models\Workcenter;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
@@ -297,6 +300,32 @@ class EmployeeAdminTest extends TestCase
             'last_name' => 'Name',
             'weekly_hours' => 40,
         ]);
+    }
+
+    public function test_edit_shows_every_assignment_with_a_published_marker(): void
+    {
+        $user = User::factory()->create();
+        $employee = Employee::factory()->create();
+        $workcenter = Workcenter::factory()->create(['name' => 'Line 1']);
+        $shift = Shift::factory()->create(['name' => 'Early', 'start_time' => '06:00', 'end_time' => '14:00']);
+        ShiftAssignment::factory()->create([
+            'employee_id' => $employee->id, 'workcenter_id' => $workcenter->id, 'shift_id' => $shift->id,
+            'date' => '2026-09-08', // week starting 2026-09-07, published
+        ]);
+        ShiftAssignment::factory()->create([
+            'employee_id' => $employee->id, 'workcenter_id' => $workcenter->id, 'shift_id' => $shift->id,
+            'date' => '2026-09-15', // week starting 2026-09-14, draft
+        ]);
+        PublishedWeek::query()->create(['week_start' => '2026-09-07']);
+
+        $this->actingAs($user)->get("/employees/{$employee->id}/edit")->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->has('plannedShifts', 2)
+                ->where('plannedShifts.0.weekStart', '2026-09-07')
+                ->where('plannedShifts.0.published', true)
+                ->where('plannedShifts.1.weekStart', '2026-09-14')
+                ->where('plannedShifts.1.published', false)
+            );
     }
 
     public function test_edit_and_update_employee_planning_settings(): void

@@ -16,6 +16,7 @@ use App\Models\Shift;
 use App\Services\EmployeePersonalLinkService;
 use App\Services\MessageComposer;
 use App\Services\PersonalLinkMessage;
+use App\Services\PlannedShifts;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\Rule;
@@ -23,7 +24,7 @@ use Inertia\Inertia;
 
 class EmployeeController extends Controller
 {
-    public function __construct(private EmployeePersonalLinkService $links) {}
+    public function __construct(private EmployeePersonalLinkService $links, private PlannedShifts $plannedShifts) {}
 
     /** Sortable list columns mapped to their ORDER BY expression(s). */
     private const SORT_COLUMNS = [
@@ -132,6 +133,7 @@ class EmployeeController extends Controller
             'competenceIds' => $employee->competences->pluck('id')->all(),
             'questions' => AvailabilityQuestion::all()->map->toPayload()->all(),
             'questionAnswers' => $employee->availabilityQuestions->pluck('id')->all(),
+            'plannedShifts' => $this->plannedShifts->forEmployee($employee, publishedOnly: false),
         ]);
     }
 
