@@ -12,6 +12,7 @@ import WorkcenterList from '@/components/WorkcenterList.vue'
 import ShiftNoteForm from '@/components/ShiftNoteForm.vue'
 import ScheduleNoteForm from '@/components/ScheduleNoteForm.vue'
 import PeriodSettingsForm from '@/components/PeriodSettingsForm.vue'
+import PlanningRulesForm from '@/components/PlanningRulesForm.vue'
 import TabSaveBar from '@/components/ui/TabSaveBar.vue'
 import { useI18n } from '@/composables/useI18n'
 import { useUnsavedChangesGuard } from '@/composables/useUnsavedChangesGuard'
@@ -28,6 +29,7 @@ const props = defineProps({
     scheduleNote: { type: String, default: '' },
     questions: { type: Array, default: () => [] },
     period: { type: Object, default: () => ({}) },
+    planningRules: { type: Object, default: () => ({}) },
 })
 
 const tab = ref('general')
@@ -38,6 +40,7 @@ const tabs = computed(() => [
     { value: 'workcenters', label: __('settings.tab.workcenters'), dirty: workcentersDirty.value },
     { value: 'questions', label: __('settings.tab.questions'), dirty: questionsTab.dirty.value },
     { value: 'competences', label: __('settings.tab.competences'), dirty: competencesTab.dirty.value },
+    { value: 'planning_rules', label: __('settings.tab.planning_rules'), dirty: planningRulesFormRef.value?.isDirty ?? false },
     { value: 'information', label: __('settings.tab.information'), dirty: shiftNoteFormRef.value?.isDirty ?? false },
 ])
 
@@ -399,6 +402,18 @@ async function savePeriod() {
     return ok
 }
 
+const planningRulesFormRef = ref(null)
+const planningRulesJustSaved = ref(false)
+
+async function savePlanningRules() {
+    const ok = await planningRulesFormRef.value.submit()
+    if (ok) {
+        planningRulesJustSaved.value = true
+        setTimeout(() => { planningRulesJustSaved.value = false }, 2000)
+    }
+    return ok
+}
+
 const shiftNoteFormRef = ref(null)
 const shiftNoteJustSaved = ref(false)
 
@@ -418,6 +433,7 @@ useUnsavedChangesGuard(() => (
     || questionsTab.dirty.value
     || competencesTab.dirty.value
     || (periodFormRef.value?.isDirty ?? false)
+    || (planningRulesFormRef.value?.isDirty ?? false)
     || (shiftNoteFormRef.value?.isDirty ?? false)
 ))
 </script>
@@ -482,6 +498,17 @@ useUnsavedChangesGuard(() => (
                     :just-saved="workcentersJustSaved"
                     @save="saveWorkcenters"
                     @cancel="cancelWorkcenters"
+                />
+            </div>
+
+            <div v-show="tab === 'planning_rules'" data-testid="panel-planning-rules" class="p-6">
+                <PlanningRulesForm ref="planningRulesFormRef" :planning-rules="planningRules" />
+                <TabSaveBar
+                    :dirty="planningRulesFormRef?.isDirty ?? false"
+                    :saving="planningRulesFormRef?.processing ?? false"
+                    :just-saved="planningRulesJustSaved"
+                    @save="savePlanningRules"
+                    @cancel="planningRulesFormRef?.cancel()"
                 />
             </div>
 

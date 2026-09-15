@@ -265,6 +265,7 @@
     "settings.tab.shifts": "Shifts",
     "settings.tab.workcenters": "Workcenters",
     "settings.tab.information": "Information",
+    "settings.tab.planning_rules": "Planning rules",
     "settings.tab.questions": "Questions",
     "settings.tab.general": "General",
 
@@ -392,6 +393,17 @@
     "period.save": "Save",
     "period.flash.saved": "Period saved.",
     "period.error.range": "The period end cannot be before the start.",
+
+    "planning_rules.mode": "Mode",
+    "planning_rules.mode.hard": "Hard",
+    "planning_rules.mode.soft": "Soft",
+    "planning_rules.severity": "Severity (1-10)",
+    "planning_rules.max_hours_per_week": "Max hours per week",
+    "planning_rules.max_hours_per_week_hint": "Capped at each employee's own weekly hours, averaged over 2-week calendar pairs.",
+    "planning_rules.max_shifts_per_day": "Max shifts per day",
+    "planning_rules.not_preferred_shift": "Not-preferred-shift assignment",
+    "planning_rules.not_preferred_shift_hint": "Applies when an assignment lands on a shift the employee marked not preferred.",
+    "planning_rules.flash.saved": "Planning rules saved.",
 
     "dashboard.title": "Dashboard",
     "dashboard.overall": "Overall",

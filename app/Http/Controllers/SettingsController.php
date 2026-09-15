@@ -23,6 +23,7 @@ class SettingsController extends Controller
             'scheduleNote' => PlanningSettings::current()->shift_schedule_note ?? '',
             'questions' => $this->questions(),
             'period' => PlanningSettings::current()->toPayload(),
+            'planningRules' => PlanningSettings::current()->rulesPayload(),
         ]);
     }
 

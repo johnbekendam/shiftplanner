@@ -18,6 +18,13 @@ class PlanningSettings extends Model
         'shift_note',
         'shift_schedule_note',
         'allow_employee_changes',
+        'max_hours_per_week_mode',
+        'max_hours_per_week_severity',
+        'max_shifts_per_day',
+        'max_shifts_per_day_mode',
+        'max_shifts_per_day_severity',
+        'not_preferred_shift_mode',
+        'not_preferred_shift_severity',
     ];
 
     protected function casts(): array
@@ -28,6 +35,10 @@ class PlanningSettings extends Model
             'period_start' => 'date:Y-m-d',
             'period_end' => 'date:Y-m-d',
             'allow_employee_changes' => 'boolean',
+            'max_hours_per_week_severity' => 'integer',
+            'max_shifts_per_day' => 'integer',
+            'max_shifts_per_day_severity' => 'integer',
+            'not_preferred_shift_severity' => 'integer',
         ];
     }
 
@@ -38,6 +49,10 @@ class PlanningSettings extends Model
             'fte_hours' => 40,
             'weekly_hours_minimum' => 20,
             'allow_employee_changes' => true,
+            'max_hours_per_week_mode' => 'hard',
+            'max_shifts_per_day' => 1,
+            'max_shifts_per_day_mode' => 'hard',
+            'not_preferred_shift_mode' => 'soft',
         ]);
     }
 
@@ -101,6 +116,20 @@ class PlanningSettings extends Model
             'period_start' => $this->period_start?->toDateString(),
             'period_end' => $this->period_end?->toDateString(),
             'allow_employee_changes' => $this->allow_employee_changes,
+        ];
+    }
+
+    /** The global planning-rule fields, shared with the Planning Rules settings tab. */
+    public function rulesPayload(): array
+    {
+        return [
+            'max_hours_per_week_mode' => $this->max_hours_per_week_mode,
+            'max_hours_per_week_severity' => $this->max_hours_per_week_severity,
+            'max_shifts_per_day' => $this->max_shifts_per_day,
+            'max_shifts_per_day_mode' => $this->max_shifts_per_day_mode,
+            'max_shifts_per_day_severity' => $this->max_shifts_per_day_severity,
+            'not_preferred_shift_mode' => $this->not_preferred_shift_mode,
+            'not_preferred_shift_severity' => $this->not_preferred_shift_severity,
         ];
     }
 }
