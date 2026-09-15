@@ -28,10 +28,17 @@ const employeeFilterOptions = [
 
 const confirmedLineColor = 'var(--color-brand-bg)'
 const unconfirmedLineColor = 'var(--color-text-secondary)'
+const stackedLineColor = 'var(--color-badge-success-text)'
 
 const activeEmployeeFilter = computed(() =>
     ['confirmed', 'unconfirmed', 'both'].includes(props.employeeStatusFilter) ? props.employeeStatusFilter : 'both',
 )
+
+const lineStrokeFor = (filter) => {
+    if (filter === 'confirmed') return confirmedLineColor
+    if (filter === 'unconfirmed') return unconfirmedLineColor
+    return stackedLineColor
+}
 
 const selectEmployeeFilter = (filter) => {
     if (filter === activeEmployeeFilter.value) return
@@ -50,9 +57,7 @@ const blocks = computed(() => {
             key: 'overall',
             title: __('dashboard.overall'),
             available: props.overall.available,
-            baseAvailable: activeEmployeeFilter.value === 'both' ? props.overall.available_confirmed : null,
-            availableStroke: activeEmployeeFilter.value === 'confirmed' ? confirmedLineColor : unconfirmedLineColor,
-            baseAvailableStroke: confirmedLineColor,
+            availableStroke: lineStrokeFor(activeEmployeeFilter.value),
             target: props.overall.target,
             availableHours: props.overall.available_hours,
             requiredHours: props.overall.required_hours,
@@ -61,9 +66,7 @@ const blocks = computed(() => {
             key: line.abbreviation,
             title: `${line.abbreviation} — ${line.description}`,
             available: line.available,
-            baseAvailable: activeEmployeeFilter.value === 'both' ? line.available_confirmed : null,
-            availableStroke: activeEmployeeFilter.value === 'confirmed' ? confirmedLineColor : unconfirmedLineColor,
-            baseAvailableStroke: confirmedLineColor,
+            availableStroke: lineStrokeFor(activeEmployeeFilter.value),
             target: line.target,
             availableHours: line.available_hours,
             requiredHours: line.required_hours,
@@ -124,9 +127,7 @@ const blocks = computed(() => {
                             :title="block.title"
                             :days="days"
                             :available="block.available"
-                            :base-available="block.baseAvailable"
                             :available-stroke="block.availableStroke"
-                            :base-available-stroke="block.baseAvailableStroke"
                             :target="block.target"
                             :show-caption="false"
                         />
