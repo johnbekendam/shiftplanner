@@ -43,6 +43,13 @@ class EmployeeController extends Controller
         $sort = array_key_exists($sort, self::SORT_COLUMNS) ? $sort : 'name';
         $direction = $request->input('direction') === 'desc' ? 'desc' : 'asc';
 
+        $businessLines = BusinessLine::all(); // position-ordered by the model scope
+
+        $requestedBusinessLines = $request->query('business_lines');
+        $businessLineFilter = is_array($requestedBusinessLines)
+            ? array_values(array_intersect($requestedBusinessLines, [...$businessLines->pluck('id')->map(strval(...)), 'none']))
+            : null;
+
         $query = Employee::query()
             ->select('employees.*')
             ->leftJoin('business_lines', 'business_lines.id', '=', 'employees.business_line_id')
@@ -59,6 +66,24 @@ class EmployeeController extends Controller
         if ($search !== '') {
             $query->search($search);
         }
+
+        $filterIds = [];
+        $filterIncludesNone = false;
+
+        if ($businessLineFilter !== null) {
+            $filterIds = array_map('intval', array_values(array_filter($businessLineFilter, fn ($id) => $id !== 'none')));
+            $filterIncludesNone = in_array('none', $businessLineFilter, true);
+
+            $query->where(function ($q) use ($filterIds, $filterIncludesNone) {
+                if ($filterIds !== []) $q->orWhereIn('employees.business_line_id', $filterIds);
+                if ($filterIncludesNone) $q->orWhereNull('employees.business_line_id');
+                if ($filterIds === [] && ! $filterIncludesNone) $q->whereRaw('1 = 0');
+            });
+        }
+
+        $selectedBusinessLines = $businessLineFilter !== null
+            ? [...$filterIds, ...($filterIncludesNone ? ['none'] : [])]
+            : [...$businessLines->pluck('id')->all(), 'none'];
 
         $employees = $query->paginate(15)->withQueryString();
 
@@ -78,6 +103,11 @@ class EmployeeController extends Controller
             'search' => $search,
             'sort' => $sort,
             'direction' => $direction,
+            'businessLines' => $businessLines->map(fn (BusinessLine $line) => [
+                'id' => $line->id,
+                'abbreviation' => $line->abbreviation,
+            ])->all(),
+            'selectedBusinessLines' => $selectedBusinessLines,
         ]);
     }
 
