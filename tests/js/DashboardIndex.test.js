@@ -60,9 +60,10 @@ describe("Dashboard/Index", () => {
         expect(options[0].classes()).not.toContain("outline-2");
 
         const legendLines = w.findAll('[data-testid="dashboard-employee-filter-line"]');
-        expect(legendLines).toHaveLength(2);
+        expect(legendLines).toHaveLength(3);
         expect(legendLines[0].classes()).toContain("bg-[var(--color-brand-bg)]");
         expect(legendLines[1].classes()).toContain("bg-[var(--color-text-secondary)]");
+        expect(legendLines[2].classes()).toContain("bg-[var(--color-badge-success-text)]");
     });
 
     it("navigates with a query string when confirmed is selected", async () => {

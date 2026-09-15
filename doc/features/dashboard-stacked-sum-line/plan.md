@@ -1,4 +1,4 @@
-Status: in progress — 1/2
+Status: done — 2/2
 
 - [x] 1. Stacked mode renders a single green sum line, no base line.
       In `Dashboard/Index.vue`, `baseAvailable` is `null` for the `both`
@@ -9,7 +9,7 @@ Status: in progress — 1/2
       `unconfirmedLineColor`. Confirmed/Unconfirmed strokes unchanged.
       Update `tests/js/DashboardIndex.test.js` assertions that currently
       expect a base line and gray stroke in `both` mode.
-- [ ] 2. Stacked selector button shows a green line marker.
+- [x] 2. Stacked selector button shows a green line marker.
       Add a `lineClass` (`bg-[var(--color-badge-success-text)]`) to the
       `both` entry in `employeeFilterOptions`. Add/update a
       `tests/js/DashboardIndex.test.js` assertion that the Stacked

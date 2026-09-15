@@ -23,7 +23,7 @@ const props = defineProps({
 const employeeFilterOptions = [
     { value: 'confirmed', label: 'dashboard.employee_filter.confirmed', lineClass: 'bg-[var(--color-brand-bg)]' },
     { value: 'unconfirmed', label: 'dashboard.employee_filter.unconfirmed', lineClass: 'bg-[var(--color-text-secondary)]' },
-    { value: 'both', label: 'dashboard.employee_filter.both' },
+    { value: 'both', label: 'dashboard.employee_filter.both', lineClass: 'bg-[var(--color-badge-success-text)]' },
 ]
 
 const confirmedLineColor = 'var(--color-brand-bg)'
