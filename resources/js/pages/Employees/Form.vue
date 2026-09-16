@@ -382,7 +382,7 @@ function onDeleteConfirm() {
                 data-testid="panel-details"
                 class="p-6"
             >
-                <EmployeeFields v-if="isEdit" :form="form" :business-lines="businessLines" />
+                <EmployeeFields v-if="isEdit" :form="form" :business-lines="businessLines" live />
 
                 <form v-else class="space-y-5" @submit.prevent="submit">
                     <EmployeeFields :form="form" :business-lines="businessLines" />
@@ -404,6 +404,7 @@ function onDeleteConfirm() {
                         :model-value="form.weekly_hours"
                         :minimum="effectiveWeeklyHoursMinimum"
                         :error="form.errors.weekly_hours"
+                        live
                         @update:model-value="onWeeklyHoursChange"
                     />
                 </section>

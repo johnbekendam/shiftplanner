@@ -6,6 +6,7 @@
             :model-value="model"
             :format="format"
             :disabled="!!$attrs.disabled"
+            :live="live"
             class="min-w-0 flex-1 px-3 py-2 text-sm"
             @update:modelValue="model = $event"
         />
@@ -17,6 +18,11 @@ import Shell from './Shell.vue'
 import FormattedInput from './FormattedInput.vue'
 
 const model = defineModel({ type: String, default: '' })
+defineProps({
+    // Emit update:modelValue on every keystroke instead of only on commit
+    // (Enter/Tab/blur) — see FormattedInput.
+    live: { type: Boolean, default: false },
+})
 defineOptions({ inheritAttrs: false })
 
 const ALLOWED = /[a-zA-Z0-9!#$%&'*+/=?^_`{|}~.\-@]/

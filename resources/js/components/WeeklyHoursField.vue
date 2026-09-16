@@ -11,6 +11,9 @@ defineProps({
     disabled: { type: Boolean, default: false },
     error: { type: String, default: null },
     minimum: { type: Number, default: 20 },
+    // Emit update:modelValue as soon as the in-progress value is valid,
+    // instead of only on commit (Enter/Tab/blur) — see NumberInput.
+    live: { type: Boolean, default: false },
 })
 </script>
 
@@ -23,6 +26,7 @@ defineProps({
                 :max="48"
                 :step="1"
                 :disabled="disabled"
+                :live="live"
                 class="w-24 shrink-0"
             />
             <p
