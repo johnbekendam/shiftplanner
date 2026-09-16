@@ -38,6 +38,16 @@ class MailboxTest extends TestCase
         $this->get('/mailbox')->assertForbidden();
     }
 
+    public function test_visiting_mailbox_without_a_tab_defaults_to_compose(): void
+    {
+        $this->admin();
+
+        $this->get('/mailbox')->assertInertia(fn ($page) => $page
+            ->component('Mailbox')
+            ->where('tab', 'compose')
+        );
+    }
+
     // ── Shared across admins ─────────────────────────────────────────────
 
     public function test_index_shows_every_admins_messages(): void

@@ -29,7 +29,7 @@ class MailboxController extends Controller
 
     public function index(Request $request)
     {
-        $tab = $request->input('tab', 'draft');
+        $tab = $request->input('tab', 'compose');
         abort_unless(in_array($tab, self::TABS, true), 404);
 
         // Shared across all admins: no per-user filter. user_id stays on the
