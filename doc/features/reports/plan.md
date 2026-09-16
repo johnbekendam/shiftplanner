@@ -1,4 +1,4 @@
-Status: in progress — 2/4
+Status: in progress — 3/4
 
 - [x] 1. Reports route, controller, and missing-availability query
       Add `GET /reports` in the `admin` middleware group. A
@@ -30,7 +30,7 @@ Status: in progress — 2/4
       - A change to the shift, business-line, or toggle control navigates
         with the matching query params.
 
-- [ ] 3. Row selection and "Email selected" button
+- [x] 3. Row selection and "Email selected" button
       Add a checkbox per row, a "select all" checkbox, and an "Email
       selected (N)" button. Disable the button at zero selections.
 

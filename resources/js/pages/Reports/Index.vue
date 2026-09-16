@@ -6,6 +6,7 @@ import Card from '@/components/ui/Card.vue'
 import CardSeparator from '@/components/ui/CardSeparator.vue'
 import Tabs from '@/components/ui/Tabs.vue'
 import LabeledInput from '@/components/LabeledInput.vue'
+import ButtonPrimary from '@/components/ui/ButtonPrimary.vue'
 import { SelectInput, CheckboxInput } from '@/components/ui/Input'
 import { useI18n } from '@/composables/useI18n'
 
@@ -37,6 +38,22 @@ function reload() {
 }
 
 watch([shift, businessLine, includeUnconfirmed], reload)
+
+const selectedIds = ref([])
+watch(() => props.employees, () => { selectedIds.value = [] })
+
+const allSelected = computed(() =>
+    props.employees.length > 0 && selectedIds.value.length === props.employees.length,
+)
+
+function toggleSelectAll(checked) {
+    selectedIds.value = checked ? props.employees.map((e) => e.id) : []
+}
+
+function emailSelected() {
+    const query = selectedIds.value.map((id) => `employee_ids[]=${id}`).join('&')
+    router.visit(`/mailbox?tab=compose&type=custom&${query}`)
+}
 </script>
 
 <template>
@@ -79,9 +96,31 @@ watch([shift, businessLine, includeUnconfirmed], reload)
                 </p>
 
                 <template v-else>
+                    <div v-if="employees.length > 0" class="flex justify-end">
+                        <ButtonPrimary
+                            type="button"
+                            icon="envelope"
+                            :disabled="selectedIds.length === 0"
+                            :aria-label="__('reports.missing_availability.email_selected') + ' ' + selectedIds.length"
+                            @click="emailSelected"
+                        >
+                            {{ __('reports.missing_availability.email_selected') }}
+                            <span v-if="selectedIds.length > 0" class="text-sm font-semibold">
+                                ({{ selectedIds.length }})
+                            </span>
+                        </ButtonPrimary>
+                    </div>
+
                     <table class="w-full text-sm">
                         <thead>
                             <tr class="border-b border-(--color-table-header-separator) text-left text-(--color-table-header-text)">
+                                <th class="w-8 px-2 py-2 pr-3">
+                                    <CheckboxInput
+                                        :model-value="allSelected"
+                                        :aria-label="__('reports.missing_availability.select_all')"
+                                        @update:model-value="toggleSelectAll"
+                                    />
+                                </th>
                                 <th class="px-2 py-2 font-medium">{{ __('reports.missing_availability.column.name') }}</th>
                                 <th class="px-2 py-2 font-medium">{{ __('reports.missing_availability.column.business_line') }}</th>
                                 <th class="px-2 py-2 font-medium">{{ __('reports.missing_availability.column.weekly_hours') }}</th>
@@ -94,6 +133,13 @@ watch([shift, businessLine, includeUnconfirmed], reload)
                                 :key="employee.id"
                                 class="border-b border-(--color-table-row-separator) hover:bg-(--color-table-row-hover-bg)"
                             >
+                                <td class="w-8 px-2 py-2 pr-3">
+                                    <CheckboxInput
+                                        v-model="selectedIds"
+                                        :value="employee.id"
+                                        :aria-label="__('reports.missing_availability.select_employee', { name: employee.name })"
+                                    />
+                                </td>
                                 <td class="px-2 py-2 text-(--color-table-row-text)">{{ employee.name }}</td>
                                 <td class="px-2 py-2 text-(--color-table-row-text)">
                                     {{ employee.business_line ?? __('reports.missing_availability.no_business_line') }}

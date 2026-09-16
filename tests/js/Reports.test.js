@@ -117,4 +117,46 @@ describe("Reports/Index", () => {
             expect.anything(),
         );
     });
+
+    it("disables the email button until a row is selected", () => {
+        const w = mountIndex({ employees, filters: { shift: 5, business_line: null, unconfirmed: false } });
+        const button = w.get('[aria-label="Email selected 0"]');
+
+        expect(button.attributes("disabled")).toBeDefined();
+    });
+
+    it("enables the email button and shows the count once rows are checked", async () => {
+        const w = mountIndex({ employees, filters: { shift: 5, business_line: null, unconfirmed: false } });
+
+        await w.get('[aria-label="Select Ann Ant"]').setValue(true);
+
+        const button = w.get('[aria-label="Email selected 1"]');
+        expect(button.attributes("disabled")).toBeUndefined();
+        expect(button.text()).toContain("(1)");
+    });
+
+    it("select all checks every row and select all again unchecks them", async () => {
+        const w = mountIndex({ employees, filters: { shift: 5, business_line: null, unconfirmed: false } });
+
+        await w.get('[aria-label="Select all employees in this report"]').setValue(true);
+
+        expect(w.get('[aria-label="Select Ann Ant"]').element.checked).toBe(true);
+        expect(w.get('[aria-label="Select Bo Bee"]').element.checked).toBe(true);
+
+        await w.get('[aria-label="Select all employees in this report"]').setValue(false);
+
+        expect(w.get('[aria-label="Select Ann Ant"]').element.checked).toBe(false);
+    });
+
+    it("navigates to compose with the selected employee ids on email", async () => {
+        const w = mountIndex({ employees, filters: { shift: 5, business_line: null, unconfirmed: false } });
+
+        await w.get('[aria-label="Select Ann Ant"]').setValue(true);
+        await w.get('[aria-label="Select Bo Bee"]').setValue(true);
+        await w.get('[aria-label="Email selected 2"]').trigger("click");
+
+        expect(router.visit).toHaveBeenCalledWith(
+            "/mailbox?tab=compose&type=custom&employee_ids[]=1&employee_ids[]=2",
+        );
+    });
 });
