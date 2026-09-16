@@ -32,17 +32,23 @@ vi.mock("@inertiajs/vue3", () => ({
 }));
 
 import Mailbox from "@/pages/Mailbox.vue";
-import { CheckboxInput, TextInput, MultilineInput } from "@/components/ui/Input";
+import { TextInput, MultilineInput } from "@/components/ui/Input";
 
 const compose = {
-    types: [{ value: "personal_page_link", label: "Personal page link" }],
+    types: [
+        { value: "personal_page_link", label: "Personal page link" },
+        { value: "custom", label: "Custom message" },
+    ],
     type: "personal_page_link",
     template: { subject: "Your page", body: "Hi :name, :link" },
     employees: [
         { id: 1, name: "Alice Ng", email: "alice@example.com" },
         { id: 2, name: "Bob Li", email: "bob@example.com" },
     ],
+    users: [{ id: 10, name: "Carl Ito", email: "carl@example.com" }],
     preselected_employee_id: null,
+    unresolved_recipients: null,
+    placeholder_tokens: [":name", ":link"],
 };
 
 const mountCompose = (overrides = {}) =>
@@ -73,10 +79,10 @@ describe("Mailbox — Compose tab", () => {
 
     it("preselects the employee from the query prop", () => {
         const w = mountCompose({ preselected_employee_id: 2 });
-        const boxes = w.findAllComponents(CheckboxInput);
-        // first checkbox is Alice, second is Bob
-        expect(boxes[1].props("modelValue")).toBe(true);
-        expect(boxes[0].props("modelValue")).toBe(false);
+        // The selected list (second <ul>) shows only the preselected employee.
+        const selected = w.findAll("ul")[1].text();
+        expect(selected).toContain("Bob Li");
+        expect(selected).not.toContain("Alice Ng");
     });
 
     it("Create drafts posts the typed payload in draft mode", async () => {
@@ -102,23 +108,138 @@ describe("Mailbox — Compose tab", () => {
         expect(postSpy.mock.calls[0][1].send_mode).toBe("queue");
     });
 
-    it("Save template PUTs the current subject and body for the type", async () => {
+    it("Save is hidden until the template is edited, then PUTs the current subject and body", async () => {
         const w = mountCompose();
-        await w.findAll("button").find((b) => b.text() === "Save template").trigger("click");
+        const saveButton = () => w.findAll("button").find((b) => b.text() === "Save");
+
+        expect(saveButton()).toBeUndefined();
+
+        await w.findComponent(TextInput).setValue("Edited subject");
+        expect(saveButton()).toBeDefined();
+
+        await saveButton().trigger("click");
 
         expect(router.put).toHaveBeenCalledTimes(1);
         const [url, data] = router.put.mock.calls[0];
         expect(url).toBe("/mailbox/templates/personal_page_link");
-        expect(data).toEqual({ subject: "Your page", body: "Hi :name, :link" });
+        expect(data).toEqual({ subject: "Edited subject", body: "Hi :name, :link" });
     });
 
-    it("ticking an employee adds them to employee_ids", async () => {
+    it("Save hides again once the save succeeds", async () => {
         const w = mountCompose();
-        const aliceBox = w.findAllComponents(CheckboxInput)[0];
-        await aliceBox.find("input").setValue(true);
+        await w.findComponent(TextInput).setValue("Edited subject");
+        await w.findAll("button").find((b) => b.text() === "Save").trigger("click");
+
+        router.put.mock.calls[0][2].onSuccess();
+        router.put.mock.calls[0][2].onFinish();
+        await w.vm.$nextTick();
+
+        expect(w.findAll("button").find((b) => b.text() === "Save")).toBeUndefined();
+    });
+
+    it("Cancel only appears once edited, and reverts the subject/body without saving", async () => {
+        const w = mountCompose();
+        const cancelButton = () => w.findAll("button").find((b) => b.text() === "Cancel");
+
+        expect(cancelButton()).toBeUndefined();
+
+        await w.findComponent(TextInput).setValue("Edited subject");
+        expect(cancelButton()).toBeDefined();
+
+        await cancelButton().trigger("click");
+
+        expect(w.findComponent(TextInput).props("modelValue")).toBe("Your page");
+        expect(w.findAll("button").find((b) => b.text() === "Cancel")).toBeUndefined();
+        expect(router.put).not.toHaveBeenCalled();
+    });
+
+    it("adding an employee via the picker's + button adds them to employee_ids", async () => {
+        const w = mountCompose();
+        await w.findAll("li button")[0].trigger("click");
 
         await w.findAll("button").find((b) => b.text() === "Create drafts").trigger("click");
         expect(postSpy.mock.calls[0][1].employee_ids).toEqual([1]);
+    });
+
+    it("clicking a placeholder token appends it to the body", async () => {
+        const w = mountCompose();
+        await w.findAll("button").find((b) => b.text() === ":link").trigger("click");
+
+        expect(w.findComponent(MultilineInput).props("modelValue")).toBe("Hi :name, :link :link");
+    });
+
+    it("Custom type has no fixed template and sends to selected users", async () => {
+        const w = mountCompose({
+            type: "custom",
+            template: { subject: "", body: "" },
+            preselected_employee_id: null,
+        });
+        await w.findComponent(TextInput).setValue("Heads up");
+        await w.findComponent(MultilineInput).setValue("Hi :name");
+
+        await w.findAll("button").find((b) => b.text() === "Users").trigger("click");
+        await w.findAll("li button")[0].trigger("click");
+        await w.findAll("button").find((b) => b.text() === "Create drafts").trigger("click");
+
+        const [, data] = postSpy.mock.calls[0];
+        expect(data).toMatchObject({ type: "custom", subject: "Heads up", body: "Hi :name", user_ids: [10] });
+    });
+
+    it("shows the unresolved-recipients dialog when the server flags recipients, and Continue resubmits with exclude_unresolved", async () => {
+        // The server flashes `unresolved_recipients` into the compose payload on
+        // the page it redirects back to; simulate that starting state directly.
+        // The dialog uses <Teleport to="body">, so it renders outside the wrapper.
+        const w = mount(Mailbox, {
+            attachTo: document.body,
+            props: {
+                messages: null,
+                tab: "compose",
+                search: "",
+                counts: {},
+                compose: {
+                    ...compose,
+                    preselected_employee_id: 1,
+                    unresolved_recipients: [{ name: "Dana", email: "dana@example.com", tokens: [":link"] }],
+                },
+            },
+            global: { stubs: { AppLayout: { template: "<div><slot /></div>" } } },
+        });
+
+        expect(document.body.textContent).toContain("Dana");
+
+        const buttons = Array.from(document.body.querySelectorAll("button"));
+        buttons.find((b) => b.textContent.trim() === "Continue without them").dispatchEvent(new MouseEvent("click", { bubbles: true }));
+        await new Promise((r) => setTimeout(r));
+
+        expect(postSpy).toHaveBeenCalledTimes(1);
+        const [, data] = postSpy.mock.calls[0];
+        expect(data).toMatchObject({ send_mode: "draft", exclude_unresolved: true });
+        w.unmount();
+    });
+
+    it("Cancel on the unresolved-recipients dialog closes it without submitting", async () => {
+        const w = mount(Mailbox, {
+            attachTo: document.body,
+            props: {
+                messages: null,
+                tab: "compose",
+                search: "",
+                counts: {},
+                compose: {
+                    ...compose,
+                    unresolved_recipients: [{ name: "Dana", email: "dana@example.com", tokens: [":link"] }],
+                },
+            },
+            global: { stubs: { AppLayout: { template: "<div><slot /></div>" } } },
+        });
+
+        const buttons = Array.from(document.body.querySelectorAll("button"));
+        buttons.find((b) => b.textContent.trim() === "Cancel").dispatchEvent(new MouseEvent("click", { bubbles: true }));
+        await new Promise((r) => setTimeout(r));
+
+        expect(document.body.textContent).not.toContain("Dana");
+        expect(postSpy).not.toHaveBeenCalled();
+        w.unmount();
     });
 });
 

@@ -8,10 +8,14 @@ use App\Mail\ComposedMessage;
 use App\Models\Employee;
 use App\Models\Message;
 use App\Models\MessageTemplate;
+use App\Models\User;
 use App\Services\MessageComposer;
-use App\Services\PersonalLinkMessage;
+use App\Services\MessagePlaceholders;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 
 class MailboxController extends Controller
@@ -20,7 +24,7 @@ class MailboxController extends Controller
 
     public function __construct(
         private MessageComposer $composer,
-        private PersonalLinkMessage $placeholders,
+        private MessagePlaceholders $placeholders,
     ) {}
 
     public function index(Request $request)
@@ -64,14 +68,14 @@ class MailboxController extends Controller
         ]);
     }
 
-    /** Data for the Compose tab: the type list, the current type's template, and the employee list. */
+    /** Data for the Compose tab: the type list, the current type's template, and the recipient sources. */
     private function composePayload(Request $request): array
     {
-        $type = MessageType::tryFrom((string) $request->input('type')) ?? MessageType::PersonalPageLink;
+        $type = MessageType::tryFrom((string) $request->input('type')) ?? MessageType::Custom;
 
         return [
             'types' => collect(MessageType::cases())
-                ->filter(fn (MessageType $case) => $case->needsEmployees())
+                ->filter(fn (MessageType $case) => $case->composable())
                 ->map(fn (MessageType $case) => [
                     'value' => $case->value,
                     'label' => __($case->langKey().'.label'),
@@ -89,8 +93,37 @@ class MailboxController extends Controller
                     'email' => $employee->email,
                 ])
                 ->all(),
+            'users' => User::query()
+                ->orderBy('name')
+                ->get(['id', 'name', 'email'])
+                ->map(fn (User $user) => [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                ])
+                ->all(),
             'preselected_employee_id' => $request->integer('employee') ?: null,
+            'unresolved_recipients' => session('unresolved_recipients'),
+            'placeholder_tokens' => $this->placeholders->tokens(),
         ];
+    }
+
+    /**
+     * The union of the given employees and users, deduplicated by email
+     * (case-insensitive). An Employee and a User sharing an email count
+     * once, keeping the Employee copy so :link still resolves.
+     *
+     * @return Collection<int, Employee|User>
+     */
+    private function resolveRecipients(array $employeeIds, array $userIds): Collection
+    {
+        $employees = Employee::whereIn('id', $employeeIds)->get();
+        $seenEmails = $employees->map(fn (Employee $employee) => Str::lower($employee->email))->all();
+
+        $users = User::whereIn('id', $userIds)->get()
+            ->reject(fn (User $user) => in_array(Str::lower($user->email), $seenEmails, true));
+
+        return $employees->concat($users);
     }
 
     public function preview(Request $request)
@@ -100,16 +133,24 @@ class MailboxController extends Controller
             'subject' => ['required', 'string'],
             'body' => ['required', 'string'],
             'employee_id' => ['nullable', 'integer', 'exists:employees,id'],
+            'user_id' => ['nullable', 'integer', 'exists:users,id'],
         ]);
 
-        $map = empty($data['employee_id'])
-            ? $this->placeholders->sample()
-            : $this->placeholders->forEmployee(Employee::findOrFail($data['employee_id']));
+        $recipient = ! empty($data['employee_id'])
+            ? Employee::findOrFail($data['employee_id'])
+            : (! empty($data['user_id']) ? User::findOrFail($data['user_id']) : null);
 
-        return response()->json($this->composer->renderForRecipient(
-            $this->placeholders->apply($data['subject'], $map),
-            $this->placeholders->apply($data['body'], $map),
-        ));
+        if ($recipient === null) {
+            $map = $this->placeholders->sample();
+            $subject = $this->placeholders->apply($data['subject'], $map);
+            $body = $this->placeholders->apply($data['body'], $map);
+        } else {
+            $resolved = $this->placeholders->resolve($data['subject'], $data['body'], $recipient);
+            $subject = $resolved['subject'];
+            $body = $resolved['body'];
+        }
+
+        return response()->json($this->composer->renderForRecipient($subject, $body));
     }
 
     public function store(Request $request)
@@ -118,28 +159,60 @@ class MailboxController extends Controller
             'type' => ['required', Rule::enum(MessageType::class)],
             'subject' => ['required', 'string', 'max:255'],
             'body' => ['required', 'string', 'max:20000'],
-            'employee_ids' => ['required', 'array', 'min:1'],
+            'employee_ids' => ['array'],
             'employee_ids.*' => ['integer', 'exists:employees,id'],
+            'user_ids' => ['array'],
+            'user_ids.*' => ['integer', 'exists:users,id'],
             'send_mode' => ['required', 'in:draft,queue'],
+            'exclude_unresolved' => ['boolean'],
         ]);
+
+        $employeeIds = $data['employee_ids'] ?? [];
+        $userIds = $data['user_ids'] ?? [];
+
+        if (empty($employeeIds) && empty($userIds)) {
+            throw ValidationException::withMessages([
+                'employee_ids' => __('mailbox.compose.recipients_required'),
+            ]);
+        }
 
         $type = MessageType::from($data['type']);
         $user = $request->user();
         $status = $data['send_mode'] === 'queue' ? 'outbox' : 'draft';
-        $employees = Employee::whereIn('id', $data['employee_ids'])->get();
 
-        foreach ($employees as $employee) {
-            $map = $this->placeholders->forEmployee($employee);
-            $subject = $this->placeholders->apply($data['subject'], $map);
-            $body = $this->placeholders->apply($data['body'], $map);
+        $resolutions = $this->resolveRecipients($employeeIds, $userIds)
+            ->map(fn (Employee|User $recipient) => [
+                'recipient' => $recipient,
+                'result' => $this->placeholders->resolve($data['subject'], $data['body'], $recipient),
+            ]);
+
+        $unresolved = $resolutions->filter(fn (array $entry) => $entry['result']['unresolved'] !== []);
+
+        if ($unresolved->isNotEmpty() && ! $request->boolean('exclude_unresolved')) {
+            return redirect()->back()->with('unresolved_recipients', $unresolved
+                ->map(fn (array $entry) => [
+                    'name' => $entry['recipient']->name,
+                    'email' => $entry['recipient']->email,
+                    'tokens' => $entry['result']['unresolved'],
+                ])
+                ->values()
+                ->all());
+        }
+
+        $sendable = $resolutions->reject(fn (array $entry) => $entry['result']['unresolved'] !== []);
+
+        foreach ($sendable as $entry) {
+            $recipient = $entry['recipient'];
+            $subject = $entry['result']['subject'];
+            $body = $entry['result']['body'];
             $fragment = $this->composer->render($subject, $body)['body_html'];
             $mailable = new ComposedMessage($subject, $fragment, $user->email, $user->name);
 
             $message = Message::create([
                 'user_id' => $user->id,
                 'type' => $type,
-                'recipient_email' => $employee->email,
-                'recipient_name' => $employee->name,
+                'recipient_email' => $recipient->email,
+                'recipient_name' => $recipient->name,
                 'subject' => $subject,
                 'body' => $body,
                 'body_html' => new ComposedMessage($subject, $fragment, logoSrc: ComposedMessage::browserLogoUrl())->render(),
@@ -147,13 +220,13 @@ class MailboxController extends Controller
             ]);
 
             if ($status === 'outbox') {
-                SendMailboxMessage::dispatch($message->id, $employee->email, $mailable);
+                SendMailboxMessage::dispatch($message->id, $recipient->email, $mailable);
             }
         }
 
         $key = $status === 'outbox' ? 'mailbox.flash.queued' : 'mailbox.flash.drafts_created';
 
-        return redirect()->back()->with('success', __($key, ['count' => $employees->count()]));
+        return redirect()->back()->with('success', __($key, ['count' => $sendable->count()]));
     }
 
     public function updateTemplate(Request $request, MessageType $type)
