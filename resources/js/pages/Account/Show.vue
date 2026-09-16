@@ -5,7 +5,7 @@ import AppLayout from '@/layouts/AppLayout.vue'
 import Card from '@/components/ui/Card.vue'
 import CardSeparator from '@/components/ui/CardSeparator.vue'
 import LabeledInput from '@/components/LabeledInput.vue'
-import { EmailInput, PasswordInput } from '@/components/ui/Input'
+import { EmailInput, PasswordInput, SelectInput } from '@/components/ui/Input'
 import ButtonPrimary from '@/components/ui/ButtonPrimary.vue'
 import { useI18n } from '@/composables/useI18n'
 import { useAuth } from '@/composables/useAuth'
@@ -15,6 +15,7 @@ const { user } = useAuth()
 
 const props = defineProps({
     hasPassword: { type: Boolean, default: false },
+    businessLines: { type: Array, default: () => [] },
 })
 
 const canLinkEmployee = computed(
@@ -35,6 +36,21 @@ function savePassword() {
 
 function addAsEmployee() {
     router.post('/account/employee')
+}
+
+const businessLineForm = useForm({
+    business_line_id: user.value?.business_line_id ?? null,
+})
+
+const businessLineOptions = computed(() => [
+    { value: null, label: __('account.business_line.none') },
+    ...props.businessLines.map((line) => ({ value: line.id, label: line.abbreviation })),
+])
+
+function saveBusinessLine() {
+    businessLineForm.put('/account/business-line', {
+        onSuccess: () => businessLineForm.defaults(),
+    })
 }
 </script>
 
@@ -80,6 +96,25 @@ function addAsEmployee() {
                         <div class="flex justify-end">
                             <ButtonPrimary type="submit" :disabled="passwordForm.processing">
                                 {{ __('account.password.save') }}
+                            </ButtonPrimary>
+                        </div>
+                    </form>
+                </section>
+
+                <CardSeparator />
+
+                <section class="space-y-4" data-testid="business-line">
+                    <h3 class="text-sm font-semibold text-(--color-text-primary)">
+                        {{ __('account.business_line.heading') }}
+                    </h3>
+                    <form data-testid="business-line-form" class="space-y-4" @submit.prevent="saveBusinessLine">
+                        <LabeledInput :label="__('account.business_line.label')" :error="businessLineForm.errors.business_line_id">
+                            <SelectInput v-model="businessLineForm.business_line_id" :options="businessLineOptions" class="w-full" />
+                        </LabeledInput>
+
+                        <div class="flex justify-end">
+                            <ButtonPrimary type="submit" :disabled="businessLineForm.processing || !businessLineForm.isDirty">
+                                {{ __('account.business_line.save') }}
                             </ButtonPrimary>
                         </div>
                     </form>

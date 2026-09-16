@@ -201,6 +201,21 @@ describe("ShiftWeekTable", () => {
         w.unmount();
     });
 
+    it("flags a workcenter-not-preferred employee in the assign popover with a warning icon", async () => {
+        axiosGet.mockResolvedValue({
+            data: [{ id: 3, name: "Els de Vries", not_preferred: false, workcenter_not_preferred: true }],
+        });
+        const w = mountTable();
+
+        await w.get('[data-testid="cell-9-2026-09-17-0"] button').trigger("click");
+        await flushPromises();
+
+        const popover = bodyWrapper().get('[data-testid="assign-popover"]');
+        expect(popover.find('[data-testid="workcenter-not-preferred-icon"]').exists()).toBe(true);
+        expect(popover.find('[data-testid="not-preferred-icon"]').exists()).toBe(false);
+        w.unmount();
+    });
+
     it("flips the assign popover above the trigger when there isn't room below the viewport", async () => {
         const originalInnerHeight = window.innerHeight;
         const offsetHeightSpy = vi.spyOn(window.HTMLElement.prototype, "offsetHeight", "get").mockReturnValue(200);

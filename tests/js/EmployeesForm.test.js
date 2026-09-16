@@ -15,6 +15,11 @@ const en = {
     "availability.questions.heading": "Questions",
     "competences.tab": "Competences",
     "competences.checklist_empty": "No competences have been set up yet.",
+    "workcenters.employee_tab": "Workcenters",
+    "workcenters.checklist_empty": "No workcenters have been set up yet.",
+    "workcenters.archived_suffix": ":name (archived)",
+    "workcenters.mode.hard": "Requirement",
+    "workcenters.mode.soft": "Preference",
     "planning.tab": "Planning",
     "planning.empty": "No planned shifts yet.",
     "planning.published": "Published",
@@ -97,6 +102,7 @@ import HolidayList from "@/components/HolidayList.vue";
 import AvailabilityGrid from "@/components/AvailabilityGrid.vue";
 import ShiftNote from "@/components/ShiftNote.vue";
 import TagChecklist from "@/components/TagChecklist.vue";
+import WorkcenterChecklist from "@/components/WorkcenterChecklist.vue";
 import QuestionChecklist from "@/components/QuestionChecklist.vue";
 import EmployeePlanningSettings from "@/components/EmployeePlanningSettings.vue";
 import { NumberInput } from "@/components/ui/Input";
@@ -122,6 +128,7 @@ describe("Employees/Form", () => {
         expect(tabs[0]).toBe("Settings");
         expect(tabs).toContain("Details");
         expect(tabs).toContain("Availability");
+        expect(tabs).toContain("Workcenters");
         expect(tabs).toContain("Planning");
         expect(tabs).not.toContain("Information");
         expect(w.find('[data-testid="panel-information"]').exists()).toBe(false);
@@ -330,6 +337,24 @@ describe("Employees/Form", () => {
         expect(lists[0].props("items")).toEqual([{ id: 1, name: "Forklift", read_only: false }]);
         expect(lists[1].props("items")).toEqual([{ id: 2, name: "Cleanroom", read_only: true }]);
         expect(lists.every((list) => list.props("disabled") === false)).toBe(true);
+    });
+
+    it("shows a Workcenters tab with the workcenter checklist", async () => {
+        const w = mount(Form, {
+            props: {
+                employee: { id: 3, name: "A", email: "a@b.c", weekly_hours: 24 },
+                holidays: [],
+                workcenters: [{ id: 1, name: "Assembly A", archived: false }],
+                employeeWorkcenterAssignments: [{ workcenter_id: 1, mode: "hard" }],
+            },
+            global: { stubs },
+        });
+
+        const tab = w.findAll("button").find((b) => b.text() === "Workcenters");
+        await tab.trigger("click");
+        await w.vm.$nextTick();
+
+        expect(w.findComponent(WorkcenterChecklist).props("selectedRows")).toEqual([{ workcenter_id: 1, mode: "hard" }]);
     });
 
     it("forwards the business lines to EmployeeFields and preselects the employee's line", () => {
@@ -560,6 +585,82 @@ describe("Employees/Form", () => {
         await flushPromises();
 
         expect(routerCalls).toContainEqual(["put", "/employees/3/competences/1", {}]);
+    });
+
+    it("attaches a newly selected workcenter row with a PUT carrying its mode", async () => {
+        const w = mount(Form, {
+            props: {
+                employee: { id: 3, first_name: "A", last_name: "B", email: "a@b.c", weekly_hours: 24 },
+                holidays: [],
+                workcenters: [{ id: 1, name: "Assembly A", archived: false }],
+                employeeWorkcenterAssignments: [],
+            },
+            global: { stubs },
+        });
+        w.findComponent(WorkcenterChecklist).vm.$emit("update:selectedRows", [{ workcenter_id: 1, mode: "hard" }]);
+        await w.vm.$nextTick();
+
+        await findSaveButton(w).trigger("click");
+        await flushPromises();
+
+        expect(routerCalls).toContainEqual(["put", "/employees/3/workcenters/1", { mode: "hard" }]);
+    });
+
+    it("detaches an unselected workcenter row with a DELETE", async () => {
+        const w = mount(Form, {
+            props: {
+                employee: { id: 3, first_name: "A", last_name: "B", email: "a@b.c", weekly_hours: 24 },
+                holidays: [],
+                workcenters: [{ id: 1, name: "Assembly A", archived: false }],
+                employeeWorkcenterAssignments: [{ workcenter_id: 1, mode: "hard" }],
+            },
+            global: { stubs },
+        });
+        w.findComponent(WorkcenterChecklist).vm.$emit("update:selectedRows", []);
+        await w.vm.$nextTick();
+
+        await findSaveButton(w).trigger("click");
+        await flushPromises();
+
+        expect(routerCalls).toContainEqual(["delete", "/employees/3/workcenters/1"]);
+    });
+
+    it("re-puts a workcenter row whose mode changed", async () => {
+        const w = mount(Form, {
+            props: {
+                employee: { id: 3, first_name: "A", last_name: "B", email: "a@b.c", weekly_hours: 24 },
+                holidays: [],
+                workcenters: [{ id: 1, name: "Assembly A", archived: false }],
+                employeeWorkcenterAssignments: [{ workcenter_id: 1, mode: "hard" }],
+            },
+            global: { stubs },
+        });
+        w.findComponent(WorkcenterChecklist).vm.$emit("update:selectedRows", [{ workcenter_id: 1, mode: "soft" }]);
+        await w.vm.$nextTick();
+
+        await findSaveButton(w).trigger("click");
+        await flushPromises();
+
+        expect(routerCalls).toContainEqual(["put", "/employees/3/workcenters/1", { mode: "soft" }]);
+    });
+
+    it("Cancel resets pending workcenter rows to the last-saved state", async () => {
+        const w = mount(Form, {
+            props: {
+                employee: { id: 3, first_name: "A", last_name: "B", email: "a@b.c", weekly_hours: 24 },
+                holidays: [],
+                workcenters: [{ id: 1, name: "Assembly A", archived: false }],
+                employeeWorkcenterAssignments: [{ workcenter_id: 1, mode: "hard" }],
+            },
+            global: { stubs },
+        });
+        w.findComponent(WorkcenterChecklist).vm.$emit("update:selectedRows", []);
+        await w.vm.$nextTick();
+
+        await findCancelButton(w).trigger("click");
+        await w.vm.$nextTick();
+
+        expect(w.findComponent(WorkcenterChecklist).props("selectedRows")).toEqual([{ workcenter_id: 1, mode: "hard" }]);
     });
 
     it("keeps Save enabled and marks the Availability tab on a failed availability save", async () => {

@@ -16,12 +16,18 @@ const isAdmin = computed(() => currentUser.value?.role === 'admin')
 
 const props = defineProps({
     user: { type: Object, default: null },
+    businessLines: { type: Array, default: () => [] },
 })
 
 const isEdit = computed(() => props.user !== null)
 // /users/create is admin-only at the route level, so this only ever
 // applies once editing an existing user.
 const readOnly = computed(() => isEdit.value && !isAdmin.value)
+// A non-admin can't submit the main form (PUT /users/{user} is admin-only),
+// but they can still reassign their own business line via the self-service
+// /account/business-line endpoint — same one the Account page uses.
+const isOwnRecord = computed(() => isEdit.value && currentUser.value?.id === props.user?.id)
+const businessLineSelfEditable = computed(() => readOnly.value && isOwnRecord.value)
 
 const title = computed(() => {
     if (!isEdit.value) return __('users.form.create_title')
@@ -33,12 +39,28 @@ const form = useForm({
     email: props.user?.email ?? '',
     role: props.user?.role ?? 'manager',
     is_active: props.user?.is_active ?? true,
+    business_line_id: props.user?.business_line_id ?? null,
 })
 
 const roleOptions = computed(() => [
     { value: 'manager', label: __('users.role.manager') },
     { value: 'admin', label: __('users.role.admin') },
 ])
+
+const businessLineOptions = computed(() => [
+    { value: null, label: __('users.field.business_line_none') },
+    ...props.businessLines.map((line) => ({ value: line.id, label: line.abbreviation })),
+])
+
+const selfBusinessLineForm = useForm({
+    business_line_id: props.user?.business_line_id ?? null,
+})
+
+function saveSelfBusinessLine() {
+    selfBusinessLineForm.put('/account/business-line', {
+        onSuccess: () => selfBusinessLineForm.defaults(),
+    })
+}
 
 function submit() {
     if (isEdit.value) {
@@ -69,6 +91,36 @@ function submit() {
 
                 <LabeledInput :label="__('users.field.role')" :error="form.errors.role">
                     <SelectInput v-model="form.role" :options="roleOptions" :disabled="readOnly" class="w-full" />
+                </LabeledInput>
+
+                <LabeledInput
+                    v-if="businessLines.length"
+                    :label="__('users.field.business_line')"
+                    :error="businessLineSelfEditable ? selfBusinessLineForm.errors.business_line_id : form.errors.business_line_id"
+                >
+                    <div class="flex items-center gap-3">
+                        <SelectInput
+                            v-if="businessLineSelfEditable"
+                            v-model="selfBusinessLineForm.business_line_id"
+                            :options="businessLineOptions"
+                            class="w-full"
+                        />
+                        <SelectInput
+                            v-else
+                            v-model="form.business_line_id"
+                            :options="businessLineOptions"
+                            :disabled="readOnly"
+                            class="w-full"
+                        />
+                        <ButtonPrimary
+                            v-if="businessLineSelfEditable"
+                            type="button"
+                            :disabled="selfBusinessLineForm.processing || !selfBusinessLineForm.isDirty"
+                            @click="saveSelfBusinessLine"
+                        >
+                            {{ __('users.action.save') }}
+                        </ButtonPrimary>
+                    </div>
                 </LabeledInput>
 
                 <LabeledInput v-if="isEdit" :label="__('users.field.active')" :error="form.errors.is_active">

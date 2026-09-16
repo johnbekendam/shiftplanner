@@ -13,6 +13,7 @@ import ShiftNote from '@/components/ShiftNote.vue'
 import HolidayList from '@/components/HolidayList.vue'
 import QuestionChecklist from '@/components/QuestionChecklist.vue'
 import TagChecklist from '@/components/TagChecklist.vue'
+import WorkcenterChecklist from '@/components/WorkcenterChecklist.vue'
 import PlannedShiftsList from '@/components/PlannedShiftsList.vue'
 import ButtonPrimary from '@/components/ui/ButtonPrimary.vue'
 import ButtonSecondary from '@/components/ui/ButtonSecondary.vue'
@@ -38,6 +39,8 @@ const props = defineProps({
     availability: { type: Array, default: () => [] },
     competences: { type: Array, default: () => [] },
     competenceIds: { type: Array, default: () => [] },
+    workcenters: { type: Array, default: () => [] },
+    employeeWorkcenterAssignments: { type: Array, default: () => [] },
     questions: { type: Array, default: () => [] },
     questionAnswers: { type: Array, default: () => [] },
     // [{ weekStart, weekEnd, published, assignments }] — every assignment, draft included.
@@ -73,6 +76,7 @@ const tabs = computed(() => [
             || registry.hasError('holidays') || registry.hasError('questions'),
     },
     { value: 'competences', label: __('competences.tab'), hasError: registry.hasError('competences') },
+    { value: 'workcenters', label: __('workcenters.employee_tab'), hasError: registry.hasError('workcenters') },
     { value: 'planning', label: __('planning.tab') },
 ])
 
@@ -278,6 +282,47 @@ if (isEdit.value) {
     })
 }
 
+// ── Workcenters: rows carry a mode, unlike the plain id-set toggles above ──
+const workcentersVersion = ref(0)
+const pendingWorkcenterRows = ref(props.employeeWorkcenterAssignments.map((row) => ({ ...row })))
+const savedWorkcenterRows = ref(props.employeeWorkcenterAssignments.map((row) => ({ ...row })))
+
+function onWorkcenterRowsChange(rows) {
+    pendingWorkcenterRows.value = rows
+}
+
+if (isEdit.value) {
+    registry.register('workcenters', {
+        isDirty: () => {
+            const before = new Map(savedWorkcenterRows.value.map((r) => [r.workcenter_id, r.mode]))
+            const after = new Map(pendingWorkcenterRows.value.map((r) => [r.workcenter_id, r.mode]))
+            if (before.size !== after.size) return true
+            return [...after].some(([id, mode]) => before.get(id) !== mode)
+        },
+        save: async () => {
+            const before = new Map(savedWorkcenterRows.value.map((r) => [r.workcenter_id, r.mode]))
+            const after = new Map(pendingWorkcenterRows.value.map((r) => [r.workcenter_id, r.mode]))
+            const toPut = [...after].filter(([id, mode]) => before.get(id) !== mode)
+            const toDeleteIds = [...before.keys()].filter((id) => !after.has(id))
+
+            const results = await Promise.allSettled([
+                ...toPut.map(([id, mode]) => putAsync(`/employees/${props.employee.id}/workcenters/${id}`, { mode })
+                    .then(() => {
+                        savedWorkcenterRows.value = [
+                            ...savedWorkcenterRows.value.filter((r) => r.workcenter_id !== id),
+                            { workcenter_id: id, mode },
+                        ]
+                    })),
+                ...toDeleteIds.map((id) => deleteAsync(`/employees/${props.employee.id}/workcenters/${id}`)
+                    .then(() => {
+                        savedWorkcenterRows.value = savedWorkcenterRows.value.filter((r) => r.workcenter_id !== id)
+                    })),
+            ])
+            return results.every((r) => r.status === 'fulfilled')
+        },
+    })
+}
+
 // ── Save / Cancel (edit mode only) ────────────────────────────────────
 const justSaved = ref(false)
 
@@ -309,6 +354,9 @@ function onCancelClick() {
 
     pendingCompetenceIds.value = [...savedCompetenceIds.value]
     competencesVersion.value++
+
+    pendingWorkcenterRows.value = savedWorkcenterRows.value.map((row) => ({ ...row }))
+    workcentersVersion.value++
 }
 
 // ── Delete: admin/manager counterpart of the employee's own Withdraw ────
@@ -436,6 +484,16 @@ function onDeleteConfirm() {
                         @update:selected-ids="onSelectedCompetenceIdsChange($event, readOnlyCompetences)"
                     />
                 </template>
+            </div>
+
+            <div v-if="isEdit" v-show="tab === 'workcenters'" data-testid="panel-workcenters" class="p-6">
+                <WorkcenterChecklist
+                    :key="workcentersVersion"
+                    :items="workcenters"
+                    :selected-rows="savedWorkcenterRows"
+                    empty-key="workcenters.checklist_empty"
+                    @update:selected-rows="onWorkcenterRowsChange"
+                />
             </div>
 
             <div v-if="isEdit" v-show="tab === 'settings'" data-testid="panel-settings" class="p-6">

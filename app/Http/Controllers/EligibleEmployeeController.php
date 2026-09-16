@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Employee;
 use App\Models\Shift;
 use App\Models\ShiftAssignment;
+use App\Models\Workcenter;
 use App\Services\SchedulingEligibility;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -21,6 +22,7 @@ class EligibleEmployeeController extends Controller
             'date' => ['required', 'date_format:Y-m-d'],
         ]);
 
+        $workcenter = Workcenter::findOrFail($data['workcenter_id']);
         $shift = Shift::findOrFail($data['shift_id']);
         $date = Carbon::parse($data['date']);
         $weekday = $date->isoWeekday();
@@ -40,11 +42,13 @@ class EligibleEmployeeController extends Controller
             ->reject(fn (Employee $employee) => ! $shift->visible_by_default
                 || $this->eligibility->isOnHoliday($employee, $date)
                 || $this->eligibility->isUnavailable($employee, $weekday, $shift)
-                || $this->eligibility->hasOverlap($employee, $date, $shift))
+                || $this->eligibility->hasOverlap($employee, $date, $shift)
+                || $this->eligibility->isWorkcenterIneligible($employee, $workcenter))
             ->map(fn (Employee $employee) => [
                 'id' => $employee->id,
                 'name' => $employee->name,
                 'not_preferred' => $this->eligibility->isNotPreferred($employee, $weekday, $shift),
+                'workcenter_not_preferred' => $this->eligibility->isWorkcenterNotPreferred($employee, $workcenter),
             ])
             ->values();
 

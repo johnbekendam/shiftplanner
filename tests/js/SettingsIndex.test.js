@@ -111,6 +111,7 @@ import ShiftNoteForm from "@/components/ShiftNoteForm.vue";
 import ScheduleNoteForm from "@/components/ScheduleNoteForm.vue";
 import PeriodSettingsForm from "@/components/PeriodSettingsForm.vue";
 import { NumberInput, MultilineInput } from "@/components/ui/Input";
+import SelectInput from "@/components/ui/Input/Select.vue";
 
 const stubs = { AppLayout: { template: "<div><slot /></div>" } };
 
@@ -119,6 +120,7 @@ const mountPage = (props = {}) =>
         props: {
             competences: [],
             businessLines: [],
+            users: [],
             shifts: [],
             workcenters: [],
             shiftNote: "",
@@ -273,6 +275,59 @@ describe("Settings/Index", () => {
         });
         const list = w.findComponent(BusinessLineList);
         expect(list.props("items")).toHaveLength(1);
+    });
+
+    it("passes the users prop through to the Business lines list", () => {
+        const users = [{ id: 5, name: "Alice", business_line_id: 3, is_active: true }];
+        const w = mountPage({ users });
+        expect(w.findComponent(BusinessLineList).props("users")).toEqual(users);
+    });
+
+    it("offers an active, assigned user as responsible through the real Business lines list", () => {
+        const users = [{ id: 5, name: "Alice", business_line_id: 3, is_active: true }];
+        const w = mountPage({
+            businessLines: [{ id: 3, abbreviation: "PMP", description: "Pumps", target_fte: 4, employee_count: 0 }],
+            users,
+        });
+
+        const row = w.get('[data-testid="business-line-row"]');
+        expect(row.getComponent(SelectInput).props("options")).toContainEqual({ value: 5, label: "Alice" });
+    });
+
+    it("saves a changed responsible user with a PUT including responsible_user_id", async () => {
+        const w = mountPage({
+            businessLines: [
+                {
+                    id: 3,
+                    abbreviation: "PMP",
+                    description: "Pumps",
+                    target_fte: 4,
+                    employee_count: 2,
+                    responsible_user_id: null,
+                },
+            ],
+        });
+        w.findComponent(BusinessLineList).vm.$emit("update:items", [
+            {
+                id: 3,
+                abbreviation: "PMP",
+                description: "Pumps",
+                target_fte: 4,
+                employee_count: 2,
+                responsible_user_id: 5,
+            },
+        ]);
+        await w.vm.$nextTick();
+
+        expect(findSaveButton(w).attributes("disabled")).toBeUndefined();
+        await findSaveButton(w).trigger("click");
+        await flushPromises();
+
+        expect(routerCalls).toContainEqual([
+            "put",
+            "/settings/business-lines/3",
+            { abbreviation: "PMP", description: "Pumps", target_fte: 4, responsible_user_id: 5 },
+        ]);
     });
 
     it("the Business lines Save/Cancel are disabled with nothing changed", () => {

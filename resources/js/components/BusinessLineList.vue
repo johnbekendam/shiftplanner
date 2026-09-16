@@ -3,15 +3,17 @@ import { reactive, ref, watch } from 'vue'
 import ButtonPrimary from '@/components/ui/ButtonPrimary.vue'
 import ButtonDanger from '@/components/ui/ButtonDanger.vue'
 import Icon from '@/components/ui/Icon.vue'
-import { TextInput, NumberInput } from '@/components/ui/Input'
+import { TextInput, NumberInput, SelectInput } from '@/components/ui/Input'
 import { useDragReorder } from '@/composables/useDragReorder'
 import { useI18n } from '@/composables/useI18n'
 
 const __ = useI18n()
 
 const props = defineProps({
-    // Rows of { id, abbreviation, description, target_fte, employee_count }.
+    // Rows of { id, abbreviation, description, target_fte, employee_count, responsible_user_id }.
     items: { type: Array, default: () => [] },
+    // Active users, as { id, name, business_line_id }.
+    users: { type: Array, default: () => [] },
 })
 
 const emit = defineEmits(['update:items'])
@@ -28,6 +30,15 @@ const { dragIndex, onDragStart, onDragOver, onDragEnd } = useDragReorder(rows)
 
 const draft = reactive({ abbreviation: '', description: '', target_fte: null })
 
+function responsibleOptions(businessLineId) {
+    return [
+        { value: null, label: __('business_lines.responsible_none') },
+        ...props.users
+            .filter((user) => user.business_line_id === businessLineId && user.is_active)
+            .map((user) => ({ value: user.id, label: user.name })),
+    ]
+}
+
 function add() {
     if ((draft.abbreviation ?? '').trim() === '') return
 
@@ -40,6 +51,7 @@ function add() {
             description: draft.description,
             target_fte: draft.target_fte,
             employee_count: 0,
+            responsible_user_id: null,
         },
     ]
     draft.abbreviation = ''
@@ -61,6 +73,7 @@ function remove(item) {
                     <th class="w-24 py-2 pr-3 font-medium">{{ __('business_lines.abbreviation') }}</th>
                     <th class="py-2 pr-3 font-medium">{{ __('business_lines.description') }}</th>
                     <th class="w-24 py-2 pr-3 font-medium">{{ __('business_lines.target_fte') }}</th>
+                    <th class="w-40 py-2 pr-3 font-medium">{{ __('business_lines.responsible') }}</th>
                     <th class="w-14 py-2" />
                 </tr>
             </thead>
@@ -103,6 +116,15 @@ function remove(item) {
                             :data-testid="`business-line-target-fte-${item.id ?? item._key}`"
                         />
                     </td>
+                    <td class="py-2 pr-3 align-top">
+                        <SelectInput
+                            v-model="item.responsible_user_id"
+                            :options="responsibleOptions(item.id)"
+                            :disabled="item.id === null"
+                            class="w-full"
+                            :data-testid="`business-line-responsible-${item.id ?? item._key}`"
+                        />
+                    </td>
                     <td class="px-1 py-2 align-top">
                         <ButtonDanger
                             type="button"
@@ -115,7 +137,7 @@ function remove(item) {
                 </tr>
 
                 <tr v-if="!rows.length">
-                    <td colspan="5" class="py-6 text-center text-(--color-text-secondary)">
+                    <td colspan="6" class="py-6 text-center text-(--color-text-secondary)">
                         {{ __('business_lines.list_empty') }}
                     </td>
                 </tr>
@@ -139,6 +161,7 @@ function remove(item) {
                     <td class="py-2 pr-3 align-top">
                         <NumberInput v-model="draft.target_fte" :min="0" :step="0.1" class="w-full" />
                     </td>
+                    <td class="py-2 pr-3 align-top" />
                     <td class="px-1 py-2 text-right align-top">
                         <ButtonPrimary
                             type="submit"

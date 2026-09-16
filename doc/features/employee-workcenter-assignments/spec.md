@@ -71,10 +71,10 @@ A new **Workcenters** tab sits on `Employees/Form.vue`, after
 **Competences**. It lists one row per workcenter: every non-archived
 workcenter, plus any archived workcenter the employee already holds a
 row for, suffixed "(archived)" so a manager can still see and clear a
-stale link. Each row has a checkbox. Checking it reveals a Hard/Soft
-`SelectInput` next to it, reusing the "Hard"/"Soft" wording that
-`planning_rules.mode.hard`/`.mode.soft` already use. Unchecking a row
-clears it.
+stale link. Each row has a checkbox. Checking it reveals a
+Requirement/Preference `SelectInput` next to it — this page's own wording
+for `hard`/`soft`, distinct from `planning_rules.mode.hard`/`.mode.soft`'s
+"Hard"/"Soft" wording. Unchecking a row clears it.
 
 The tab follows the explicit-save model every other tab on this page
 already uses (`doc/features/explicit-save-consolidation/`). It holds
@@ -137,10 +137,10 @@ availability works the same way today.
 
 New keys: `workcenters.employee_tab` ("Workcenters," distinct from the
 Settings tab's own `workcenters.*` keys already in use),
-`workcenters.checklist_empty`, `workcenters.mode.hard`,
-`workcenters.mode.soft` (or the implementer may reuse
-`planning_rules.mode.hard`/`.soft` directly, since a shared key reads
-the same to a user as a namespaced one), and
+`workcenters.checklist_empty`, `workcenters.archived_suffix`,
+`workcenters.mode.hard` ("Requirement"), `workcenters.mode.soft`
+("Preference") — this page's own wording, deliberately distinct from
+`planning_rules.mode.hard`/`.soft`'s "Hard"/"Soft" — and
 `scheduling.error.workcenter_ineligible`.
 
 ## Key decisions
@@ -163,7 +163,10 @@ the same to a user as a namespaced one), and
   problem the app already solves one way.
 - **`mode` reuses the existing `hard`/`soft` vocabulary** that
   `PlanningRule` already stores, rather than new terms such as `level`
-  or `strength` for the same concept.
+  or `strength` for the same concept — this is the stored/API value only.
+  The displayed label on this page is "Requirement"/"Preference," not
+  "Hard"/"Soft"; `planning_rules.mode.*` keeps its own "Hard"/"Soft"
+  wording unchanged.
 - **Manager-only, with no personal-page surface.** The manager judges
   this assignment, unlike availability and competences, which the
   employee also reports. Please confirm this choice. Grilling did not

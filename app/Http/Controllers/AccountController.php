@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\BusinessLine;
 use App\Models\Employee;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -14,7 +15,25 @@ class AccountController extends Controller
     {
         return Inertia::render('Account/Show', [
             'hasPassword' => $request->user()->password !== null,
+            'businessLines' => BusinessLine::query()->get(['id', 'abbreviation'])->all(),
         ]);
+    }
+
+    public function updateBusinessLine(Request $request)
+    {
+        $user = $request->user();
+
+        $data = $request->validate([
+            'business_line_id' => ['nullable', 'exists:business_lines,id'],
+        ]);
+
+        if ($user->business_line_id !== ($data['business_line_id'] ?? null)) {
+            BusinessLine::where('responsible_user_id', $user->id)->update(['responsible_user_id' => null]);
+        }
+
+        $user->update($data);
+
+        return back()->with('success', __('account.flash.business_line_saved'));
     }
 
     public function updatePassword(Request $request)

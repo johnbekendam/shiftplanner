@@ -24,6 +24,7 @@ class User extends Authenticatable
         'is_active',
         'role',
         'employee_id',
+        'business_line_id',
     ];
 
     protected $hidden = [
@@ -47,6 +48,11 @@ class User extends Authenticatable
     public function employee(): BelongsTo
     {
         return $this->belongsTo(Employee::class);
+    }
+
+    public function businessLine(): BelongsTo
+    {
+        return $this->belongsTo(BusinessLine::class);
     }
 
     public function loginLinks(): HasMany

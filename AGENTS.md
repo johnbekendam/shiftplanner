@@ -38,6 +38,18 @@ through flows). The user verifies UI behavior themselves. Static checks
 (PHP lint, `vite build`, migrations against a copied DB, the test suite)
 are fine.
 
+## Git Workflow
+
+Never commit directly on `main`/`master`. Work on a single persistent
+branch called `work` — do not create a new branch per feature or task.
+If `work` does not exist yet, create it from `main`; otherwise switch to
+it and keep committing there. The user opens pull requests themselves —
+do not push a branch or open a PR unless explicitly asked.
+
+`main` also carries a GitHub ruleset requiring a pull request before
+merging, so a direct push would be rejected server-side regardless. That
+protects the remote; still work on `work` rather than relying on it.
+
 ## Design Rules
 
 ### Styling

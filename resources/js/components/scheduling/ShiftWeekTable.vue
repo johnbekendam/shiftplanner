@@ -356,11 +356,14 @@ onBeforeUnmount(() => {
                         @click="assign(employee)"
                     >
                         <span>{{ employee.name }}</span>
-                        <Icon
-                            v-if="employee.not_preferred"
-                            name="exclamation-triangle"
-                            class="size-3 shrink-0 text-(--color-badge-warning-text)"
-                        />
+                        <span class="flex shrink-0 items-center gap-1">
+                            <span v-if="employee.not_preferred" data-testid="not-preferred-icon" class="contents">
+                                <Icon name="exclamation-triangle" class="size-3 text-(--color-badge-warning-text)" />
+                            </span>
+                            <span v-if="employee.workcenter_not_preferred" data-testid="workcenter-not-preferred-icon" class="contents">
+                                <Icon name="exclamation-triangle" class="size-3 text-(--color-badge-warning-text)" />
+                            </span>
+                        </span>
                     </button>
                 </li>
                 <li v-if="!filteredEligible.length" class="px-1 py-1 text-(--color-text-secondary)">

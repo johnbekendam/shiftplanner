@@ -93,6 +93,11 @@ class Employee extends Model
         return $this->belongsToMany(Competence::class);
     }
 
+    public function workcenters(): BelongsToMany
+    {
+        return $this->belongsToMany(Workcenter::class)->withPivot('mode');
+    }
+
     /** Availability questions the employee answered with yes. */
     public function availabilityQuestions(): BelongsToMany
     {

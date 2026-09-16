@@ -180,6 +180,61 @@ class ShiftAssignmentTest extends TestCase
         $this->assertSame(0, ShiftAssignment::count());
     }
 
+    public function test_store_rejects_an_employee_hard_assigned_elsewhere(): void
+    {
+        $this->actingAsAdmin();
+        $employee = Employee::factory()->create(['confirmed' => true]);
+        $workcenter = Workcenter::factory()->create();
+        $otherWorkcenter = Workcenter::factory()->create();
+        $shift = Shift::factory()->create();
+        $this->setCapacity($workcenter, $shift, $this->aTuesday(), 5);
+        $employee->workcenters()->attach($otherWorkcenter, ['mode' => 'hard']);
+
+        $this->post('/planning/assignments', $this->validPayload($employee, $workcenter, $shift))
+            ->assertSessionHasErrors('employee_id');
+        $this->assertSame(0, ShiftAssignment::count());
+    }
+
+    public function test_store_accepts_an_employee_hard_assigned_to_this_workcenter(): void
+    {
+        $this->actingAsAdmin();
+        $employee = Employee::factory()->create(['confirmed' => true]);
+        $workcenter = Workcenter::factory()->create();
+        $shift = Shift::factory()->create();
+        $this->setCapacity($workcenter, $shift, $this->aTuesday(), 5);
+        $employee->workcenters()->attach($workcenter, ['mode' => 'hard']);
+        RecurringAvailability::factory()->create([
+            'employee_id' => $employee->id,
+            'weekday' => $this->aTuesday()->isoWeekday(),
+            'shift_id' => $shift->id,
+            'level' => 'available',
+        ]);
+
+        $this->post('/planning/assignments', $this->validPayload($employee, $workcenter, $shift))
+            ->assertSessionHasNoErrors();
+        $this->assertSame(1, ShiftAssignment::count());
+    }
+
+    public function test_store_accepts_a_soft_assigned_employee_at_any_workcenter(): void
+    {
+        $this->actingAsAdmin();
+        $employee = Employee::factory()->create(['confirmed' => true]);
+        $workcenter = Workcenter::factory()->create();
+        $shift = Shift::factory()->create();
+        $this->setCapacity($workcenter, $shift, $this->aTuesday(), 5);
+        $employee->workcenters()->attach($workcenter, ['mode' => 'soft']);
+        RecurringAvailability::factory()->create([
+            'employee_id' => $employee->id,
+            'weekday' => $this->aTuesday()->isoWeekday(),
+            'shift_id' => $shift->id,
+            'level' => 'available',
+        ]);
+
+        $this->post('/planning/assignments', $this->validPayload($employee, $workcenter, $shift))
+            ->assertSessionHasNoErrors();
+        $this->assertSame(1, ShiftAssignment::count());
+    }
+
     public function test_store_rejects_an_employee_when_the_shift_is_hidden(): void
     {
         $this->actingAsAdmin();

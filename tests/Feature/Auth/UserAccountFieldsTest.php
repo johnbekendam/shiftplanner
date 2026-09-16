@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Auth;
 
+use App\Models\BusinessLine;
 use App\Models\Employee;
 use App\Models\User;
 use Database\Seeders\DatabaseSeeder;
@@ -62,5 +63,14 @@ class UserAccountFieldsTest extends TestCase
                 ->where('auth.user.role', User::ROLE_ADMIN)
                 ->where('auth.user.employee_id', $employee->id)
             );
+    }
+
+    public function test_shared_auth_user_carries_business_line_id(): void
+    {
+        $line = BusinessLine::factory()->create();
+        $user = User::factory()->create(['business_line_id' => $line->id]);
+
+        $this->actingAs($user)->get('/employees')->assertOk()
+            ->assertInertia(fn ($page) => $page->where('auth.user.business_line_id', $line->id));
     }
 }

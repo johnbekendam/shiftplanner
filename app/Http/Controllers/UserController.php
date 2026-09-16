@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\BusinessLine;
 use App\Models\User;
 use App\Services\Auth\LoginLinkService;
 use Illuminate\Http\Request;
@@ -28,7 +29,7 @@ class UserController extends Controller
 
     public function create()
     {
-        return Inertia::render('Users/Form', ['user' => null]);
+        return Inertia::render('Users/Form', ['user' => null, 'businessLines' => $this->businessLines()]);
     }
 
     public function store(Request $request)
@@ -37,6 +38,7 @@ class UserController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')],
             'role' => ['required', Rule::in(User::ROLES)],
+            'business_line_id' => ['nullable', 'exists:business_lines,id'],
         ]));
 
         $this->links->sendInvite($user);
@@ -54,7 +56,8 @@ class UserController extends Controller
     public function edit(User $user)
     {
         return Inertia::render('Users/Form', [
-            'user' => $user->only(['id', 'name', 'email', 'role', 'is_active']),
+            'user' => $user->only(['id', 'name', 'email', 'role', 'is_active', 'business_line_id']),
+            'businessLines' => $this->businessLines(),
         ]);
     }
 
@@ -65,6 +68,7 @@ class UserController extends Controller
             'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->id)],
             'role' => ['required', Rule::in(User::ROLES)],
             'is_active' => ['required', 'boolean'],
+            'business_line_id' => ['nullable', 'exists:business_lines,id'],
         ]);
 
         $losesAdmin = $data['role'] !== User::ROLE_ADMIN || $data['is_active'] === false;
@@ -73,9 +77,18 @@ class UserController extends Controller
             throw ValidationException::withMessages(['role' => __('users.error.last_admin')]);
         }
 
+        if ($user->business_line_id !== ($data['business_line_id'] ?? null)) {
+            BusinessLine::where('responsible_user_id', $user->id)->update(['responsible_user_id' => null]);
+        }
+
         $user->update($data);
 
         return redirect('/users')->with('success', __('users.flash.updated'));
+    }
+
+    private function businessLines(): array
+    {
+        return BusinessLine::query()->get(['id', 'abbreviation'])->all();
     }
 
     private function noOtherActiveAdmin(User $user): bool

@@ -58,6 +58,10 @@ class ShiftAssignmentController extends Controller
             throw ValidationException::withMessages(['employee_id' => __('scheduling.error.unavailable')]);
         }
 
+        if ($this->eligibility->isWorkcenterIneligible($employee, $workcenter)) {
+            throw ValidationException::withMessages(['employee_id' => __('scheduling.error.workcenter_ineligible')]);
+        }
+
         if ($this->eligibility->hasOverlap($employee, $date, $shift)) {
             throw ValidationException::withMessages(['employee_id' => __('scheduling.error.overlap')]);
         }

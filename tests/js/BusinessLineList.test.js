@@ -11,6 +11,8 @@ const en = {
     "business_lines.drag_handle": "Drag to reorder",
     "business_lines.delete": "Delete",
     "business_lines.list_empty": "No business lines yet.",
+    "business_lines.responsible": "Responsible",
+    "business_lines.responsible_none": "Unassigned",
 };
 
 vi.mock("@inertiajs/vue3", () => ({
@@ -19,13 +21,20 @@ vi.mock("@inertiajs/vue3", () => ({
 
 import BusinessLineList from "@/components/BusinessLineList.vue";
 import { TextInput, NumberInput } from "@/components/ui/Input";
+import SelectInput from "@/components/ui/Input/Select.vue";
 
 const items = [
-    { id: 1, abbreviation: "PMP", description: "Pumps", target_fte: 4, employee_count: 3 },
-    { id: 2, abbreviation: "VLV", description: "Valves", target_fte: 2, employee_count: 0 },
+    { id: 1, abbreviation: "PMP", description: "Pumps", target_fte: 4, employee_count: 3, responsible_user_id: null },
+    { id: 2, abbreviation: "VLV", description: "Valves", target_fte: 2, employee_count: 0, responsible_user_id: null },
 ];
 
-const mountList = (props = {}) => mount(BusinessLineList, { props: { items, ...props } });
+const users = [
+    { id: 10, name: "Alice", business_line_id: 1, is_active: true },
+    { id: 11, name: "Bob", business_line_id: 2, is_active: true },
+    { id: 12, name: "Carl", business_line_id: 1, is_active: false },
+];
+
+const mountList = (props = {}) => mount(BusinessLineList, { props: { items, users, ...props } });
 
 describe("BusinessLineList", () => {
     it("renders a row per item and the three headers", () => {
@@ -105,5 +114,40 @@ describe("BusinessLineList", () => {
 
         await rows[0].trigger("dragend");
         expect(rows[0].classes()).not.toContain("opacity-40");
+    });
+
+    it("offers a None option then only active users assigned to that row's business line", () => {
+        const w = mountList();
+        const rows = w.findAll('[data-testid="business-line-row"]');
+
+        expect(rows[0].getComponent(SelectInput).props("options")).toEqual([
+            { value: null, label: "Unassigned" },
+            { value: 10, label: "Alice" },
+        ]);
+        expect(rows[1].getComponent(SelectInput).props("options")).toEqual([
+            { value: null, label: "Unassigned" },
+            { value: 11, label: "Bob" },
+        ]);
+    });
+
+    it("edits the responsible user locally and emits update:items", async () => {
+        const w = mountList();
+        const firstRow = w.findAll('[data-testid="business-line-row"]')[0];
+        firstRow.getComponent(SelectInput).vm.$emit("update:modelValue", 10);
+        await w.vm.$nextTick();
+
+        const emitted = w.emitted("update:items");
+        expect(emitted.at(-1)[0][0]).toMatchObject({ id: 1, responsible_user_id: 10 });
+    });
+
+    it("disables the responsible picker on a newly added, unsaved row", async () => {
+        const w = mountList({ items: [] });
+        const addRow = w.get('[data-testid="business-line-add-row"]');
+        addRow.findComponent(TextInput).vm.$emit("update:modelValue", "SNS");
+        await w.vm.$nextTick();
+        await w.get("form").trigger("submit");
+
+        const row = w.get('[data-testid="business-line-row"]');
+        expect(row.getComponent(SelectInput).props("disabled")).toBe(true);
     });
 });

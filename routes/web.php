@@ -12,6 +12,7 @@ use App\Http\Controllers\EmployeeCompetenceController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\EmployeeHolidayController;
 use App\Http\Controllers\EmployeeQuestionController;
+use App\Http\Controllers\EmployeeWorkcenterController;
 use App\Http\Controllers\MailboxController;
 use App\Http\Controllers\PeriodController;
 use App\Http\Controllers\PersonalCompetenceController;
@@ -136,6 +137,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/account', [AccountController::class, 'show'])->name('account.show');
     Route::put('/account/password', [AccountController::class, 'updatePassword'])->name('account.password');
     Route::post('/account/employee', [AccountController::class, 'linkEmployee'])->name('account.employee');
+    Route::put('/account/business-line', [AccountController::class, 'updateBusinessLine'])->name('account.business-line');
 
     Route::get('/employees', [EmployeeController::class, 'index'])->name('employees.index');
     Route::get('/employees/create', [EmployeeController::class, 'create'])->name('employees.create');
@@ -155,6 +157,8 @@ Route::middleware('auth')->group(function () {
         ->name('employees.availability.update');
     Route::put('/employees/{employee}/competences/{competence}', [EmployeeCompetenceController::class, 'update'])->name('employees.competences.update');
     Route::delete('/employees/{employee}/competences/{competence}', [EmployeeCompetenceController::class, 'destroy'])->name('employees.competences.destroy');
+    Route::put('/employees/{employee}/workcenters/{workcenter}', [EmployeeWorkcenterController::class, 'update'])->name('employees.workcenters.update');
+    Route::delete('/employees/{employee}/workcenters/{workcenter}', [EmployeeWorkcenterController::class, 'destroy'])->name('employees.workcenters.destroy');
     Route::put('/employees/{employee}/questions/{question}', [EmployeeQuestionController::class, 'update'])->name('employees.questions.update');
 });
 

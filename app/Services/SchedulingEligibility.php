@@ -6,6 +6,7 @@ use App\Models\Employee;
 use App\Models\RecurringAvailability;
 use App\Models\Shift;
 use App\Models\ShiftAssignment;
+use App\Models\Workcenter;
 use Carbon\Carbon;
 
 /**
@@ -30,6 +31,26 @@ class SchedulingEligibility
     public function isNotPreferred(Employee $employee, int $weekday, Shift $shift): bool
     {
         return $this->recurringLevel($employee, $weekday, $shift) === RecurringAvailability::LEVELS[0];
+    }
+
+    /** True only when the employee holds at least one hard row and this workcenter is not one of them. */
+    public function isWorkcenterIneligible(Employee $employee, Workcenter $workcenter): bool
+    {
+        $modes = $employee->workcenters()->pluck('employee_workcenter.mode', 'workcenters.id');
+
+        if (! $modes->contains('hard')) {
+            return false;
+        }
+
+        return ($modes[$workcenter->id] ?? null) !== 'hard';
+    }
+
+    public function isWorkcenterNotPreferred(Employee $employee, Workcenter $workcenter): bool
+    {
+        return $employee->workcenters()
+            ->where('workcenters.id', $workcenter->id)
+            ->wherePivot('mode', 'soft')
+            ->exists();
     }
 
     private function recurringLevel(Employee $employee, int $weekday, Shift $shift): ?string
