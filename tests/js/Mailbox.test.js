@@ -188,6 +188,22 @@ describe("Mailbox — Compose tab", () => {
         expect(postSpy.mock.calls[0][1].employee_ids).toEqual([1]);
     });
 
+    it("disables Preview when the subject or body is empty", async () => {
+        const w = mountCompose({
+            type: "custom",
+            template: { subject: "", body: "" },
+        });
+        const preview = () => w.findAll("button").find((b) => b.text() === "Preview");
+
+        expect(preview().attributes("disabled")).toBeDefined();
+
+        await w.findComponent(TextInput).setValue("Subject");
+        expect(preview().attributes("disabled")).toBeDefined();
+
+        await w.findComponent(MultilineInput).setValue("Body");
+        expect(preview().attributes("disabled")).toBeUndefined();
+    });
+
     it("clicking a placeholder token appends it to the body", async () => {
         const w = mountCompose();
         await w.findAll("button").find((b) => b.text() === ":link").trigger("click");

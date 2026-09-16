@@ -104,6 +104,7 @@ const recipients = computed({
 })
 
 const hasRecipients = computed(() => composeForm.employee_ids.length || composeForm.user_ids.length)
+const hasSubjectAndBody = computed(() => composeForm.subject.trim().length > 0 && composeForm.body.trim().length > 0)
 const recipientPickerOpen = ref(false)
 
 function insertPlaceholder(token) {
@@ -310,7 +311,7 @@ function deleteMessage(message) {
                     <CardSeparator />
 
                     <div class="flex justify-end gap-3">
-                        <ButtonSecondary type="button" icon="eye" @click="previewCompose">
+                        <ButtonSecondary type="button" icon="eye" :disabled="!hasSubjectAndBody" @click="previewCompose">
                             {{ __('mailbox.compose.preview') }}
                         </ButtonSecondary>
                         <ButtonSecondary type="button" :disabled="composeForm.processing || !hasRecipients" @click="submitCompose('draft')">
