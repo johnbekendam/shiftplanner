@@ -38,7 +38,7 @@ function reload() {
     router.get('/reports', {
         shift: shift.value || undefined,
         business_line: businessLine.value || undefined,
-        unconfirmed: includeUnconfirmed.value ? 1 : undefined,
+        unconfirmed: includeUnconfirmed.value ? 1 : 0,
     }, { preserveState: true })
 }
 

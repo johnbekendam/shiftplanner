@@ -20,7 +20,7 @@ Controls above the table:
 
 - **Shift** — defaults to "All shifts".
 - **Business line** — optional filter.
-- **Include unconfirmed employees** — toggle, off by default.
+- **Include unconfirmed employees** — toggle, on by default.
 
 An employee appears in the table when all of these hold:
 
@@ -73,9 +73,9 @@ admin section, near Mailbox.
 - **Employees with `weekly_hours = 0` are excluded.** They have no hours
   to allocate, so asking them to set shift availability is not
   actionable.
-- **Unconfirmed employees are excluded by default.** They are still
-  onboarding. Chasing them for shift availability is premature until a
-  manager opts in.
+- **Unconfirmed employees are included by default.** A manager scanning
+  for gaps wants the full picture first, then can narrow it down by
+  unchecking the toggle.
 - **No email column in the table.** The table is a worklist, not a
   mailing list. The email address only matters once the manager reaches
   Compose.

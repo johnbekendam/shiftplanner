@@ -14,7 +14,7 @@ class ReportController extends Controller
     {
         $shiftId = $request->integer('shift') ?: null;
         $businessLineId = $request->integer('business_line') ?: null;
-        $includeUnconfirmed = $request->boolean('unconfirmed');
+        $includeUnconfirmed = $request->boolean('unconfirmed', true);
 
         return Inertia::render('Reports/Index', [
             'employees' => $this->missingAvailability($shiftId, $businessLineId, $includeUnconfirmed),

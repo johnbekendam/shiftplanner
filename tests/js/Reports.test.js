@@ -47,7 +47,7 @@ const mountIndex = (props = {}) =>
             employees: [],
             shifts,
             businessLines,
-            filters: { shift: null, business_line: null, unconfirmed: false },
+            filters: { shift: null, business_line: null, unconfirmed: true },
             ...props,
         },
         global: { stubs: { AppLayout: { template: "<div><slot /></div>" } } },
@@ -152,6 +152,12 @@ describe("Reports/Index", () => {
         );
     });
 
+    it("checks the include-unconfirmed toggle by default", () => {
+        const w = mountIndex();
+
+        expect(w.findComponent(CheckboxInput).props("modelValue")).toBe(true);
+    });
+
     it("reloads with the unconfirmed query param when the toggle changes", async () => {
         const w = mountIndex({ employees, filters: { shift: 5, business_line: null, unconfirmed: false } });
 
@@ -161,6 +167,19 @@ describe("Reports/Index", () => {
         expect(router.get).toHaveBeenCalledWith(
             "/reports",
             expect.objectContaining({ shift: 5, unconfirmed: 1 }),
+            expect.anything(),
+        );
+    });
+
+    it("sends an explicit unconfirmed=0 when the toggle is unchecked", async () => {
+        const w = mountIndex({ employees, filters: { shift: 5, business_line: null, unconfirmed: true } });
+
+        w.findComponent(CheckboxInput).vm.$emit("update:modelValue", false);
+        await w.vm.$nextTick();
+
+        expect(router.get).toHaveBeenCalledWith(
+            "/reports",
+            expect.objectContaining({ shift: 5, unconfirmed: 0 }),
             expect.anything(),
         );
     });

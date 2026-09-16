@@ -98,25 +98,26 @@ class ReportsTest extends TestCase
         );
     }
 
-    public function test_unconfirmed_employee_is_excluded_by_default(): void
-    {
-        $this->admin();
-        $shift = Shift::factory()->create();
-        Employee::factory()->create(['weekly_hours' => 32, 'confirmed' => false]);
-
-        $this->get("/reports?shift={$shift->id}")->assertInertia(fn ($page) => $page
-            ->where('employees', [])
-        );
-    }
-
-    public function test_unconfirmed_employee_appears_when_toggle_is_on(): void
+    public function test_unconfirmed_employee_appears_by_default(): void
     {
         $this->admin();
         $shift = Shift::factory()->create();
         $employee = Employee::factory()->create(['weekly_hours' => 32, 'confirmed' => false]);
 
-        $this->get("/reports?shift={$shift->id}&unconfirmed=1")->assertInertia(fn ($page) => $page
+        $this->get("/reports?shift={$shift->id}")->assertInertia(fn ($page) => $page
             ->where('employees.0.id', $employee->id)
+            ->where('filters.unconfirmed', true)
+        );
+    }
+
+    public function test_unconfirmed_employee_is_excluded_when_the_toggle_is_off(): void
+    {
+        $this->admin();
+        $shift = Shift::factory()->create();
+        Employee::factory()->create(['weekly_hours' => 32, 'confirmed' => false]);
+
+        $this->get("/reports?shift={$shift->id}&unconfirmed=0")->assertInertia(fn ($page) => $page
+            ->where('employees', [])
         );
     }
 
