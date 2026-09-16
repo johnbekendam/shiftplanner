@@ -83,9 +83,6 @@ const selected = computed(() => [
             <label class="block text-sm font-medium text-(--color-text-primary)">
                 {{ __('mailbox.compose.recipients') }}
             </label>
-            <p class="text-xs text-(--color-text-secondary)">
-                {{ __('mailbox.compose.recipients_selected', { count: selected.length }) }}
-            </p>
 
             <ul class="space-y-1">
                 <li
