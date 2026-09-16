@@ -13,6 +13,7 @@ use App\Models\Message;
 use App\Models\MessageTemplate;
 use App\Models\PlanningSettings;
 use App\Models\Shift;
+use App\Models\Workcenter;
 use App\Services\EmployeePersonalLinkService;
 use App\Services\MessageComposer;
 use App\Services\PersonalLinkMessage;
@@ -130,6 +131,10 @@ class EmployeeController extends Controller
     {
         $shifts = Shift::all();
         $visibleShifts = $shifts->where('visible_by_default', true);
+        $heldWorkcenterIds = $employee->workcenters()->pluck('workcenters.id');
+        $workcenters = Workcenter::query()
+            ->where(fn ($q) => $q->whereNull('archived_at')->orWhereIn('id', $heldWorkcenterIds))
+            ->get();
 
         return Inertia::render('Employees/Form', [
             'employee' => [
@@ -152,6 +157,15 @@ class EmployeeController extends Controller
                 ->map->toPayload()->values()->all(),
             'competences' => Competence::all()->map->toPayload()->all(),
             'competenceIds' => $employee->competences->pluck('id')->all(),
+            'workcenters' => $workcenters->map(fn (Workcenter $workcenter) => [
+                'id' => $workcenter->id,
+                'name' => $workcenter->name,
+                'archived' => $workcenter->archived_at !== null,
+            ])->values()->all(),
+            'employeeWorkcenterAssignments' => $employee->workcenters->map(fn (Workcenter $workcenter) => [
+                'workcenter_id' => $workcenter->id,
+                'mode' => $workcenter->pivot->mode,
+            ])->values()->all(),
             'questions' => AvailabilityQuestion::all()->map->toPayload()->all(),
             'questionAnswers' => $employee->availabilityQuestions->pluck('id')->all(),
             'plannedShifts' => $this->plannedShifts->forEmployee($employee, publishedOnly: false),
