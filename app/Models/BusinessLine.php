@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class BusinessLine extends Model
@@ -15,6 +16,7 @@ class BusinessLine extends Model
         'description',
         'target_fte',
         'position',
+        'responsible_user_id',
     ];
 
     protected function casts(): array
@@ -35,6 +37,11 @@ class BusinessLine extends Model
         return $this->hasMany(Employee::class);
     }
 
+    public function responsibleUser(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'responsible_user_id');
+    }
+
     /** The shape shared with the front end. */
     public function toPayload(): array
     {
@@ -44,6 +51,7 @@ class BusinessLine extends Model
             'description' => $this->description,
             'target_fte' => $this->target_fte,
             'position' => $this->position,
+            'responsible_user_id' => $this->responsible_user_id,
         ];
     }
 }

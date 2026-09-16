@@ -4,6 +4,7 @@ namespace Tests\Feature\Auth;
 
 use App\Enums\MessageType;
 use App\Mail\ComposedMessage;
+use App\Models\BusinessLine;
 use App\Models\Message;
 use App\Models\User;
 use App\Services\Auth\LoginLinkService;
@@ -183,6 +184,114 @@ class UserManagementTest extends TestCase
         $this->assertSame('New', $target->name);
         $this->assertSame(User::ROLE_ADMIN, $target->role);
         $this->assertFalse($target->is_active);
+    }
+
+    // ── Business line ───────────────────────────────────────────────────
+
+    public function test_admin_creates_a_user_with_a_business_line(): void
+    {
+        Mail::fake();
+        $line = BusinessLine::factory()->create();
+
+        $this->actingAs($this->admin())
+            ->post('/users', [
+                'name' => 'Mel', 'email' => 'mel@example.com', 'role' => 'manager', 'business_line_id' => $line->id,
+            ])
+            ->assertRedirect('/users');
+
+        $user = User::whereEmail('mel@example.com')->sole();
+        $this->assertSame($line->id, $user->business_line_id);
+    }
+
+    public function test_an_unknown_business_line_is_rejected_when_creating_a_user(): void
+    {
+        Mail::fake();
+
+        $this->actingAs($this->admin())
+            ->post('/users', ['name' => 'Mel', 'email' => 'mel@example.com', 'role' => 'manager', 'business_line_id' => 999])
+            ->assertSessionHasErrors('business_line_id');
+    }
+
+    public function test_admin_changes_a_users_business_line(): void
+    {
+        $line = BusinessLine::factory()->create();
+        $target = User::factory()->create();
+
+        $this->actingAs($this->admin())->put("/users/{$target->id}", [
+            'name' => $target->name,
+            'email' => $target->email,
+            'role' => $target->role,
+            'is_active' => $target->is_active,
+            'business_line_id' => $line->id,
+        ])->assertRedirect('/users');
+
+        $this->assertSame($line->id, $target->fresh()->business_line_id);
+    }
+
+    public function test_edit_payload_includes_the_users_business_line_and_the_full_list(): void
+    {
+        $line = BusinessLine::factory()->create(['abbreviation' => 'PMP']);
+        $target = User::factory()->create(['business_line_id' => $line->id]);
+
+        $this->actingAs($this->admin())->get("/users/{$target->id}/edit")->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Users/Form')
+                ->where('user.business_line_id', $line->id)
+                ->has('businessLines', 1)
+                ->where('businessLines.0.abbreviation', 'PMP')
+            );
+    }
+
+    public function test_changing_a_users_business_line_clears_them_as_responsible_on_their_old_line(): void
+    {
+        $oldLine = BusinessLine::factory()->create();
+        $newLine = BusinessLine::factory()->create();
+        $target = User::factory()->create(['business_line_id' => $oldLine->id]);
+        $oldLine->update(['responsible_user_id' => $target->id]);
+
+        $this->actingAs($this->admin())->put("/users/{$target->id}", [
+            'name' => $target->name,
+            'email' => $target->email,
+            'role' => $target->role,
+            'is_active' => $target->is_active,
+            'business_line_id' => $newLine->id,
+        ])->assertRedirect('/users');
+
+        $this->assertNull($oldLine->fresh()->responsible_user_id);
+    }
+
+    public function test_clearing_a_users_business_line_clears_them_as_responsible(): void
+    {
+        $line = BusinessLine::factory()->create();
+        $target = User::factory()->create(['business_line_id' => $line->id]);
+        $line->update(['responsible_user_id' => $target->id]);
+
+        $this->actingAs($this->admin())->put("/users/{$target->id}", [
+            'name' => $target->name,
+            'email' => $target->email,
+            'role' => $target->role,
+            'is_active' => $target->is_active,
+            'business_line_id' => null,
+        ])->assertRedirect('/users');
+
+        $this->assertNull($line->fresh()->responsible_user_id);
+    }
+
+    public function test_keeping_the_same_business_line_does_not_disturb_responsibility(): void
+    {
+        $line = BusinessLine::factory()->create();
+        $target = User::factory()->create(['business_line_id' => $line->id]);
+        $line->update(['responsible_user_id' => $target->id]);
+
+        $this->actingAs($this->admin())->put("/users/{$target->id}", [
+            'name' => 'Renamed',
+            'email' => $target->email,
+            'role' => $target->role,
+            'is_active' => $target->is_active,
+            'business_line_id' => $line->id,
+        ])->assertRedirect('/users');
+
+        $this->assertSame($target->id, $line->fresh()->responsible_user_id);
     }
 
     // ── Last-admin guard ────────────────────────────────────────────────

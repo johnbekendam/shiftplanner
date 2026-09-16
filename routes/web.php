@@ -137,6 +137,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/account', [AccountController::class, 'show'])->name('account.show');
     Route::put('/account/password', [AccountController::class, 'updatePassword'])->name('account.password');
     Route::post('/account/employee', [AccountController::class, 'linkEmployee'])->name('account.employee');
+    Route::put('/account/business-line', [AccountController::class, 'updateBusinessLine'])->name('account.business-line');
 
     Route::get('/employees', [EmployeeController::class, 'index'])->name('employees.index');
     Route::get('/employees/create', [EmployeeController::class, 'create'])->name('employees.create');

@@ -34,7 +34,7 @@ class HandleInertiaRequests extends Middleware
                 'warning' => $request->session()->get('warning'),
             ],
             'auth' => fn () => [
-                'user' => $request->user()?->only(['id', 'name', 'email', 'role', 'employee_id']),
+                'user' => $request->user()?->only(['id', 'name', 'email', 'role', 'employee_id', 'business_line_id']),
             ],
             'appName' => config('app.name'),
         ];

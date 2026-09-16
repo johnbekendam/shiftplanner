@@ -166,6 +166,97 @@ class BusinessLineConfigTest extends TestCase
             ->assertSessionHasNoErrors();
     }
 
+    // ── Responsible person ────────────────────────────────────────────
+
+    public function test_admin_sets_a_responsible_user_assigned_to_the_line(): void
+    {
+        $this->actingAsAdmin();
+        $line = BusinessLine::factory()->create();
+        $user = User::factory()->create(['business_line_id' => $line->id]);
+
+        $this->put("/settings/business-lines/{$line->id}", $this->validPayload(['responsible_user_id' => $user->id]))
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('business_lines', ['id' => $line->id, 'responsible_user_id' => $user->id]);
+    }
+
+    public function test_a_user_not_assigned_to_the_line_is_rejected_as_responsible(): void
+    {
+        $this->actingAsAdmin();
+        $line = BusinessLine::factory()->create();
+        $other = BusinessLine::factory()->create();
+        $user = User::factory()->create(['business_line_id' => $other->id]);
+
+        $this->put("/settings/business-lines/{$line->id}", $this->validPayload(['responsible_user_id' => $user->id]))
+            ->assertSessionHasErrors('responsible_user_id');
+    }
+
+    public function test_an_inactive_user_is_rejected_as_responsible(): void
+    {
+        $this->actingAsAdmin();
+        $line = BusinessLine::factory()->create();
+        $user = User::factory()->inactive()->create(['business_line_id' => $line->id]);
+
+        $this->put("/settings/business-lines/{$line->id}", $this->validPayload(['responsible_user_id' => $user->id]))
+            ->assertSessionHasErrors('responsible_user_id');
+    }
+
+    public function test_responsible_user_id_can_be_cleared(): void
+    {
+        $this->actingAsAdmin();
+        $line = BusinessLine::factory()->create();
+        $user = User::factory()->create(['business_line_id' => $line->id]);
+        $line->update(['responsible_user_id' => $user->id]);
+
+        $this->put("/settings/business-lines/{$line->id}", $this->validPayload(['responsible_user_id' => null]))
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('business_lines', ['id' => $line->id, 'responsible_user_id' => null]);
+    }
+
+    public function test_responsible_user_id_is_rejected_on_create(): void
+    {
+        $this->actingAsAdmin();
+        $user = User::factory()->create();
+
+        $this->post('/settings/business-lines', $this->validPayload([
+            'abbreviation' => 'SNS',
+            'responsible_user_id' => $user->id,
+        ]))->assertSessionHasErrors('responsible_user_id');
+    }
+
+    public function test_settings_business_lines_payload_includes_responsible_user_id(): void
+    {
+        $this->actingAsAdmin();
+        $line = BusinessLine::factory()->create();
+        $user = User::factory()->create(['business_line_id' => $line->id]);
+        $line->update(['responsible_user_id' => $user->id]);
+
+        $this->get('/settings')->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Settings/Index')
+                ->where('businessLines.0.responsible_user_id', $user->id)
+            );
+    }
+
+    public function test_settings_passes_only_active_users(): void
+    {
+        $admin = User::factory()->admin()->create(['name' => 'Zzz Admin']);
+        $this->actingAs($admin);
+        $line = BusinessLine::factory()->create();
+        User::factory()->create(['business_line_id' => $line->id, 'name' => 'Active Amy']);
+        User::factory()->inactive()->create(['business_line_id' => $line->id, 'name' => 'Inactive Ivy']);
+
+        $this->get('/settings')->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Settings/Index')
+                ->has('users', 2)
+                ->where('users.0.name', 'Active Amy')
+                ->where('users.0.business_line_id', $line->id)
+                ->where('users.0.is_active', true)
+            );
+    }
+
     // ── Delete ─────────────────────────────────────────────────────────
 
     public function test_deleting_a_business_line_nulls_its_members(): void

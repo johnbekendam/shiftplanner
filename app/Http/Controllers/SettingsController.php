@@ -7,6 +7,7 @@ use App\Models\BusinessLine;
 use App\Models\Competence;
 use App\Models\PlanningSettings;
 use App\Models\Shift;
+use App\Models\User;
 use App\Models\Workcenter;
 use Inertia\Inertia;
 
@@ -17,6 +18,7 @@ class SettingsController extends Controller
         return Inertia::render('Settings/Index', [
             'competences' => $this->listWithHolderCount(Competence::query()),
             'businessLines' => $this->businessLines(),
+            'users' => $this->users(),
             'shifts' => Shift::all()->map->toPayload()->all(),
             'workcenters' => $this->workcenters(),
             'shiftNote' => PlanningSettings::current()->shift_note ?? '',
@@ -65,6 +67,16 @@ class SettingsController extends Controller
                 ...$line->toPayload(),
                 'employee_count' => $line->employees_count,
             ])
+            ->all();
+    }
+
+    /** Active users, for the business-line responsible-person picker. */
+    private function users(): array
+    {
+        return User::query()
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get(['id', 'name', 'business_line_id', 'is_active'])
             ->all();
     }
 

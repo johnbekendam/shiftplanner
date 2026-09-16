@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\BusinessLine;
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class BusinessLineController extends Controller
 {
@@ -72,6 +73,12 @@ class BusinessLineController extends Controller
             'abbreviation' => ['required', 'string', 'max:10', $this->uniqueAbbreviation($ignore)],
             'description' => ['required', 'string', 'max:255'],
             'target_fte' => ['required', 'numeric', 'min:0'],
+            'responsible_user_id' => [
+                'nullable',
+                Rule::exists('users', 'id')
+                    ->where('business_line_id', $ignore?->id ?? 0)
+                    ->where('is_active', true),
+            ],
         ]);
     }
 

@@ -22,6 +22,7 @@ const __ = useI18n()
 const props = defineProps({
     competences: { type: Array, default: () => [] },
     businessLines: { type: Array, default: () => [] },
+    users: { type: Array, default: () => [] },
     shifts: { type: Array, default: () => [] },
     workcenters: { type: Array, default: () => [] },
     shiftNote: { type: String, default: '' },
@@ -72,7 +73,12 @@ const businessLinesDirty = computed(() => {
     for (const row of current) {
         const orig = committed.find((c) => c.id === row.id)
         if (!orig) continue
-        if (orig.abbreviation !== row.abbreviation || orig.description !== row.description || orig.target_fte !== row.target_fte) {
+        if (
+            orig.abbreviation !== row.abbreviation ||
+            orig.description !== row.description ||
+            orig.target_fte !== row.target_fte ||
+            orig.responsible_user_id !== row.responsible_user_id
+        ) {
             return true
         }
     }
@@ -90,7 +96,12 @@ async function saveBusinessLines() {
     const toEdit = current.filter((r) => {
         if (r.id === null || toDeleteIds.includes(r.id)) return false
         const orig = committed.find((c) => c.id === r.id)
-        return orig && (orig.abbreviation !== r.abbreviation || orig.description !== r.description || orig.target_fte !== r.target_fte)
+        return orig && (
+            orig.abbreviation !== r.abbreviation ||
+            orig.description !== r.description ||
+            orig.target_fte !== r.target_fte ||
+            orig.responsible_user_id !== r.responsible_user_id
+        )
     })
     const newOrder = businessLineOrderIds(current, toDeleteIds)
     const oldOrder = businessLineOrderIds(committed, toDeleteIds)
@@ -102,6 +113,7 @@ async function saveBusinessLines() {
             abbreviation: r.abbreviation,
             description: r.description,
             target_fte: r.target_fte,
+            responsible_user_id: r.responsible_user_id,
         })),
         ...(reorderNeeded ? [putAsync('/settings/business-lines/reorder', { ids: newOrder })] : []),
         ...toAdd.map((r) => postAsync('/settings/business-lines', {
@@ -435,6 +447,7 @@ useUnsavedChangesGuard(() => (
                 <BusinessLineList
                     :key="businessLinesVersion"
                     :items="committedBusinessLines"
+                    :users="props.users"
                     @update:items="onBusinessLinesChange"
                 />
                 <TabSaveBar
