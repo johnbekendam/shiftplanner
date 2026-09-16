@@ -96,15 +96,8 @@ describe("Mailbox — Compose tab", () => {
         expect(w.text()).not.toContain("Alice Ng");
     });
 
-    it("hides the recipients section entirely until someone is added", () => {
+    it("always shows the recipients section, even with nobody selected", () => {
         const w = mountCompose();
-        expect(w.text()).not.toContain("Recipients");
-        // Only the static separator above the button row.
-        expect(w.findAll("hr")).toHaveLength(1);
-    });
-
-    it("shows the recipients card once someone is added, with no extra separator", () => {
-        const w = mountCompose({ preselected_employee_id: 1 });
         expect(w.text()).toContain("Recipients");
         expect(w.findAll("hr")).toHaveLength(1);
     });

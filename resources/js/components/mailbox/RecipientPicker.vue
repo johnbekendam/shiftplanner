@@ -72,9 +72,7 @@ const selected = computed(() => [
 </script>
 
 <template>
-    <!-- Hidden entirely until there is at least one recipient, so there is
-         nothing to show and no "no recipients yet" placeholder. -->
-    <div v-if="selected.length" class="space-y-1">
+    <div class="space-y-1">
         <label class="block text-sm font-medium text-(--color-text-primary)">
             {{ __('mailbox.compose.recipients') }}
         </label>
