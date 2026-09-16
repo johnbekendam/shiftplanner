@@ -195,6 +195,13 @@ describe("Mailbox — Compose tab", () => {
         expect(w.findComponent(MultilineInput).props("modelValue")).toBe("Hi :name, :link :link");
     });
 
+    it("clicking Button inserts a :button[label](url) snippet on its own line", async () => {
+        const w = mountCompose();
+        await w.findAll("button").find((b) => b.text() === "Button").trigger("click");
+
+        expect(w.findComponent(MultilineInput).props("modelValue")).toBe("Hi :name, :link\n\n:button[label](url)");
+    });
+
     it("Custom type has no fixed template and sends to selected users", async () => {
         const w = mountCompose({
             type: "custom",

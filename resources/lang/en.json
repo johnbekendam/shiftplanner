@@ -89,6 +89,7 @@
     "mailbox.compose.body": "Message",
     "mailbox.compose.body_hint": "Markdown formatting is supported. :name and :link are filled in per recipient, where available.",
     "mailbox.compose.insert_placeholder": "Insert:",
+    "mailbox.compose.insert_button": "Button",
     "mailbox.compose.preview": "Preview",
     "mailbox.compose.template_save": "Save",
     "mailbox.compose.template_cancel": "Cancel",

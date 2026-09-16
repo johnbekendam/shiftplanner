@@ -111,6 +111,14 @@ function insertPlaceholder(token) {
     composeForm.body += (needsSpace ? ' ' : '') + token
 }
 
+// A :button[label](url) markdown snippet — MarkdownRenderer turns it into a
+// styled button in the rendered email. "label" and "url" are edited by hand
+// after inserting, same as filling in any other snippet placeholder text.
+function insertButtonSnippet() {
+    const needsNewline = composeForm.body.length > 0 && !composeForm.body.endsWith('\n')
+    composeForm.body += (needsNewline ? '\n\n' : '') + ':button[label](url)'
+}
+
 const templateSaving = ref(false)
 
 // Tracks the last saved subject/body so the Save button can highlight once
@@ -287,6 +295,13 @@ function deleteMessage(message) {
                                 @click="insertPlaceholder(token)"
                             >
                                 {{ token }}
+                            </button>
+                            <button
+                                type="button"
+                                class="rounded-full px-2 py-0.5 text-xs bg-(--color-badge-standard-bg) text-(--color-badge-standard-text) hover:opacity-80"
+                                @click="insertButtonSnippet"
+                            >
+                                {{ __('mailbox.compose.insert_button') }}
                             </button>
                         </div>
                         <p class="mt-1 text-xs text-(--color-text-secondary)">{{ __('mailbox.compose.body_hint') }}</p>
