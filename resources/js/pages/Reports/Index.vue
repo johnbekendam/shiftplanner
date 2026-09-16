@@ -1,24 +1,118 @@
 <script setup>
-import { Head } from '@inertiajs/vue3'
+import { ref, computed, watch } from 'vue'
+import { Head, router } from '@inertiajs/vue3'
 import AppLayout from '@/layouts/AppLayout.vue'
 import Card from '@/components/ui/Card.vue'
+import CardSeparator from '@/components/ui/CardSeparator.vue'
+import Tabs from '@/components/ui/Tabs.vue'
+import LabeledInput from '@/components/LabeledInput.vue'
+import { SelectInput, CheckboxInput } from '@/components/ui/Input'
 import { useI18n } from '@/composables/useI18n'
 
 const __ = useI18n()
 
-defineProps({
+const props = defineProps({
     employees: { type: Array, default: () => [] }, // { id, name, business_line, weekly_hours, confirmed }
     shifts: { type: Array, default: () => [] }, // { id, name, start_time, end_time }
     businessLines: { type: Array, default: () => [] }, // { id, abbreviation }
     filters: { type: Object, required: true }, // { shift, business_line, unconfirmed }
 })
+
+const tabs = [{ value: 'missing-availability', label: __('reports.tab.missing_availability') }]
+const tab = ref('missing-availability')
+
+const shift = ref(props.filters.shift ?? '')
+const businessLine = ref(props.filters.business_line ?? '')
+const includeUnconfirmed = ref(props.filters.unconfirmed)
+
+const shiftOptions = computed(() => props.shifts.map((s) => ({ value: s.id, label: s.name })))
+const businessLineOptions = computed(() => props.businessLines.map((l) => ({ value: l.id, label: l.abbreviation })))
+
+function reload() {
+    router.get('/reports', {
+        shift: shift.value || undefined,
+        business_line: businessLine.value || undefined,
+        unconfirmed: includeUnconfirmed.value ? 1 : undefined,
+    }, { preserveState: true })
+}
+
+watch([shift, businessLine, includeUnconfirmed], reload)
 </script>
 
 <template>
     <Head :title="__('reports.title')" />
     <AppLayout>
-        <Card>
-            {{ __('reports.title') }}
+        <Card class="max-w-4xl">
+            <template #header>
+                <Tabs v-model="tab" :tabs="tabs" />
+            </template>
+
+            <div class="p-6 space-y-5">
+                <div class="flex flex-wrap items-end gap-4">
+                    <LabeledInput :label="__('reports.missing_availability.shift')" class="w-56">
+                        <SelectInput
+                            v-model="shift"
+                            :options="shiftOptions"
+                            :placeholder="__('reports.missing_availability.shift_placeholder')"
+                            class="w-full"
+                        />
+                    </LabeledInput>
+
+                    <LabeledInput :label="__('reports.missing_availability.business_line')" class="w-56">
+                        <SelectInput
+                            v-model="businessLine"
+                            :options="businessLineOptions"
+                            :placeholder="__('reports.missing_availability.business_line_placeholder')"
+                            class="w-full"
+                        />
+                    </LabeledInput>
+
+                    <CheckboxInput v-model="includeUnconfirmed">
+                        {{ __('reports.missing_availability.include_unconfirmed') }}
+                    </CheckboxInput>
+                </div>
+
+                <CardSeparator />
+
+                <p v-if="!filters.shift" class="text-sm text-(--color-text-secondary)">
+                    {{ __('reports.missing_availability.pick_a_shift') }}
+                </p>
+
+                <template v-else>
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="border-b border-(--color-table-header-separator) text-left text-(--color-table-header-text)">
+                                <th class="px-2 py-2 font-medium">{{ __('reports.missing_availability.column.name') }}</th>
+                                <th class="px-2 py-2 font-medium">{{ __('reports.missing_availability.column.business_line') }}</th>
+                                <th class="px-2 py-2 font-medium">{{ __('reports.missing_availability.column.weekly_hours') }}</th>
+                                <th class="px-2 py-2 font-medium">{{ __('reports.missing_availability.column.confirmed') }}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr
+                                v-for="employee in employees"
+                                :key="employee.id"
+                                class="border-b border-(--color-table-row-separator) hover:bg-(--color-table-row-hover-bg)"
+                            >
+                                <td class="px-2 py-2 text-(--color-table-row-text)">{{ employee.name }}</td>
+                                <td class="px-2 py-2 text-(--color-table-row-text)">
+                                    {{ employee.business_line ?? __('reports.missing_availability.no_business_line') }}
+                                </td>
+                                <td class="px-2 py-2 text-(--color-table-row-text)">{{ employee.weekly_hours }}</td>
+                                <td class="px-2 py-2 text-(--color-table-row-text)">
+                                    {{ employee.confirmed
+                                        ? __('reports.missing_availability.confirmed.yes')
+                                        : __('reports.missing_availability.confirmed.no') }}
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <p v-if="employees.length === 0" class="text-sm text-(--color-text-secondary)">
+                        {{ __('reports.missing_availability.empty') }}
+                    </p>
+                </template>
+            </div>
         </Card>
     </AppLayout>
 </template>

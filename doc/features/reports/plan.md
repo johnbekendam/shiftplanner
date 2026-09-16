@@ -1,4 +1,4 @@
-Status: in progress — 1/4
+Status: in progress — 2/4
 
 - [x] 1. Reports route, controller, and missing-availability query
       Add `GET /reports` in the `admin` middleware group. A
@@ -17,7 +17,7 @@ Status: in progress — 1/4
       - The business-line filter narrows the list.
       - No `shift` param returns an empty list.
 
-- [ ] 2. Reports page UI: tab container, controls, and table
+- [x] 2. Reports page UI: tab container, controls, and table
       Build `resources/js/pages/Reports/Index.vue`. Use `Card` with
       `Tabs.vue` in the header, with one tab: "Missing availability". Add
       a shift `SelectInput`, a business-line `SelectInput`, and a
