@@ -18,14 +18,15 @@ them a custom email from the Compose page, with recipients preloaded.
 
 Controls above the table:
 
-- **Shift** — required. No shift selected, no table.
+- **Shift** — defaults to "All shifts".
 - **Business line** — optional filter.
 - **Include unconfirmed employees** — toggle, off by default.
 
 An employee appears in the table when all of these hold:
 
 - They have zero `recurring_availabilities` rows for the picked shift, on
-  any weekday.
+  any weekday. With "All shifts" picked, they have zero rows at all,
+  across every shift.
 - Their `weekly_hours` is greater than 0.
 - They are confirmed, or the "include unconfirmed" toggle is on.
 - If a business-line filter is set, they match it.
@@ -64,6 +65,11 @@ admin section, near Mailbox.
   scheduling. Checking "any weekday missing" would also flag employees
   who filled in most weekdays but missed one. That is a different,
   noisier report the manager did not ask for.
+- **"All shifts" means zero rows at all, not "missing any one shift."**
+  An employee who has set availability for some shifts but not others has
+  still engaged with the feature. "All shifts" surfaces employees who
+  have never touched availability at all, not everyone with a gap
+  somewhere.
 - **Employees with `weekly_hours = 0` are excluded.** They have no hours
   to allocate, so asking them to set shift availability is not
   actionable.

@@ -17,11 +17,7 @@ class ReportController extends Controller
         $includeUnconfirmed = $request->boolean('unconfirmed');
 
         return Inertia::render('Reports/Index', [
-            'employees' => $shiftId === null ? [] : $this->missingAvailability(
-                $shiftId,
-                $businessLineId,
-                $includeUnconfirmed,
-            ),
+            'employees' => $this->missingAvailability($shiftId, $businessLineId, $includeUnconfirmed),
             'shifts' => Shift::all()->map->toPayload()->all(),
             'businessLines' => BusinessLine::all()->map->toPayload()->all(),
             'filters' => [
@@ -32,14 +28,20 @@ class ReportController extends Controller
         ]);
     }
 
-    /** Employees with no recurring-availability row at all for the given shift. */
-    private function missingAvailability(int $shiftId, ?int $businessLineId, bool $includeUnconfirmed): array
+    /**
+     * Employees with no recurring-availability row for the given shift, or,
+     * with no shift picked ("All shifts"), employees with no row at all.
+     */
+    private function missingAvailability(?int $shiftId, ?int $businessLineId, bool $includeUnconfirmed): array
     {
         return Employee::query()
             ->where('weekly_hours', '>', 0)
             ->when(!$includeUnconfirmed, fn ($q) => $q->where('confirmed', true))
             ->when($businessLineId !== null, fn ($q) => $q->where('business_line_id', $businessLineId))
-            ->whereDoesntHave('recurringAvailabilities', fn ($q) => $q->where('shift_id', $shiftId))
+            ->whereDoesntHave(
+                'recurringAvailabilities',
+                fn ($q) => $q->when($shiftId !== null, fn ($q) => $q->where('shift_id', $shiftId)),
+            )
             ->with('businessLine')
             ->orderBy('first_name')
             ->orderBy('last_name')

@@ -34,13 +34,29 @@ class ReportsTest extends TestCase
         $this->get('/reports')->assertForbidden();
     }
 
-    public function test_without_a_shift_the_list_is_empty(): void
+    public function test_without_a_shift_employees_with_no_availability_at_all_appear(): void
     {
         $this->admin();
         Shift::factory()->create();
+        $employee = Employee::factory()->create(['weekly_hours' => 32, 'confirmed' => true]);
 
         $this->get('/reports')->assertInertia(fn ($page) => $page
             ->component('Reports/Index')
+            ->where('employees.0.id', $employee->id)
+        );
+    }
+
+    public function test_without_a_shift_an_employee_with_a_row_for_any_shift_does_not_appear(): void
+    {
+        $this->admin();
+        $shift = Shift::factory()->create();
+        $employee = Employee::factory()->create(['weekly_hours' => 32, 'confirmed' => true]);
+        RecurringAvailability::factory()->create([
+            'employee_id' => $employee->id,
+            'shift_id' => $shift->id,
+        ]);
+
+        $this->get('/reports')->assertInertia(fn ($page) => $page
             ->where('employees', [])
         );
     }

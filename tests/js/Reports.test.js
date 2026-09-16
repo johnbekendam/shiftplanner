@@ -7,7 +7,6 @@ const en = {
     "reports.missing_availability.shift_placeholder": "All shifts",
     "reports.missing_availability.business_line_placeholder": "All business lines",
     "reports.missing_availability.include_unconfirmed": "Include unconfirmed employees",
-    "reports.missing_availability.pick_a_shift": "Select a shift to see who has not set availability for it.",
     "reports.missing_availability.empty": "Every matching employee has set availability for this shift.",
     "reports.missing_availability.column.name": "Name",
     "reports.missing_availability.column.business_line": "Business line",
@@ -64,7 +63,15 @@ describe("Reports/Index", () => {
         const w = mountIndex();
 
         expect(w.text()).toContain("Missing availability");
-        expect(w.text()).toContain("Select a shift to see who has not set availability for it.");
+        expect(w.findComponent(SelectInput).exists()).toBe(true);
+    });
+
+    it("renders one row per employee with no shift selected (All shifts)", () => {
+        const w = mountIndex({ employees, filters: { shift: null, business_line: null, unconfirmed: false } });
+
+        expect(w.text()).toContain("Ann Ant");
+        expect(w.text()).toContain("Bo Bee");
+        expect(w.text()).toContain("PMP");
     });
 
     it("renders one row per employee once a shift is selected", () => {

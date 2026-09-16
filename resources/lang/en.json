@@ -73,7 +73,6 @@
     "reports.missing_availability.shift_placeholder": "All shifts",
     "reports.missing_availability.business_line_placeholder": "All business lines",
     "reports.missing_availability.include_unconfirmed": "Include unconfirmed employees",
-    "reports.missing_availability.pick_a_shift": "Select a shift to see who has not set availability for it.",
     "reports.missing_availability.count": ":count employees missing availability",
     "reports.missing_availability.empty": "Every matching employee has set availability for this shift.",
     "reports.missing_availability.column.name": "Name",
