@@ -105,6 +105,48 @@ describe("Reports/Index", () => {
         );
     });
 
+    it("offers a way back to no shift selected once a shift is picked", () => {
+        const w = mountIndex({ employees, filters: { shift: 5, business_line: null, unconfirmed: false } });
+
+        expect(w.findComponent(SelectInput).props("options")).toContainEqual(
+            expect.objectContaining({ value: "" }),
+        );
+    });
+
+    it("clears the shift filter when the shift is reset to the blank option", async () => {
+        const w = mountIndex({ employees, filters: { shift: 5, business_line: null, unconfirmed: false } });
+
+        w.findComponent(SelectInput).vm.$emit("update:modelValue", "");
+        await w.vm.$nextTick();
+
+        expect(router.get).toHaveBeenCalledWith(
+            "/reports",
+            expect.objectContaining({ shift: undefined }),
+            expect.anything(),
+        );
+    });
+
+    it("offers a way back to no business-line filter once one is picked", () => {
+        const w = mountIndex({ employees, filters: { shift: 5, business_line: 1, unconfirmed: false } });
+
+        expect(w.findAllComponents(SelectInput)[1].props("options")).toContainEqual(
+            expect.objectContaining({ value: "" }),
+        );
+    });
+
+    it("clears the business_line filter when reset to the blank option", async () => {
+        const w = mountIndex({ employees, filters: { shift: 5, business_line: 1, unconfirmed: false } });
+
+        w.findAllComponents(SelectInput)[1].vm.$emit("update:modelValue", "");
+        await w.vm.$nextTick();
+
+        expect(router.get).toHaveBeenCalledWith(
+            "/reports",
+            expect.objectContaining({ shift: 5, business_line: undefined }),
+            expect.anything(),
+        );
+    });
+
     it("reloads with the unconfirmed query param when the toggle changes", async () => {
         const w = mountIndex({ employees, filters: { shift: 5, business_line: null, unconfirmed: false } });
 

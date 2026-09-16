@@ -26,8 +26,14 @@ const shift = ref(props.filters.shift ?? '')
 const businessLine = ref(props.filters.business_line ?? '')
 const includeUnconfirmed = ref(props.filters.unconfirmed)
 
-const shiftOptions = computed(() => props.shifts.map((s) => ({ value: s.id, label: s.name })))
-const businessLineOptions = computed(() => props.businessLines.map((l) => ({ value: l.id, label: l.abbreviation })))
+const shiftOptions = computed(() => [
+    { value: '', label: __('reports.missing_availability.shift_placeholder') },
+    ...props.shifts.map((s) => ({ value: s.id, label: s.name })),
+])
+const businessLineOptions = computed(() => [
+    { value: '', label: __('reports.missing_availability.business_line_placeholder') },
+    ...props.businessLines.map((l) => ({ value: l.id, label: l.abbreviation })),
+])
 
 function reload() {
     router.get('/reports', {
