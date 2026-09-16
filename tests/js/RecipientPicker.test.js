@@ -40,6 +40,17 @@ afterEach(() => {
 });
 
 describe("RecipientPicker", () => {
+    it("shows a count badge next to Recipients once someone is selected, hidden at zero", () => {
+        const empty = mount(RecipientPicker, { props: { employees, users, modelValue: { employee_ids: [], user_ids: [] } } });
+        expect(empty.find("label").text()).toBe("Recipients");
+
+        const withOne = mount(RecipientPicker, { props: { employees, users, modelValue: { employee_ids: [1], user_ids: [] } } });
+        expect(withOne.find("label").text()).toBe("Recipients 1");
+
+        empty.unmount();
+        withOne.unmount();
+    });
+
     it("adds an employee via the + button", async () => {
         const { modal } = mountOpenPicker();
         await modal.findAll("li button")[0].trigger("click");

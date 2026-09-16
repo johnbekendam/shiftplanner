@@ -74,8 +74,14 @@ const selected = computed(() => [
 
 <template>
     <div class="space-y-1">
-        <label class="block text-sm font-medium text-(--color-text-primary)">
+        <label class="flex items-center text-sm font-medium text-(--color-text-primary)">
             {{ __('mailbox.compose.recipients') }}
+            <span
+                v-if="selected.length"
+                class="ml-1.5 inline-flex items-center justify-center rounded-full px-1.5 py-0.5 text-xs bg-[var(--color-badge-standard-bg)] text-[var(--color-badge-standard-text)]"
+            >
+                {{ selected.length }}
+            </span>
         </label>
 
         <Card class="min-h-9 p-3">
