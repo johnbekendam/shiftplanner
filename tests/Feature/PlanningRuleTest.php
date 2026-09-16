@@ -120,42 +120,34 @@ class PlanningRuleTest extends TestCase
     {
         $this->actingAsAdmin();
         $workcenter = Workcenter::factory()->create();
-        $shift = Shift::factory()->create();
         $competence = Competence::factory()->create();
 
         $this->post('/planning-rules', [
             'type' => 'competence_required',
             'mode' => 'hard',
             'workcenter_id' => $workcenter->id,
-            'shift_id' => $shift->id,
             'competence_id' => $competence->id,
         ])->assertRedirect()->assertSessionHasNoErrors();
 
         $rule = PlanningRule::sole();
-        $this->assertSame([
-            'workcenter_id' => $workcenter->id,
-            'shift_id' => $shift->id,
-            'competence_id' => $competence->id,
-        ], $rule->config);
+        $this->assertSame(['workcenter_id' => $workcenter->id, 'competence_id' => $competence->id], $rule->config);
     }
 
     public function test_a_duplicate_competence_requirement_is_rejected(): void
     {
         $this->actingAsAdmin();
         $workcenter = Workcenter::factory()->create();
-        $shift = Shift::factory()->create();
         $competence = Competence::factory()->create();
         PlanningRule::create([
             'type' => 'competence_required',
             'mode' => 'hard',
-            'config' => ['workcenter_id' => $workcenter->id, 'shift_id' => $shift->id, 'competence_id' => $competence->id],
+            'config' => ['workcenter_id' => $workcenter->id, 'competence_id' => $competence->id],
         ]);
 
         $this->post('/planning-rules', [
             'type' => 'competence_required',
             'mode' => 'hard',
             'workcenter_id' => $workcenter->id,
-            'shift_id' => $shift->id,
             'competence_id' => $competence->id,
         ])->assertSessionHasErrors('competence_id');
     }
@@ -165,19 +157,17 @@ class PlanningRuleTest extends TestCase
         $this->actingAsAdmin();
         $workcenter = Workcenter::factory()->create();
         $lineA = BusinessLine::factory()->create();
-        $lineB = BusinessLine::factory()->create();
 
         $this->post('/planning-rules', [
             'type' => 'business_line_preference',
             'mode' => 'soft',
             'severity' => 4,
             'workcenter_id' => $workcenter->id,
-            'business_line_ids' => [$lineA->id, $lineB->id],
+            'business_line_id' => $lineA->id,
         ])->assertRedirect()->assertSessionHasNoErrors();
 
         $rule = PlanningRule::sole();
         $this->assertSame($workcenter->id, $rule->config['workcenter_id']);
-        $this->assertSame([$lineA->id, $lineB->id], $rule->config['business_line_ids']);
     }
 
     public function test_a_second_business_line_preference_for_the_same_workcenter_is_rejected(): void
@@ -187,9 +177,8 @@ class PlanningRuleTest extends TestCase
         $line = BusinessLine::factory()->create();
         PlanningRule::create([
             'type' => 'business_line_preference',
-            'mode' => 'soft',
             'severity' => 3,
-            'config' => ['workcenter_id' => $workcenter->id, 'business_line_ids' => [$line->id]],
+            'config' => ['workcenter_id' => $workcenter->id, 'business_line_id' => $line->id],
         ]);
 
         $this->post('/planning-rules', [
@@ -197,7 +186,7 @@ class PlanningRuleTest extends TestCase
             'mode' => 'soft',
             'severity' => 3,
             'workcenter_id' => $workcenter->id,
-            'business_line_ids' => [$line->id],
+            'business_line_id' => $line->id,
         ])->assertSessionHasErrors('workcenter_id');
     }
 
@@ -224,13 +213,12 @@ class PlanningRuleTest extends TestCase
         $rule = PlanningRule::create([
             'type' => 'competence_required',
             'mode' => 'hard',
-            'config' => ['workcenter_id' => $workcenter->id, 'shift_id' => $shift->id, 'competence_id' => $competence->id],
+            'config' => ['workcenter_id' => $workcenter->id, 'competence_id' => $competence->id],
         ]);
 
         $this->put("/planning-rules/{$rule->id}", [
             'mode' => 'hard',
             'workcenter_id' => $otherWorkcenter->id,
-            'shift_id' => $shift->id,
             'competence_id' => $competence->id,
         ])->assertRedirect()->assertSessionHasNoErrors();
 
@@ -247,16 +235,16 @@ class PlanningRuleTest extends TestCase
             'type' => 'business_line_preference',
             'mode' => 'soft',
             'severity' => 5,
-            'config' => ['workcenter_id' => $workcenter->id, 'business_line_ids' => [$lineA->id]],
+            'config' => ['workcenter_id' => $workcenter->id, 'business_line_id' => $lineA->id],
         ]);
 
         $this->put("/planning-rules/{$rule->id}", [
             'mode' => 'soft',
             'severity' => 5,
-            'business_line_ids' => [$lineA->id, $lineB->id],
+            'business_line_id' => $lineB->id,
         ])->assertRedirect()->assertSessionHasNoErrors();
 
-        $this->assertSame([$lineA->id, $lineB->id], $rule->refresh()->config['business_line_ids']);
+        $this->assertSame($lineB->id, $rule->refresh()->config['business_line_id']);
     }
 
     public function test_destroy_removes_the_rule(): void

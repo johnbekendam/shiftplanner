@@ -25,13 +25,13 @@ once the design is final.
   `PlanningRuleController`: `store` validates `type`/`mode`/`severity`
   plus whichever fields `required_if:type,...` pulls in for the five
   types, rejects a duplicate singleton type or duplicate scope
-  (competence triple, or a second business-line preference for the
+  (workcenter/competence pair, or a second business-line preference for the
   same workcenter), builds `config` per type, creates the row.
   `update` merges the existing row's identity fields over any
   client-supplied ones before validating, so `type` and a scoped
   rule's target cannot change from the client — only `mode`,
   `severity`, and a type's own mutable field (`value`,
-  `business_line_ids`). `destroy` deletes. Routes:
+  `business_line_id`). `destroy` deletes. Routes:
   `POST /settings/planning-rules`,
   `PUT /settings/planning-rules/{planningRule}`,
   `DELETE /settings/planning-rules/{planningRule}` (superseded by step
@@ -40,7 +40,7 @@ once the design is final.
   hosted `PlanningRuleList.vue` — both since replaced. `PlanningRuleList.vue`
   is a `BusinessLineList`-style controlled child (seeds local rows from
   `items`, emits `update:items`, no network calls of its own): one card
-  per rule (type, target summary, its mutable field, mode/severity), an
+  per rule (type, target summary, its mutable field, mode/severity), a
   add section that reveals only the fields the chosen type needs and
   hides singleton types already present, business-line selection via
   the existing `TagChecklist`. `en.json`: `planning_rules.*` keys for
@@ -48,7 +48,7 @@ once the design is final.
   Feature test `PlanningRuleTest` (16 tests at this point: guest/manager
   blocked; index payload; create each singleton type; create
   competence_required and business_line_preference with their config;
-  reject a duplicate singleton, a duplicate competence triple, a
+  reject a duplicate singleton, a duplicate workcenter/competence pair, a
   duplicate business-line workcenter, soft-without-severity,
   hard-with-severity; update changes mode/severity; update ignores a
   client-supplied identity field; update changes a business-line

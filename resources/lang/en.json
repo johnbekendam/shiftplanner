@@ -407,6 +407,7 @@
     "planning_rules.type.competence_required": "Competence required",
     "planning_rules.type.business_line_preference": "Business-line preference",
     "planning_rules.mode": "Mode",
+    "planning_rules.severity_column": "Severity",
     "planning_rules.mode.hard": "Hard",
     "planning_rules.mode.soft": "Soft",
     "planning_rules.severity": "Severity (1-10)",

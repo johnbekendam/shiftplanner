@@ -4,7 +4,6 @@ import ButtonPrimary from '@/components/ui/ButtonPrimary.vue'
 import ButtonDanger from '@/components/ui/ButtonDanger.vue'
 import CardSeparator from '@/components/ui/CardSeparator.vue'
 import LabeledInput from '@/components/LabeledInput.vue'
-import TagChecklist from '@/components/TagChecklist.vue'
 import { SelectInput, NumberInput } from '@/components/ui/Input'
 import { useI18n } from '@/composables/useI18n'
 
@@ -14,7 +13,6 @@ const props = defineProps({
     // Rows of { id, type, mode, severity, config }.
     items: { type: Array, default: () => [] },
     workcenters: { type: Array, default: () => [] }, // { id, name }
-    shifts: { type: Array, default: () => [] }, // { id, name }
     competences: { type: Array, default: () => [] }, // { id, name }
     businessLines: { type: Array, default: () => [] }, // { id, abbreviation }
 })
@@ -30,13 +28,10 @@ const modeOptions = computed(() => [
     { value: 'soft', label: __('planning_rules.mode.soft') },
 ])
 const workcenterOptions = computed(() => props.workcenters.map((w) => ({ value: w.id, label: w.name })))
-const shiftOptions = computed(() => props.shifts.map((s) => ({ value: s.id, label: s.name })))
 const competenceOptions = computed(() => props.competences.map((c) => ({ value: c.id, label: c.name })))
-// TagChecklist renders `name`; BusinessLine's payload calls it `abbreviation`.
-const businessLineItems = computed(() => props.businessLines.map((bl) => ({ id: bl.id, name: bl.abbreviation })))
+const businessLineOptions = computed(() => props.businessLines.map((bl) => ({ value: bl.id, label: bl.abbreviation })))
 
 const workcenterName = (id) => props.workcenters.find((w) => w.id === id)?.name ?? `#${id}`
-const shiftName = (id) => props.shifts.find((s) => s.id === id)?.name ?? `#${id}`
 const competenceName = (id) => props.competences.find((c) => c.id === id)?.name ?? `#${id}`
 
 // Local, edit-until-Save state, seeded once from props. The parent forces a
@@ -61,9 +56,8 @@ function freshDraft() {
         severity: null,
         value: 1,
         workcenter_id: null,
-        shift_id: null,
         competence_id: null,
-        business_line_ids: [],
+        business_line_id: null,
     }
 }
 
@@ -74,9 +68,9 @@ function configFor(type, source) {
         case 'max_shifts_per_day':
             return { value: source.value }
         case 'competence_required':
-            return { workcenter_id: source.workcenter_id, shift_id: source.shift_id, competence_id: source.competence_id }
+            return { workcenter_id: source.workcenter_id, competence_id: source.competence_id }
         case 'business_line_preference':
-            return { workcenter_id: source.workcenter_id, business_line_ids: [...source.business_line_ids] }
+            return { workcenter_id: source.workcenter_id, business_line_id: source.business_line_id }
         default:
             return {}
     }
@@ -86,8 +80,8 @@ function canAdd() {
     if (!draft.type) return false
     if (draft.mode === 'soft' && !draft.severity) return false
     if (draft.type === 'max_shifts_per_day' && !draft.value) return false
-    if (draft.type === 'competence_required' && (!draft.workcenter_id || !draft.shift_id || !draft.competence_id)) return false
-    if (draft.type === 'business_line_preference' && (!draft.workcenter_id || !draft.business_line_ids.length)) return false
+    if (draft.type === 'competence_required' && (!draft.workcenter_id || !draft.competence_id)) return false
+    if (draft.type === 'business_line_preference' && (!draft.workcenter_id || !draft.business_line_id)) return false
 
     return true
 }
@@ -116,61 +110,55 @@ function remove(row) {
 
 <template>
     <div class="space-y-4">
-        <div
-            v-for="row in rows"
-            :key="row.id ?? row._key"
-            data-testid="planning-rule-row"
-            class="space-y-3 rounded-lg border border-(--color-border) p-4"
-        >
-            <div class="flex items-start justify-between gap-3">
-                <div>
-                    <p class="font-medium text-(--color-text-primary)">{{ __(`planning_rules.type.${row.type}`) }}</p>
-
-                    <p v-if="row.type === 'competence_required'" class="text-sm text-(--color-text-secondary)">
-                        {{ workcenterName(row.config.workcenter_id) }} / {{ shiftName(row.config.shift_id) }}
-                        → {{ competenceName(row.config.competence_id) }}
-                    </p>
-                    <p v-else-if="row.type === 'business_line_preference'" class="text-sm text-(--color-text-secondary)">
-                        {{ workcenterName(row.config.workcenter_id) }}
-                    </p>
-                    <p v-else-if="row.type === 'max_hours_per_week'" class="text-sm text-(--color-text-secondary)">
-                        {{ __('planning_rules.max_hours_per_week_hint') }}
-                    </p>
-                    <p v-else-if="row.type === 'not_preferred_shift'" class="text-sm text-(--color-text-secondary)">
-                        {{ __('planning_rules.not_preferred_shift_hint') }}
-                    </p>
-                </div>
-                <ButtonDanger
-                    type="button"
-                    icon="bin"
-                    :aria-label="__('planning_rules.delete')"
-                    @click="remove(row)"
-                />
-            </div>
-
-            <NumberInput
-                v-if="row.type === 'max_shifts_per_day'"
-                v-model="row.config.value"
-                :min="1"
-                class="w-32"
-            />
-
-            <TagChecklist
-                v-if="row.type === 'business_line_preference'"
-                :items="businessLineItems"
-                :selected-ids="row.config.business_line_ids"
-                empty-key="planning_rules.list_empty"
-                @update:selected-ids="row.config.business_line_ids = $event"
-            />
-
-            <div class="flex flex-wrap items-end gap-3">
-                <LabeledInput :label="__('planning_rules.mode')">
-                    <SelectInput v-model="row.mode" :options="modeOptions" class="w-32" />
-                </LabeledInput>
-                <LabeledInput v-if="row.mode === 'soft'" :label="__('planning_rules.severity')">
-                    <NumberInput v-model="row.severity" :min="1" :max="10" class="w-24" />
-                </LabeledInput>
-            </div>
+        <div class="overflow-x-auto">
+            <table class="w-full min-w-[42rem] text-left text-sm">
+                <thead class="border-b border-(--color-border) text-xs font-semibold uppercase tracking-wide text-(--color-text-secondary)">
+                    <tr>
+                        <th scope="col" class="px-3 py-2">{{ __('planning_rules.type') }}</th>
+                        <th scope="col" class="w-px whitespace-nowrap px-3 py-2">{{ __('planning_rules.mode') }}</th>
+                        <th scope="col" class="w-px whitespace-nowrap px-3 py-2">{{ __('planning_rules.severity_column') }}</th>
+                        <th scope="col" class="w-px whitespace-nowrap px-3 py-2"><span class="sr-only">{{ __('planning_rules.delete') }}</span></th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-(--color-border)">
+                    <tr v-for="row in rows" :key="row.id ?? row._key" data-testid="planning-rule-row">
+                        <td class="px-3 py-3 align-top">
+                            <p class="font-medium text-(--color-text-primary)">{{ __(`planning_rules.type.${row.type}`) }}</p>
+                            <p v-if="row.type === 'competence_required'" class="mt-1 text-(--color-text-secondary)">
+                                {{ workcenterName(row.config.workcenter_id) }} → {{ competenceName(row.config.competence_id) }}
+                            </p>
+                            <div v-else-if="row.type === 'business_line_preference'" class="mt-2 space-y-2">
+                                <p class="text-(--color-text-secondary)">{{ workcenterName(row.config.workcenter_id) }}</p>
+                                <SelectInput v-model="row.config.business_line_id" :options="businessLineOptions" class="w-full max-w-xs" />
+                            </div>
+                            <p v-else-if="row.type === 'max_shifts_per_day'" class="mt-2">
+                                <NumberInput v-model="row.config.value" :min="1" class="w-32" />
+                            </p>
+                            <p v-else-if="row.type === 'max_hours_per_week'" class="mt-1 text-(--color-text-secondary)">
+                                {{ __('planning_rules.max_hours_per_week_hint') }}
+                            </p>
+                            <p v-else-if="row.type === 'not_preferred_shift'" class="mt-1 text-(--color-text-secondary)">
+                                {{ __('planning_rules.not_preferred_shift_hint') }}
+                            </p>
+                        </td>
+                        <td class="w-px whitespace-nowrap px-3 py-3 align-top">
+                            <SelectInput v-model="row.mode" :options="modeOptions" class="w-32" />
+                        </td>
+                        <td class="w-px whitespace-nowrap px-3 py-3 align-top">
+                            <NumberInput v-if="row.mode === 'soft'" v-model="row.severity" :min="1" :max="10" class="w-24" />
+                            <span v-else class="text-(--color-text-secondary)">-</span>
+                        </td>
+                        <td class="w-px whitespace-nowrap px-3 py-3 align-top">
+                            <ButtonDanger
+                                type="button"
+                                icon="bin"
+                                :aria-label="__('planning_rules.delete')"
+                                @click="remove(row)"
+                            />
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
         </div>
 
         <p v-if="!rows.length" class="text-sm text-(--color-text-secondary)">
@@ -204,12 +192,6 @@ function remove(row) {
                     class="w-full max-w-xs"
                 />
                 <SelectInput
-                    v-model="draft.shift_id"
-                    :options="shiftOptions"
-                    :placeholder="__('planning_rules.select_shift')"
-                    class="w-full max-w-xs"
-                />
-                <SelectInput
                     v-model="draft.competence_id"
                     :options="competenceOptions"
                     :placeholder="__('planning_rules.select_competence')"
@@ -224,12 +206,7 @@ function remove(row) {
                     :placeholder="__('planning_rules.select_workcenter')"
                     class="w-full max-w-xs"
                 />
-                <TagChecklist
-                    :items="businessLineItems"
-                    :selected-ids="draft.business_line_ids"
-                    empty-key="planning_rules.list_empty"
-                    @update:selected-ids="draft.business_line_ids = $event"
-                />
+                <SelectInput v-model="draft.business_line_id" :options="businessLineOptions" class="w-full max-w-xs" />
             </div>
 
             <div v-if="draft.type" class="flex flex-wrap items-end gap-3">

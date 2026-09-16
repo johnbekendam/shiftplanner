@@ -14,14 +14,13 @@ const __ = useI18n()
 const props = defineProps({
     planningRules: { type: Array, default: () => [] }, // { id, type, mode, severity, config }
     workcenters: { type: Array, default: () => [] }, // { id, name }
-    shifts: { type: Array, default: () => [] }, // { id, name }
     competences: { type: Array, default: () => [] }, // { id, name }
     businessLines: { type: Array, default: () => [] }, // { id, abbreviation }
 })
 
 // A rule's type, and for a scoped type what it targets, is fixed once
 // created — only mode/severity and a type's own mutable field (value,
-// business_line_ids) can change in place.
+// business_line_id) can change in place.
 const version = ref(0)
 const committed = ref(props.planningRules)
 const current = ref(props.planningRules)
@@ -91,13 +90,16 @@ useUnsavedChangesGuard(() => dirty.value)
     <AppLayout>
         <Head :title="__('planning_rules.title')" />
 
-        <Card class="max-w-3xl">
+        <Card>
+            <template #header>
+                <div class="px-6 py-4 font-medium">Planning rules</div>
+            </template>
+
             <div class="p-6">
                 <PlanningRuleList
                     :key="version"
                     :items="committed"
                     :workcenters="workcenters"
-                    :shifts="shifts"
                     :competences="competences"
                     :business-lines="businessLines"
                     @update:items="onChange"

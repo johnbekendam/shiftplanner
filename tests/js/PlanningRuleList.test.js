@@ -9,6 +9,7 @@ const en = {
     "planning_rules.type.competence_required": "Competence required",
     "planning_rules.type.business_line_preference": "Business-line preference",
     "planning_rules.mode": "Mode",
+    "planning_rules.severity_column": "Severity",
     "planning_rules.mode.hard": "Hard",
     "planning_rules.mode.soft": "Soft",
     "planning_rules.severity": "Severity (1-10)",
@@ -18,6 +19,7 @@ const en = {
     "planning_rules.select_workcenter": "Select a workcenter",
     "planning_rules.select_shift": "Select a shift",
     "planning_rules.select_competence": "Select a competence",
+    "planning_rules.select_business_line": "Select a business line",
     "planning_rules.add": "Add rule",
     "planning_rules.delete": "Delete rule",
     "planning_rules.list_empty": "No planning rules yet.",
@@ -31,12 +33,11 @@ import PlanningRuleList from "@/components/PlanningRuleList.vue";
 import { SelectInput, NumberInput } from "@/components/ui/Input";
 
 const workcenters = [{ id: 1, name: "Line 1" }];
-const shifts = [{ id: 9, name: "Early" }];
 const competences = [{ id: 3, name: "Welding" }];
 const businessLines = [{ id: 5, abbreviation: "PMP" }, { id: 6, abbreviation: "VLV" }];
 
 const mountList = (props = {}) => mount(PlanningRuleList, {
-    props: { items: [], workcenters, shifts, competences, businessLines, ...props },
+    props: { items: [], workcenters, competences, businessLines, ...props },
 });
 
 describe("PlanningRuleList", () => {
@@ -68,8 +69,7 @@ describe("PlanningRuleList", () => {
 
         const selects = addSection.findAllComponents(SelectInput);
         selects[1].vm.$emit("update:modelValue", 1); // workcenter
-        selects[2].vm.$emit("update:modelValue", 9); // shift
-        selects[3].vm.$emit("update:modelValue", 3); // competence
+        selects[2].vm.$emit("update:modelValue", 3); // competence
         await w.vm.$nextTick();
 
         const addButton = w.findAll('button').find((b) => b.text() === "Add rule");
@@ -79,7 +79,7 @@ describe("PlanningRuleList", () => {
         expect(rows).toHaveLength(1);
         expect(rows[0]).toMatchObject({
             type: "competence_required",
-            config: { workcenter_id: 1, shift_id: 9, competence_id: 3 },
+            config: { workcenter_id: 1, competence_id: 3 },
         });
     });
 
@@ -108,13 +108,31 @@ describe("PlanningRuleList", () => {
         addSection.findComponent(SelectInput).vm.$emit("update:modelValue", "not_preferred_shift");
         await w.vm.$nextTick();
 
-        expect(w.text()).not.toContain("Severity (1-10)");
+        expect(addSection.findAllComponents(NumberInput)).toHaveLength(0);
 
         const modeSelect = addSection.findAllComponents(SelectInput).find((s) => s.props("options")[0]?.value === "hard");
         modeSelect.vm.$emit("update:modelValue", "soft");
         await w.vm.$nextTick();
 
-        expect(w.text()).toContain("Severity (1-10)");
+        expect(addSection.findAllComponents(NumberInput)).toHaveLength(1);
+    });
+
+    it("uses a single business line for a workcenter", async () => {
+        const w = mountList();
+        const addSection = w.get('[data-testid="planning-rule-add"]');
+        addSection.findComponent(SelectInput).vm.$emit("update:modelValue", "business_line_preference");
+        await w.vm.$nextTick();
+
+        const selects = addSection.findAllComponents(SelectInput);
+        selects[1].vm.$emit("update:modelValue", 1);
+        selects[2].vm.$emit("update:modelValue", 5);
+        await w.vm.$nextTick();
+        await addSection.findAll("button").find((b) => b.text() === "Add rule").trigger("click");
+
+        expect(w.emitted("update:items").at(-1)[0][0]).toMatchObject({
+            type: "business_line_preference",
+            config: { workcenter_id: 1, business_line_id: 5 },
+        });
     });
 
     it("removes a row locally and emits update:items, without a network call", async () => {
@@ -123,7 +141,7 @@ describe("PlanningRuleList", () => {
         });
 
         const row = w.get('[data-testid="planning-rule-row"]');
-        await row.get('button').trigger('click');
+        await row.get('[aria-label="Delete rule"]').trigger('click');
 
         const emitted = w.emitted("update:items");
         expect(emitted.at(-1)[0]).toHaveLength(0);

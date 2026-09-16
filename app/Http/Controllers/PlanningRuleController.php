@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\BusinessLine;
 use App\Models\Competence;
 use App\Models\PlanningRule;
-use App\Models\Shift;
 use App\Models\Workcenter;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
@@ -23,9 +22,6 @@ class PlanningRuleController extends Controller
                 ->whereNull('archived_at')
                 ->get()
                 ->map(fn (Workcenter $w) => ['id' => $w->id, 'name' => $w->name])
-                ->all(),
-            'shifts' => Shift::all()
-                ->map(fn (Shift $s) => ['id' => $s->id, 'name' => $s->name])
                 ->all(),
             'competences' => Competence::all()
                 ->map(fn (Competence $c) => ['id' => $c->id, 'name' => $c->name])
@@ -91,10 +87,8 @@ class PlanningRuleController extends Controller
                 'required_if:type,competence_required,business_line_preference',
                 'integer', 'exists:workcenters,id',
             ],
-            'shift_id' => ['required_if:type,competence_required', 'integer', 'exists:shifts,id'],
             'competence_id' => ['required_if:type,competence_required', 'integer', 'exists:competences,id'],
-            'business_line_ids' => ['required_if:type,business_line_preference', 'array', 'min:1'],
-            'business_line_ids.*' => ['integer', 'exists:business_lines,id'],
+            'business_line_id' => ['required_if:type,business_line_preference', 'integer', 'exists:business_lines,id'],
         ];
     }
 
@@ -117,7 +111,6 @@ class PlanningRuleController extends Controller
 
         if ($data['type'] === 'competence_required') {
             $duplicate = $existing->contains(fn (PlanningRule $rule) => $rule->config['workcenter_id'] === $data['workcenter_id']
-                && $rule->config['shift_id'] === $data['shift_id']
                 && $rule->config['competence_id'] === $data['competence_id']);
 
             if ($duplicate) {
@@ -137,7 +130,7 @@ class PlanningRuleController extends Controller
     private function identityFields(string $type): array
     {
         return match ($type) {
-            'competence_required' => ['workcenter_id', 'shift_id', 'competence_id'],
+            'competence_required' => ['workcenter_id', 'competence_id'],
             'business_line_preference' => ['workcenter_id'],
             default => [],
         };
@@ -153,12 +146,11 @@ class PlanningRuleController extends Controller
                 'max_shifts_per_day' => ['value' => $data['value']],
                 'competence_required' => [
                     'workcenter_id' => $data['workcenter_id'],
-                    'shift_id' => $data['shift_id'],
                     'competence_id' => $data['competence_id'],
                 ],
                 'business_line_preference' => [
                     'workcenter_id' => $data['workcenter_id'],
-                    'business_line_ids' => array_values($data['business_line_ids']),
+                    'business_line_id' => $data['business_line_id'],
                 ],
                 default => [],
             },

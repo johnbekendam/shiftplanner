@@ -40,12 +40,12 @@ Three global, singleton rules:
 
 Two scoped, multi-instance rule types:
 
-4. **Competence required for a workcenter+shift pairing.** A manager
-   picks a workcenter, a shift, and a competence; assigning that
-   pairing is expected to require the competence.
+4. **Competence required for a workcenter.** A manager picks a
+  workcenter and a competence; assigning that workcenter is expected to
+  require the competence regardless of shift.
 5. **Business-line preference for a workcenter.** A manager picks a
-   workcenter and one or more business lines; filling that workcenter
-   is expected to prefer employees from one of the listed lines.
+  workcenter and one business line; filling that workcenter is expected
+  to prefer employees from that line.
 
 Adding a sixth rule type later is application code — a new entry in
 the type list, its validation, and its slice of the settings UI — not
@@ -65,22 +65,22 @@ One table, `planning_rules`, holds every rule of every type:
   | `max_hours_per_week` | `{}` — reads the employee's own `weekly_hours` field, no config |
   | `max_shifts_per_day` | `{"value": 2}` |
   | `not_preferred_shift` | `{}` — reads the existing availability grid |
-  | `competence_required` | `{"workcenter_id": 1, "shift_id": 2, "competence_id": 3}` |
-  | `business_line_preference` | `{"workcenter_id": 1, "business_line_ids": [1, 2]}` |
+  | `competence_required` | `{"workcenter_id": 1, "competence_id": 3}` |
+  | `business_line_preference` | `{"workcenter_id": 1, "business_line_id": 1}` |
 
 `max_hours_per_week`, `max_shifts_per_day`, and `not_preferred_shift`
 are **singleton types** — the application rejects a second row of the
 same type. `competence_required` and `business_line_preference` are
 **scoped types** — many rows allowed, but a duplicate scope is
-rejected (the same workcenter+shift+competence triple, or a second
+rejected (the same workcenter+competence pair, or a second
 preference rule for the same workcenter).
 
 A row's `type`, and for a scoped type what it targets (the
-workcenter/shift/competence combination, or which workcenter a
+workcenter/competence combination, or which workcenter a
 business-line preference is for), is fixed once created — the
 application ignores client-supplied identity fields on update. Only
 `mode`, `severity`, and a type's own mutable data (`max_shifts_per_day`'s
-`value`, `business_line_preference`'s `business_line_ids`) change in
+`value`, `business_line_preference`'s `business_line_id`) change in
 place; anything else means deleting the row and adding a new one.
 
 ### Page — `/planning-rules`
@@ -92,7 +92,7 @@ frequent, standalone task rather than one-off configuration (the same
 reasoning `workcenter-shift-assignments/spec.md` gave for
 `/schedule`'s own page).
 
-One list of rule cards, regardless of type, each showing its type, its
+One table of rules, regardless of type, each showing its type, its
 target (for a scoped type), its mutable field, and a hard/soft toggle
 with a conditional severity field. An add section below picks a type
 first — a singleton type already present is not offered — then
@@ -107,8 +107,8 @@ Save/Cancel pair, nothing written until Save.
 
 - `store(Request)` — validates `type`, `mode`, `severity`, and
   whichever type-specific fields `required_if:type,...` pulls in
-  (`value`; `workcenter_id`/`shift_id`/`competence_id`;
-  `workcenter_id`/`business_line_ids`). Rejects a duplicate singleton
+  (`value`; `workcenter_id`/`competence_id`;
+  `workcenter_id`/`business_line_id`). Rejects a duplicate singleton
   type or a duplicate scope, builds the `config` JSON for the given
   type, creates the row.
 - `update(Request, PlanningRule)` — re-validates the same shape, but
@@ -163,10 +163,10 @@ Save/Cancel pair, nothing written until Save.
   constraint.
 - **A rule's identity is fixed once created; its data can still
   change.** Matches `workcenter-shift-assignments`' rule for its own
-  pivot: the workcenter/shift pair cannot change in place, but spot
-  counts can. Here, `type` and a scoped rule's target never change in
+  pivot: the workcenter target cannot change in place, but spot counts
+  can. Here, `type` and a scoped rule's target never change in
   place; `mode`, `severity`, and a type's own mutable field
-  (`value`, `business_line_ids`) do.
+  (`value`, `business_line_id`) do.
 - **A dedicated `/planning-rules` page, not a Settings tab.** Reversed
   from this spec's first draft. Managing rules is a frequent task, not
   one-off configuration, and every rule (global or scoped) belongs in
