@@ -71,6 +71,8 @@ const blocks = computed(() => {
             target: props.overall.target,
             availableHours: props.overall.available_hours,
             requiredHours: props.overall.required_hours,
+            confirmedHours: props.overall.available_hours_confirmed,
+            totalHours: props.overall.available_hours_confirmed + props.overall.available_hours_unconfirmed,
             employeesHref: '/employees',
             ...stackedLines(props.overall),
         },
@@ -82,6 +84,8 @@ const blocks = computed(() => {
             target: line.target,
             availableHours: line.available_hours,
             requiredHours: line.required_hours,
+            confirmedHours: line.available_hours_confirmed,
+            totalHours: line.available_hours_confirmed + line.available_hours_unconfirmed,
             employeesHref: `/employees?business_lines[]=${line.id}`,
             ...stackedLines(line),
         })),
@@ -156,8 +160,10 @@ const blocks = computed(() => {
                     </div>
                     <div class="w-28 shrink-0">
                         <CoverageDonut
-                            :available="block.availableHours"
+                            :available="block.confirmedHours"
                             :required="block.requiredHours"
+                            :confirmed="block.confirmedHours"
+                            :total="block.totalHours"
                         />
                     </div>
                 </div>

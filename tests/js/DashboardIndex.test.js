@@ -239,21 +239,37 @@ describe("Dashboard/Index", () => {
         expect(headerLinks[1].attributes("href")).toBe("/employees?business_lines[]=7");
     });
 
-    it("gives each block a coverage donut fed the block's hours", () => {
+    it("gives each block a coverage donut fed confirmed hours", () => {
         const w = mountPage({
             period: { start: "2026-01-05", end: "2026-01-06", fte_hours: 40 },
             days: ["2026-01-05", "2026-01-06"],
-            overall: { available: [2, 1], target: 8, available_hours: 24, required_hours: 64 },
+            overall: {
+                available: [2, 1],
+                target: 8,
+                available_hours: 24,
+                available_hours_confirmed: 18,
+                available_hours_unconfirmed: 6,
+                required_hours: 64,
+            },
             lines: [
-                { abbreviation: "PMP", description: "Pumps", available: [1, 1], target: 5, available_hours: 16, required_hours: 40 },
+                {
+                    abbreviation: "PMP",
+                    description: "Pumps",
+                    available: [1, 1],
+                    target: 5,
+                    available_hours: 16,
+                    available_hours_confirmed: 12,
+                    available_hours_unconfirmed: 4,
+                    required_hours: 40,
+                },
             ],
         });
 
         const donuts = w.findAllComponents(CoverageDonut);
         expect(donuts).toHaveLength(2);
-        expect(donuts[0].props("available")).toBe(24);
+        expect(donuts[0].props("available")).toBe(18);
         expect(donuts[0].props("required")).toBe(64);
-        expect(donuts[1].props("available")).toBe(16);
+        expect(donuts[1].props("available")).toBe(12);
         expect(donuts[1].props("required")).toBe(40);
     });
 });

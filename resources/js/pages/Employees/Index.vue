@@ -145,6 +145,14 @@ function toggleBusinessLine(value, checked) {
     reload({ business_lines: isAllSelected ? undefined : allValues.filter((v) => next.has(v)) })
 }
 
+function selectAllBusinessLines() {
+    reload({ business_lines: businessLineOptions.value.map((option) => option.value) })
+}
+
+function selectNoBusinessLines() {
+    reload({ business_lines: ['__empty__'] })
+}
+
 let searchTimer = null
 watch(searchTerm, () => {
     selectedIds.value = []
@@ -209,7 +217,7 @@ function bulkDelete() {
     <AppLayout>
         <Head :title="__('employees.title')" />
 
-        <Card class="max-w-5xl">
+        <Card class="max-w-5xl overflow-visible">
             <template #header>
                 <div class="flex items-center justify-between gap-3 px-6 py-3">
                     <span class="text-base font-semibold">{{ __('employees.title') }}</span>
@@ -241,17 +249,36 @@ function bulkDelete() {
                                 data-testid="business-lines-menu"
                                 role="group"
                                 :aria-label="__('employees.business_lines.aria_group')"
-                                class="absolute z-50 mt-1 w-48 rounded-md border border-(--color-dropdown-panel-border) bg-(--color-dropdown-panel-bg) p-2 shadow-lg"
+                                class="absolute z-50 mt-1 w-max min-w-48 rounded-md border border-(--color-dropdown-panel-border) bg-(--color-dropdown-panel-bg) p-2 shadow-lg"
                             >
-                                <CheckboxInput
-                                    v-for="option in businessLineOptions"
-                                    :key="option.value"
-                                    :model-value="selectedBusinessLines.includes(option.value)"
-                                    class="py-1"
-                                    @update:model-value="(checked) => toggleBusinessLine(option.value, checked)"
-                                >
-                                    {{ option.label }}
-                                </CheckboxInput>
+                                <div class="flex flex-col gap-1">
+                                    <CheckboxInput
+                                        v-for="option in businessLineOptions"
+                                        :key="option.value"
+                                        :model-value="selectedBusinessLines.includes(option.value)"
+                                        class="py-1"
+                                        @update:model-value="(checked) => toggleBusinessLine(option.value, checked)"
+                                    >
+                                        {{ option.label }}
+                                    </CheckboxInput>
+                                </div>
+                                <div role="separator" class="my-2 border-t border-(--color-dropdown-panel-border)"></div>
+                                <div class="flex items-center gap-1">
+                                    <ButtonSecondary
+                                        type="button"
+                                        class="w-full min-w-0 px-2 py-1 text-sm"
+                                        @click="selectAllBusinessLines"
+                                    >
+                                        {{ __('employees.business_lines.select_all') }}
+                                    </ButtonSecondary>
+                                    <ButtonSecondary
+                                        type="button"
+                                        class="w-full min-w-0 px-2 py-1 text-sm"
+                                        @click="selectNoBusinessLines"
+                                    >
+                                        {{ __('employees.business_lines.select_none') }}
+                                    </ButtonSecondary>
+                                </div>
                             </div>
                         </div>
                     </div>

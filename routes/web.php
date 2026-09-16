@@ -7,10 +7,10 @@ use App\Http\Controllers\BusinessLineController;
 use App\Http\Controllers\CompetenceController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EligibleEmployeeController;
+use App\Http\Controllers\EmployeeBackupController;
 use App\Http\Controllers\EmployeeCompetenceController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\EmployeeHolidayController;
-use App\Http\Controllers\EmployeeImportController;
 use App\Http\Controllers\EmployeeQuestionController;
 use App\Http\Controllers\MailboxController;
 use App\Http\Controllers\PeriodController;
@@ -61,8 +61,9 @@ Route::middleware('auth')->group(function () {
         Route::post('/theme-builder/logo', [ThemeBuilderController::class, 'uploadLogo'])->name('theme-builder.logo.upload');
         Route::delete('/theme-builder/logo', [ThemeBuilderController::class, 'deleteLogo'])->name('theme-builder.logo.delete');
 
-        Route::get('/import', [EmployeeImportController::class, 'index'])->name('import.index');
-        Route::post('/import', [EmployeeImportController::class, 'store'])->name('import.store');
+        Route::get('/employee-backup', [EmployeeBackupController::class, 'index'])->name('employee-backup.index');
+        Route::get('/employee-backup/export', [EmployeeBackupController::class, 'export'])->name('employee-backup.export');
+        Route::post('/employee-backup/import', [EmployeeBackupController::class, 'import'])->name('employee-backup.import');
 
         Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
         Route::post('/settings/competences', [CompetenceController::class, 'store'])->name('settings.competences.store');

@@ -9,6 +9,9 @@ const props = defineProps({
     available: { type: Number, default: 0 },
     // Required person-hours over the period. 0 means "no target set".
     required: { type: Number, default: 0 },
+    // Confirmed person-hours and total person-hours for the period.
+    confirmed: { type: Number, default: 0 },
+    total: { type: Number, default: 0 },
 })
 
 // ── Geometry ────────────────────────────────────────────────────────────
@@ -32,7 +35,7 @@ const arcColor = computed(() =>
 )
 
 const label = computed(() =>
-    hasTarget.value ? `${Math.round((props.available / props.required) * 100)}%` : '—',
+    props.total > 0 ? `${Math.round((props.confirmed / props.total) * 100)}%` : '—',
 )
 
 const caption = computed(() =>
@@ -84,8 +87,9 @@ const caption = computed(() =>
             >{{ label }}</text>
         </svg>
 
-        <figcaption data-testid="donut-caption" class="text-xs text-(--color-text-secondary)">
-            {{ caption }}
+        <figcaption data-testid="donut-caption" class="flex flex-col items-center text-xs text-(--color-text-secondary)">
+            <span>{{ __('dashboard.confirmed') }}</span>
+            <span>{{ caption }}</span>
         </figcaption>
     </figure>
 </template>

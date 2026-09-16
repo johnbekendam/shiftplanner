@@ -11,6 +11,7 @@ class ShiftSeeder extends Seeder
     private const SHIFTS = [
         'Morning' => ['06:00', '14:15'],
         'Evening' => ['14:15', '23:00'],
+        'Day' => ['07:30', '15:45'],
     ];
 
     public function run(): void

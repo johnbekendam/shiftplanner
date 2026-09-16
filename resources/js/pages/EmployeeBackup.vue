@@ -1,15 +1,15 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { computed, ref } from 'vue'
 import axios from 'axios'
 import { Head } from '@inertiajs/vue3'
 import AppLayout from '@/layouts/AppLayout.vue'
+import ButtonPrimary from '@/components/ui/ButtonPrimary.vue'
 import Card from '@/components/ui/Card.vue'
 import Icon from '@/components/ui/Icon.vue'
 import { FileInput } from '@/components/ui/Input'
 import { useI18n } from '@/composables/useI18n'
 
 const __ = useI18n()
-
 const dragging = ref(false)
 const busy = ref(false)
 const result = ref(null)
@@ -26,7 +26,7 @@ async function upload(file) {
     body.append('file', file)
 
     try {
-        const { data } = await axios.post('/import', body)
+        const { data } = await axios.post('/employee-backup/import', body)
         result.value = data
     } catch (error) {
         const payload = error?.response?.data?.errors
@@ -34,7 +34,7 @@ async function upload(file) {
             ? payload
             : payload
                 ? Object.values(payload).flat()
-                : [__('import.error.file')]
+                : [__('backup.error.file')]
     } finally {
         busy.value = false
     }
@@ -45,32 +45,31 @@ function onDrop(event) {
     upload(event.dataTransfer?.files?.[0] ?? null)
 }
 
-const summary = computed(() =>
-    result.value
-        ? __('import.result.summary', {
-            created: result.value.created,
-            updated: result.value.updated,
-        })
-        : '',
-)
+const summary = computed(() => result.value
+    ? __('backup.result.summary', result.value)
+    : '')
 </script>
 
 <template>
-    <Head :title="__('import.title')" />
+    <Head :title="__('backup.title')" />
 
     <AppLayout>
         <Card class="max-w-3xl">
             <template #header>
-                <div class="px-6 py-4 font-medium">{{ __('import.heading') }}</div>
+                <div class="px-6 py-4 font-medium">{{ __('backup.heading') }}</div>
             </template>
 
-            <div class="p-6">
-                <p class="mb-4 text-sm text-(--color-text-secondary)">{{ __('import.intro') }}</p>
+            <div class="space-y-6 p-6">
+                <form action="/employee-backup/export" method="get">
+                    <ButtonPrimary data-testid="backup-export" type="submit" icon="download">
+                        {{ __('backup.export') }}
+                    </ButtonPrimary>
+                </form>
 
-                <FileInput accept=".csv,text/csv" @change="upload">
+                <FileInput accept="application/json,.json" @change="upload">
                     <template #default="{ trigger }">
                         <div
-                            data-testid="dropzone"
+                            data-testid="backup-dropzone"
                             role="button"
                             tabindex="0"
                             class="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed px-6 py-12 text-center text-sm text-(--color-text-secondary) border-(--color-input-border) hover:border-(--color-input-focus-border)"
@@ -83,22 +82,20 @@ const summary = computed(() =>
                             @drop.prevent="onDrop"
                         >
                             <Icon name="upload" class="size-8" />
-                            <span>{{ __('import.dropzone') }}</span>
+                            <span>{{ __('backup.dropzone') }}</span>
                         </div>
                     </template>
                 </FileInput>
 
-                <p v-if="busy" class="mt-4 text-sm text-(--color-text-secondary)">{{ __('import.busy') }}</p>
+                <p v-if="busy" class="text-sm text-(--color-text-secondary)">{{ __('backup.busy') }}</p>
 
-                <p
-                    v-if="summary"
-                    data-testid="import-summary"
-                    class="mt-4 text-sm font-medium text-(--color-badge-success-text)"
-                >{{ summary }}</p>
+                <p v-if="summary" data-testid="backup-summary" class="text-sm font-medium text-(--color-badge-success-text)">
+                    {{ summary }}
+                </p>
 
-                <div v-if="errors.length" data-testid="import-errors" class="mt-4">
+                <div v-if="errors.length" data-testid="backup-errors">
                     <p class="text-sm font-medium text-(--color-badge-error-text)">
-                        {{ __('import.result.errors_heading') }}
+                        {{ __('backup.result.errors_heading') }}
                     </p>
                     <ul class="mt-2 list-disc space-y-1 pl-5 text-sm text-(--color-badge-error-text)">
                         <li v-for="(error, index) in errors" :key="index">{{ error }}</li>

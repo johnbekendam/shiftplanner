@@ -10,7 +10,7 @@ const en = {
     "nav.workcenter_shifts": "Schedule",
     "nav.scheduling": "Planning",
     "nav.planning_rules": "Planning rules",
-    "nav.import": "Import",
+    "nav.employee_backup": "Backup",
     "nav.users": "Users",
     "nav.settings": "Settings",
 };
@@ -32,6 +32,7 @@ const stubs = {
 };
 
 const navHrefs = (w) => w.findAll("nav a").map((a) => a.attributes("href"));
+const navLabels = (w) => w.findAll("nav a").map((a) => a.text());
 
 beforeEach(() => {
     state.user = null;
@@ -45,9 +46,10 @@ describe("AppLayout navigation", () => {
         expect(hrefs).toEqual(["/dashboard", "/employees", "/users"]);
     });
 
-    it("shows Import, Mailbox, Schedule, Planning, Planning rules, Users and Settings to an admin, but not Theme Builder", () => {
+    it("shows Backup, Mailbox, Schedule, Planning, Planning rules, Users and Settings to an admin, but not Theme Builder", () => {
         state.user = { role: "admin" };
-        const hrefs = navHrefs(mount(AppLayout, { global: { stubs } }));
+        const w = mount(AppLayout, { global: { stubs } });
+        const hrefs = navHrefs(w);
 
         expect(hrefs).toEqual([
             "/dashboard",
@@ -58,15 +60,18 @@ describe("AppLayout navigation", () => {
             "/mailbox",
             "/users",
             "/settings",
-            "/import",
+            "/employee-backup",
         ]);
+        expect(navLabels(w)).toContain("Backup");
     });
 
-    it("hides Import from a manager", () => {
+    it("hides Backup from a manager", () => {
         state.user = { role: "manager" };
-        const hrefs = navHrefs(mount(AppLayout, { global: { stubs } }));
+        const w = mount(AppLayout, { global: { stubs } });
+        const hrefs = navHrefs(w);
 
-        expect(hrefs).not.toContain("/import");
+        expect(hrefs).not.toContain("/employee-backup");
+        expect(navLabels(w)).not.toContain("Backup");
     });
 
     it("adds a My details link when the account is linked to an employee", () => {

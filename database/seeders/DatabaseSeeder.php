@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
 use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
@@ -13,27 +12,14 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call([
+            SeedUserSeeder::class,
             BusinessLineSeeder::class,
             ShiftSeeder::class,
             WorkcenterSeeder::class,
             CompetenceSeeder::class,
             AvailabilityQuestionSeeder::class,
             PlanningSettingsSeeder::class,
-            EmployeeSeeder::class,
+            //EmployeeSeeder::class,
         ]);
-
-        $seedUser = config('auth.seed_user');
-
-        if ($seedUser['email'] && $seedUser['password']) {
-            // The 'password' => 'hashed' cast on User hashes this on save.
-            User::updateOrCreate(
-                ['email' => $seedUser['email']],
-                [
-                    'name' => $seedUser['name'],
-                    'password' => $seedUser['password'],
-                    'role' => User::ROLE_ADMIN,
-                ],
-            );
-        }
     }
 }

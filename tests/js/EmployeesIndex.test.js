@@ -517,6 +517,32 @@ describe("Employees/Index", () => {
             );
         });
 
+        it("selects all business lines", async () => {
+            const w = mountIndex({ businessLines, selectedBusinessLines: [] });
+            await openMenu(w);
+
+            await w.get('[data-testid="business-lines-menu"]').findAll('button')[0].trigger("click");
+
+            expect(router.get).toHaveBeenCalledWith(
+                "/employees",
+                { business_lines: [1, 2, "none"] },
+                expect.objectContaining({ preserveState: true }),
+            );
+        });
+
+        it("selects no business lines", async () => {
+            const w = mountIndex({ businessLines, selectedBusinessLines: [1, 2, "none"] });
+            await openMenu(w);
+
+            await w.get('[data-testid="business-lines-menu"]').findAll('button')[1].trigger("click");
+
+            expect(router.get).toHaveBeenCalledWith(
+                "/employees",
+                { business_lines: ["__empty__"] },
+                expect.objectContaining({ preserveState: true }),
+            );
+        });
+
         it("closes the menu on an outside click", async () => {
             const w = mount(Index, {
                 props: {

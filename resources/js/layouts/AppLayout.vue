@@ -64,7 +64,7 @@ const navItems = computed(() => {
     if (isAdmin.value) {
         items.push(
             { label: __('nav.settings'), href: '/settings', icon: 'cog' },
-            { label: __('nav.import'), href: '/import', icon: 'upload' },
+            { label: __('nav.employee_backup'), href: '/employee-backup', icon: 'archive-box-x-mark' },
         )
         // Theme builder stays reachable at /theme-builder but is not in the nav.
     }

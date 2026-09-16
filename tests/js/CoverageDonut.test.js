@@ -3,6 +3,7 @@ import { mount } from "@vue/test-utils";
 
 const en = {
     "dashboard.coverage": "Hours covered",
+    "dashboard.confirmed": "Confirmed",
     "dashboard.hours_ratio": ":available / :required h",
 };
 
@@ -22,16 +23,17 @@ const arcFraction = (w) => {
 
 describe("CoverageDonut", () => {
     it("shows the rounded coverage percentage and fills the arc to match", () => {
-        const w = mount(CoverageDonut, { props: { available: 60, required: 100 } });
+        const w = mount(CoverageDonut, { props: { available: 60, required: 100, confirmed: 30, total: 60 } });
 
-        expect(w.get('[data-testid="donut-label"]').text()).toBe("60%");
+        expect(w.get('[data-testid="donut-label"]').text()).toBe("50%");
         expect(arcFraction(w)).toBeCloseTo(0.6, 5);
+        expect(w.get('[data-testid="donut-caption"]').text()).toContain("Confirmed");
     });
 
     it("caps the arc at a full ring but still shows the true percentage over 100%", () => {
-        const w = mount(CoverageDonut, { props: { available: 150, required: 100 } });
+        const w = mount(CoverageDonut, { props: { available: 150, required: 100, confirmed: 150, total: 150 } });
 
-        expect(w.get('[data-testid="donut-label"]').text()).toBe("150%");
+        expect(w.get('[data-testid="donut-label"]').text()).toBe("100%");
         expect(arcFraction(w)).toBeCloseTo(1, 5);
     });
 
@@ -40,13 +42,14 @@ describe("CoverageDonut", () => {
 
         expect(w.get('[data-testid="donut-label"]').text()).toBe("—");
         expect(w.findAll('[data-testid="donut-arc"]')).toHaveLength(0);
-        expect(w.get('[data-testid="donut-caption"]').text()).toBe("0 / 0 h");
+        expect(w.get('[data-testid="donut-caption"]').text()).toContain("Confirmed");
+        expect(w.get('[data-testid="donut-caption"]').text()).toContain("0 / 0 h");
     });
 
     it("captions the raw hours figures", () => {
-        const w = mount(CoverageDonut, { props: { available: 480, required: 800 } });
+        const w = mount(CoverageDonut, { props: { available: 480, required: 800, confirmed: 240, total: 480 } });
 
-        expect(w.get('[data-testid="donut-caption"]').text()).toBe("480 / 800 h");
+        expect(w.get('[data-testid="donut-caption"]').text()).toContain("480 / 800 h");
     });
 
     it("uses the brand token for the arc and the border token for the track", () => {

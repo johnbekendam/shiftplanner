@@ -3,7 +3,7 @@
 namespace Tests\Feature\Auth;
 
 use App\Models\User;
-use Database\Seeders\DatabaseSeeder;
+use Database\Seeders\SeedUserSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
@@ -20,7 +20,7 @@ class DatabaseSeederTest extends TestCase
             'password' => 'super-secret',
         ]]);
 
-        (new DatabaseSeeder)->run();
+        (new SeedUserSeeder)->run();
 
         $user = User::where('email', 'admin@example.com')->firstOrFail();
         $this->assertSame('Admin', $user->name);
@@ -34,10 +34,10 @@ class DatabaseSeederTest extends TestCase
             'email' => 'admin@example.com',
             'password' => 'first-password',
         ]]);
-        (new DatabaseSeeder)->run();
+        (new SeedUserSeeder)->run();
 
         config(['auth.seed_user.password' => 'second-password']);
-        (new DatabaseSeeder)->run();
+        (new SeedUserSeeder)->run();
 
         $this->assertSame(1, User::count());
         $user = User::where('email', 'admin@example.com')->firstOrFail();
@@ -48,7 +48,7 @@ class DatabaseSeederTest extends TestCase
     {
         config(['auth.seed_user' => ['name' => 'Admin', 'email' => null, 'password' => null]]);
 
-        (new DatabaseSeeder)->run();
+        (new SeedUserSeeder)->run();
 
         $this->assertSame(0, User::count());
     }
