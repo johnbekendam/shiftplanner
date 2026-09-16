@@ -112,6 +112,31 @@ class MailboxTest extends TestCase
         );
     }
 
+    public function test_compose_tab_preselects_a_single_employee_from_the_singular_param(): void
+    {
+        $this->admin();
+        $employee = Employee::factory()->create();
+
+        $this->get("/mailbox?tab=compose&employee={$employee->id}")->assertInertia(fn ($page) => $page
+            ->component('Mailbox')
+            ->where('compose.preselected_employee_id', $employee->id)
+            ->where('compose.preselected_employee_ids', [$employee->id])
+        );
+    }
+
+    public function test_compose_tab_preselects_multiple_employees_from_the_plural_param(): void
+    {
+        $this->admin();
+        $alice = Employee::factory()->create();
+        $bob = Employee::factory()->create();
+
+        $this->get("/mailbox?tab=compose&employee_ids[]={$alice->id}&employee_ids[]={$bob->id}")
+            ->assertInertia(fn ($page) => $page
+                ->component('Mailbox')
+                ->where('compose.preselected_employee_ids', [$alice->id, $bob->id])
+            );
+    }
+
     public function test_compose_tab_lists_users_and_placeholder_tokens(): void
     {
         $this->admin();

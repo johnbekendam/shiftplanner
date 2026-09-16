@@ -91,7 +91,9 @@ const composeForm = useForm({
     type:         props.compose?.type ?? 'custom',
     subject:      props.compose?.template?.subject ?? '',
     body:         props.compose?.template?.body ?? '',
-    employee_ids: props.compose?.preselected_employee_id ? [props.compose.preselected_employee_id] : [],
+    employee_ids: props.compose?.preselected_employee_ids?.length
+        ? props.compose.preselected_employee_ids
+        : (props.compose?.preselected_employee_id ? [props.compose.preselected_employee_id] : []),
     user_ids:     [],
 })
 

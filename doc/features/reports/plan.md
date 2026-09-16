@@ -1,4 +1,4 @@
-Status: in progress — 3/4
+Status: done — 4/4
 
 - [x] 1. Reports route, controller, and missing-availability query
       Add `GET /reports` in the `admin` middleware group. A
@@ -40,7 +40,7 @@ Status: in progress — 3/4
       - The button builds the `/mailbox?...` URL with one
         `employee_ids[]` entry per selected row.
 
-- [ ] 4. Compose handoff: plural employee_ids[] support
+- [x] 4. Compose handoff: plural employee_ids[] support
       Extend `MailboxController::composePayload()` to read
       `employee_ids[]` as an array of integers. Merge it with the existing
       singular `employee` param into the preselected recipient set. Wire

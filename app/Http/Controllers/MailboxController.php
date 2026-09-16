@@ -103,9 +103,19 @@ class MailboxController extends Controller
                 ])
                 ->all(),
             'preselected_employee_id' => $request->integer('employee') ?: null,
+            'preselected_employee_ids' => $this->preselectedEmployeeIds($request),
             'unresolved_recipients' => session('unresolved_recipients'),
             'placeholder_tokens' => $this->placeholders->tokens(),
         ];
+    }
+
+    /** The `employee` and `employee_ids[]` query params, merged and deduplicated. */
+    private function preselectedEmployeeIds(Request $request): array
+    {
+        $single = $request->integer('employee') ?: null;
+        $plural = array_map('intval', (array) $request->query('employee_ids', []));
+
+        return array_values(array_unique(array_filter([$single, ...$plural])));
     }
 
     /**

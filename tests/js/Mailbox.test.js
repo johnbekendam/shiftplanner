@@ -97,6 +97,12 @@ describe("Mailbox — Compose tab", () => {
         expect(w.text()).not.toContain("Alice Ng");
     });
 
+    it("preselects multiple employees from the plural query prop", () => {
+        const w = mountCompose({ preselected_employee_id: null, preselected_employee_ids: [1, 2] });
+        expect(w.text()).toContain("Alice Ng");
+        expect(w.text()).toContain("Bob Li");
+    });
+
     it("always shows the recipients section, even with nobody selected", () => {
         const w = mountCompose();
         expect(w.text()).toContain("Recipients");
