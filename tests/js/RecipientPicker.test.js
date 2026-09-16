@@ -20,16 +20,16 @@ const users = [
 
 let wrapper = null;
 
-// The picker's browse/add UI lives in a <Teleport to="body"> modal, opened by
-// the "Add recipients" button. Its content ends up as a sibling of the
-// component root in <body>, not a descendant — so it's queried through a
-// DOMWrapper over document.body, not through the component wrapper.
-async function mountOpenPicker(modelValue = { employee_ids: [], user_ids: [] }) {
+// The picker's browse/add UI lives in a <Teleport to="body"> modal, controlled
+// by the `open` v-model (the trigger button lives in the parent page, not
+// this component). Its content ends up as a sibling of the component root in
+// <body>, not a descendant — so it's queried through a DOMWrapper over
+// document.body, not through the component wrapper.
+function mountOpenPicker(modelValue = { employee_ids: [], user_ids: [] }) {
     wrapper = mount(RecipientPicker, {
         attachTo: document.body,
-        props: { employees, users, modelValue },
+        props: { employees, users, modelValue, open: true },
     });
-    await wrapper.findAll("button").find((b) => b.text() === "Add recipients").trigger("click");
     const modalEl = document.body.querySelector('[data-testid="recipient-picker-modal"]');
     return { wrapper, modal: new DOMWrapper(modalEl) };
 }
@@ -41,21 +41,21 @@ afterEach(() => {
 
 describe("RecipientPicker", () => {
     it("adds an employee via the + button", async () => {
-        const { modal } = await mountOpenPicker();
+        const { modal } = mountOpenPicker();
         await modal.findAll("li button")[0].trigger("click");
 
         expect(wrapper.emitted("update:modelValue")[0][0]).toEqual({ employee_ids: [1], user_ids: [] });
     });
 
     it("removing from the selected list updates the model", async () => {
-        await mountOpenPicker({ employee_ids: [1], user_ids: [] });
+        mountOpenPicker({ employee_ids: [1], user_ids: [] });
         await wrapper.find("button[aria-label='Remove']").trigger("click");
 
         expect(wrapper.emitted("update:modelValue").at(-1)[0]).toEqual({ employee_ids: [], user_ids: [] });
     });
 
     it("switching to the Users tab keeps prior employee selections", async () => {
-        const { modal } = await mountOpenPicker({ employee_ids: [1], user_ids: [] });
+        const { modal } = mountOpenPicker({ employee_ids: [1], user_ids: [] });
         await modal.findAll("button").find((b) => b.text() === "Users").trigger("click");
         await modal.findAll("li button")[0].trigger("click");
 
@@ -63,7 +63,7 @@ describe("RecipientPicker", () => {
     });
 
     it("search filters the active source's list only", async () => {
-        const { modal } = await mountOpenPicker();
+        const { modal } = mountOpenPicker();
         await modal.find("input[type='text'], input[type='search']").setValue("bob");
 
         const names = modal.findAll("li .text-sm").map((el) => el.text());
@@ -71,7 +71,7 @@ describe("RecipientPicker", () => {
     });
 
     it("shows selections from both sources in the selected list", async () => {
-        await mountOpenPicker({ employee_ids: [1], user_ids: [10] });
+        mountOpenPicker({ employee_ids: [1], user_ids: [10] });
         // The selected list renders outside the modal, in the component's own root.
         const selectedText = wrapper.html();
 
@@ -80,7 +80,7 @@ describe("RecipientPicker", () => {
     });
 
     it("hides an already-selected person from the source list", async () => {
-        const { modal } = await mountOpenPicker({ employee_ids: [1], user_ids: [] });
+        const { modal } = mountOpenPicker({ employee_ids: [1], user_ids: [] });
         const sourceNames = modal.findAll("li .text-sm").map((el) => el.text());
 
         expect(sourceNames).not.toContain("Alice Ng");
@@ -88,21 +88,21 @@ describe("RecipientPicker", () => {
     });
 
     it("Add all adds every visible person in the active source at once", async () => {
-        const { modal } = await mountOpenPicker();
+        const { modal } = mountOpenPicker();
         await modal.findAll("button").find((b) => b.text() === "Add all").trigger("click");
 
         expect(wrapper.emitted("update:modelValue").at(-1)[0]).toEqual({ employee_ids: [1, 2], user_ids: [] });
     });
 
     it("Add all only adds the search-filtered people", async () => {
-        const { modal } = await mountOpenPicker();
+        const { modal } = mountOpenPicker();
         await modal.find("input[type='text'], input[type='search']").setValue("bob");
         await modal.findAll("button").find((b) => b.text() === "Add all").trigger("click");
 
         expect(wrapper.emitted("update:modelValue").at(-1)[0]).toEqual({ employee_ids: [2], user_ids: [] });
     });
 
-    it("the picker modal is closed until Add recipients is clicked", () => {
+    it("the picker modal is closed by default", () => {
         wrapper = mount(RecipientPicker, {
             attachTo: document.body,
             props: { employees, users, modelValue: { employee_ids: [], user_ids: [] } },
@@ -112,7 +112,7 @@ describe("RecipientPicker", () => {
     });
 
     it("Done closes the modal", async () => {
-        const { modal } = await mountOpenPicker();
+        const { modal } = mountOpenPicker();
         expect(document.body.textContent).toContain("Recipient picker");
 
         await modal.findAll("button").find((b) => b.text() === "Done").trigger("click");

@@ -19,7 +19,7 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue'])
 
-const open = ref(false)
+const open = defineModel('open', { type: Boolean, default: false })
 const sources = ['employee', 'user']
 const activeSource = ref('employee')
 const term = ref('')
@@ -106,10 +106,6 @@ const selected = computed(() => [
                 </li>
             </ul>
         </div>
-
-        <ButtonSecondary type="button" icon="user-plus" @click="open = true">
-            {{ __('mailbox.compose.recipients_open_picker') }}
-        </ButtonSecondary>
     </div>
 
     <Teleport to="body">

@@ -3,6 +3,7 @@ import { computed, ref } from 'vue'
 import { Head, router, useForm } from '@inertiajs/vue3'
 import AppLayout from '@/layouts/AppLayout.vue'
 import Card from '@/components/ui/Card.vue'
+import CardSeparator from '@/components/ui/CardSeparator.vue'
 import ButtonPrimary from '@/components/ui/ButtonPrimary.vue'
 import ButtonSecondary from '@/components/ui/ButtonSecondary.vue'
 import LabeledInput from '@/components/LabeledInput.vue'
@@ -103,6 +104,7 @@ const recipients = computed({
 })
 
 const hasRecipients = computed(() => composeForm.employee_ids.length || composeForm.user_ids.length)
+const recipientPickerOpen = ref(false)
 
 function insertPlaceholder(token) {
     const needsSpace = composeForm.body.length > 0 && !composeForm.body.endsWith(' ') && !composeForm.body.endsWith('\n')
@@ -285,22 +287,30 @@ function deleteMessage(message) {
                     <LabeledInput :label="__('mailbox.compose.recipients')" :error="composeForm.errors.employee_ids">
                         <RecipientPicker
                             v-model="recipients"
+                            v-model:open="recipientPickerOpen"
                             :employees="compose?.employees ?? []"
                             :users="compose?.users ?? []"
                         />
-                        <p class="mt-1 text-xs text-(--color-text-secondary)">{{ __('mailbox.compose.recipients_hint') }}</p>
                     </LabeledInput>
 
-                    <div class="flex justify-end gap-3">
-                        <ButtonSecondary type="button" icon="eye" @click="previewCompose">
-                            {{ __('mailbox.compose.preview') }}
+                    <CardSeparator />
+
+                    <div class="flex items-center justify-between gap-3">
+                        <ButtonSecondary type="button" icon="user-plus" @click="recipientPickerOpen = true">
+                            {{ __('mailbox.compose.recipients_open_picker') }}
                         </ButtonSecondary>
-                        <ButtonSecondary type="button" :disabled="composeForm.processing || !hasRecipients" @click="submitCompose('draft')">
-                            {{ __('mailbox.compose.create_drafts') }}
-                        </ButtonSecondary>
-                        <ButtonPrimary type="button" :disabled="composeForm.processing || !hasRecipients" @click="submitCompose('queue')">
-                            {{ __('mailbox.action.send_now') }}
-                        </ButtonPrimary>
+
+                        <div class="flex gap-3">
+                            <ButtonSecondary type="button" icon="eye" @click="previewCompose">
+                                {{ __('mailbox.compose.preview') }}
+                            </ButtonSecondary>
+                            <ButtonSecondary type="button" :disabled="composeForm.processing || !hasRecipients" @click="submitCompose('draft')">
+                                {{ __('mailbox.compose.create_drafts') }}
+                            </ButtonSecondary>
+                            <ButtonPrimary type="button" :disabled="composeForm.processing || !hasRecipients" @click="submitCompose('queue')">
+                                {{ __('mailbox.action.send_now') }}
+                            </ButtonPrimary>
+                        </div>
                     </div>
                 </div>
 

@@ -95,7 +95,6 @@
     "mailbox.compose.create_drafts": "Create drafts",
     "mailbox.compose.self_signup": "Self-signup",
     "mailbox.compose.recipients": "Recipients",
-    "mailbox.compose.recipients_hint": "One message is created per selected recipient.",
     "mailbox.compose.recipients_search": "Search name or email",
     "mailbox.compose.recipients_selected": ":count selected",
     "mailbox.compose.recipients_selected_empty": "No recipients selected yet.",
