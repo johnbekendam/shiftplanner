@@ -92,10 +92,8 @@ describe("Mailbox — Compose tab", () => {
 
     it("preselects the employee from the query prop", () => {
         const w = mountCompose({ preselected_employee_id: 2 });
-        // The selected list is the only <ul> outside the picker's modal.
-        const selected = w.findAll("ul")[0].text();
-        expect(selected).toContain("Bob Li");
-        expect(selected).not.toContain("Alice Ng");
+        expect(w.text()).toContain("Bob Li");
+        expect(w.text()).not.toContain("Alice Ng");
     });
 
     it("hides the recipients section entirely until someone is added", () => {

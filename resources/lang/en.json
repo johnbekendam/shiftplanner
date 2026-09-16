@@ -106,8 +106,6 @@
     "mailbox.compose.recipient_add": "Add",
     "mailbox.compose.recipient_add_all": "Add all",
     "mailbox.compose.recipient_remove": "Remove",
-    "mailbox.badge.employee": "Employee",
-    "mailbox.badge.user": "User",
     "mailbox.compose.unresolved.title": "Recipients missing data",
     "mailbox.compose.unresolved.description": "These recipients are missing data for one or more placeholders in this message. Continue to send to everyone else, or cancel and fix the message.",
     "mailbox.compose.unresolved.continue": "Continue without them",

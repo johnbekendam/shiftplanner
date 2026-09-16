@@ -84,31 +84,23 @@ const selected = computed(() => [
                 {{ __('mailbox.compose.recipients') }}
             </label>
 
-            <ul class="space-y-1">
-                <li
+            <div class="flex flex-wrap gap-1.5">
+                <span
                     v-for="person in selected"
                     :key="`${person.source}-${person.id}`"
-                    class="flex items-center gap-2 rounded-md border border-(--color-border) px-2.5 py-1.5"
+                    class="inline-flex items-center gap-1 rounded-full py-1 pr-1.5 pl-2.5 text-sm bg-(--color-badge-standard-bg) text-(--color-badge-standard-text)"
                 >
-                    <span
-                        class="shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-medium bg-(--color-badge-standard-bg) text-(--color-badge-standard-text)"
-                    >
-                        {{ __(`mailbox.badge.${person.source}`) }}
-                    </span>
-                    <span class="min-w-0 flex-1 truncate text-sm text-(--color-text-primary)">
-                        {{ person.name }}
-                        <span class="text-(--color-text-secondary)">{{ person.email }}</span>
-                    </span>
+                    {{ person.name }}
                     <button
                         type="button"
-                        class="shrink-0 text-(--color-text-secondary) hover:text-(--color-text-primary)"
+                        class="shrink-0 rounded-full p-0.5 hover:opacity-70"
                         :aria-label="__('mailbox.compose.recipient_remove')"
                         @click="remove(person.source, person.id)"
                     >
-                        <Icon name="x-mark" class="size-4" />
+                        <Icon name="x-mark" class="size-3.5" />
                     </button>
-                </li>
-            </ul>
+                </span>
+            </div>
         </div>
     </template>
 

@@ -70,13 +70,16 @@ describe("RecipientPicker", () => {
         expect(names).toEqual(["Bob Li"]);
     });
 
-    it("shows selections from both sources in the selected list", async () => {
+    it("shows selections from both sources in the selected list, as a name-only badge", async () => {
         mountOpenPicker({ employee_ids: [1], user_ids: [10] });
         // The selected list renders outside the modal, in the component's own root.
         const selectedText = wrapper.html();
 
         expect(selectedText).toContain("Alice Ng");
         expect(selectedText).toContain("Carl Ito");
+        expect(selectedText).not.toContain("alice@example.com");
+        expect(selectedText).not.toContain("Employee");
+        expect(selectedText).not.toContain("User");
     });
 
     it("hides an already-selected person from the source list", async () => {
