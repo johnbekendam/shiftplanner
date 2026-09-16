@@ -25,6 +25,7 @@ use App\Http\Controllers\PlanningRuleController;
 use App\Http\Controllers\PublishedWeekController;
 use App\Http\Controllers\QuestionController;
 use App\Http\Controllers\RecurringAvailabilityController;
+use App\Http\Controllers\ReportController;
 use App\Http\Controllers\ScheduleSpotController;
 use App\Http\Controllers\SchedulingController;
 use App\Http\Controllers\SettingsController;
@@ -113,6 +114,8 @@ Route::middleware('auth')->group(function () {
             ->where('weekStart', '\d{4}-\d{2}-\d{2}')->name('planning.weeks.publish');
         Route::delete('/planning/weeks/{weekStart}/publish', [PublishedWeekController::class, 'destroy'])
             ->where('weekStart', '\d{4}-\d{2}-\d{2}')->name('planning.weeks.unpublish');
+
+        Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
 
         Route::get('/mailbox', [MailboxController::class, 'index'])->name('mailbox.index');
         Route::post('/mailbox/compose', [MailboxController::class, 'store'])->name('mailbox.compose');

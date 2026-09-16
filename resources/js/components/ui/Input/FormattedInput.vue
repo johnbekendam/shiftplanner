@@ -121,7 +121,13 @@ function onInput(e) {
 // runs the normal commit/flash flow for anything left unfinished).
 function emitLiveFormatted() {
     const trimmed = draft.value.trim()
-    if (trimmed === '') return
+    if (trimmed === '') {
+        // Emptying the field (e.g. backspacing to nothing) is a definite
+        // state, not an in-progress one — emit it live like commit() would,
+        // instead of silently waiting for blur.
+        emit('update:modelValue', '')
+        return
+    }
     const normalized = props.validate ? props.validate(trimmed) : trimmed
     if (normalized !== null) {
         emit('update:modelValue', normalized)
@@ -151,6 +157,7 @@ function onKeydown(e) {
                 next = a < all.length ? [...all.slice(0, a), ...all.slice(a + 1)] : all.slice()
             }
             applyFormat(next)
+            if (props.live) emitLiveFormatted()
             return
         }
 

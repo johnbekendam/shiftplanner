@@ -336,6 +336,7 @@ function onWithdrawConfirm() {
                     :minimum="weeklyHoursMinimum"
                     :error="form.errors.weekly_hours"
                     :disabled="!editable"
+                    live
                     @update:model-value="onWeeklyHoursChange"
                 />
             </section>

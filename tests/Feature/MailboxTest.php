@@ -38,6 +38,16 @@ class MailboxTest extends TestCase
         $this->get('/mailbox')->assertForbidden();
     }
 
+    public function test_visiting_mailbox_without_a_tab_defaults_to_compose(): void
+    {
+        $this->admin();
+
+        $this->get('/mailbox')->assertInertia(fn ($page) => $page
+            ->component('Mailbox')
+            ->where('tab', 'compose')
+        );
+    }
+
     // ── Shared across admins ─────────────────────────────────────────────
 
     public function test_index_shows_every_admins_messages(): void
@@ -80,6 +90,16 @@ class MailboxTest extends TestCase
 
     // ── Compose: personal_page_link ──────────────────────────────────────
 
+    public function test_compose_tab_defaults_to_the_custom_type(): void
+    {
+        $this->admin();
+
+        $this->get('/mailbox?tab=compose')->assertInertia(fn ($page) => $page
+            ->component('Mailbox')
+            ->where('compose.type', MessageType::Custom->value)
+        );
+    }
+
     public function test_compose_tab_lists_employees_with_their_full_name(): void
     {
         $this->admin();
@@ -89,6 +109,44 @@ class MailboxTest extends TestCase
             ->component('Mailbox')
             ->where('compose.employees.0.name', 'Alice Ng')
             ->where('compose.employees.0.email', 'alice@example.com')
+        );
+    }
+
+    public function test_compose_tab_preselects_a_single_employee_from_the_singular_param(): void
+    {
+        $this->admin();
+        $employee = Employee::factory()->create();
+
+        $this->get("/mailbox?tab=compose&employee={$employee->id}")->assertInertia(fn ($page) => $page
+            ->component('Mailbox')
+            ->where('compose.preselected_employee_id', $employee->id)
+            ->where('compose.preselected_employee_ids', [$employee->id])
+        );
+    }
+
+    public function test_compose_tab_preselects_multiple_employees_from_the_plural_param(): void
+    {
+        $this->admin();
+        $alice = Employee::factory()->create();
+        $bob = Employee::factory()->create();
+
+        $this->get("/mailbox?tab=compose&employee_ids[]={$alice->id}&employee_ids[]={$bob->id}")
+            ->assertInertia(fn ($page) => $page
+                ->component('Mailbox')
+                ->where('compose.preselected_employee_ids', [$alice->id, $bob->id])
+            );
+    }
+
+    public function test_compose_tab_lists_users_and_placeholder_tokens(): void
+    {
+        $this->admin();
+        User::factory()->admin()->create(['name' => 'Dana Lee', 'email' => 'dana@example.com']);
+
+        $this->get('/mailbox?tab=compose')->assertInertia(fn ($page) => $page
+            ->component('Mailbox')
+            ->where('compose.types.1.value', MessageType::Custom->value)
+            ->where('compose.placeholder_tokens', [':name', ':link'])
+            ->has('compose.users', 2) // the admin created by admin() plus Dana
         );
     }
 
@@ -214,7 +272,7 @@ class MailboxTest extends TestCase
         $this->assertSame(0, Message::count());
     }
 
-    public function test_compose_requires_at_least_one_employee(): void
+    public function test_compose_requires_at_least_one_recipient(): void
     {
         $this->admin();
 
@@ -223,10 +281,99 @@ class MailboxTest extends TestCase
             'subject' => 'S',
             'body' => 'B',
             'employee_ids' => [],
+            'user_ids' => [],
             'send_mode' => 'draft',
         ])->assertSessionHasErrors('employee_ids');
 
         $this->assertSame(0, Message::count());
+    }
+
+    // ── Compose: custom type + user recipients ─────────────────────────
+
+    public function test_compose_sends_a_custom_message_to_selected_users(): void
+    {
+        Queue::fake();
+        $this->admin();
+        $recipient = User::factory()->admin()->create(['name' => 'Dana Lee', 'email' => 'dana@example.com']);
+
+        $this->post('/mailbox/compose', [
+            'type' => MessageType::Custom->value,
+            'subject' => 'Heads up',
+            'body' => 'Hi :name, the schedule changed.',
+            'user_ids' => [$recipient->id],
+            'send_mode' => 'draft',
+        ])->assertRedirect();
+
+        $message = Message::firstOrFail();
+        $this->assertSame(MessageType::Custom, $message->type);
+        $this->assertSame('dana@example.com', $message->recipient_email);
+        $this->assertStringContainsString('Hi Dana Lee,', $message->body);
+    }
+
+    public function test_compose_combines_employees_and_users_deduplicated_by_email(): void
+    {
+        Queue::fake();
+        $this->admin();
+        $employee = Employee::factory()->create(['email' => 'shared@example.com']);
+        $sameEmailUser = User::factory()->admin()->create(['email' => 'shared@example.com']);
+        $otherUser = User::factory()->admin()->create(['email' => 'other@example.com']);
+
+        $this->post('/mailbox/compose', [
+            'type' => MessageType::Custom->value,
+            'subject' => 'S',
+            'body' => 'B',
+            'employee_ids' => [$employee->id],
+            'user_ids' => [$sameEmailUser->id, $otherUser->id],
+            'send_mode' => 'draft',
+        ])->assertRedirect();
+
+        $this->assertSame(2, Message::count());
+        $this->assertSame(1, Message::where('recipient_email', 'shared@example.com')->count());
+    }
+
+    public function test_compose_warns_about_recipients_with_unresolved_placeholders(): void
+    {
+        Queue::fake();
+        $this->admin();
+        $userWithoutEmployee = User::factory()->admin()->create(['name' => 'No Link']);
+        $employee = Employee::factory()->create(['first_name' => 'Alice']);
+
+        $response = $this->post('/mailbox/compose', [
+            'type' => MessageType::Custom->value,
+            'subject' => 'S',
+            'body' => 'Hi :name, your link: :link',
+            'employee_ids' => [$employee->id],
+            'user_ids' => [$userWithoutEmployee->id],
+            'send_mode' => 'draft',
+        ]);
+
+        $response->assertRedirect();
+        $this->assertSame(0, Message::count());
+        $this->assertSame(
+            ['No Link'],
+            collect(session('unresolved_recipients'))->pluck('name')->all(),
+        );
+    }
+
+    public function test_compose_excludes_unresolved_recipients_when_confirmed(): void
+    {
+        Queue::fake();
+        $this->admin();
+        $userWithoutEmployee = User::factory()->admin()->create(['name' => 'No Link']);
+        $employee = Employee::factory()->create(['first_name' => 'Alice', 'last_name' => 'Ng']);
+
+        $this->post('/mailbox/compose', [
+            'type' => MessageType::Custom->value,
+            'subject' => 'S',
+            'body' => 'Hi :name, your link: :link',
+            'employee_ids' => [$employee->id],
+            'user_ids' => [$userWithoutEmployee->id],
+            'send_mode' => 'draft',
+            'exclude_unresolved' => true,
+        ])->assertRedirect();
+
+        $this->assertSame(1, Message::count());
+        $this->assertSame('Alice Ng', Message::firstOrFail()->recipient_name);
     }
 
     // ── Preview ─────────────────────────────────────────────────────────
@@ -248,6 +395,25 @@ class MailboxTest extends TestCase
         $token = $employee->personalLink->token;
         $this->assertStringContainsString("/personal/{$token}", $response->json('html'));
         $this->assertSame(0, Message::count());
+    }
+
+    public function test_preview_resolves_the_link_for_a_user_with_a_linked_employee(): void
+    {
+        $this->admin();
+        $employee = Employee::factory()->create(['first_name' => 'Dana']);
+        $user = User::factory()->admin()->create(['name' => 'Dana', 'employee_id' => $employee->id]);
+
+        $response = $this->postJson('/mailbox/compose/preview', [
+            'type' => MessageType::Custom->value,
+            'subject' => 'Hello :name',
+            'body' => 'Open :link',
+            'user_id' => $user->id,
+        ]);
+
+        $response->assertOk();
+        $response->assertJsonPath('subject', 'Hello Dana');
+        $token = $employee->personalLink->token;
+        $this->assertStringContainsString("/personal/{$token}", $response->json('html'));
     }
 
     public function test_preview_without_an_employee_uses_sample_values(): void

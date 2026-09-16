@@ -222,7 +222,11 @@ inert: a custom `graph` Laravel mail transport, app-permission client
 credentials against a shared mailbox (`POST /users/{mailbox}/sendMail`),
 config keys and blank `GRAPH_*` env. Local dev keeps `MAIL_MAILER=log`;
 the Graph path is exercised on a machine with tenant access. This
-supersedes the phase-2 `mailto:` invitation plan.
+supersedes the phase-2 `mailto:` invitation plan. `features/mailbox-custom-
+recipients/` later added a second, free-form `custom` type, User
+recipients alongside Employees (combinable, deduplicated by email), and
+replaced the checkbox picker with a searchable "+ to add" picker that
+keeps selections visible in a separate list.
 
 Employee change lock: a global `planning_settings.allow_employee_changes`
 switch, default on, on the renamed **General** settings tab (was Period).

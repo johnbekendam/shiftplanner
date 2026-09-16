@@ -12,32 +12,24 @@ enum MessageType: string
 {
     case PersonalPageLink = 'personal_page_link';
 
+    case Custom = 'custom';
+
     // Account login-links (features/login-links/): system-triggered, never
-    // manually composed — see needsEmployees() below.
+    // manually composed — see composable() below.
     case UserInvite = 'user_invite';
 
     case UserLoginLink = 'user_login_link';
 
-    /** Placeholder tokens this type's template may use, resolved per recipient. */
-    public function placeholders(): array
-    {
-        return match ($this) {
-            self::PersonalPageLink, self::UserLoginLink => [':name', ':link'],
-            // :sender_name is the inviting admin's first name.
-            self::UserInvite => [':name', ':link', ':sender_name'],
-        };
-    }
-
     /**
-     * Whether composing this type selects employees instead of free
-     * addresses. Also gates whether the type appears in the Compose tab's
-     * type list at all — a type with no employee concept (an account
-     * link) is issued only by its own service, never composed by hand.
+     * Whether this type appears in the Compose tab's type list at all. A
+     * type with no manual-compose concept (an account link) is issued
+     * only by its own service. Placeholder tokens are no longer per-type
+     * — see App\Services\Placeholders\PlaceholderRegistry.
      */
-    public function needsEmployees(): bool
+    public function composable(): bool
     {
         return match ($this) {
-            self::PersonalPageLink => true,
+            self::PersonalPageLink, self::Custom => true,
             self::UserInvite, self::UserLoginLink => false,
         };
     }

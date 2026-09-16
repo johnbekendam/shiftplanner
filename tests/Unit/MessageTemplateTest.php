@@ -23,6 +23,15 @@ class MessageTemplateTest extends TestCase
         $this->assertDatabaseCount('message_templates', 1);
     }
 
+    public function test_for_type_seeds_blank_rather_than_the_key_when_no_translation_exists(): void
+    {
+        $template = MessageTemplate::forType(MessageType::Custom);
+
+        $this->assertSame('', $template->subject);
+        $this->assertSame('', $template->body);
+        $this->assertStringNotContainsString('mailbox.type.custom', $template->subject);
+    }
+
     public function test_for_type_returns_the_stored_row_without_overwriting_edits(): void
     {
         MessageTemplate::forType(MessageType::PersonalPageLink)->update([

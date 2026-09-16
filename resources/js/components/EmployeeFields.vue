@@ -17,6 +17,9 @@ const props = defineProps({
     disabled: { type: Boolean, default: false },
     // Every business line as { id, abbreviation }. Empty hides the field.
     businessLines: { type: Array, default: () => [] },
+    // Emit field updates on every keystroke instead of only on commit
+    // (Enter/Tab/blur) — see TextInput / EmailInput.
+    live: { type: Boolean, default: false },
 })
 
 const businessLineOptions = computed(() => [
@@ -29,16 +32,16 @@ const businessLineOptions = computed(() => [
     <div class="space-y-5">
         <div data-testid="name-row" class="grid grid-cols-2 gap-4">
             <LabeledInput :label="__('employees.field.first_name')" :error="form.errors.first_name">
-                <TextInput v-model="form.first_name" :disabled="readonlyIdentity" class="w-full" />
+                <TextInput v-model="form.first_name" :disabled="readonlyIdentity" :live="live" class="w-full" />
             </LabeledInput>
 
             <LabeledInput :label="__('employees.field.last_name')" :error="form.errors.last_name">
-                <TextInput v-model="form.last_name" :disabled="readonlyIdentity" class="w-full" />
+                <TextInput v-model="form.last_name" :disabled="readonlyIdentity" :live="live" class="w-full" />
             </LabeledInput>
         </div>
 
         <LabeledInput :label="__('employees.field.email')" :error="form.errors.email">
-            <EmailInput v-model="form.email" :disabled="readonlyIdentity" class="w-full" />
+            <EmailInput v-model="form.email" :disabled="readonlyIdentity" :live="live" class="w-full" />
         </LabeledInput>
 
         <LabeledInput
