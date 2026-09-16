@@ -3,6 +3,7 @@ import { computed, ref } from 'vue'
 import { SearchInput } from '@/components/ui/Input'
 import Icon from '@/components/ui/Icon.vue'
 import Card from '@/components/ui/Card.vue'
+import CardSeparator from '@/components/ui/CardSeparator.vue'
 import ButtonSecondary from '@/components/ui/ButtonSecondary.vue'
 import { useI18n } from '@/composables/useI18n'
 
@@ -72,43 +73,47 @@ const selected = computed(() => [
 </script>
 
 <template>
-    <!-- A separate section from the fields above it, spaced off with pt-4;
-         hidden entirely until there is at least one recipient, so there is
-         nothing to show and no "no recipients yet" placeholder to render. -->
-    <div v-if="selected.length" class="space-y-1 pt-4">
-        <label class="block text-sm font-medium text-(--color-text-primary)">
-            {{ __('mailbox.compose.recipients') }}
-        </label>
-        <p class="text-xs text-(--color-text-secondary)">
-            {{ __('mailbox.compose.recipients_selected', { count: selected.length }) }}
-        </p>
+    <!-- A separate section from the fields above it, set off with a
+         separator; hidden entirely until there is at least one recipient, so
+         there is nothing to show and no "no recipients yet" placeholder. -->
+    <template v-if="selected.length">
+        <CardSeparator />
 
-        <ul class="space-y-1">
-            <li
-                v-for="person in selected"
-                :key="`${person.source}-${person.id}`"
-                class="flex items-center gap-2 rounded-md border border-(--color-border) px-2.5 py-1.5"
-            >
-                <span
-                    class="shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-medium bg-(--color-badge-standard-bg) text-(--color-badge-standard-text)"
+        <div class="space-y-1">
+            <label class="block text-sm font-medium text-(--color-text-primary)">
+                {{ __('mailbox.compose.recipients') }}
+            </label>
+            <p class="text-xs text-(--color-text-secondary)">
+                {{ __('mailbox.compose.recipients_selected', { count: selected.length }) }}
+            </p>
+
+            <ul class="space-y-1">
+                <li
+                    v-for="person in selected"
+                    :key="`${person.source}-${person.id}`"
+                    class="flex items-center gap-2 rounded-md border border-(--color-border) px-2.5 py-1.5"
                 >
-                    {{ __(`mailbox.badge.${person.source}`) }}
-                </span>
-                <span class="min-w-0 flex-1 truncate text-sm text-(--color-text-primary)">
-                    {{ person.name }}
-                    <span class="text-(--color-text-secondary)">{{ person.email }}</span>
-                </span>
-                <button
-                    type="button"
-                    class="shrink-0 text-(--color-text-secondary) hover:text-(--color-text-primary)"
-                    :aria-label="__('mailbox.compose.recipient_remove')"
-                    @click="remove(person.source, person.id)"
-                >
-                    <Icon name="x-mark" class="size-4" />
-                </button>
-            </li>
-        </ul>
-    </div>
+                    <span
+                        class="shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-medium bg-(--color-badge-standard-bg) text-(--color-badge-standard-text)"
+                    >
+                        {{ __(`mailbox.badge.${person.source}`) }}
+                    </span>
+                    <span class="min-w-0 flex-1 truncate text-sm text-(--color-text-primary)">
+                        {{ person.name }}
+                        <span class="text-(--color-text-secondary)">{{ person.email }}</span>
+                    </span>
+                    <button
+                        type="button"
+                        class="shrink-0 text-(--color-text-secondary) hover:text-(--color-text-primary)"
+                        :aria-label="__('mailbox.compose.recipient_remove')"
+                        @click="remove(person.source, person.id)"
+                    >
+                        <Icon name="x-mark" class="size-4" />
+                    </button>
+                </li>
+            </ul>
+        </div>
+    </template>
 
     <Teleport to="body">
         <div

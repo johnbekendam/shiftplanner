@@ -102,6 +102,13 @@ describe("Mailbox — Compose tab", () => {
         const w = mountCompose();
         expect(w.findAll("ul")).toHaveLength(0);
         expect(w.text()).not.toContain("selected");
+        // Only the static separator above the button row, none above Recipients yet.
+        expect(w.findAll("hr")).toHaveLength(1);
+    });
+
+    it("shows a separator above the recipients section once it appears", () => {
+        const w = mountCompose({ preselected_employee_id: 1 });
+        expect(w.findAll("hr")).toHaveLength(2);
     });
 
     it("shows the recipients validation error even with nobody selected", () => {
