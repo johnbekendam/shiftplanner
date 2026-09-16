@@ -4,9 +4,7 @@ import { mount } from "@vue/test-utils";
 const en = {
     "reports.title": "Reports",
     "reports.tab.missing_availability": "Missing availability",
-    "reports.missing_availability.shift": "Shift",
-    "reports.missing_availability.shift_placeholder": "Select a shift",
-    "reports.missing_availability.business_line": "Business line",
+    "reports.missing_availability.shift_placeholder": "All shifts",
     "reports.missing_availability.business_line_placeholder": "All business lines",
     "reports.missing_availability.include_unconfirmed": "Include unconfirmed employees",
     "reports.missing_availability.pick_a_shift": "Select a shift to see who has not set availability for it.",

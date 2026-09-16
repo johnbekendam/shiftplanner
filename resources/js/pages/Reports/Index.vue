@@ -5,7 +5,6 @@ import AppLayout from '@/layouts/AppLayout.vue'
 import Card from '@/components/ui/Card.vue'
 import CardSeparator from '@/components/ui/CardSeparator.vue'
 import Tabs from '@/components/ui/Tabs.vue'
-import LabeledInput from '@/components/LabeledInput.vue'
 import ButtonPrimary from '@/components/ui/ButtonPrimary.vue'
 import { SelectInput, CheckboxInput } from '@/components/ui/Input'
 import { useI18n } from '@/composables/useI18n'
@@ -71,24 +70,20 @@ function emailSelected() {
             </template>
 
             <div class="p-6 space-y-5">
-                <div class="flex flex-wrap items-end gap-4">
-                    <LabeledInput :label="__('reports.missing_availability.shift')" class="w-56">
-                        <SelectInput
-                            v-model="shift"
-                            :options="shiftOptions"
-                            :placeholder="__('reports.missing_availability.shift_placeholder')"
-                            class="w-full"
-                        />
-                    </LabeledInput>
+                <div class="flex flex-wrap items-center gap-4">
+                    <SelectInput
+                        v-model="shift"
+                        :options="shiftOptions"
+                        :placeholder="__('reports.missing_availability.shift_placeholder')"
+                        class="w-56"
+                    />
 
-                    <LabeledInput :label="__('reports.missing_availability.business_line')" class="w-56">
-                        <SelectInput
-                            v-model="businessLine"
-                            :options="businessLineOptions"
-                            :placeholder="__('reports.missing_availability.business_line_placeholder')"
-                            class="w-full"
-                        />
-                    </LabeledInput>
+                    <SelectInput
+                        v-model="businessLine"
+                        :options="businessLineOptions"
+                        :placeholder="__('reports.missing_availability.business_line_placeholder')"
+                        class="w-56"
+                    />
 
                     <CheckboxInput v-model="includeUnconfirmed">
                         {{ __('reports.missing_availability.include_unconfirmed') }}
