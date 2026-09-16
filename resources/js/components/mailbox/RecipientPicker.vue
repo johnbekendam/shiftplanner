@@ -3,7 +3,6 @@ import { computed, ref } from 'vue'
 import { SearchInput } from '@/components/ui/Input'
 import Icon from '@/components/ui/Icon.vue'
 import Card from '@/components/ui/Card.vue'
-import CardSeparator from '@/components/ui/CardSeparator.vue'
 import ButtonSecondary from '@/components/ui/ButtonSecondary.vue'
 import { useI18n } from '@/composables/useI18n'
 
@@ -73,17 +72,14 @@ const selected = computed(() => [
 </script>
 
 <template>
-    <!-- A separate section from the fields above it, set off with a
-         separator; hidden entirely until there is at least one recipient, so
-         there is nothing to show and no "no recipients yet" placeholder. -->
-    <template v-if="selected.length">
-        <CardSeparator />
+    <!-- Hidden entirely until there is at least one recipient, so there is
+         nothing to show and no "no recipients yet" placeholder. -->
+    <div v-if="selected.length" class="space-y-1">
+        <label class="block text-sm font-medium text-(--color-text-primary)">
+            {{ __('mailbox.compose.recipients') }}
+        </label>
 
-        <div class="space-y-1">
-            <label class="block text-sm font-medium text-(--color-text-primary)">
-                {{ __('mailbox.compose.recipients') }}
-            </label>
-
+        <Card class="p-3">
             <div class="flex flex-wrap gap-1.5">
                 <span
                     v-for="person in selected"
@@ -101,8 +97,8 @@ const selected = computed(() => [
                     </button>
                 </span>
             </div>
-        </div>
-    </template>
+        </Card>
+    </div>
 
     <Teleport to="body">
         <div
