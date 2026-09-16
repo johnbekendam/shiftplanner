@@ -64,11 +64,12 @@ const mountCompose = (overrides = {}) =>
     });
 
 // RecipientPicker's browse/add UI lives in a <Teleport to="body"> modal,
-// opened via its "Add recipients" button. The teleported content ends up as
-// a sibling of the wrapper's own root in <body>, so it's queried through a
-// DOMWrapper over that node rather than through the component wrapper.
+// opened via its icon-only "Add recipients" button (aria-label only, no
+// visible text). The teleported content ends up as a sibling of the
+// wrapper's own root in <body>, so it's queried through a DOMWrapper over
+// that node rather than through the component wrapper.
 async function openRecipientPicker(w) {
-    await w.findAll("button").find((b) => b.text() === "Add recipients").trigger("click");
+    await w.find("button[aria-label='Add recipients']").trigger("click");
     // Earlier tests in this file don't unmount, so a stale modal from a
     // previous mountCompose() can still be sitting in <body> — Teleport
     // appends, so this instance's node is always the last match.

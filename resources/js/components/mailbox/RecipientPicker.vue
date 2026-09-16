@@ -15,6 +15,7 @@ const props = defineProps({
     users: { type: Array, default: () => [] },
     // { employee_ids: number[], user_ids: number[] }
     modelValue: { type: Object, required: true },
+    error: { type: String, default: null },
 })
 
 const emit = defineEmits(['update:modelValue'])
@@ -78,7 +79,16 @@ const selected = computed(() => [
         </label>
 
         <Card class="min-h-9 p-3">
-            <div class="flex flex-wrap gap-1.5">
+            <div class="flex flex-wrap items-center gap-1.5">
+                <button
+                    type="button"
+                    class="inline-flex shrink-0 items-center justify-center rounded-full size-7 bg-(--color-badge-standard-bg) text-(--color-badge-standard-text) hover:opacity-80"
+                    :aria-label="__('mailbox.compose.recipients_open_picker')"
+                    @click="open = true"
+                >
+                    <Icon name="user-plus" class="size-3.5" />
+                </button>
+
                 <span
                     v-for="person in selected"
                     :key="`${person.source}-${person.id}`"
@@ -96,6 +106,8 @@ const selected = computed(() => [
                 </span>
             </div>
         </Card>
+
+        <p v-if="error" class="mt-1 text-xs text-[var(--color-badge-error-text)]">{{ error }}</p>
     </div>
 
     <Teleport to="body">

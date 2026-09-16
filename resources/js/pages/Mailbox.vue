@@ -268,6 +268,7 @@ function deleteMessage(message) {
                         v-model:open="recipientPickerOpen"
                         :employees="compose?.employees ?? []"
                         :users="compose?.users ?? []"
+                        :error="composeForm.errors.employee_ids"
                     />
 
                     <LabeledInput :label="__('mailbox.compose.subject')" :error="composeForm.errors.subject">
@@ -293,27 +294,16 @@ function deleteMessage(message) {
 
                     <CardSeparator />
 
-                    <div class="flex items-center justify-between gap-3">
-                        <div>
-                            <ButtonSecondary type="button" icon="user-plus" @click="recipientPickerOpen = true">
-                                {{ __('mailbox.compose.recipients_open_picker') }}
-                            </ButtonSecondary>
-                            <p v-if="composeForm.errors.employee_ids" class="mt-1 text-xs text-[var(--color-badge-error-text)]">
-                                {{ composeForm.errors.employee_ids }}
-                            </p>
-                        </div>
-
-                        <div class="flex gap-3">
-                            <ButtonSecondary type="button" icon="eye" @click="previewCompose">
-                                {{ __('mailbox.compose.preview') }}
-                            </ButtonSecondary>
-                            <ButtonSecondary type="button" :disabled="composeForm.processing || !hasRecipients" @click="submitCompose('draft')">
-                                {{ __('mailbox.compose.create_drafts') }}
-                            </ButtonSecondary>
-                            <ButtonPrimary type="button" :disabled="composeForm.processing || !hasRecipients" @click="submitCompose('queue')">
-                                {{ __('mailbox.action.send_now') }}
-                            </ButtonPrimary>
-                        </div>
+                    <div class="flex justify-end gap-3">
+                        <ButtonSecondary type="button" icon="eye" @click="previewCompose">
+                            {{ __('mailbox.compose.preview') }}
+                        </ButtonSecondary>
+                        <ButtonSecondary type="button" :disabled="composeForm.processing || !hasRecipients" @click="submitCompose('draft')">
+                            {{ __('mailbox.compose.create_drafts') }}
+                        </ButtonSecondary>
+                        <ButtonPrimary type="button" :disabled="composeForm.processing || !hasRecipients" @click="submitCompose('queue')">
+                            {{ __('mailbox.action.send_now') }}
+                        </ButtonPrimary>
                     </div>
                 </div>
 
