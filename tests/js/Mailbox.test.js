@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { mount } from "@vue/test-utils";
+import { mount, DOMWrapper } from "@vue/test-utils";
 import { reactive } from "vue";
 import { en } from "./support/themeBuilderProps.js";
 
@@ -63,6 +63,19 @@ const mountCompose = (overrides = {}) =>
         global: { stubs: { AppLayout: { template: "<div><slot /></div>" } } },
     });
 
+// RecipientPicker's browse/add UI lives in a <Teleport to="body"> modal,
+// opened via its "Add recipients" button. The teleported content ends up as
+// a sibling of the wrapper's own root in <body>, so it's queried through a
+// DOMWrapper over that node rather than through the component wrapper.
+async function openRecipientPicker(w) {
+    await w.findAll("button").find((b) => b.text() === "Add recipients").trigger("click");
+    // Earlier tests in this file don't unmount, so a stale modal from a
+    // previous mountCompose() can still be sitting in <body> — Teleport
+    // appends, so this instance's node is always the last match.
+    const nodes = document.body.querySelectorAll('[data-testid="recipient-picker-modal"]');
+    return new DOMWrapper(nodes[nodes.length - 1]);
+}
+
 beforeEach(() => {
     router.get.mockReset();
     router.post.mockReset();
@@ -79,8 +92,8 @@ describe("Mailbox — Compose tab", () => {
 
     it("preselects the employee from the query prop", () => {
         const w = mountCompose({ preselected_employee_id: 2 });
-        // The selected list (second <ul>) shows only the preselected employee.
-        const selected = w.findAll("ul")[1].text();
+        // The selected list is the only <ul> outside the picker's modal.
+        const selected = w.findAll("ul")[0].text();
         expect(selected).toContain("Bob Li");
         expect(selected).not.toContain("Alice Ng");
     });
@@ -155,7 +168,8 @@ describe("Mailbox — Compose tab", () => {
 
     it("adding an employee via the picker's + button adds them to employee_ids", async () => {
         const w = mountCompose();
-        await w.findAll("li button")[0].trigger("click");
+        const modal = await openRecipientPicker(w);
+        await modal.findAll("li button")[0].trigger("click");
 
         await w.findAll("button").find((b) => b.text() === "Create drafts").trigger("click");
         expect(postSpy.mock.calls[0][1].employee_ids).toEqual([1]);
@@ -177,8 +191,9 @@ describe("Mailbox — Compose tab", () => {
         await w.findComponent(TextInput).setValue("Heads up");
         await w.findComponent(MultilineInput).setValue("Hi :name");
 
-        await w.findAll("button").find((b) => b.text() === "Users").trigger("click");
-        await w.findAll("li button")[0].trigger("click");
+        const modal = await openRecipientPicker(w);
+        await modal.findAll("button").find((b) => b.text() === "Users").trigger("click");
+        await modal.findAll("li button")[0].trigger("click");
         await w.findAll("button").find((b) => b.text() === "Create drafts").trigger("click");
 
         const [, data] = postSpy.mock.calls[0];
