@@ -263,6 +263,13 @@ function deleteMessage(message) {
                         </ButtonPrimary>
                     </div>
 
+                    <RecipientPicker
+                        v-model="recipients"
+                        v-model:open="recipientPickerOpen"
+                        :employees="compose?.employees ?? []"
+                        :users="compose?.users ?? []"
+                    />
+
                     <LabeledInput :label="__('mailbox.compose.subject')" :error="composeForm.errors.subject">
                         <TextInput v-model="composeForm.subject" live class="w-full" />
                     </LabeledInput>
@@ -283,13 +290,6 @@ function deleteMessage(message) {
                         </div>
                         <p class="mt-1 text-xs text-(--color-text-secondary)">{{ __('mailbox.compose.body_hint') }}</p>
                     </LabeledInput>
-
-                    <RecipientPicker
-                        v-model="recipients"
-                        v-model:open="recipientPickerOpen"
-                        :employees="compose?.employees ?? []"
-                        :users="compose?.users ?? []"
-                    />
 
                     <CardSeparator />
 
