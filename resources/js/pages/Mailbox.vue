@@ -284,21 +284,24 @@ function deleteMessage(message) {
                         <p class="mt-1 text-xs text-(--color-text-secondary)">{{ __('mailbox.compose.body_hint') }}</p>
                     </LabeledInput>
 
-                    <LabeledInput :label="__('mailbox.compose.recipients')" :error="composeForm.errors.employee_ids">
-                        <RecipientPicker
-                            v-model="recipients"
-                            v-model:open="recipientPickerOpen"
-                            :employees="compose?.employees ?? []"
-                            :users="compose?.users ?? []"
-                        />
-                    </LabeledInput>
+                    <RecipientPicker
+                        v-model="recipients"
+                        v-model:open="recipientPickerOpen"
+                        :employees="compose?.employees ?? []"
+                        :users="compose?.users ?? []"
+                    />
 
                     <CardSeparator />
 
                     <div class="flex items-center justify-between gap-3">
-                        <ButtonSecondary type="button" icon="user-plus" @click="recipientPickerOpen = true">
-                            {{ __('mailbox.compose.recipients_open_picker') }}
-                        </ButtonSecondary>
+                        <div>
+                            <ButtonSecondary type="button" icon="user-plus" @click="recipientPickerOpen = true">
+                                {{ __('mailbox.compose.recipients_open_picker') }}
+                            </ButtonSecondary>
+                            <p v-if="composeForm.errors.employee_ids" class="mt-1 text-xs text-[var(--color-badge-error-text)]">
+                                {{ composeForm.errors.employee_ids }}
+                            </p>
+                        </div>
 
                         <div class="flex gap-3">
                             <ButtonSecondary type="button" icon="eye" @click="previewCompose">

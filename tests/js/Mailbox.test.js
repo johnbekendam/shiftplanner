@@ -98,6 +98,20 @@ describe("Mailbox — Compose tab", () => {
         expect(selected).not.toContain("Alice Ng");
     });
 
+    it("hides the recipients section entirely until someone is added", () => {
+        const w = mountCompose();
+        expect(w.findAll("ul")).toHaveLength(0);
+        expect(w.text()).not.toContain("selected");
+    });
+
+    it("shows the recipients validation error even with nobody selected", () => {
+        const w = mountCompose();
+        w.vm.composeForm.errors.employee_ids = "Select at least one recipient.";
+        return w.vm.$nextTick().then(() => {
+            expect(w.text()).toContain("Select at least one recipient.");
+        });
+    });
+
     it("Create drafts posts the typed payload in draft mode", async () => {
         const w = mountCompose({ preselected_employee_id: 1 });
         await w.findAll("button").find((b) => b.text() === "Create drafts").trigger("click");

@@ -72,40 +72,42 @@ const selected = computed(() => [
 </script>
 
 <template>
-    <div class="space-y-3">
-        <div class="space-y-1">
-            <p class="text-xs text-(--color-text-secondary)">
-                {{ selected.length
-                    ? __('mailbox.compose.recipients_selected', { count: selected.length })
-                    : __('mailbox.compose.recipients_selected_empty') }}
-            </p>
+    <!-- A separate section from the fields above it, spaced off with pt-4;
+         hidden entirely until there is at least one recipient, so there is
+         nothing to show and no "no recipients yet" placeholder to render. -->
+    <div v-if="selected.length" class="space-y-1 pt-4">
+        <label class="block text-sm font-medium text-(--color-text-primary)">
+            {{ __('mailbox.compose.recipients') }}
+        </label>
+        <p class="text-xs text-(--color-text-secondary)">
+            {{ __('mailbox.compose.recipients_selected', { count: selected.length }) }}
+        </p>
 
-            <ul v-if="selected.length" class="space-y-1">
-                <li
-                    v-for="person in selected"
-                    :key="`${person.source}-${person.id}`"
-                    class="flex items-center gap-2 rounded-md border border-(--color-border) px-2.5 py-1.5"
+        <ul class="space-y-1">
+            <li
+                v-for="person in selected"
+                :key="`${person.source}-${person.id}`"
+                class="flex items-center gap-2 rounded-md border border-(--color-border) px-2.5 py-1.5"
+            >
+                <span
+                    class="shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-medium bg-(--color-badge-standard-bg) text-(--color-badge-standard-text)"
                 >
-                    <span
-                        class="shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-medium bg-(--color-badge-standard-bg) text-(--color-badge-standard-text)"
-                    >
-                        {{ __(`mailbox.badge.${person.source}`) }}
-                    </span>
-                    <span class="min-w-0 flex-1 truncate text-sm text-(--color-text-primary)">
-                        {{ person.name }}
-                        <span class="text-(--color-text-secondary)">{{ person.email }}</span>
-                    </span>
-                    <button
-                        type="button"
-                        class="shrink-0 text-(--color-text-secondary) hover:text-(--color-text-primary)"
-                        :aria-label="__('mailbox.compose.recipient_remove')"
-                        @click="remove(person.source, person.id)"
-                    >
-                        <Icon name="x-mark" class="size-4" />
-                    </button>
-                </li>
-            </ul>
-        </div>
+                    {{ __(`mailbox.badge.${person.source}`) }}
+                </span>
+                <span class="min-w-0 flex-1 truncate text-sm text-(--color-text-primary)">
+                    {{ person.name }}
+                    <span class="text-(--color-text-secondary)">{{ person.email }}</span>
+                </span>
+                <button
+                    type="button"
+                    class="shrink-0 text-(--color-text-secondary) hover:text-(--color-text-primary)"
+                    :aria-label="__('mailbox.compose.recipient_remove')"
+                    @click="remove(person.source, person.id)"
+                >
+                    <Icon name="x-mark" class="size-4" />
+                </button>
+            </li>
+        </ul>
     </div>
 
     <Teleport to="body">

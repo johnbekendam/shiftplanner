@@ -97,7 +97,6 @@
     "mailbox.compose.recipients": "Recipients",
     "mailbox.compose.recipients_search": "Search name or email",
     "mailbox.compose.recipients_selected": ":count selected",
-    "mailbox.compose.recipients_selected_empty": "No recipients selected yet.",
     "mailbox.compose.recipients_empty": "No matches.",
     "mailbox.compose.recipients_required": "Select at least one recipient.",
     "mailbox.compose.recipients_open_picker": "Add recipients",
