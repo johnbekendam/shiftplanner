@@ -46,6 +46,7 @@ const navItems = computed(() => {
             { label: __('nav.scheduling'), href: '/planning', icon: 'calendar-days' },
             { label: __('nav.planning_rules'), href: '/planning-rules', icon: 'adjustments-horizontal' },
             { label: __('nav.mailbox'), href: '/mailbox', icon: 'envelope' },
+            { label: __('nav.reports'), href: '/reports', icon: 'clipboard-list' },
             { separator: true },
         )
     }

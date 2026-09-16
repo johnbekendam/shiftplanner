@@ -8,6 +8,7 @@
 
     "nav.dashboard": "Dashboard",
     "nav.mailbox": "Mailbox",
+    "nav.reports": "Reports",
     "nav.workcenter_shifts": "Schedule",
     "nav.scheduling": "Planning",
     "nav.planning_rules": "Planning rules",
@@ -66,6 +67,8 @@
     "theme.category.status": "Status & feedback",
     "theme.category.text": "Text",
     "theme.preview.chrome_note": "This is the page text.",
+
+    "reports.title": "Reports",
 
     "mailbox.tab.compose": "Compose",
     "mailbox.tab.draft": "Draft",
