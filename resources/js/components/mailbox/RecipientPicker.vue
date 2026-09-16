@@ -77,7 +77,7 @@ const selected = computed(() => [
             {{ __('mailbox.compose.recipients') }}
         </label>
 
-        <Card class="p-3">
+        <Card class="min-h-9 p-3">
             <div class="flex flex-wrap gap-1.5">
                 <span
                     v-for="person in selected"
