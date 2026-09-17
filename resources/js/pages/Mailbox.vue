@@ -4,8 +4,10 @@ import { Head, router, useForm } from '@inertiajs/vue3'
 import AppLayout from '@/layouts/AppLayout.vue'
 import Card from '@/components/ui/Card.vue'
 import CardSeparator from '@/components/ui/CardSeparator.vue'
+import ButtonDanger from '@/components/ui/ButtonDanger.vue'
 import ButtonPrimary from '@/components/ui/ButtonPrimary.vue'
 import ButtonSecondary from '@/components/ui/ButtonSecondary.vue'
+import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 import LabeledInput from '@/components/LabeledInput.vue'
 import EmailPreviewModal from '@/components/mailbox/EmailPreviewModal.vue'
 import RecipientPicker from '@/components/mailbox/RecipientPicker.vue'
@@ -39,6 +41,62 @@ function switchTab(tab) {
 // ── Search (draft/outbox/sent tabs) ─────────────────────────────────────
 const searchTerm = ref(props.search)
 
+const paginationRange = computed(() => {
+    const from = props.messages?.from ?? 0
+    const to = props.messages?.to ?? 0
+    const total = props.messages?.total ?? props.messages?.data?.length ?? 0
+
+    return __('mailbox.pagination.range', { from, to, total })
+})
+
+const paginationLinks = computed(() => {
+    const links = props.messages?.links ?? []
+    const lastIndex = links.length - 1
+
+    return links.map((link, index) => ({
+        ...link,
+        key: `${index}-${link.label}-${link.url ?? 'disabled'}`,
+        label: index === 0 ? '‹' : index === lastIndex ? '›' : link.label,
+        ariaLabel: index === 0
+            ? __('mailbox.pagination.prev')
+            : index === lastIndex
+                ? __('mailbox.pagination.next')
+                : __('mailbox.pagination.page_label', { page: link.label }),
+        disabled: !link.url || link.active,
+        edge: index === 0 ? 'first' : index === lastIndex ? 'last' : null,
+    }))
+})
+
+function paginationLinkClass(link) {
+    const classes = [
+        'inline-flex min-w-9 items-center justify-center px-3 py-1.5 text-sm outline outline-1 -outline-offset-1',
+    ]
+
+    if (link.edge === 'first') classes.push('rounded-l-md')
+    if (link.edge === 'last') classes.push('rounded-r-md')
+
+    if (link.active) {
+        classes.push('bg-[var(--color-pagination-active-bg)] text-[var(--color-pagination-active-text)] outline-[var(--color-pagination-active-border)] font-semibold')
+    } else if (link.disabled) {
+        classes.push('cursor-not-allowed bg-[var(--color-pagination-bg)] text-[var(--color-pagination-muted-text)] outline-[var(--color-pagination-border)]')
+    } else {
+        classes.push('bg-[var(--color-pagination-bg)] text-[var(--color-pagination-text)] outline-[var(--color-pagination-border)] hover:bg-[var(--color-pagination-hover-bg)] hover:text-[var(--color-pagination-hover-text)] hover:outline-[var(--color-pagination-hover-border)]')
+    }
+
+    return classes
+}
+
+function goToPage(url) {
+    if (!url) return
+
+    selectedIds.value = []
+    router.get(url, {}, {
+        preserveState: true,
+        preserveScroll: true,
+        replace: true,
+    })
+}
+
 function runSearch() {
     router.get('/mailbox', { tab: props.tab, search: searchTerm.value }, { preserveState: true })
 }
@@ -68,6 +126,61 @@ function bulkDelete() {
         search: searchTerm.value,
         ids:    selectedIds.value,
     }, {
+        onSuccess: () => { selectedIds.value = [] },
+    })
+}
+
+const pendingSend = ref(null)
+
+function requestSend(message) {
+    pendingSend.value = { type: 'single', message }
+}
+
+function requestBulkSend() {
+    pendingSend.value = {
+        type: 'bulk',
+        ids: [...selectedIds.value],
+        recipients: props.messages.data
+            .filter(message => selectedIds.value.includes(message.id))
+            .map(message => message.recipient_email)
+            .join('\n'),
+    }
+}
+
+const sendConfirmation = computed(() => {
+    if (!pendingSend.value) return ''
+
+    return pendingSend.value.type === 'single'
+        ? __('mailbox.confirm.send_one', {
+            recipient: pendingSend.value.message.recipient_email,
+            subject: pendingSend.value.message.subject,
+        })
+        : pendingSend.value.ids.length
+            ? __('mailbox.confirm.send_selected', {
+                count: pendingSend.value.ids.length,
+                recipients: pendingSend.value.recipients,
+            })
+            : __('mailbox.confirm.send_all', {
+                recipients: pendingSend.value.recipients,
+            })
+})
+
+function cancelSend() {
+    pendingSend.value = null
+}
+
+function confirmSend() {
+    const pending = pendingSend.value
+    pendingSend.value = null
+
+    if (pending.type === 'single') {
+        router.post(`/mailbox/${pending.message.id}/send`, {}, {
+            onSuccess: () => { previewOpen.value = false },
+        })
+        return
+    }
+
+    router.post('/mailbox/bulk-send', { ids: pending.ids }, {
         onSuccess: () => { selectedIds.value = [] },
     })
 }
@@ -243,7 +356,7 @@ function deleteMessage(message) {
             <div class="p-6">
                 <!-- Compose tab -->
                 <div v-if="tab === 'compose'" class="space-y-5">
-                    <div class="flex items-end gap-3">
+                    <div class="flex flex-wrap items-end justify-end gap-3">
                         <LabeledInput :label="__('mailbox.compose.type')" class="flex-1">
                             <SelectInput
                                 :model-value="composeForm.type"
@@ -272,6 +385,7 @@ function deleteMessage(message) {
                         >
                             {{ __('mailbox.compose.template_save') }}
                         </ButtonPrimary>
+
                     </div>
 
                     <RecipientPicker
@@ -313,16 +427,17 @@ function deleteMessage(message) {
                     <CardSeparator />
 
                     <div class="flex justify-end gap-3">
-                        <ButtonSecondary type="button" icon="eye" :disabled="!hasSubjectAndBody" @click="previewCompose">
+                        <ButtonSecondary type="button" :disabled="!hasSubjectAndBody" @click="previewCompose">
                             {{ __('mailbox.compose.preview') }}
                         </ButtonSecondary>
-                        <ButtonSecondary type="button" :disabled="composeForm.processing || !hasRecipients" @click="submitCompose('draft')">
+                        <ButtonSecondary type="button" :disabled="composeForm.processing || !hasRecipients || !hasSubjectAndBody" @click="submitCompose('draft')">
                             {{ __('mailbox.compose.create_drafts') }}
                         </ButtonSecondary>
-                        <ButtonPrimary type="button" :disabled="composeForm.processing || !hasRecipients" @click="submitCompose('queue')">
+                        <ButtonPrimary type="button" :disabled="composeForm.processing || !hasRecipients || !hasSubjectAndBody" @click="submitCompose('queue')">
                             {{ __('mailbox.action.send_now') }}
                         </ButtonPrimary>
                     </div>
+
                 </div>
 
                 <!-- Draft / outbox / sent tabs -->
@@ -330,15 +445,31 @@ function deleteMessage(message) {
                     <div class="flex items-center justify-between gap-3">
                         <SearchInput v-model="searchTerm" class="max-w-xs" @keyup.enter="runSearch" />
 
-                        <ButtonSecondary type="button" icon="bin" @click="bulkDelete">
-                            {{ selectedIds.length ? __('mailbox.action.delete') : __('mailbox.action.delete_all') }}
-                            <span
-                                v-if="selectedIds.length"
-                                class="ml-1.5 inline-flex items-center justify-center rounded-full px-1.5 py-0.5 text-xs bg-[var(--color-badge-standard-bg)] text-[var(--color-badge-standard-text)]"
+                        <div class="flex justify-end gap-3">
+                            <ButtonDanger type="button" @click="bulkDelete">
+                                {{ selectedIds.length ? __('mailbox.action.delete') : __('mailbox.action.delete_all') }}
+                                <span
+                                    v-if="selectedIds.length"
+                                    class="ml-1.5 inline-flex items-center justify-center rounded-full px-1.5 py-0.5 text-xs bg-[var(--color-badge-standard-bg)] text-[var(--color-badge-standard-text)]"
+                                >
+                                    {{ selectedIds.length }}
+                                </span>
+                            </ButtonDanger>
+
+                            <ButtonPrimary
+                                v-if="tab === 'draft'"
+                                type="button"
+                                @click="requestBulkSend"
                             >
-                                {{ selectedIds.length }}
-                            </span>
-                        </ButtonSecondary>
+                                {{ selectedIds.length ? __('mailbox.action.send_selected') : __('mailbox.action.send_all') }}
+                                <span
+                                    v-if="selectedIds.length"
+                                    class="ml-1.5 inline-flex items-center justify-center rounded-full px-1.5 py-0.5 text-xs bg-[var(--color-badge-standard-bg)] text-[var(--color-badge-standard-text)]"
+                                >
+                                    {{ selectedIds.length }}
+                                </span>
+                            </ButtonPrimary>
+                        </div>
                     </div>
 
                     <table class="w-full text-sm">
@@ -360,7 +491,7 @@ function deleteMessage(message) {
                             <tr
                                 v-for="message in messages.data"
                                 :key="message.id"
-                                class="cursor-pointer border-b border-(--color-table-row-separator) hover:bg-(--color-table-row-hover-bg)"
+                                class="cursor-pointer border-b border-(--color-table-row-separator) last:border-b-0 hover:bg-(--color-table-row-hover-bg)"
                                 @click="openRowPreview(message)"
                             >
                                 <td class="py-2" @click.stop>
@@ -383,6 +514,26 @@ function deleteMessage(message) {
                     </table>
                 </div>
             </div>
+
+            <template v-if="tab !== 'compose' && messages.last_page > 1" #footer>
+                <div data-testid="mailbox-pagination" class="flex items-center justify-between gap-3 px-6 py-3 text-sm">
+                    <span class="text-(--color-pagination-muted-text)">{{ paginationRange }}</span>
+                    <div class="isolate inline-flex -space-x-px rounded-md">
+                        <button
+                            v-for="link in paginationLinks"
+                            :key="link.key"
+                            type="button"
+                            :aria-label="link.ariaLabel"
+                            :aria-current="link.active ? 'page' : undefined"
+                            :disabled="link.disabled"
+                            :class="paginationLinkClass(link)"
+                            @click="goToPage(link.url)"
+                        >
+                            {{ link.label }}
+                        </button>
+                    </div>
+                </div>
+            </template>
         </Card>
 
         <EmailPreviewModal
@@ -393,19 +544,28 @@ function deleteMessage(message) {
             @close="previewOpen = false"
         >
             <template v-if="previewMessage" #actions>
-                <ButtonSecondary
+                <ButtonPrimary
                     v-if="previewMessage.status === 'draft'"
                     type="button"
-                    icon="paper-airplane"
-                    @click="sendNow(previewMessage)"
+                    @click="requestSend(previewMessage)"
                 >
                     {{ __('mailbox.action.send_now') }}
-                </ButtonSecondary>
-                <ButtonSecondary type="button" icon="bin" @click="deleteMessage(previewMessage)">
+                </ButtonPrimary>
+                <ButtonDanger type="button" @click="deleteMessage(previewMessage)">
                     {{ __('mailbox.action.delete') }}
-                </ButtonSecondary>
+                </ButtonDanger>
             </template>
         </EmailPreviewModal>
+
+        <ConfirmDialog
+            :open="Boolean(pendingSend)"
+            :title="__('mailbox.action.send_now')"
+            :confirm-label="__('mailbox.action.send_now')"
+            @confirm="confirmSend"
+            @cancel="cancelSend"
+        >
+            <span class="whitespace-pre-line">{{ sendConfirmation }}</span>
+        </ConfirmDialog>
 
         <UnresolvedRecipientsDialog
             v-if="unresolvedRecipients"

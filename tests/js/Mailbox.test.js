@@ -32,7 +32,8 @@ vi.mock("@inertiajs/vue3", () => ({
 }));
 
 import Mailbox from "@/pages/Mailbox.vue";
-import { TextInput, MultilineInput } from "@/components/ui/Input";
+import ConfirmDialog from "@/components/ui/ConfirmDialog.vue";
+import { TextInput, MultilineInput, CheckboxInput } from "@/components/ui/Input";
 
 const compose = {
     types: [
@@ -89,6 +90,9 @@ describe("Mailbox — Compose tab", () => {
         const w = mountCompose();
         expect(w.findComponent(TextInput).props("modelValue")).toBe("Your page");
         expect(w.findComponent(MultilineInput).props("modelValue")).toBe("Hi :name, :link");
+        const previewButton = w.findAll("button").find((button) => button.text() === "Preview");
+        expect(previewButton.classes()).not.toContain("h-9");
+        expect(previewButton.find("svg").exists()).toBe(false);
     });
 
     it("preselects the employee from the query prop", () => {
@@ -208,6 +212,27 @@ describe("Mailbox — Compose tab", () => {
 
         await w.findComponent(MultilineInput).setValue("Body");
         expect(preview().attributes("disabled")).toBeUndefined();
+    });
+
+    it("disables Create drafts and Send now when the subject or body is empty", async () => {
+        const w = mountCompose({
+            type: "custom",
+            template: { subject: "", body: "" },
+            preselected_employee_id: 1,
+        });
+        const createDrafts = () => w.findAll("button").find((b) => b.text() === "Create drafts");
+        const sendNow = () => w.findAll("button").find((b) => b.text() === "Send now");
+
+        expect(createDrafts().attributes("disabled")).toBeDefined();
+        expect(sendNow().attributes("disabled")).toBeDefined();
+
+        await w.findComponent(TextInput).setValue("Subject");
+        expect(createDrafts().attributes("disabled")).toBeDefined();
+        expect(sendNow().attributes("disabled")).toBeDefined();
+
+        await w.findComponent(MultilineInput).setValue("Body");
+        expect(createDrafts().attributes("disabled")).toBeUndefined();
+        expect(sendNow().attributes("disabled")).toBeUndefined();
     });
 
     it("clicking a placeholder token appends it to the body", async () => {
@@ -354,5 +379,91 @@ describe("Mailbox — message list", () => {
         const headers = w.findAll("thead th").map((th) => th.text());
         expect(headers).toContain("Composed by");
         expect(w.find("tbody tr").text()).toContain("Admin One");
+        expect(w.find("tbody tr").classes()).toContain("last:border-b-0");
+    });
+
+    it("shows pagination controls and navigates to the selected page", async () => {
+        const paginatedMessages = {
+            ...messages,
+            from: 21,
+            to: 40,
+            total: 41,
+            current_page: 2,
+            last_page: 3,
+            links: [
+                { url: "/mailbox?tab=draft&search=alice&page=1", label: "Previous", active: false },
+                { url: "/mailbox?tab=draft&search=alice&page=1", label: "1", active: false },
+                { url: null, label: "2", active: true },
+                { url: "/mailbox?tab=draft&search=alice&page=3", label: "3", active: false },
+                { url: "/mailbox?tab=draft&search=alice&page=3", label: "Next", active: false },
+            ],
+        };
+        const w = mount(Mailbox, {
+            props: { messages: paginatedMessages, tab: "draft", search: "alice", counts: { draft: 41 }, compose: null },
+            global: { stubs: { AppLayout: { template: "<div><slot /></div>" } } },
+        });
+
+        expect(w.get('[data-testid="mailbox-pagination"]').text()).toContain("21-40 of 41");
+        expect(w.get('[data-testid="mailbox-pagination"]').findAll("button")).toHaveLength(5);
+
+        await w.get('[data-testid="mailbox-pagination"]').findAll("button")[3].trigger("click");
+
+        expect(router.get).toHaveBeenCalledWith(
+            "/mailbox?tab=draft&search=alice&page=3",
+            {},
+            { preserveState: true, preserveScroll: true, replace: true },
+        );
+    });
+
+    it("requires confirmation before sending a draft from its preview", async () => {
+        const w = mount(Mailbox, {
+            props: { messages, tab: "draft", search: "", counts: { draft: 1 }, compose: null },
+            attachTo: document.body,
+            global: { stubs: { AppLayout: { template: "<div><slot /></div>" } } },
+        });
+
+        await w.vm.openRowPreview(messages.data[0]);
+        await w.vm.$nextTick();
+        const sendButton = new DOMWrapper(Array.from(document.body.querySelectorAll("button"))
+            .reverse().find((button) => button.textContent.trim() === "Send now"));
+        await sendButton.trigger("click");
+
+        const dialog = w.findAllComponents(ConfirmDialog).at(-1);
+        expect(dialog.props("open")).toBe(true);
+        expect(router.post).not.toHaveBeenCalled();
+
+        dialog.vm.$emit("confirm");
+        expect(router.post).toHaveBeenCalledWith("/mailbox/7/send", {}, expect.any(Object));
+        w.unmount();
+    });
+
+    it("requires confirmation before sending selected drafts", async () => {
+        const w = mount(Mailbox, {
+            props: { messages, tab: "draft", search: "", counts: { draft: 1 }, compose: null },
+            global: { stubs: { AppLayout: { template: "<div><slot /></div>" } } },
+        });
+
+        await w.findAllComponents(CheckboxInput).at(0).vm.$emit("update:modelValue", true);
+        const bulkButton = w.findAll("button").find((button) => button.text().includes("Send selected"));
+        await bulkButton.trigger("click");
+
+        const dialog = w.findAllComponents(ConfirmDialog).at(-1);
+        expect(dialog.props("open")).toBe(true);
+        expect(router.post).not.toHaveBeenCalled();
+
+        dialog.vm.$emit("confirm");
+        expect(router.post).toHaveBeenCalledWith("/mailbox/bulk-send", { ids: [7] }, expect.any(Object));
+    });
+
+    it("labels the unselected draft action Send All", () => {
+        const w = mount(Mailbox, {
+            props: { messages, tab: "draft", search: "", counts: { draft: 1 }, compose: null },
+            global: { stubs: { AppLayout: { template: "<div><slot /></div>" } } },
+        });
+
+        const sendAll = w.findAll("button").find((button) => button.text().includes("Send All"));
+
+        expect(sendAll).toBeDefined();
+        expect(sendAll.findAll("span")).toHaveLength(0);
     });
 });

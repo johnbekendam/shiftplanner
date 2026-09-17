@@ -180,8 +180,8 @@ free-form flash keys are removed.
 ## Non-goals
 
 - A `general` or any second message type.
-- Bulk send (whole business line, everyone not yet invited) — the design
-  leaves room; the UI is not built.
+- Bulk send beyond selected drafts, such as a whole business line or
+  everyone not yet invited.
 - Editing a message's text per send after Create drafts — the draft is
   edited by deleting and recomposing, as in the baseline.
 - Delegated Graph send, `/me/sendMail`, Sent Items in a personal mailbox.
