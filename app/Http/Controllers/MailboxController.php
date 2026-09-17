@@ -13,6 +13,7 @@ use App\Services\MessageComposer;
 use App\Services\MessagePlaceholders;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -267,6 +268,51 @@ class MailboxController extends Controller
         SendMailboxMessage::dispatch($message->id, $message->recipient_email, $mailable);
 
         return redirect()->back()->with('success', __('mailbox.flash.queued', ['count' => 1]));
+    }
+
+    public function bulkSend(Request $request)
+    {
+        $data = $request->validate([
+            'ids' => ['nullable', 'array'],
+            'ids.*' => ['required', 'integer', 'distinct'],
+        ]);
+
+        $jobs = DB::transaction(function () use ($data): array {
+            $query = Message::query()->forStatus('draft')->lockForUpdate();
+            $ids = $data['ids'] ?? [];
+
+            if ($ids !== []) {
+                $query->whereIn('id', $ids);
+            }
+
+            $messages = $query->get();
+
+            if ($ids !== [] && $messages->count() !== count($ids)) {
+                abort(422, __('mailbox.error.send_selection'));
+            }
+
+            $jobs = [];
+            foreach ($messages as $message) {
+                $owner = $message->user;
+                $fragment = $this->composer->render($message->subject, $message->body ?? '')['body_html'];
+                $mailable = new ComposedMessage($message->subject, $fragment, $owner?->email, $owner?->name);
+
+                $message->update([
+                    'status' => 'outbox',
+                    'body_html' => new ComposedMessage($message->subject, $fragment, logoSrc: ComposedMessage::browserLogoUrl())->render(),
+                ]);
+
+                $jobs[] = [$message->id, $message->recipient_email, $mailable];
+            }
+
+            return $jobs;
+        });
+
+        foreach ($jobs as [$messageId, $email, $mailable]) {
+            SendMailboxMessage::dispatch($messageId, $email, $mailable);
+        }
+
+        return redirect()->back()->with('success', __('mailbox.flash.queued', ['count' => count($jobs)]));
     }
 
     public function destroy(Request $request, Message $message)

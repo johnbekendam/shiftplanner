@@ -492,6 +492,48 @@ class MailboxTest extends TestCase
         $this->post("/mailbox/{$message->id}/send")->assertStatus(422);
     }
 
+    public function test_admin_can_bulk_send_selected_drafts(): void
+    {
+        Queue::fake();
+        $this->admin();
+        $drafts = Message::factory()->count(2)->create(['status' => 'draft']);
+
+        $this->post('/mailbox/bulk-send', ['ids' => $drafts->pluck('id')->all()])
+            ->assertRedirect();
+
+        $this->assertSame(2, Message::forStatus('outbox')->count());
+        Queue::assertPushed(SendMailboxMessage::class, 2);
+    }
+
+    public function test_bulk_send_is_all_or_nothing_when_a_selected_message_is_not_a_draft(): void
+    {
+        Queue::fake();
+        $this->admin();
+        $draft = Message::factory()->create(['status' => 'draft']);
+        $sent = Message::factory()->sent()->create();
+
+        $this->post('/mailbox/bulk-send', ['ids' => [$draft->id, $sent->id]])
+            ->assertStatus(422);
+
+        $this->assertSame('draft', $draft->fresh()->status);
+        $this->assertSame('sent', $sent->fresh()->status);
+        Queue::assertNothingPushed();
+    }
+
+    public function test_guests_cannot_bulk_send_drafts(): void
+    {
+        $this->post('/mailbox/bulk-send', ['ids' => [1]])
+            ->assertRedirect('/login');
+    }
+
+    public function test_managers_cannot_bulk_send_drafts(): void
+    {
+        $this->actingAs(User::factory()->create());
+
+        $this->post('/mailbox/bulk-send', ['ids' => [1]])
+            ->assertForbidden();
+    }
+
     public function test_bulk_delete_removes_only_the_given_ids(): void
     {
         $this->admin();

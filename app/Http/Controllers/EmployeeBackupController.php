@@ -7,6 +7,7 @@ use App\Models\BusinessLine;
 use App\Models\Competence;
 use App\Models\Employee;
 use App\Models\Shift;
+use App\Services\ApplicationBackup;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -23,7 +24,15 @@ class EmployeeBackupController extends Controller
         return Inertia::render('EmployeeBackup');
     }
 
-    public function export(): JsonResponse
+    public function export(ApplicationBackup $backup): JsonResponse
+    {
+        $filename = now()->format('Ymd-His').'-shiftplanner-backup.json';
+
+        return response()->json($backup->export())
+            ->header('Content-Disposition', "attachment; filename={$filename}");
+    }
+
+    private function exportEmployees(): JsonResponse
     {
         $employees = Employee::query()
             ->with(['businessLine', 'competences', 'recurringAvailabilities.shift', 'holidays', 'availabilityQuestions'])
@@ -36,9 +45,9 @@ class EmployeeBackupController extends Controller
             ->header('Content-Disposition', 'attachment; filename=employees-backup.json');
     }
 
-    public function import(Request $request): JsonResponse
+    public function import(Request $request, ApplicationBackup $backup): JsonResponse
     {
-        $upload = Validator::make($request->all(), ['file' => ['required', 'file', 'max:2048']]);
+        $upload = Validator::make($request->all(), ['file' => ['required', 'file', 'max:51200']]);
 
         if ($upload->fails()) {
             return response()->json(['errors' => [__('backup.error.file')]], 422);
@@ -48,6 +57,14 @@ class EmployeeBackupController extends Controller
             $archive = json_decode($request->file('file')->get(), true, 512, JSON_THROW_ON_ERROR);
         } catch (\JsonException) {
             return response()->json(['errors' => [__('backup.error.invalid_json')]], 422);
+        }
+
+        if (($archive['version'] ?? null) === ApplicationBackup::VERSION) {
+            try {
+                return response()->json($backup->import($archive));
+            } catch (\RuntimeException $exception) {
+                return response()->json(['errors' => [$exception->getMessage()]], 422);
+            }
         }
 
         $errors = $this->validateArchive($archive);

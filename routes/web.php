@@ -122,6 +122,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/mailbox/compose/preview', [MailboxController::class, 'preview'])->name('mailbox.preview');
         Route::put('/mailbox/templates/{type}', [MailboxController::class, 'updateTemplate'])->name('mailbox.templates.update');
         Route::post('/mailbox/{message}/send', [MailboxController::class, 'send'])->name('mailbox.send');
+        Route::post('/mailbox/bulk-send', [MailboxController::class, 'bulkSend'])->name('mailbox.bulk-send');
         Route::post('/mailbox/bulk-delete', [MailboxController::class, 'bulkDelete'])->name('mailbox.bulk-delete');
         Route::delete('/mailbox/{message}', [MailboxController::class, 'destroy'])->name('mailbox.destroy');
 

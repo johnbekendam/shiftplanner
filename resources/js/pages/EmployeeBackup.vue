@@ -5,6 +5,7 @@ import { Head } from '@inertiajs/vue3'
 import AppLayout from '@/layouts/AppLayout.vue'
 import ButtonPrimary from '@/components/ui/ButtonPrimary.vue'
 import Card from '@/components/ui/Card.vue'
+import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 import Icon from '@/components/ui/Icon.vue'
 import { FileInput } from '@/components/ui/Input'
 import { useI18n } from '@/composables/useI18n'
@@ -14,6 +15,8 @@ const dragging = ref(false)
 const busy = ref(false)
 const result = ref(null)
 const errors = ref([])
+const pendingFile = ref(null)
+const confirmOpen = ref(false)
 
 async function upload(file) {
     if (!file || busy.value) return
@@ -40,14 +43,37 @@ async function upload(file) {
     }
 }
 
-function onDrop(event) {
-    dragging.value = false
-    upload(event.dataTransfer?.files?.[0] ?? null)
+function requestImport(file) {
+    if (!file || busy.value) return
+
+    pendingFile.value = file
+    confirmOpen.value = true
 }
 
-const summary = computed(() => result.value
-    ? __('backup.result.summary', result.value)
-    : '')
+function cancelImport() {
+    pendingFile.value = null
+    confirmOpen.value = false
+}
+
+function confirmImport() {
+    const file = pendingFile.value
+    pendingFile.value = null
+    confirmOpen.value = false
+    upload(file)
+}
+
+function onDrop(event) {
+    dragging.value = false
+    requestImport(event.dataTransfer?.files?.[0] ?? null)
+}
+
+const summary = computed(() => {
+    if (!result.value) return ''
+
+    return result.value.version === 2
+        ? __('backup.result.imported', result.value)
+        : __('backup.result.summary', result.value)
+})
 </script>
 
 <template>
@@ -66,7 +92,7 @@ const summary = computed(() => result.value
                     </ButtonPrimary>
                 </form>
 
-                <FileInput accept="application/json,.json" @change="upload">
+                <FileInput accept="application/json,.json" @change="requestImport">
                     <template #default="{ trigger }">
                         <div
                             data-testid="backup-dropzone"
@@ -86,6 +112,16 @@ const summary = computed(() => result.value
                         </div>
                     </template>
                 </FileInput>
+
+                <ConfirmDialog
+                    :open="confirmOpen"
+                    :title="__('backup.confirm.title')"
+                    :confirm-label="__('backup.confirm.action')"
+                    @confirm="confirmImport"
+                    @cancel="cancelImport"
+                >
+                    {{ __('backup.confirm.message') }}
+                </ConfirmDialog>
 
                 <p v-if="busy" class="text-sm text-(--color-text-secondary)">{{ __('backup.busy') }}</p>
 
