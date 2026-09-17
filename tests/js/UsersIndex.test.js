@@ -3,6 +3,7 @@ import { mount } from "@vue/test-utils";
 
 const en = {
     "users.title": "Users",
+    "users.search_placeholder": "Search name or email",
     "users.action.new": "Add user",
     "users.column.name": "Name",
     "users.column.email": "Email",
@@ -21,7 +22,7 @@ const en = {
 };
 
 const state = vi.hoisted(() => ({ user: { role: "admin" } }));
-const { router } = vi.hoisted(() => ({ router: { visit: vi.fn(), post: vi.fn() } }));
+const { router } = vi.hoisted(() => ({ router: { get: vi.fn(), visit: vi.fn(), post: vi.fn() } }));
 
 vi.mock("@inertiajs/vue3", () => ({
     router,
@@ -33,6 +34,8 @@ vi.mock("@inertiajs/vue3", () => ({
 import Index from "@/pages/Users/Index.vue";
 
 const stubs = { AppLayout: { template: "<div><slot /></div>" } };
+
+const mountIndex = (props = {}) => mount(Index, { props: { users, search: "", ...props }, global: { stubs } });
 
 const users = [
     {
@@ -58,12 +61,13 @@ const users = [
 describe("Users/Index", () => {
     beforeEach(() => {
         state.user = { role: "admin" };
+        router.get.mockClear();
         router.visit.mockClear();
         router.post.mockClear();
     });
 
     it("renders a row per user with role and status", () => {
-        const w = mount(Index, { props: { users }, global: { stubs } });
+        const w = mountIndex();
         const rows = w.findAll('[data-testid="user-row"]');
 
         expect(rows).toHaveLength(2);
@@ -72,7 +76,7 @@ describe("Users/Index", () => {
     });
 
     it("renders each user's business line abbreviation or an empty marker", () => {
-        const w = mount(Index, { props: { users }, global: { stubs } });
+        const w = mountIndex();
         const rows = w.findAll('[data-testid="user-row"]');
 
         expect(w.text()).toContain("Business line");
@@ -80,20 +84,60 @@ describe("Users/Index", () => {
         expect(rows[1].text()).toContain("—");
     });
 
+    it("renders a search field seeded from the search prop", () => {
+        const w = mountIndex({ search: "mel" });
+        const input = w.get('input[type="search"]');
+
+        expect(input.attributes("placeholder")).toBe("Search name or email");
+        expect(input.element.value).toBe("mel");
+    });
+
+    it("searches live while typing, debounced", async () => {
+        vi.useFakeTimers();
+        const w = mountIndex();
+
+        await w.get('input[type="search"]').setValue("mel");
+
+        expect(router.get).not.toHaveBeenCalled();
+        vi.advanceTimersByTime(300);
+
+        expect(router.get).toHaveBeenCalledWith(
+            "/users",
+            { search: "mel" },
+            expect.objectContaining({ preserveState: true, replace: true }),
+        );
+        vi.useRealTimers();
+    });
+
+    it("drops the search param when the box is cleared", async () => {
+        vi.useFakeTimers();
+        const w = mountIndex({ search: "mel" });
+
+        await w.get('input[type="search"]').setValue("");
+        vi.advanceTimersByTime(300);
+
+        expect(router.get).toHaveBeenCalledWith(
+            "/users",
+            {},
+            expect.objectContaining({ preserveState: true, replace: true }),
+        );
+        vi.useRealTimers();
+    });
+
     it("opens the editor on row click", async () => {
-        const w = mount(Index, { props: { users }, global: { stubs } });
+        const w = mountIndex();
         await w.findAll('[data-testid="user-row"]')[1].trigger("click");
 
         expect(router.visit).toHaveBeenCalledWith("/users/2/edit");
     });
 
     it("shows an empty state", () => {
-        const w = mount(Index, { props: { users: [] }, global: { stubs } });
+        const w = mountIndex({ users: [] });
         expect(w.text()).toContain("No users yet.");
     });
 
     it("shows Resend invite for every row regardless of password status", () => {
-        const w = mount(Index, { props: { users }, global: { stubs } });
+        const w = mountIndex();
         const rows = w.findAll('[data-testid="user-row"]');
 
         expect(rows[0].find('[data-testid="resend-invite"]').exists()).toBe(true);
@@ -101,7 +145,7 @@ describe("Users/Index", () => {
     });
 
     it("posts a resend without opening the editor", async () => {
-        const w = mount(Index, { props: { users }, global: { stubs } });
+        const w = mountIndex();
         await w.findAll('[data-testid="user-row"]')[1].find('[data-testid="resend-invite"]').trigger("click");
 
         expect(router.post).toHaveBeenCalledWith(
@@ -114,7 +158,7 @@ describe("Users/Index", () => {
 
     it("shows in-button feedback while sending and briefly after success", async () => {
         vi.useFakeTimers();
-        const w = mount(Index, { props: { users }, global: { stubs } });
+        const w = mountIndex();
         const button = () => w.find('[data-testid="resend-invite"]');
 
         await button().trigger("click");
@@ -137,13 +181,13 @@ describe("Users/Index", () => {
     });
 
     it("shows Add user for an admin", () => {
-        const w = mount(Index, { props: { users }, global: { stubs } });
+        const w = mountIndex();
         expect(w.findAll("a").some((a) => a.attributes("href") === "/users/create")).toBe(true);
     });
 
     it("hides Add user and Resend invite for a manager, but still opens rows", async () => {
         state.user = { role: "manager" };
-        const w = mount(Index, { props: { users }, global: { stubs } });
+        const w = mountIndex();
 
         expect(w.findAll("a").some((a) => a.attributes("href") === "/users/create")).toBe(false);
         expect(w.find('[data-testid="resend-invite"]').exists()).toBe(false);

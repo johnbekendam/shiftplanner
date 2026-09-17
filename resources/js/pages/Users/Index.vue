@@ -1,10 +1,11 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, watch, onBeforeUnmount } from 'vue'
 import { Head, Link, router } from '@inertiajs/vue3'
 import AppLayout from '@/layouts/AppLayout.vue'
 import Card from '@/components/ui/Card.vue'
 import ButtonPrimary from '@/components/ui/ButtonPrimary.vue'
 import ButtonSecondary from '@/components/ui/ButtonSecondary.vue'
+import { SearchInput } from '@/components/ui/Input'
 import { useI18n } from '@/composables/useI18n'
 import { useAuth } from '@/composables/useAuth'
 
@@ -12,9 +13,31 @@ const __ = useI18n()
 const { user: currentUser } = useAuth()
 const isAdmin = computed(() => currentUser.value?.role === 'admin')
 
-defineProps({
+const props = defineProps({
     users: { type: Array, default: () => [] },
+    search: { type: String, default: '' },
 })
+
+const searchTerm = ref(props.search ?? '')
+
+function reload() {
+    const query = {}
+    const search = (searchTerm.value ?? '').trim()
+    if (search !== '') query.search = search
+
+    router.get('/users', query, {
+        preserveState: true,
+        preserveScroll: true,
+        replace: true,
+    })
+}
+
+let searchTimer = null
+watch(searchTerm, () => {
+    clearTimeout(searchTimer)
+    searchTimer = setTimeout(() => reload(), 250)
+})
+onBeforeUnmount(() => clearTimeout(searchTimer))
 
 function openUser(user) {
     router.visit(`/users/${user.id}/edit`)
@@ -57,7 +80,13 @@ function resendInvite(user) {
                 </div>
             </template>
 
-            <div class="p-6">
+            <div class="space-y-4 p-6">
+                <SearchInput
+                    v-model="searchTerm"
+                    class="max-w-xs"
+                    :placeholder="__('users.search_placeholder')"
+                />
+
                 <table class="w-full text-sm">
                     <thead>
                         <tr class="border-b border-(--color-table-header-separator) text-left text-(--color-table-header-text)">

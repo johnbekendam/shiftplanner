@@ -277,6 +277,7 @@
     "account.flash.business_line_saved": "Business line updated.",
 
     "users.title": "Users",
+    "users.search_placeholder": "Search name or email",
     "users.action.new": "Add user",
     "users.action.save": "Save",
     "users.action.cancel": "Cancel",
