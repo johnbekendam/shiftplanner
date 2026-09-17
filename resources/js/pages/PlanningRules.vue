@@ -16,6 +16,7 @@ const props = defineProps({
     workcenters: { type: Array, default: () => [] }, // { id, name }
     competences: { type: Array, default: () => [] }, // { id, name }
     businessLines: { type: Array, default: () => [] }, // { id, abbreviation }
+    shifts: { type: Array, default: () => [] }, // { id, name }
 })
 
 // A rule's type, and for a scoped type what it targets, is fixed once
@@ -102,6 +103,7 @@ useUnsavedChangesGuard(() => dirty.value)
                     :workcenters="workcenters"
                     :competences="competences"
                     :business-lines="businessLines"
+                    :shifts="shifts"
                     @update:items="onChange"
                 />
                 <TabSaveBar :dirty="dirty" :saving="saving" :just-saved="justSaved" @save="save" @cancel="cancel" />

@@ -12,7 +12,7 @@ starts, a `plan.md` (the steps and progress).
 | 0 | Scaffold — TeamApps template snapshot, SQLite dev DB, compose stub | Done | — |
 | 1 | Employee admin prototype — manager employee list/editor, personal-page preview link | Done | `features/employee-admin/spec.md`, `features/employee-admin/plan.md` |
 | 2 | Auth hardening — manager Entra ID (OIDC), employee token hardening | Planned | grill first, then `features/auth-hardening/spec.md` |
-| 3 | Business Lines and standard day schedules — config list, per-employee assignment, FTE dashboard; then schedules and coverage | In progress | Business Lines shipped (`features/business-lines/`). Shift definitions shipped (`features/shift-definitions/`). Workcenters shipped (`features/workcenters/`): a Settings tab maintains the named workcenter list. Workcenter shift assignment shipped (`features/workcenter-shift-assignments/`): its own `/schedule` page links workcenters to shifts and sets per-weekday open-spot capacity, one flat table across every workcenter. Scheduling shipped (`features/scheduling/`): a `/planning` page assigns employees into those spots, one workcenter and one week at a time, with per-date capacity overrides and a "fixed" flag against future automatic re-planning. Rule-based automatic planning still needs a design session. |
+| 3 | Business Lines and standard day schedules — config list, per-employee assignment, FTE dashboard; then schedules and coverage | In progress | Business Lines shipped (`features/business-lines/`). Shift definitions shipped (`features/shift-definitions/`). Workcenters shipped (`features/workcenters/`): a Settings tab maintains the named workcenter list. Workcenter shift assignment shipped (`features/workcenter-shift-assignments/`): its own `/schedule` page links workcenters to shifts and sets per-weekday open-spot capacity, one flat table across every workcenter. Scheduling shipped (`features/scheduling/`): a `/planning` page assigns employees into those spots, one workcenter and one week at a time, with per-date capacity overrides and a "fixed" flag against future automatic re-planning. Planning-rule data and its `/planning-rules` page shipped (`features/planning-rules/`). Rule enforcement and the `/solve` service remain in phase 5. |
 | 3.5 | Competences — config list on a Settings page, per-employee checkmarks | Done | `features/competences/spec.md`, `features/competences/plan.md`. Planning use is out of scope. |
 | 3.6 | Product groups | Removed | Shipped, then removed from the product. Tables dropped by `2026_09_09_000007`; the config tab, per-employee checklist, routes, and language keys are gone. |
 | 3.7 | Account management (interim auth) — admin/manager roles, password or email code, admin `/users`, account page | Done | `features/account-management/`. The email-code passwordless path is superseded by phase 3.10. Entra ID, the PostgreSQL switch, and employee token hardening stay in phase 2. |
@@ -22,6 +22,7 @@ starts, a `plan.md` (the steps and progress).
 | 4 | Availability and wishes — recurring availability, date-specific exceptions, fairness model | In progress | Holidays and the recurring availability grid shipped (`features/employee-availability/`); the grid is weekday-only and carries manager-defined yes/no questions (`features/availability-questions/`). Fairness model still needs a design session. |
 | 5 | Scheduling engine — Python OR-Tools `/solve` service, JSON contract, `GeneratePlan` job, draft review and edit | Planned | depends on phases 3 and 4 |
 | 6 | Publish and employee schedule view — publish a plan, employees see own assignments only | Done | `features/publish-planning/`, built ahead of phase 5. Publishing is a per-week, all-workcenters toggle on `/planning`; it never gates editing. Nothing enforces it against an auto-planner yet — there isn't one. |
+| 7 | Container release — production image, Compose stack, and versioned release bundle | Deferred | `features/containerization/`; complete after the product phases. |
 
 ## Phase 0 — Scaffold
 
@@ -144,10 +145,10 @@ editable the same way the old week-grid was (assign/remove/pin,
 per-date spot overrides) — the original single-workcenter week-grid
 page these replaced is gone.
 
-Still to design: rule-based automatic planning (hard/soft rules, the
-OR-Tools `/solve` contract) and, further out, an employee-facing
-schedule view (phase 6). Calendar recurrence and date-specific
-exceptions for availability stay in phase 4.
+Still open: rule enforcement and the OR-Tools `/solve` contract in phase
+5, and, further out, an employee-facing schedule view (phase 6).
+Calendar recurrence and date-specific exceptions for availability stay in
+phase 4.
 
 ## Phase 3.5 — Competences
 

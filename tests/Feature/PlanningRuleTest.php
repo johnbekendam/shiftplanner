@@ -78,6 +78,29 @@ class PlanningRuleTest extends TestCase
         $this->assertSame([], $rule->config);
     }
 
+    public function test_admin_creates_equal_workload_without_mode_or_severity(): void
+    {
+        $this->actingAsAdmin();
+
+        $this->post('/planning-rules', ['type' => 'equal_workload'])
+            ->assertRedirect()->assertSessionHasNoErrors();
+
+        $rule = PlanningRule::sole();
+        $this->assertSame('equal_workload', $rule->type);
+        $this->assertNull($rule->mode);
+        $this->assertNull($rule->severity);
+        $this->assertSame([], $rule->config);
+    }
+
+    public function test_a_second_equal_workload_rule_is_rejected(): void
+    {
+        $this->actingAsAdmin();
+        PlanningRule::create(['type' => 'equal_workload']);
+
+        $this->post('/planning-rules', ['type' => 'equal_workload'])
+            ->assertSessionHasErrors('type');
+    }
+
     public function test_admin_creates_max_shifts_per_day_with_a_value(): void
     {
         $this->actingAsAdmin();
@@ -168,6 +191,93 @@ class PlanningRuleTest extends TestCase
 
         $rule = PlanningRule::sole();
         $this->assertSame($workcenter->id, $rule->config['workcenter_id']);
+    }
+
+    public function test_admin_creates_an_alternating_shift_pair(): void
+    {
+        $this->actingAsAdmin();
+        $first = Shift::factory()->create();
+        $second = Shift::factory()->create();
+
+        $this->post('/planning-rules', [
+            'type' => 'alternating_shift_pair',
+            'severity' => 8,
+            'first_shift_id' => $first->id,
+            'second_shift_id' => $second->id,
+        ])->assertRedirect()->assertSessionHasNoErrors();
+
+        $rule = PlanningRule::sole();
+        $this->assertSame('soft', $rule->mode);
+        $this->assertSame(8, $rule->severity);
+        $this->assertSame([
+            'first_shift_id' => $first->id,
+            'second_shift_id' => $second->id,
+        ], $rule->config);
+    }
+
+    public function test_an_alternating_shift_pair_requires_two_distinct_shifts(): void
+    {
+        $this->actingAsAdmin();
+        $shift = Shift::factory()->create();
+
+        $this->post('/planning-rules', [
+            'type' => 'alternating_shift_pair',
+            'severity' => 8,
+            'first_shift_id' => $shift->id,
+            'second_shift_id' => $shift->id,
+        ])->assertSessionHasErrors('second_shift_id');
+    }
+
+    public function test_an_already_paired_shift_cannot_be_used_again(): void
+    {
+        $this->actingAsAdmin();
+        $first = Shift::factory()->create();
+        $second = Shift::factory()->create();
+        $third = Shift::factory()->create();
+        PlanningRule::create([
+            'type' => 'alternating_shift_pair',
+            'mode' => 'soft',
+            'severity' => 5,
+            'config' => ['first_shift_id' => $first->id, 'second_shift_id' => $second->id],
+        ]);
+
+        $this->post('/planning-rules', [
+            'type' => 'alternating_shift_pair',
+            'severity' => 8,
+            'first_shift_id' => $second->id,
+            'second_shift_id' => $first->id,
+        ])->assertSessionHasErrors('first_shift_id');
+
+        $this->post('/planning-rules', [
+            'type' => 'alternating_shift_pair',
+            'severity' => 8,
+            'first_shift_id' => $first->id,
+            'second_shift_id' => $third->id,
+        ])->assertSessionHasErrors('first_shift_id');
+    }
+
+    public function test_update_changes_an_alternating_pair_severity_only(): void
+    {
+        $this->actingAsAdmin();
+        $first = Shift::factory()->create();
+        $second = Shift::factory()->create();
+        $other = Shift::factory()->create();
+        $rule = PlanningRule::create([
+            'type' => 'alternating_shift_pair',
+            'mode' => 'soft',
+            'severity' => 3,
+            'config' => ['first_shift_id' => $first->id, 'second_shift_id' => $second->id],
+        ]);
+
+        $this->put("/planning-rules/{$rule->id}", [
+            'severity' => 9,
+            'first_shift_id' => $other->id,
+            'second_shift_id' => $other->id,
+        ])->assertRedirect()->assertSessionHasNoErrors();
+
+        $rule->refresh();
+        $this->assertSame(9, $rule->severity);
+        $this->assertSame(['first_shift_id' => $first->id, 'second_shift_id' => $second->id], $rule->config);
     }
 
     public function test_a_second_business_line_preference_for_the_same_workcenter_is_rejected(): void
