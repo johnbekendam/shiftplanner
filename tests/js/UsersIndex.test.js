@@ -6,12 +6,14 @@ const en = {
     "users.action.new": "Add user",
     "users.column.name": "Name",
     "users.column.email": "Email",
+    "users.column.business_line": "Business line",
     "users.column.role": "Role",
     "users.column.status": "Status",
     "users.role.admin": "Admin",
     "users.role.manager": "Manager",
     "users.status.active": "Active",
     "users.status.inactive": "Inactive",
+    "users.no_business_line": "—",
     "users.empty": "No users yet.",
     "users.action.resend_invite": "Resend invite",
     "users.action.resending_invite": "Sending…",
@@ -33,8 +35,24 @@ import Index from "@/pages/Users/Index.vue";
 const stubs = { AppLayout: { template: "<div><slot /></div>" } };
 
 const users = [
-    { id: 1, name: "Dana Admin", email: "dana@example.com", role: "admin", is_active: true, has_password: true },
-    { id: 2, name: "Mel Manager", email: "mel@example.com", role: "manager", is_active: false, has_password: false },
+    {
+        id: 1,
+        name: "Dana Admin",
+        email: "dana@example.com",
+        business_line: "PMP",
+        role: "admin",
+        is_active: true,
+        has_password: true,
+    },
+    {
+        id: 2,
+        name: "Mel Manager",
+        email: "mel@example.com",
+        business_line: null,
+        role: "manager",
+        is_active: false,
+        has_password: false,
+    },
 ];
 
 describe("Users/Index", () => {
@@ -51,6 +69,15 @@ describe("Users/Index", () => {
         expect(rows).toHaveLength(2);
         expect(rows[0].text()).toContain("Admin");
         expect(rows[1].text()).toContain("Inactive");
+    });
+
+    it("renders each user's business line abbreviation or an empty marker", () => {
+        const w = mount(Index, { props: { users }, global: { stubs } });
+        const rows = w.findAll('[data-testid="user-row"]');
+
+        expect(w.text()).toContain("Business line");
+        expect(rows[0].text()).toContain("PMP");
+        expect(rows[1].text()).toContain("—");
     });
 
     it("opens the editor on row click", async () => {

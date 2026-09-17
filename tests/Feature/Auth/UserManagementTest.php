@@ -62,6 +62,21 @@ class UserManagementTest extends TestCase
             );
     }
 
+    public function test_user_list_includes_business_line_abbreviations(): void
+    {
+        $admin = User::factory()->admin()->create(['name' => 'Zoe Admin']);
+        $line = BusinessLine::factory()->create(['abbreviation' => 'PMP']);
+        User::factory()->create(['name' => 'Amy Manager', 'business_line_id' => $line->id]);
+        User::factory()->create(['name' => 'Ben Manager', 'business_line_id' => null]);
+
+        $this->actingAs($admin)->get('/users')->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Users/Index')
+                ->where('users.0.business_line', 'PMP')
+                ->where('users.1.business_line', null)
+            );
+    }
+
     // ── Create ──────────────────────────────────────────────────────────
 
     public function test_admin_creates_a_password_less_user(): void

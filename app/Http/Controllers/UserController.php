@@ -16,10 +16,11 @@ class UserController extends Controller
 
     public function index()
     {
-        $users = User::query()->orderBy('name')->get()->map(fn (User $user) => [
+        $users = User::query()->with('businessLine')->orderBy('name')->get()->map(fn (User $user) => [
             'id' => $user->id,
             'name' => $user->name,
             'email' => $user->email,
+            'business_line' => $user->businessLine?->abbreviation,
             'role' => $user->role,
             'is_active' => $user->is_active,
         ]);

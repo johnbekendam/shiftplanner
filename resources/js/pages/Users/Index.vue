@@ -62,6 +62,7 @@ function resendInvite(user) {
                     <thead>
                         <tr class="border-b border-(--color-table-header-separator) text-left text-(--color-table-header-text)">
                             <th class="py-2">{{ __('users.column.name') }}</th>
+                            <th class="py-2">{{ __('users.column.business_line') }}</th>
                             <th class="py-2">{{ __('users.column.role') }}</th>
                             <th class="py-2">{{ __('users.column.status') }}</th>
                             <th class="py-2"></th>
@@ -76,6 +77,7 @@ function resendInvite(user) {
                             @click="openUser(user)"
                         >
                             <td class="py-2 whitespace-nowrap text-(--color-table-row-text)">{{ user.name }}</td>
+                            <td class="py-2 text-(--color-table-row-text)">{{ user.business_line ?? __('users.no_business_line') }}</td>
                             <td class="py-2 text-(--color-table-row-text)">{{ __(`users.role.${user.role}`) }}</td>
                             <td class="py-2 text-(--color-text-secondary)">
                                 {{ user.is_active ? __('users.status.active') : __('users.status.inactive') }}
@@ -100,7 +102,7 @@ function resendInvite(user) {
                             </td>
                         </tr>
                         <tr v-if="!users.length">
-                            <td colspan="4" class="py-8 text-center text-(--color-text-secondary)">
+                            <td colspan="5" class="py-8 text-center text-(--color-text-secondary)">
                                 {{ __('users.empty') }}
                             </td>
                         </tr>
