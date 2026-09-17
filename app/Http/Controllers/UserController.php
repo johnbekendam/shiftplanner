@@ -14,17 +14,26 @@ class UserController extends Controller
 {
     public function __construct(private LoginLinkService $links) {}
 
-    public function index()
+    public function index(Request $request)
     {
-        $users = User::query()->orderBy('name')->get()->map(fn (User $user) => [
+        $search = trim((string) $request->input('search', ''));
+
+        $query = User::query()->with('businessLine')->orderBy('name');
+
+        if ($search !== '') {
+            $query->search($search);
+        }
+
+        $users = $query->get()->map(fn (User $user) => [
             'id' => $user->id,
             'name' => $user->name,
             'email' => $user->email,
+            'business_line' => $user->businessLine?->abbreviation,
             'role' => $user->role,
             'is_active' => $user->is_active,
         ]);
 
-        return Inertia::render('Users/Index', ['users' => $users]);
+        return Inertia::render('Users/Index', ['users' => $users, 'search' => $search]);
     }
 
     public function create()

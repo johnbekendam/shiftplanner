@@ -62,6 +62,42 @@ class UserManagementTest extends TestCase
             );
     }
 
+    public function test_user_list_includes_business_line_abbreviations(): void
+    {
+        $admin = User::factory()->admin()->create(['name' => 'Zoe Admin']);
+        $line = BusinessLine::factory()->create(['abbreviation' => 'PMP']);
+        User::factory()->create(['name' => 'Amy Manager', 'business_line_id' => $line->id]);
+        User::factory()->create(['name' => 'Ben Manager', 'business_line_id' => null]);
+
+        $this->actingAs($admin)->get('/users')->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Users/Index')
+                ->where('users.0.business_line', 'PMP')
+                ->where('users.1.business_line', null)
+            );
+    }
+
+    public function test_user_list_search_filters_by_name_or_email(): void
+    {
+        $admin = User::factory()->admin()->create(['name' => 'Zoe Admin', 'email' => 'admin@example.com']);
+        User::factory()->create(['name' => 'Findme Manager', 'email' => 'a@example.com']);
+        User::factory()->create(['name' => 'Other Manager', 'email' => 'findme@example.com']);
+        User::factory()->create(['name' => 'Nomatch Manager', 'email' => 'nomatch@example.com']);
+
+        $this->actingAs($admin)->get('/users?search=findme')->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Users/Index')
+                ->has('users', 2)
+                ->where('search', 'findme')
+            );
+
+        $this->actingAs($admin)->get('/users?search='.urlencode('   '))->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->has('users', 4)
+                ->where('search', '')
+            );
+    }
+
     // ── Create ──────────────────────────────────────────────────────────
 
     public function test_admin_creates_a_password_less_user(): void

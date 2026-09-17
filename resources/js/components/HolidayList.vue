@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import ButtonPrimary from '@/components/ui/ButtonPrimary.vue'
 import ButtonDanger from '@/components/ui/ButtonDanger.vue'
 import { DateInput, TextInput } from '@/components/ui/Input'
@@ -19,6 +19,7 @@ const emit = defineEmits(['update:holidays'])
 
 const blank = () => ({ start_date: '', end_date: '', note: '' })
 const draft = ref(blank())
+const canAddHoliday = computed(() => draft.value.start_date !== '' && draft.value.end_date !== '')
 
 // A row with `id: null` is a pending add; a row present in `holidays` but
 // missing here is a pending delete. Both stay purely local until Save.
@@ -28,7 +29,7 @@ let nextLocalKey = -1
 const rows = ref(props.holidays.map((h) => ({ ...h })))
 
 function add() {
-    if (props.disabled) return
+    if (props.disabled || !canAddHoliday.value) return
     rows.value.push({ id: null, _key: nextLocalKey--, ...draft.value })
     draft.value = blank()
     emit('update:holidays', rows.value)
@@ -96,6 +97,7 @@ function remove(holiday) {
                             type="submit"
                             icon="plus-circle"
                             class="px-2.5"
+                            :disabled="!canAddHoliday"
                             :aria-label="__('availability.holidays.add')"
                         />
                     </td>

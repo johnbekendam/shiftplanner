@@ -51,6 +51,22 @@ describe("HolidayList", () => {
         expect(w.findAll("table")).toHaveLength(1);
     });
 
+    it("enables the add button only after both dates are set", async () => {
+        const w = mountList({ holidays: [] });
+        const button = w.get('[aria-label="Add"]');
+        const dates = w.findAllComponents(DateInput);
+
+        expect(button.attributes("disabled")).toBeDefined();
+
+        dates[0].vm.$emit("update:modelValue", "2026-07-01");
+        await w.vm.$nextTick();
+        expect(button.attributes("disabled")).toBeDefined();
+
+        dates[1].vm.$emit("update:modelValue", "2026-07-14");
+        await w.vm.$nextTick();
+        expect(button.attributes("disabled")).toBeUndefined();
+    });
+
     it("adds the new holiday to the list locally and emits update:holidays, without a network call", async () => {
         const w = mountList({ holidays: [] });
         const dates = w.findAllComponents(DateInput);

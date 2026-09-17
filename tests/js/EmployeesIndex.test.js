@@ -116,12 +116,16 @@ beforeEach(() => {
     router.post.mockReset();
     router.put.mockReset();
     router.visit.mockReset();
+    window.sessionStorage.clear();
+    window.history.replaceState(null, "", "/employees");
     vi.stubGlobal("confirm", vi.fn());
 });
 
 afterEach(() => {
     vi.useRealTimers();
     vi.unstubAllGlobals();
+    window.sessionStorage.clear();
+    window.history.replaceState(null, "", "/");
 });
 
 describe("Employees/Index", () => {
@@ -203,6 +207,38 @@ describe("Employees/Index", () => {
 
         expect(rows[0].findAll("td")[2].text()).toBe("PMP");
         expect(rows[1].findAll("td")[2].text()).toBe("—");
+    });
+
+    it("defaults to the signed-in user's business line once per tab", () => {
+        state.user = { role: "manager", business_line_id: 2 };
+
+        mountIndex({ businessLines, selectedBusinessLines: [1, 2, "none"] });
+
+        expect(router.get).toHaveBeenCalledWith(
+            "/employees",
+            { business_lines: [2] },
+            expect.objectContaining({ preserveState: true, replace: true }),
+        );
+        expect(window.sessionStorage.getItem("employees.businessLineDefaultApplied")).toBe("1");
+    });
+
+    it("does not apply the signed-in user's business line default after it has already run", () => {
+        state.user = { role: "manager", business_line_id: 2 };
+        window.sessionStorage.setItem("employees.businessLineDefaultApplied", "1");
+
+        mountIndex({ businessLines, selectedBusinessLines: [1, 2, "none"] });
+
+        expect(router.get).not.toHaveBeenCalled();
+    });
+
+    it("does not override an explicit business line query", () => {
+        state.user = { role: "manager", business_line_id: 2 };
+        window.history.replaceState(null, "", "/employees?business_lines[]=1");
+
+        mountIndex({ businessLines, selectedBusinessLines: [1] });
+
+        expect(router.get).not.toHaveBeenCalled();
+        expect(window.sessionStorage.getItem("employees.businessLineDefaultApplied")).toBe("1");
     });
 
     it("sorts by a column when its header is clicked", async () => {

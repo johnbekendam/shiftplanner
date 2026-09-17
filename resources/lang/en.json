@@ -277,6 +277,7 @@
     "account.flash.business_line_saved": "Business line updated.",
 
     "users.title": "Users",
+    "users.search_placeholder": "Search name or email",
     "users.action.new": "Add user",
     "users.action.save": "Save",
     "users.action.cancel": "Cancel",
@@ -292,8 +293,10 @@
     "users.field.business_line_none": "None",
     "users.column.name": "Name",
     "users.column.email": "Email",
+    "users.column.business_line": "Business line",
     "users.column.role": "Role",
     "users.column.status": "Status",
+    "users.no_business_line": "—",
     "users.role.admin": "Admin",
     "users.role.manager": "Manager",
     "users.status.active": "Active",

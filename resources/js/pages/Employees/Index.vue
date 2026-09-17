@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch, onBeforeUnmount } from 'vue'
+import { ref, computed, watch, onBeforeUnmount, onMounted } from 'vue'
 import { Head, Link, router } from '@inertiajs/vue3'
 import AppLayout from '@/layouts/AppLayout.vue'
 import Card from '@/components/ui/Card.vue'
@@ -9,8 +9,10 @@ import ButtonSecondary from '@/components/ui/ButtonSecondary.vue'
 import Icon from '@/components/ui/Icon.vue'
 import { CheckboxInput, SearchInput } from '@/components/ui/Input'
 import { useI18n } from '@/composables/useI18n'
+import { useAuth } from '@/composables/useAuth'
 
 const __ = useI18n()
+const { user: currentUser } = useAuth()
 
 const props = defineProps({
     employees: { type: Object, required: true },
@@ -106,6 +108,36 @@ function reload(overrides) {
         replace: true,
     })
 }
+
+const businessLineDefaultSessionKey = 'employees.businessLineDefaultApplied'
+
+function businessLineDefaultApplied() {
+    return window.sessionStorage.getItem(businessLineDefaultSessionKey) === '1'
+}
+
+function markBusinessLineDefaultApplied() {
+    window.sessionStorage.setItem(businessLineDefaultSessionKey, '1')
+}
+
+function hasExplicitBusinessLineQuery() {
+    const params = new URLSearchParams(window.location.search)
+    return [...params.keys()].some((key) => key === 'business_lines' || key.startsWith('business_lines['))
+}
+
+onMounted(() => {
+    const businessLineId = currentUser.value?.business_line_id
+    if (!businessLineId || businessLineDefaultApplied()) return
+
+    if (hasExplicitBusinessLineQuery()) {
+        markBusinessLineDefaultApplied()
+        return
+    }
+
+    if (!props.businessLines.some((line) => line.id === businessLineId)) return
+
+    markBusinessLineDefaultApplied()
+    reload({ business_lines: [businessLineId] })
+})
 
 function sortBy(key) {
     const direction = props.sort === key && props.direction === 'asc' ? 'desc' : 'asc'
