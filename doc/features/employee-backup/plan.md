@@ -19,9 +19,12 @@ archive of employee configuration.
 
 ## Follow-up
 
-Status: done — 3/3
+Status: done — 4/4
 
 - [x] 1. Add failing tests for strict existing-reference matching and clear
   missing-reference errors.
 - [x] 2. Change the archive importer to create or update employees only.
 - [x] 3. Run focused tests and formatting.
+- [x] 4. Extend the same export page and endpoints with a complete,
+  version-2 application archive, preserve version-1 imports, and document
+  the included data and credential boundary.

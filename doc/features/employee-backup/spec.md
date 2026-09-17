@@ -1,27 +1,27 @@
 # Employee Backup — Spec
 
-An admin can export employee configuration to a versioned JSON file. An
-admin can import that file to move employees to another server or restore
-a temporary backup.
+An admin can export the complete durable ShiftPlanner application state to
+a versioned JSON file. An admin can import that file into a new instance.
 
 ## Problem
 
-Employee configuration is stored across several related records. An admin
-needs a portable backup before server changes. The admin also needs to move
-that configuration to another server without entering it again.
+Application state is stored across several related records. An admin needs
+a portable backup before server changes and a way to recreate an instance
+without entering the configuration and schedule again.
 
 ## Solution
 
 Add an admin-only employee backup page with export and import actions.
 
-The export downloads a versioned JSON file. It contains each employee and
-their configuration. The import accepts this JSON file and validates all
-records before it changes the database.
+The export downloads a versioned JSON file. Version 2 contains all durable
+application tables: users, employees, configuration, availability,
+workcenters, capacities, assignments, publication state, planning rules,
+message templates, and mailbox history. The import validates the archive
+and restores it in one transaction.
 
-The import matches employees by email. It creates employees that do not
-exist. For a matching employee, it replaces the configuration from the
-file. All referenced business lines, competences, shifts, and availability
-questions must already exist on the destination server.
+Version 1 employee archives remain importable. Version 2 restores rows and
+their relationships with their exported IDs, so it can recreate a fresh
+instance without pre-existing reference data.
 
 ## Key Decisions
 
@@ -29,17 +29,18 @@ questions must already exist on the destination server.
   so CSV is not suitable.
 - Only an admin can export or import employee data. These actions expose and
   change all employee configuration.
-- The archive contains names, email, weekly hours, business line,
-  confirmation status, competences, recurring availability, holidays, and
-  availability answers.
-- The archive does not contain shift assignments, published schedules, user
-  accounts, or personal links. These records are operational history or
-  server-specific access data.
+- Version 2 contains the durable application tables needed to recreate the
+  instance, including shift assignments, published weeks, user accounts,
+  personal links, and mailbox data.
+- Password hashes and personal-link bearer tokens are included because a
+  complete restore must preserve access. The archive omits remember tokens,
+  short-lived login links, sessions, queues, cache data, and migrations.
+- The archive is sensitive. Only an admin can export or import it, and it
+  must be stored and transferred like a credential backup.
 - The import uses email as the employee identity. A matching employee gets
   the archived configuration.
-- The import only creates or updates employees. It matches each referenced
-  business line, competence, shift, and availability question on the
-  destination server.
+- Version 1 import only creates or updates employees and uses existing
+  references. Version 2 replaces the durable application data on import.
 - A missing reference rejects the archive. The error gives the employee
   record, reference type, and missing name.
 - The import is all-or-nothing. Any invalid record rejects the complete
@@ -51,8 +52,9 @@ questions must already exist on the destination server.
 
 ## Non-goals
 
-- No export or import of shifts, shift assignments, or published weeks.
-- No export or import of user accounts, passwords, or personal links.
+- No export or import of framework runtime state such as sessions, cache,
+  queues, failed jobs, or migrations.
+- No export or import of short-lived login links or remember tokens.
 - No deletion of employees that are absent from an imported archive.
 - No partial import or background processing.
 - No spreadsheet or CSV backup format.

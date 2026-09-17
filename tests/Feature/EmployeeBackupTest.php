@@ -12,6 +12,7 @@ use App\Models\Shift;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 class EmployeeBackupTest extends TestCase
@@ -76,14 +77,19 @@ class EmployeeBackupTest extends TestCase
 
         $response = $this->actingAs($this->admin())->get('/employee-backup/export');
 
-        $response->assertOk()->assertDownload('employees-backup.json');
-        $response->assertJsonPath('version', 1);
-        $response->assertJsonPath('employees.0.email', 'jane@example.com');
-        $response->assertJsonPath('employees.0.business_line.abbreviation', 'OPS');
-        $response->assertJsonPath('employees.0.competences.0.name', 'Forklift');
-        $response->assertJsonPath('employees.0.recurring_availability.0.shift.name', 'Early');
-        $response->assertJsonPath('employees.0.holidays.0.note', 'Winter leave');
-        $response->assertJsonPath('employees.0.availability_questions.0.text', 'Can work weekends?');
+        $response->assertOk();
+        $this->assertMatchesRegularExpression(
+            '/attachment; filename=\d{8}-\d{6}-shiftplanner-backup\.json/',
+            $response->headers->get('Content-Disposition'),
+        );
+        $response->assertJsonPath('version', 2);
+        $response->assertJsonPath('format', 'shiftplanner-business-archive');
+        $response->assertJsonPath('data.employees.0.email', 'jane@example.com');
+        $response->assertJsonPath('data.business_lines.0.abbreviation', 'OPS');
+        $response->assertJsonPath('data.competences.0.name', 'Forklift');
+        $response->assertJsonPath('data.recurring_availabilities.0.shift_id', $shift->id);
+        $response->assertJsonPath('data.employee_holidays.0.note', 'Winter leave');
+        $this->assertCount(1, $response->json('data.availability_question_employee'));
     }
 
     public function test_an_exported_archive_can_be_imported_without_validation_errors(): void
@@ -115,7 +121,7 @@ class EmployeeBackupTest extends TestCase
             'file' => UploadedFile::fake()->createWithContent('employees-backup.json', $export->getContent()),
         ]);
 
-        $response->assertOk()->assertJson(['created' => 0, 'updated' => 1]);
+        $response->assertOk()->assertJsonPath('version', 2)->assertJsonPath('imported', 1);
         $this->assertDatabaseCount('employees', 1);
         $this->assertDatabaseHas('employees', ['id' => $employee->id, 'email' => 'jane@example.com']);
     }
@@ -226,5 +232,44 @@ class EmployeeBackupTest extends TestCase
         $response->assertStatus(422)->assertJsonStructure(['errors']);
         $this->assertDatabaseCount('employees', 0);
         $this->assertDatabaseCount('business_lines', 0);
+    }
+
+    public function test_an_admin_can_export_and_restore_the_complete_application_archive(): void
+    {
+        $businessLine = BusinessLine::factory()->create(['abbreviation' => 'OPS']);
+        $shift = Shift::factory()->create(['name' => 'Early']);
+        $employee = Employee::factory()->create(['business_line_id' => $businessLine->id]);
+        $user = User::factory()->admin()->create([
+            'employee_id' => $employee->id,
+            'business_line_id' => $businessLine->id,
+        ]);
+
+        $export = $this->actingAs($user)->get('/employee-backup/export');
+        $archive = json_decode($export->getContent(), true, 512, JSON_THROW_ON_ERROR);
+
+        $this->assertSame(2, $archive['version']);
+        $this->assertSame('shiftplanner-business-archive', $archive['format']);
+        $this->assertArrayHasKey('employees', $archive['data']);
+        $this->assertArrayHasKey('users', $archive['data']);
+        $this->assertArrayHasKey('shifts', $archive['data']);
+
+        DB::table('users')->delete();
+        DB::table('employees')->delete();
+        DB::table('business_lines')->delete();
+        DB::table('shifts')->delete();
+
+        $response = $this->actingAs(User::factory()->admin()->create())
+            ->post('/employee-backup/import', [
+                'file' => UploadedFile::fake()->createWithContent(
+                    'shiftplanner-backup.json',
+                    json_encode($archive, JSON_THROW_ON_ERROR),
+                ),
+            ]);
+
+        $response->assertOk()->assertJson(['version' => 2]);
+        $this->assertDatabaseHas('business_lines', ['id' => $businessLine->id, 'abbreviation' => 'OPS']);
+        $this->assertDatabaseHas('shifts', ['id' => $shift->id, 'name' => 'Early']);
+        $this->assertDatabaseHas('employees', ['id' => $employee->id, 'business_line_id' => $businessLine->id]);
+        $this->assertDatabaseHas('users', ['id' => $user->id, 'employee_id' => $employee->id]);
     }
 }
