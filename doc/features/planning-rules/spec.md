@@ -19,45 +19,90 @@ read once it exists.
 
 ### Rule types (v1)
 
-Every rule carries a **mode** (`hard` or `soft`) and, when soft, a
-**severity** score from 1 (minor) to 10 (critical) — a unitless
-relative weight. Phase 5 maps severity to its own objective-function
-coefficients; this feature only stores it.
+Most rules carry a **mode** (`hard` or `soft`). A soft rule also carries
+a **severity** score from 1 (minor) to 10 (critical). The severity is a
+unitless relative weight. Phase 5 maps severity to objective-function
+coefficients. This feature only stores it.
 
 Three global, singleton rules:
 
 1. **Max hours per week** — capped at the employee's own `weekly_hours`
-   field, no overage allowed. Evaluated as an average over a 2-week
-   period, weeks paired to fixed calendar boundaries (ISO week 1-2,
-   3-4, ...), not a rolling window. No extra config value: the cap
-   comes from each employee's existing field.
+  field, with no overage. The system evaluates the cap as an average
+  over a 2-week planning cycle. The cycle starts on the Monday of the
+  week that contains `PlanningSettings.period_start`. The cap has no
+  extra config value.
 2. **Max shifts per day** — one global integer value (e.g. `1`),
    applying to every employee.
 3. **Not-preferred-shift penalty** — applies when an assignment lands
    on a weekday+shift cell the employee marked `not_preferred` on the
    recurring availability grid (`employee-availability`). Reuses that
    existing data; adds no new table.
+4. **Equal workload** — a presence-only singleton rule. It has no mode,
+   severity, or config. In phase 5, it minimizes the highest absolute
+   assigned-hour total after the solver maximizes shift coverage.
 
-Two scoped, multi-instance rule types:
+Three scoped, multi-instance rule types:
 
-4. **Competence required for a workcenter.** A manager picks a
+5. **Competence required for a workcenter.** A manager picks a
   workcenter and a competence; assigning that workcenter is expected to
   require the competence regardless of shift.
-5. **Business-line preference for a workcenter.** A manager picks a
+6. **Business-line preference for a workcenter.** A manager picks a
   workcenter and one business line; filling that workcenter is expected
   to prefer employees from that line.
+7. **Alternating shift pair.** A manager picks two distinct shifts and
+   a severity. The rule is always soft and applies across workcenters.
+   A shift can belong to only one pair. The unordered pair is fixed after
+   creation. To change either shift, delete the rule and create a new one.
 
-Adding a sixth rule type later is application code — a new entry in
+Adding another rule type later is application code — a new entry in
 the type list, its validation, and its slice of the settings UI — not
 a migration. See Key decisions.
+
+### Future solver behavior
+
+The solver uses this objective order:
+
+1. Apply hard eligibility and assignment constraints.
+2. Maximize filled shift capacity.
+3. Apply the equal-workload rule when it exists.
+4. Optimize alternating shifts and other soft preferences.
+
+The equal-workload rule compares absolute assigned hours. It does not
+compare assigned hours as a percentage of `weekly_hours`. The
+`weekly_hours` value is the maximum time that an employee offers for
+factory work. It is not a target or a minimum.
+
+The fairness pool contains confirmed employees with `weekly_hours > 0`
+who can fill at least one required spot in the 2-week cycle. Eligibility
+includes holidays, recurring availability, workcenter restrictions, and
+hard competence rules. All assignments in the final draft count toward
+the assigned-hour total, including retained manual and fixed assignments.
+
+Each generation run covers one complete 2-week cycle. Cycles are
+non-overlapping and start from the week that contains `period_start`.
+For example, a start date in ISO week 2 produces cycles for weeks 2-3,
+4-5, and so on. A later change to `period_start` changes future cycle
+boundaries. It does not change existing assignments.
+
+For an alternating shift pair, the solver compares the same weekday
+exactly 7 days earlier. If the earlier day contains exactly one member
+of the pair, the opposite shift is preferred. Unrelated shifts do not
+affect the comparison. If the earlier day contains both pair members,
+or neither member, the rule has no preference.
+
+The opposite shift satisfies the rule even when the repeated shift is
+also present. This lets coverage and fairness take priority. When the
+solver generates both weeks together, the second week compares with the
+generated first week. The first week compares with stored assignments
+from the preceding week.
 
 ### Data
 
 One table, `planning_rules`, holds every rule of every type:
 
-- `type` — one of the five type strings above.
-- `mode` — `hard` or `soft`.
-- `severity` — nullable, 1-10, required exactly when `mode` is `soft`.
+- `type` — one of the seven type strings above.
+- `mode` — nullable, otherwise `hard` or `soft`.
+- `severity` — nullable, 1-10, required for a soft rule.
 - `config` — a nullable JSON column holding whatever the type needs:
 
   | Type | `config` |
@@ -65,15 +110,17 @@ One table, `planning_rules`, holds every rule of every type:
   | `max_hours_per_week` | `{}` — reads the employee's own `weekly_hours` field, no config |
   | `max_shifts_per_day` | `{"value": 2}` |
   | `not_preferred_shift` | `{}` — reads the existing availability grid |
+  | `equal_workload` | `{}` |
   | `competence_required` | `{"workcenter_id": 1, "competence_id": 3}` |
   | `business_line_preference` | `{"workcenter_id": 1, "business_line_id": 1}` |
+  | `alternating_shift_pair` | `{"first_shift_id": 1, "second_shift_id": 2}` |
 
-`max_hours_per_week`, `max_shifts_per_day`, and `not_preferred_shift`
-are **singleton types** — the application rejects a second row of the
-same type. `competence_required` and `business_line_preference` are
-**scoped types** — many rows allowed, but a duplicate scope is
-rejected (the same workcenter+competence pair, or a second
-preference rule for the same workcenter).
+`max_hours_per_week`, `max_shifts_per_day`, `not_preferred_shift`, and
+`equal_workload` are **singleton types**. The application rejects a
+second row of the same type. The other types are **scoped types**.
+Many scoped rows are allowed, but the application rejects duplicate
+scopes. For alternating pairs, it rejects any pair that uses an already
+paired shift, including a reversed duplicate.
 
 A row's `type`, and for a scoped type what it targets (the
 workcenter/competence combination, or which workcenter a
@@ -81,7 +128,12 @@ business-line preference is for), is fixed once created — the
 application ignores client-supplied identity fields on update. Only
 `mode`, `severity`, and a type's own mutable data (`max_shifts_per_day`'s
 `value`, `business_line_preference`'s `business_line_id`) change in
-place; anything else means deleting the row and adding a new one.
+place. An alternating pair only permits a severity change. Anything
+else means deleting the row and adding a new one.
+
+The `mode` and `severity` columns are null for `equal_workload`. The
+`mode` is `soft` for `alternating_shift_pair`, and its severity is
+required. Other rule types keep the standard hard/soft behavior.
 
 ### Page — `/planning-rules`
 
@@ -93,8 +145,9 @@ reasoning `workcenter-shift-assignments/spec.md` gave for
 `/schedule`'s own page).
 
 One table of rules, regardless of type, each showing its type, its
-target (for a scoped type), its mutable field, and a hard/soft toggle
-with a conditional severity field. An add section below picks a type
+target (for a scoped type), its mutable field, and applicable controls.
+The equal-workload row has no controls. An alternating-pair row shows
+both shift names and an editable severity. An add section below picks a type
 first — a singleton type already present is not offered — then
 reveals only the fields that type needs, mirroring the row layout
 above. Same explicit-save model as the rest of the app
@@ -103,14 +156,15 @@ Save/Cancel pair, nothing written until Save.
 
 ### Controller
 
-`PlanningRuleController`, generic across all five types:
+`PlanningRuleController`, generic across all seven types:
 
 - `store(Request)` — validates `type`, `mode`, `severity`, and
   whichever type-specific fields `required_if:type,...` pulls in
   (`value`; `workcenter_id`/`competence_id`;
   `workcenter_id`/`business_line_id`). Rejects a duplicate singleton
   type or a duplicate scope, builds the `config` JSON for the given
-  type, creates the row.
+  type, creates the row. Alternating-pair validation requires two
+  different existing shifts and rejects overlap with another pair.
 - `update(Request, PlanningRule)` — re-validates the same shape, but
   overwrites any client-supplied identity field with what is already
   stored before validating, so identity cannot change from the
@@ -124,10 +178,9 @@ Save/Cancel pair, nothing written until Save.
   untouched. A manager can still assign an employee that breaks a rule
   defined here — these rules exist so phase 5 has something to read,
   not to gate today's manual planning.
-- **Hard/soft is a per-rule-instance setting, not fixed per rule type.**
-  Every rule, global or scoped, carries the same `mode` +
-  `severity`-when-soft shape. One consistent mechanism instead of five
-  bespoke ones.
+- **Hard/soft applies to the original five rule types.** Equal workload
+  is presence-only because it has a fixed objective tier. Alternating
+  pairs are always soft because coverage and fairness take priority.
 - **Severity is a unitless 1-10 score**, not a raw solver weight.
   Phase 5 decides how to turn it into an objective-function coefficient;
   this feature does not guess that shape.
@@ -135,9 +188,16 @@ Save/Cancel pair, nothing written until Save.
   employee's own `weekly_hours` field (already used elsewhere,
   `employee-hours`), so a manager edits one number instead of two that
   could drift apart.
-- **2-week averaging uses fixed calendar pairs, not a rolling window.**
-  Simpler to compute and to explain to a manager than a sliding
-  2-week span.
+- **One setting anchors each 2-week planning cycle.** The cycle starts
+  on the Monday of the week that contains `period_start`. Generation,
+  fairness, and max-hours averaging use the same boundaries.
+- **Equal workload means equal absolute hours.** Factory work is an
+  unwanted shared duty. The solver minimizes the highest workload after
+  it fills as many spots as possible. The employee's `weekly_hours`
+  remains an offered maximum, not a proportional fairness weight.
+- **Alternation uses explicit shift pairs.** Names and clock times do not
+  identify shift meaning. Explicit pairs are stable after shift renames,
+  and unpaired day shifts remain outside the rule.
 - **One `planning_rules` table for every type, not a table per type.**
   Reversed from this spec's first draft, which modeled each type as
   its own table (or its own columns on `planning_settings`). A
@@ -146,14 +206,14 @@ Save/Cancel pair, nothing written until Save.
   same thing. A single table also means the Settings tab reads and
   writes one list instead of a form plus several separate lists.
 - **Type-specific data lives in one JSON `config` column**, not a
-  shared set of nullable typed columns. Adding a sixth rule type is
+  shared set of nullable typed columns. Adding another rule type is
   then pure application code — a new type string, its validation, and
   its slice of the settings UI — never a migration. The tradeoff: the
   database cannot enforce a foreign key or a column type inside
   `config`, so referential integrity (a competence or workcenter that
   still exists) is the controller's job via `exists:` validation
   rules, not the schema's.
-- **Most types are capped at one row; the two scoped types allow
+- **Most types are capped at one row; the three scoped types allow
   many.** `max_hours_per_week`, `max_shifts_per_day`, and
   `not_preferred_shift` have no scope to tell two instances apart, so
   a second one is meaningless. Nothing in the schema can express "one
@@ -161,6 +221,9 @@ Save/Cancel pair, nothing written until Save.
   `config`, so this guard — and the scoped types' duplicate-scope
   guard — lives entirely in the controller, not a database
   constraint.
+- **Shift deletion removes its alternating-pair rule.** Shift IDs live in
+  JSON, so the database cannot cascade this reference. The application
+  deletes the pair rule and shift in one transaction.
 - **A rule's identity is fixed once created; its data can still
   change.** Matches `workcenter-shift-assignments`' rule for its own
   pivot: the workcenter target cannot change in place, but spot counts
@@ -180,10 +243,12 @@ Save/Cancel pair, nothing written until Save.
 - The OR-Tools `/solve` service, the `GeneratePlan` job, or any JSON
   contract — phase 5, and it also needs phase 4's fairness design
   first.
-- Fairness (workload fairness, wish fairness) — a separate, still-open
-  phase 4 design session.
+- Wish fairness. Workload fairness is defined here, but phase 5 implements
+  and enforces it in the solver.
 - A rolling 2-week window, or a configurable overage percentage above
   `weekly_hours`.
+- A minimum or target number of assigned hours. `weekly_hours` is only
+  the maximum time that an employee offers.
 - Per-business-line or per-employee overrides of max hours/week or max
   shifts/day — both stay single global values (max hours/week already
   varies per employee through `weekly_hours`; max shifts/day does not

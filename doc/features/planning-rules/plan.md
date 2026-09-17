@@ -1,6 +1,6 @@
 # Planning Rules — Plan
 
-Status: in progress — 2/3
+Status: in progress — 2/4
 
 Spec: `spec.md`. One generic `planning_rules` table (`type` + `mode` +
 `severity` + JSON `config`) replaces the original per-type-table design
@@ -89,7 +89,16 @@ once the design is final.
   failure). Full JS suite green (509 passed). `npm run build` green.
   Pint clean.
 
-- [ ] 3. **Docs and full checks.** Once the data model is settled and
+- [ ] 3. **Equal workload and alternating shift pairs.** Add the
+  `equal_workload` singleton and `alternating_shift_pair` scoped rule.
+  Equal workload is presence-only. Alternating pairs select two unique,
+  non-overlapping shifts and require severity. Extend backend validation,
+  payloads, the planning-rules UI, translations, and PHP/Vitest coverage.
+  Delete a pair rule in the same transaction as either referenced shift.
+  Store no solver behavior yet. Use the week that contains
+  `PlanningSettings.period_start` as the two-week boundary.
+
+- [ ] 4. **Docs and full checks.** Once the data model is settled and
   the user has replaced the in-place migration with a fresh,
   correctly-named one: `doc/roadmap.md` — phase 3's status row and
   section note that rule-based planning's data model and its own
@@ -102,7 +111,7 @@ once the design is final.
 ## Not done / deferred
 
 - Everything under the spec's non-goals: enforcement on `/planning`,
-  the `/solve` service and `GeneratePlan` job, fairness, a rolling
+  the `/solve` service and `GeneratePlan` job, wish fairness, a rolling
   2-week window, a configurable overage percentage, per-business-line
   or per-employee overrides of the two global caps, min-rest-between-
   shifts, max-consecutive-working-days.
