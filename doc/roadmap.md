@@ -20,7 +20,7 @@ starts, a `plan.md` (the steps and progress).
 | 3.9 | Employee self-signup — a public page where a person requests their personal-page link by first name, last name and email; creates the employee when none matches, then sends the link through the mailbox pipeline | Done | `features/employee-self-signup/`. Token hardening stays in phase 2. |
 | 3.10 | Login links — admin-created users get an emailed invite link to set a password; the login page's passwordless action emails a sign-in link, covering forgot-password too | Done | `features/login-links/`. Replaces phase 3.7's email-code path. |
 | 4 | Availability and wishes — recurring availability, date-specific exceptions, fairness model | In progress | Holidays and the recurring availability grid shipped (`features/employee-availability/`); the grid is weekday-only and carries manager-defined yes/no questions (`features/availability-questions/`). The fairness design session is resolved: workload fairness and wish fairness are both defined (see the phase 4 section below); no new data model was needed. Date-specific shift exceptions are a known, deliberately deferred gap — shelved until phase 5. |
-| 5 | Scheduling engine — Python OR-Tools `/solve` service, JSON contract, `GeneratePlan` job, draft review and edit | Planned | depends on phases 3 and 4 |
+| 5 | Scheduling engine — in-process PHP heuristic planner, `GeneratePlan` job, draft review and edit | Planned | `features/scheduling-engine/spec.md` written; depends on phases 3 and 4 (both resolved) and `features/publish-per-workcenter/` (shipped). Reversed from an earlier plan to call a separate Python/OR-Tools service — see that phase's section. |
 | 6 | Publish and employee schedule view — publish a plan, employees see own assignments only | Done | `features/publish-planning/`, built ahead of phase 5. Publishing is a per-(week, workcenter) toggle on `/planning` (`features/publish-per-workcenter/` narrowed it from whole-week, as a phase-5 prerequisite); it never gates editing. Nothing enforces it against an auto-planner yet — there isn't one. |
 | 7 | Container release — production image, Compose stack, and versioned release bundle | Deferred | `features/containerization/`; complete after the product phases. |
 
@@ -29,8 +29,10 @@ starts, a `plan.md` (the steps and progress).
 Snapshot `/Users/jb/Development/TeamApps/template` into this repo, keep
 this repo's `doc/`. Set `APP_NAME=ShiftPlanner`. Local dev runs on SQLite
 (`DB_CONNECTION=sqlite`) — no container runtime needed to develop.
-`docker-compose.yml` carries a `postgres` service plus `app` / `scheduler`
-stubs, unused until phase 2 wires PostgreSQL in.
+`docker-compose.yml` carries a `postgres` service plus an `app` stub,
+unused until phase 2 wires PostgreSQL in. (It originally also stubbed a
+separate `scheduler` service for phase 5; that plan was reversed once
+phase 5 started — see that phase's section — so the stub was removed.)
 
 Migrations and code target PostgreSQL semantics (real FKs, enum
 constraints) so the phase-2 switch is a config change, not a rewrite.
@@ -145,8 +147,8 @@ editable the same way the old week-grid was (assign/remove/pin,
 per-date spot overrides) — the original single-workcenter week-grid
 page these replaced is gone.
 
-Still open: rule enforcement and the OR-Tools `/solve` contract in phase
-5, and, further out, an employee-facing schedule view (phase 6).
+Still open: rule enforcement and the phase-5 scheduling engine, and,
+further out, an employee-facing schedule view (phase 6).
 Calendar recurrence and date-specific exceptions for availability stay in
 phase 4.
 
@@ -292,16 +294,34 @@ reworked against it later.
 
 ## Phase 5 — Scheduling engine
 
-- A separate containerized Python service running OR-Tools CP-SAT. One
-  endpoint, `POST /solve`. No database access. Shared secret on the
-  internal network.
-- Laravel stays the system of record. A `GeneratePlan` queue job builds a
-  JSON problem document, calls `/solve`, writes the returned draft and its
-  unfulfilled-wish reasons to PostgreSQL (`jsonb`).
-- Laravel-side planning sits behind a `PlanGenerator` interface. No PHP
-  heuristic planner is written.
-- Manager reviews and manually adjusts the draft. The plan is advice, not
-  an automatic publication.
+Originally planned as a separate containerized Python service running
+OR-Tools CP-SAT (`POST /solve`, no database access, a shared secret on
+the internal network). Reversed once `features/planning-rules/` had
+fully pinned down the actual constraint shape: a second language and
+deployable service, for one queued job, stopped looking worth its
+operational cost against a codebase that's otherwise entirely PHP/JS —
+especially given the plan is advisory, never auto-published, which
+lowers the bar from "provably optimal" to "a good enough draft a
+manager reviews." See `features/scheduling-engine/spec.md`.
+
+- An in-process PHP heuristic planner: a greedy feasible construction,
+  then hill-climbing local search against a tiered penalty function
+  (coverage, then workload fairness as a minimax, then severity-weighted
+  soft-rule costs — the same tier order `features/planning-rules/`
+  already defined). No separate service, container, or language.
+- Laravel-side planning sits behind a `PlanGenerator` interface — kept
+  from the original plan specifically because it makes this reversible:
+  a different implementation (including a real constraint solver,
+  in-process or as a service) could replace the heuristic later without
+  touching routes, the data model, or the UI, if its output quality ever
+  proves insufficient in practice.
+- A `GeneratePlan` queue job builds the problem in memory, runs the
+  planner, and writes the returned draft plus unfulfilled-wish reasons
+  straight into `shift_assignments` and a new `plan_generation_runs`
+  table — no separate wire contract or JSON document exchanged over
+  HTTP, since nothing crosses a process boundary.
+- Manager reviews and manually adjusts the draft. The plan is advice,
+  not an automatic publication.
 
 ## Phase 6 — Publish and employee schedule view
 

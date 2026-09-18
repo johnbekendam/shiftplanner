@@ -21,6 +21,7 @@ use App\Http\Controllers\PersonalLinkController;
 use App\Http\Controllers\PersonalPageController;
 use App\Http\Controllers\PersonalQuestionController;
 use App\Http\Controllers\PersonalRecurringAvailabilityController;
+use App\Http\Controllers\PlanGenerationController;
 use App\Http\Controllers\PlanningRuleController;
 use App\Http\Controllers\PublishedWeekController;
 use App\Http\Controllers\QuestionController;
@@ -114,6 +115,8 @@ Route::middleware('auth')->group(function () {
             ->where('weekStart', '\d{4}-\d{2}-\d{2}')->name('planning.weeks.workcenters.publish');
         Route::delete('/planning/weeks/{weekStart}/workcenters/{workcenter}/publish', [PublishedWeekController::class, 'destroy'])
             ->where('weekStart', '\d{4}-\d{2}-\d{2}')->name('planning.weeks.workcenters.unpublish');
+        Route::post('/planning/cycles/{cycleStart}/generate', [PlanGenerationController::class, 'store'])
+            ->where('cycleStart', '\d{4}-\d{2}-\d{2}')->name('planning.cycles.generate');
 
         Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
 

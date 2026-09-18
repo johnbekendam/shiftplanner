@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Employee;
+use App\Models\PlanningSettings;
 use App\Models\PublishedWeek;
 use App\Models\Shift;
 use App\Models\ShiftAssignment;
@@ -372,5 +373,23 @@ class SchedulingIndexTest extends TestCase
 
         $this->get('/planning?year=2026&month=9')->assertOk()
             ->assertInertia(fn ($page) => $page->where('publishedWorkcenterWeeks', []));
+    }
+
+    public function test_cycle_start_is_null_when_no_period_start_is_configured(): void
+    {
+        $this->actingAsAdmin();
+
+        $this->get('/planning?year=2026&month=9&date=2026-09-10')->assertOk()
+            ->assertInertia(fn ($page) => $page->where('cycleStart', null));
+    }
+
+    public function test_cycle_start_resolves_the_two_week_cycle_containing_the_viewed_week(): void
+    {
+        $this->actingAsAdmin();
+        PlanningSettings::current()->update(['period_start' => '2026-09-07']);
+
+        // 2026-09-10 falls in the second week of the 09-07..09-20 cycle.
+        $this->get('/planning?year=2026&month=9&date=2026-09-10')->assertOk()
+            ->assertInertia(fn ($page) => $page->where('cycleStart', '2026-09-07'));
     }
 }

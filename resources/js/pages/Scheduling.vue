@@ -4,9 +4,11 @@ import { Head, router } from '@inertiajs/vue3'
 import AppLayout from '@/layouts/AppLayout.vue'
 import Card from '@/components/ui/Card.vue'
 import Calendar from '@/components/ui/Calendar.vue'
+import ButtonPrimary from '@/components/ui/ButtonPrimary.vue'
 import WorkcenterScheduleCard from '@/components/scheduling/WorkcenterScheduleCard.vue'
 import { CheckboxInput } from '@/components/ui/Input'
 import { useI18n } from '@/composables/useI18n'
+import { postAsync } from '@/utils/inertiaAsync'
 
 const __ = useI18n()
 
@@ -20,7 +22,14 @@ const props = defineProps({
     weekStart: { type: String, required: true }, // Y-m-d, the Monday of the selected day's week
     weekCells: { type: Array, default: () => [] }, // { workcenter_id, shift_id, date, spots, overridden, assignments }
     publishedWorkcenterWeeks: { type: Array, default: () => [] }, // { workcenter_id, week_start }, within the visible month
+    // Y-m-d, the Monday of the 2-week cycle containing weekStart, or null when no
+    // planning period start is configured yet (there's no anchor to compute cycles from).
+    cycleStart: { type: String, default: null },
 })
+
+async function generate() {
+    await postAsync(`/planning/cycles/${props.cycleStart}/generate`).catch(() => {})
+}
 
 const checkedWorkcenterIds = ref(props.workcenters.map((w) => w.id))
 const checkedShiftIds = ref(props.shifts.map((s) => s.id))
@@ -211,6 +220,12 @@ const visibleWorkcenters = computed(() =>
                         </div>
                     </Card>
                 </div>
+            </div>
+
+            <div v-if="cycleStart" class="mt-4">
+                <ButtonPrimary type="button" data-testid="generate-plan-button" @click="generate">
+                    {{ __('planning.generate') }}
+                </ButtonPrimary>
             </div>
 
             <div v-if="visibleWorkcenters.length" class="mt-4 flex flex-col gap-4">

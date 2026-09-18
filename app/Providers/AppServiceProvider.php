@@ -6,6 +6,8 @@ use App\Mail\Transport\GraphTransport;
 use App\Services\Auth\AuthServiceContract;
 use App\Services\Auth\LocalAuthService;
 use App\Services\Graph\GraphClient;
+use App\Services\Planning\HeuristicPlanGenerator;
+use App\Services\Planning\PlanGeneratorContract;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
@@ -20,6 +22,7 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->bind(AuthServiceContract::class, LocalAuthService::class);
+        $this->app->bind(PlanGeneratorContract::class, HeuristicPlanGenerator::class);
 
         $this->app->singleton(GraphClient::class, fn () => new GraphClient(
             (string) config('services.graph.tenant_id'),

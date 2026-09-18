@@ -219,7 +219,7 @@ Decided in a design session on 2026-09-08. `roadmap.md` holds the build order.
 
 Schedule generation runs outside HTTP requests through a Laravel queue job.
 
-The schedule optimizer is a separate service from the start, not a deferred addition. A private Python worker uses Google OR-Tools (CP-SAT). Laravel stays the system of record and calls the worker through one narrow interface: the queue job builds a JSON problem document, the worker returns a draft plus unfulfilled-wish reasons. Laravel-side planning sits behind a `PlanGenerator` interface so no throwaway PHP planner is written. The worker is not built in the first increment, which has no scheduling, but the architecture accounts for it now.
+The schedule optimizer runs inside Laravel, not a separate service — a PHP heuristic planner (greedy construction, then hill-climbing local search against a tiered penalty function), reversing the project's original plan to call out to a Python/OR-Tools worker. That plan assumed a real constraint solver was necessary for good results; it wasn't attempted until the actual constraint shape was fully known (`features/planning-rules/`), at which point a second language and service for one queued job stopped looking worth its operational cost — especially with the plan explicitly advisory, never auto-published, which lowers the bar from "provably optimal" to "a good enough draft a manager reviews." Laravel-side planning still sits behind a `PlanGenerator` interface, which is what makes this reversible: if the heuristic's output quality proves insufficient in practice, a different implementation (including a real solver, in-process or as a service) can replace it without touching routes, the data model, or the UI. The queue job builds the problem in memory, the planner returns a draft plus unfulfilled-wish reasons. Not built in the first increment, which has no scheduling, but the architecture accounts for it now.
 
 ## Authentication
 
@@ -259,7 +259,7 @@ The schedule optimizer is a separate service from the start, not a deferred addi
   mailbox address, and admin consent for `Mail.Send`
   (`features/mailbox/`). The transport and config keys exist; only the
   values are outstanding.
-- Planning cadence and the exact JSON contract for the OR-Tools worker, including how severity scores map to objective-function coefficients. Fairness definitions themselves are resolved — see above and `features/planning-rules/spec.md`.
+- Planning cadence and the exact problem/solution shape for the in-process heuristic planner, including how severity scores map to penalty weights. Fairness definitions themselves are resolved — see above and `features/planning-rules/spec.md`.
 - The Entra ID integration package and claims mapping.
 
 ## Out of Scope for the First Increment

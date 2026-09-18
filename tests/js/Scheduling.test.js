@@ -10,6 +10,7 @@ const en = {
     "scheduling.legend_open_spots": "Open spots",
     "scheduling.publish": "Publish",
     "scheduling.unpublish": "Unpublish",
+    "planning.generate": "Generate",
     "calendar.reset": "Jump to today",
     "calendar.prev_month": "Previous month",
     "calendar.next_month": "Next month",
@@ -60,6 +61,7 @@ const baseProps = {
     date: "2026-09-10",
     weekStart: "2026-09-07",
     publishedWorkcenterWeeks: [],
+    cycleStart: null,
     weekCells: [
         { workcenter_id: 1, shift_id: 9, date: "2026-09-07", spots: 1, overridden: false, assignments: [] },
         { workcenter_id: 1, shift_id: 9, date: "2026-09-08", spots: 1, overridden: false, assignments: [] },
@@ -237,5 +239,20 @@ describe("Scheduling", () => {
         expect(day21.element.closest('[data-testid^="calendar-week-"]').className).not.toContain(
             "border-(--color-btn-danger-bg)",
         );
+    });
+
+    it("hides the Generate button when no cycle start is resolved (no period start configured)", () => {
+        const w = mountPage({ cycleStart: null });
+        expect(w.find('[data-testid="generate-plan-button"]').exists()).toBe(false);
+    });
+
+    it("shows a Generate button for the resolved cycle and posts to its generate endpoint", async () => {
+        const w = mountPage({ cycleStart: "2026-09-07" });
+        const button = w.get('[data-testid="generate-plan-button"]');
+        expect(button.text()).toBe("Generate");
+
+        await button.trigger("click");
+
+        expect(routerCalls).toContainEqual(["post", "/planning/cycles/2026-09-07/generate", undefined]);
     });
 });

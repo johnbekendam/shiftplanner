@@ -8,6 +8,7 @@ use App\Models\ShiftAssignment;
 use App\Models\Workcenter;
 use App\Models\WorkcenterShiftCapacity;
 use App\Models\WorkcenterShiftDateOverride;
+use App\Services\Planning\PlanningCycle;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -54,6 +55,7 @@ class SchedulingController extends Controller
             'weekStart' => $weekStart->toDateString(),
             'weekCells' => $this->weekCells($attachments, $capacities, $workcenterIds, $weekStart),
             'publishedWorkcenterWeeks' => $this->publishedWorkcenterWeeks($monthStart, $workcenterIds),
+            'cycleStart' => PlanningCycle::containing($weekStart)?->toDateString(),
         ]);
     }
 
