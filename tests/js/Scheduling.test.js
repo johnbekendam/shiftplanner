@@ -10,13 +10,17 @@ const en = {
     "scheduling.legend_open_spots": "Open spots",
     "scheduling.publish": "Publish",
     "scheduling.unpublish": "Unpublish",
-    "planning.generate": "Generate",
+    "planning.generate_cycle": "Generate :start – :end",
+    "planning.generating": "Generating…",
+    "planning.generate_again": "Generate again",
+    "planning.generation_failed": "Generation failed: :error",
     "calendar.reset": "Jump to today",
     "calendar.prev_month": "Previous month",
     "calendar.next_month": "Next month",
 };
 
 const routerGetCalls = vi.hoisted(() => []);
+const routerReloadCalls = vi.hoisted(() => []);
 
 const { routerCalls, router } = vi.hoisted(() => {
     const routerCalls = [];
@@ -32,7 +36,16 @@ const { routerCalls, router } = vi.hoisted(() => {
 });
 
 vi.mock("@inertiajs/vue3", () => ({
-    router: { get: (...args) => routerGetCalls.push(args), post: router.post, delete: router.delete, on: () => () => {} },
+    router: {
+        get: (...args) => routerGetCalls.push(args),
+        post: router.post,
+        delete: router.delete,
+        reload: (...args) => {
+            routerReloadCalls.push(args);
+            args[0]?.onFinish?.();
+        },
+        on: () => () => {},
+    },
     Head: { name: "Head", render: () => null },
     usePage: () => ({ props: { translations: en, auth: { settings: { month_format: "my" } } } }),
 }));
@@ -62,6 +75,7 @@ const baseProps = {
     weekStart: "2026-09-07",
     publishedWorkcenterWeeks: [],
     cycleStart: null,
+    generationRun: null,
     weekCells: [
         { workcenter_id: 1, shift_id: 9, date: "2026-09-07", spots: 1, overridden: false, assignments: [] },
         { workcenter_id: 1, shift_id: 9, date: "2026-09-08", spots: 1, overridden: false, assignments: [] },
@@ -89,6 +103,7 @@ function dayButton(w, day) {
 
 beforeEach(() => {
     routerGetCalls.length = 0;
+    routerReloadCalls.length = 0;
     routerCalls.length = 0;
 });
 
@@ -246,13 +261,89 @@ describe("Scheduling", () => {
         expect(w.find('[data-testid="generate-plan-button"]').exists()).toBe(false);
     });
 
-    it("shows a Generate button for the resolved cycle and posts to its generate endpoint", async () => {
+    it("shows a Generate button labeled with the cycle's date range and posts to its generate endpoint", async () => {
         const w = mountPage({ cycleStart: "2026-09-07" });
         const button = w.get('[data-testid="generate-plan-button"]');
-        expect(button.text()).toBe("Generate");
+        expect(button.text()).toBe("Generate Sep 7 – Sep 20");
+        expect(button.element.disabled).toBe(false);
 
         await button.trigger("click");
 
         expect(routerCalls).toContainEqual(["post", "/planning/cycles/2026-09-07/generate", undefined]);
+    });
+
+    it("disables the button and shows a Generating label while a run is pending or running", () => {
+        const pending = mountPage({ cycleStart: "2026-09-07", generationRun: { status: "pending", error: null } });
+        expect(pending.get('[data-testid="generate-plan-button"]').text()).toBe("Generating…");
+        expect(pending.get('[data-testid="generate-plan-button"]').element.disabled).toBe(true);
+
+        const running = mountPage({ cycleStart: "2026-09-07", generationRun: { status: "running", error: null } });
+        expect(running.get('[data-testid="generate-plan-button"]').text()).toBe("Generating…");
+        expect(running.get('[data-testid="generate-plan-button"]').element.disabled).toBe(true);
+    });
+
+    it("shows the error and a Generate again label when the run failed, and the button stays clickable", async () => {
+        const w = mountPage({
+            cycleStart: "2026-09-07",
+            generationRun: { status: "failed", error: "no eligible employees" },
+        });
+        const button = w.get('[data-testid="generate-plan-button"]');
+        expect(button.text()).toBe("Generate again");
+        expect(button.element.disabled).toBe(false);
+        expect(w.get('[data-testid="generation-error"]').text()).toBe("Generation failed: no eligible employees");
+
+        await button.trigger("click");
+
+        expect(routerCalls).toContainEqual(["post", "/planning/cycles/2026-09-07/generate", undefined]);
+    });
+
+    it("hides the error message once the run is not failed", () => {
+        const w = mountPage({ cycleStart: "2026-09-07", generationRun: { status: "done", error: null } });
+        expect(w.find('[data-testid="generation-error"]').exists()).toBe(false);
+    });
+
+    it("polls for updates while a run is pending, and stops once it resolves", async () => {
+        vi.useFakeTimers();
+        try {
+            const w = mountPage({ cycleStart: "2026-09-07", generationRun: { status: "pending", error: null } });
+
+            expect(routerReloadCalls).toHaveLength(0);
+            await vi.advanceTimersByTimeAsync(3000);
+            expect(routerReloadCalls).toHaveLength(1);
+            expect(routerReloadCalls[0][0]).toMatchObject({ only: ["generationRun", "weekCells", "coverage"] });
+
+            await vi.advanceTimersByTimeAsync(3000);
+            expect(routerReloadCalls).toHaveLength(2);
+
+            await w.setProps({ generationRun: { status: "done", error: null } });
+            routerReloadCalls.length = 0;
+            await vi.advanceTimersByTimeAsync(10000);
+            expect(routerReloadCalls).toHaveLength(0);
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
+    it("does not poll when mounted with an already-resolved run", async () => {
+        vi.useFakeTimers();
+        try {
+            mountPage({ cycleStart: "2026-09-07", generationRun: { status: "done", error: null } });
+            await vi.advanceTimersByTimeAsync(10000);
+            expect(routerReloadCalls).toHaveLength(0);
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
+    it("stops polling once the component unmounts", async () => {
+        vi.useFakeTimers();
+        try {
+            const w = mountPage({ cycleStart: "2026-09-07", generationRun: { status: "pending", error: null } });
+            w.unmount();
+            await vi.advanceTimersByTimeAsync(10000);
+            expect(routerReloadCalls).toHaveLength(0);
+        } finally {
+            vi.useRealTimers();
+        }
     });
 });

@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch, onBeforeUnmount } from 'vue'
 import { Head, router } from '@inertiajs/vue3'
 import AppLayout from '@/layouts/AppLayout.vue'
 import Card from '@/components/ui/Card.vue'
@@ -25,11 +25,71 @@ const props = defineProps({
     // Y-m-d, the Monday of the 2-week cycle containing weekStart, or null when no
     // planning period start is configured yet (there's no anchor to compute cycles from).
     cycleStart: { type: String, default: null },
+    // { status: 'pending'|'running'|'done'|'failed', error: string|null } for the most
+    // recent run of the viewed cycle, or null if none has ever run.
+    generationRun: { type: Object, default: null },
 })
+
+const GENERATION_POLL_MS = 3000
+
+function isGenerationActive(run) {
+    return !!run && (run.status === 'pending' || run.status === 'running')
+}
 
 async function generate() {
     await postAsync(`/planning/cycles/${props.cycleStart}/generate`).catch(() => {})
 }
+
+const cycleEnd = computed(() => (props.cycleStart ? addDays(props.cycleStart, 13) : null))
+
+function formatCycleDate(dateStr) {
+    const [y, m, d] = dateStr.split('-').map(Number)
+    return new Date(y, m - 1, d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+}
+
+const generateLabel = computed(() => {
+    if (isGenerationActive(props.generationRun)) return __('planning.generating')
+    if (props.generationRun?.status === 'failed') return __('planning.generate_again')
+    return __('planning.generate_cycle', { start: formatCycleDate(props.cycleStart), end: formatCycleDate(cycleEnd.value) })
+})
+
+let pollTimer = null
+
+function stopGenerationPoll() {
+    if (pollTimer) {
+        clearTimeout(pollTimer)
+        pollTimer = null
+    }
+}
+
+// Self-perpetuating via onFinish, rather than relying solely on the watch
+// below picking up a "new" prop object with the same still-pending status —
+// keeps polling correctly even if a reload's response were ever reference-
+// equal to what's already there.
+function scheduleGenerationPoll() {
+    stopGenerationPoll()
+    pollTimer = setTimeout(() => {
+        router.reload({
+            only: ['generationRun', 'weekCells', 'coverage'],
+            preserveScroll: true,
+            preserveState: true,
+            onFinish: () => {
+                if (isGenerationActive(props.generationRun)) scheduleGenerationPoll()
+            },
+        })
+    }, GENERATION_POLL_MS)
+}
+
+watch(
+    () => props.generationRun,
+    (run) => {
+        if (isGenerationActive(run)) scheduleGenerationPoll()
+        else stopGenerationPoll()
+    },
+    { immediate: true },
+)
+
+onBeforeUnmount(stopGenerationPoll)
 
 const checkedWorkcenterIds = ref(props.workcenters.map((w) => w.id))
 const checkedShiftIds = ref(props.shifts.map((s) => s.id))
@@ -222,10 +282,22 @@ const visibleWorkcenters = computed(() =>
                 </div>
             </div>
 
-            <div v-if="cycleStart" class="mt-4">
-                <ButtonPrimary type="button" data-testid="generate-plan-button" @click="generate">
-                    {{ __('planning.generate') }}
+            <div v-if="cycleStart" class="mt-4 flex items-center gap-3">
+                <ButtonPrimary
+                    type="button"
+                    data-testid="generate-plan-button"
+                    :disabled="isGenerationActive(generationRun)"
+                    @click="generate"
+                >
+                    {{ generateLabel }}
                 </ButtonPrimary>
+                <span
+                    v-if="generationRun?.status === 'failed'"
+                    data-testid="generation-error"
+                    class="text-sm text-(--color-badge-error-text)"
+                >
+                    {{ __('planning.generation_failed', { error: generationRun.error }) }}
+                </span>
             </div>
 
             <div v-if="visibleWorkcenters.length" class="mt-4 flex flex-col gap-4">

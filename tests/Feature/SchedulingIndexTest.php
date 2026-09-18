@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Employee;
+use App\Models\PlanGenerationRun;
 use App\Models\PlanningSettings;
 use App\Models\PublishedWeek;
 use App\Models\Shift;
@@ -391,5 +392,48 @@ class SchedulingIndexTest extends TestCase
         // 2026-09-10 falls in the second week of the 09-07..09-20 cycle.
         $this->get('/planning?year=2026&month=9&date=2026-09-10')->assertOk()
             ->assertInertia(fn ($page) => $page->where('cycleStart', '2026-09-07'));
+    }
+
+    public function test_generation_run_is_null_when_no_cycle_is_resolved(): void
+    {
+        $this->actingAsAdmin();
+
+        $this->get('/planning?year=2026&month=9&date=2026-09-10')->assertOk()
+            ->assertInertia(fn ($page) => $page->where('generationRun', null));
+    }
+
+    public function test_generation_run_is_null_when_the_cycle_has_never_run(): void
+    {
+        $this->actingAsAdmin();
+        PlanningSettings::current()->update(['period_start' => '2026-09-07']);
+
+        $this->get('/planning?year=2026&month=9&date=2026-09-10')->assertOk()
+            ->assertInertia(fn ($page) => $page->where('generationRun', null));
+    }
+
+    public function test_generation_run_reflects_the_most_recent_run_for_the_cycle(): void
+    {
+        $this->actingAsAdmin();
+        PlanningSettings::current()->update(['period_start' => '2026-09-07']);
+        PlanGenerationRun::create(['cycle_start' => '2026-09-07', 'status' => PlanGenerationRun::STATUS_FAILED, 'error' => 'boom']);
+        $latest = PlanGenerationRun::create(['cycle_start' => '2026-09-07', 'status' => PlanGenerationRun::STATUS_RUNNING]);
+
+        $this->get('/planning?year=2026&month=9&date=2026-09-10')->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('generationRun.status', PlanGenerationRun::STATUS_RUNNING)
+                ->where('generationRun.error', null)
+            );
+
+        $this->assertNotNull($latest);
+    }
+
+    public function test_generation_run_ignores_a_run_from_a_different_cycle(): void
+    {
+        $this->actingAsAdmin();
+        PlanningSettings::current()->update(['period_start' => '2026-09-07']);
+        PlanGenerationRun::create(['cycle_start' => '2026-09-21', 'status' => PlanGenerationRun::STATUS_RUNNING]);
+
+        $this->get('/planning?year=2026&month=9&date=2026-09-10')->assertOk()
+            ->assertInertia(fn ($page) => $page->where('generationRun', null));
     }
 }

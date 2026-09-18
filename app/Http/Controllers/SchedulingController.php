@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\PlanGenerationRun;
 use App\Models\PublishedWeek;
 use App\Models\Shift;
 use App\Models\ShiftAssignment;
@@ -40,6 +41,8 @@ class SchedulingController extends Controller
             ->get()
             ->keyBy(fn (WorkcenterShiftCapacity $c) => "{$c->workcenter_id}:{$c->shift_id}:{$c->weekday}");
 
+        $cycleStart = PlanningCycle::containing($weekStart);
+
         return Inertia::render('Scheduling', [
             'workcenters' => $workcenters->map(fn (Workcenter $w) => ['id' => $w->id, 'name' => $w->name])->values()->all(),
             'shifts' => $shifts->map(fn (Shift $s) => [
@@ -55,8 +58,27 @@ class SchedulingController extends Controller
             'weekStart' => $weekStart->toDateString(),
             'weekCells' => $this->weekCells($attachments, $capacities, $workcenterIds, $weekStart),
             'publishedWorkcenterWeeks' => $this->publishedWorkcenterWeeks($monthStart, $workcenterIds),
-            'cycleStart' => PlanningCycle::containing($weekStart)?->toDateString(),
+            'cycleStart' => $cycleStart?->toDateString(),
+            'generationRun' => $cycleStart ? $this->latestGenerationRun($cycleStart) : null,
         ]);
+    }
+
+    /** The most recent generation run for this cycle, or null if none has ever run. */
+    private function latestGenerationRun(Carbon $cycleStart): ?array
+    {
+        $run = PlanGenerationRun::query()
+            ->whereDate('cycle_start', $cycleStart)
+            ->latest('id')
+            ->first();
+
+        if (! $run) {
+            return null;
+        }
+
+        return [
+            'status' => $run->status,
+            'error' => $run->error,
+        ];
     }
 
     /** [{ workcenter_id, week_start }] for every (workcenter, week) published within the visible month. */

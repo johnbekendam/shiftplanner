@@ -1,6 +1,6 @@
 # Scheduling Engine — Plan
 
-Status: in progress — 2/5
+Status: in progress — 3/5
 
 Spec: `spec.md`. Reversed mid-design from a separate Python/OR-Tools
 service to an in-process PHP heuristic — this plan reflects that
@@ -114,14 +114,34 @@ in a working, tested state.
   657 PHP tests passing (was 648), 615 JS unaffected, Pint clean,
   `npm run build` green.
 
-- [ ] 3. **Trigger UX: cycle resolution, run status, polling.**
-  `/planning` resolves the cycle containing the viewed week (same
-  boundary math as `planning-rules`) and shows its date range on the
-  Generate button. While the viewed cycle has a pending/running run,
-  the button shows a disabled "Generating…" state and the page polls
-  until it resolves; a failed run shows its error with a Generate
-  again affordance. Feature + Vitest coverage for cycle resolution,
-  the 409 on a concurrent run, and the polling/failed states.
+- [x] 3. **Trigger UX: cycle resolution, run status, polling.**
+  `SchedulingController@index` gained `generationRun` — the most
+  recent `PlanGenerationRun` for the resolved cycle (`{ status, error
+  }`, or `null` if none has ever run). `Scheduling.vue`: the Generate
+  button's label now carries the cycle's date range
+  (`planning.generate_cycle`, e.g. "Generate Sep 7 – Sep 20");
+  while `generationRun.status` is `pending`/`running` it's disabled
+  and reads "Generating…"; a `failed` run shows its error text next
+  to the button, relabeled "Generate again" and re-enabled. Polling:
+  a `setTimeout`-based loop (3s interval) reloads `generationRun` +
+  `weekCells` + `coverage` (not the whole page) while a run is active,
+  self-perpetuating via the reload's own `onFinish` callback rather
+  than relying on a prop-change watcher alone — that watcher still
+  starts the first poll (e.g. right after clicking Generate) and stops
+  it once a reload's response resolves the run, but the reload chain
+  doesn't depend on Vue treating each response as a distinct object
+  reference. Cleaned up via `onBeforeUnmount`.
+
+  Extended `tests/Feature/SchedulingIndexTest.php` (+4: null with no
+  cycle, null with no run yet, reflects the latest of several runs,
+  ignores a run from a different cycle) and `tests/js/Scheduling.test.js`
+  (+8: dated label, disabled/"Generating…" for pending and running,
+  failed state's error text and re-enabled "Generate again", error
+  hidden once not failed, polling starts/continues/stops, no poll on
+  an already-resolved mount, poll cleared on unmount). The 409 on a
+  concurrent run was already covered in step 1's
+  `PlanGenerationControllerTest.php`. 661 PHP + 621 JS tests passing,
+  Pint clean, `npm run build` green.
 
 - [ ] 4. **Change summary + inline unfulfilled reasons.** A dismissible
   panel above the week cards renders a `done` run's `changes` (counts
