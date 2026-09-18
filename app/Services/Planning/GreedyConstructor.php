@@ -17,22 +17,9 @@ final class GreedyConstructor
         private readonly PlanEligibility $eligibility,
     ) {}
 
-    /**
-     * Mutates $assignments in place (already seeded with locked
-     * assignments) and returns the unfulfilled list for whatever's still
-     * open once no candidate remains for any open cell.
-     *
-     * @return array<int, array{workcenter_id: int, shift_id: int, date: string, reason: string}>
-     */
-    public function construct(PlanAssignmentSet $assignments): array
+    /** Mutates $assignments in place (already seeded with the cycle's current state). */
+    public function construct(PlanAssignmentSet $assignments): void
     {
-        // A cell that ever had a candidate during the search, even if not chosen
-        // that round and later starved by the cap/overlap a *different* choice
-        // created, is "hard_cap_reached" once unfulfilled — not
-        // "no_eligible_employee". Tracked as we go; the final open-cell scan
-        // alone can't tell the two apart, since by then the candidate may be gone.
-        $everHadCandidate = [];
-
         while (true) {
             $mostConstrained = null;
             $mostConstrainedCandidates = [];
@@ -42,7 +29,7 @@ final class GreedyConstructor
                 if ($candidates === []) {
                     continue;
                 }
-                $everHadCandidate[$this->cellKey($cell)] = true;
+                $assignments->noteCandidateSeen($cell['workcenter_id'], $cell['shift_id'], $cell['date']);
                 if ($mostConstrained === null || count($candidates) < count($mostConstrainedCandidates)) {
                     $mostConstrained = $cell;
                     $mostConstrainedCandidates = $candidates;
@@ -56,23 +43,6 @@ final class GreedyConstructor
             $chosen = $this->leastLoaded($mostConstrainedCandidates, $assignments);
             $assignments->add($chosen['id'], $mostConstrained['workcenter_id'], $mostConstrained['shift_id'], $mostConstrained['date']);
         }
-
-        return array_map(
-            fn (array $cell) => [
-                'workcenter_id' => $cell['workcenter_id'],
-                'shift_id' => $cell['shift_id'],
-                'date' => $cell['date'],
-                'reason' => ($everHadCandidate[$this->cellKey($cell)] ?? false)
-                    ? 'hard_cap_reached'
-                    : 'no_eligible_employee',
-            ],
-            $this->openCells($assignments),
-        );
-    }
-
-    private function cellKey(array $cell): string
-    {
-        return "{$cell['workcenter_id']}:{$cell['shift_id']}:{$cell['date']}";
     }
 
     /** @return array<int, array{workcenter_id: int, shift_id: int, date: string, spots: int, locked: int}> */

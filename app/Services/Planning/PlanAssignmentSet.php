@@ -18,6 +18,18 @@ final class PlanAssignmentSet
     private array $keysByEmployee = [];
 
     /**
+     * Cells ("workcenter:shift:date") that had at least one eligible
+     * candidate at some point across construction and optimization —
+     * spans both phases so a cell that had a candidate during construction
+     * but lost it to a cap, or one hill-climbing considered filling but
+     * a competing move ultimately won out, is still told apart from a
+     * cell that never had anyone eligible at all, once the run settles.
+     *
+     * @var array<string, true>
+     */
+    private array $everHadCandidate = [];
+
+    /**
      * @param  array<int, array{id: int, start_time: string, end_time: string}>  $shifts
      */
     public function __construct(private readonly array $shifts) {}
@@ -61,6 +73,16 @@ final class PlanAssignmentSet
         ));
     }
 
+    public function noteCandidateSeen(int $workcenterId, int $shiftId, string $date): void
+    {
+        $this->everHadCandidate["{$workcenterId}:{$shiftId}:{$date}"] = true;
+    }
+
+    public function hadCandidate(int $workcenterId, int $shiftId, string $date): bool
+    {
+        return $this->everHadCandidate["{$workcenterId}:{$shiftId}:{$date}"] ?? false;
+    }
+
     public function countForCell(int $workcenterId, int $shiftId, string $date): int
     {
         return count(array_filter(
@@ -72,6 +94,24 @@ final class PlanAssignmentSet
     public function isAssigned(int $employeeId, int $workcenterId, int $shiftId, string $date): bool
     {
         return isset($this->byKey[self::key($employeeId, $workcenterId, $shiftId, $date)]);
+    }
+
+    /** True when $employeeId holds $shiftId (any workcenter) on $date — for alternating-pair checks. */
+    public function hasShiftOnDate(int $employeeId, int $shiftId, string $date): bool
+    {
+        foreach ($this->forEmployee($employeeId) as $a) {
+            if ($a['date'] === $date && $a['shift_id'] === $shiftId) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /** @return array<int, array{employee_id: int, workcenter_id: int, shift_id: int, date: string, locked: bool}> */
+    public function assignmentsFor(int $employeeId): array
+    {
+        return $this->forEmployee($employeeId);
     }
 
     public function countOnDate(int $employeeId, string $date): int

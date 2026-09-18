@@ -148,6 +148,15 @@ constraint satisfied:
 - **Fill**: assign an eligible employee to a currently-open spot.
 - **Relocate**: move one employee's assignment to a different open,
   eligible spot.
+- **Substitute**: replace the occupant of an already-*full* cell with
+  a different eligible employee — added during implementation, once
+  it was clear fill and swap together still couldn't rebalance a
+  fully-staffed cycle where one employee holds nothing at all: fill
+  needs an open cell (there isn't one), swap needs both sides to
+  already hold something to trade (an unassigned employee holds
+  nothing to offer). Substitute is the direct fix — it's also, in
+  practice, the workhorse move for workload rebalancing generally,
+  more often than swap.
 - **Swap**: exchange two employees between their two assignments,
   when each is eligible for the other's cell.
 
@@ -156,27 +165,36 @@ standalone move — it would always cost `W1`, which nothing in tier 2
 or 3 can outweigh by construction, so it's only ever useful as half of
 a relocate, never accepted on its own.
 
-**Targeted search for tier 2**: once tier 1 is at its best reachable
-value (no fill move remains that doesn't require breaking a hard
-constraint), move generation for tier 2 specifically proposes
-relocate/swap moves that give away one of the *current maximum-hours
-employee's* shifts — plain randomized swaps stall against a minimax
-objective, since many different "who's the max" states score
-identically; targeting the actual bottleneck is what makes hill
-climbing effective here.
+**Move generation is exhaustive, not targeted or sampled**: every
+pass enumerates every legal fill/relocate/substitute/swap over the
+*entire* current state, not a random subset. The original plan here
+was a separate "targeted" generator biased toward the current
+maximum-hours employee, reasoned as necessary because a *sampled*
+search could easily miss the specific move that unloads them. Once
+substitute existed and full enumeration was the actual implementation
+choice, that reasoning no longer applied: exhaustive generation
+already contains every such move by construction, so a separate
+targeting mechanism would only have duplicated candidates already in
+the pool. First-improvement acceptance over a randomized shuffle of
+the full set still finds an improving move whenever one exists.
 
 **Stopping**: a fixed iteration budget (default 2,000) or a wall-clock
 budget (default 10s), whichever comes first, or earlier if a full pass
 over candidate moves finds no improving one ("local optimum reached").
-Move order is randomized each pass (seeded, for reproducible tests);
-the first improving move found is accepted (first-improvement, not
-best-improvement — cheaper per iteration, standard for this class of
-search).
+Move order is randomized each pass (seeded via `mt_srand`, for
+reproducible tests); the first improving move found is accepted
+(first-improvement, not best-improvement — cheaper per iteration,
+standard for this class of search).
 
-**Unfulfilled reasons**: once the heuristic stops, a still-open spot
-is classified `no_eligible_employee` (zero candidates ever cleared
-hard eligibility for that cell) or `hard_cap_reached` (eligible
-candidates exist, but every one is blocked by a hard cap or overlap
+**Unfulfilled reasons**: computed once, after both construction and
+optimization settle — not by construction alone, since a relocate can
+shift *which* cell ends up open without changing how many do (it
+always trades a fill for a fill, net zero coverage change). A still-
+open spot is classified `no_eligible_employee` (no candidate ever
+cleared hard eligibility for that cell, across either phase) or
+`hard_cap_reached` (one did at some point — including one that was
+generated as a move but not chosen — but every one is blocked by a
+hard cap or overlap
 given the final assignment state).
 
 ### Applying the result
@@ -259,11 +277,22 @@ starts a fresh run row.
   large enough gap between tiers behaves identically to strict
   lexicographic ordering in practice — no combination of tier-3 gains
   can ever justify a tier-2 loss.
-- **Targeted moves for tier 2, not arbitrary random swaps.** A minimax
-  objective (minimize the *highest* total, not the sum) has many
-  equally-scored states, which stalls plain randomized local search;
-  explicitly generating moves that unload the current maximum-hours
-  employee is what makes the search actually converge toward fairness.
+- **Substitute is a 4th move type, added once fill/relocate/swap
+  proved insufficient.** A fully-staffed cycle where one employee
+  holds nothing at all can't be rebalanced by fill (no open cell) or
+  swap (the empty-handed employee has nothing to trade); substitute —
+  replace one cell's occupant with someone else, no compensating
+  assignment either way — is the actual fix, and turned out to be the
+  main mechanism for workload rebalancing generally.
+- **Exhaustive move generation, not a separate targeted generator.**
+  The original plan called for explicitly generating moves that
+  unload the current maximum-hours employee, reasoning that plain
+  randomized search stalls against a minimax objective (many states
+  score identically). That reasoning applies to *sampled* search;
+  since the actual implementation enumerates every legal move each
+  pass rather than sampling, a move unloading the maximum-hours
+  employee is already in the candidate set whenever one exists — a
+  separate targeting mechanism would only duplicate it.
 - **No bare removal move.** Removing an assignment without
   immediately refilling the spot always costs a full `W1`, which
   nothing lower can outweigh — allowing it as a standalone move would

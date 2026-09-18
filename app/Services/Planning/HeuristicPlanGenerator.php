@@ -33,23 +33,55 @@ class HeuristicPlanGenerator implements PlanGeneratorContract
 
         $problem = $this->buildProblem($cycleStart, $cycleEnd, $workcenterIds, $cycleAssignments, $isLocked);
         $eligibility = new PlanEligibility($problem);
+        $softRules = new PlanSoftRules($problem->rules);
+        $scorer = new PlanScorer($problem, $softRules);
 
         // Seeded with every current assignment in the cycle, locked or not — the
         // planner needs the true current occupancy to compute open capacity and
-        // overlap/hour/day totals correctly. Construction (this step) never moves
-        // or removes anything it didn't add itself, so a pre-existing non-locked
-        // assignment is left exactly as it was, same as a locked one, until the
-        // hill-climbing phase adds the ability to relocate it.
+        // overlap/hour/day totals correctly. Construction never moves or removes
+        // anything; hill-climbing (below) may relocate or swap a non-locked
+        // assignment — including one already here before this run started — but
+        // never a fixed or published one.
         $assignments = new PlanAssignmentSet($problem->shifts);
         foreach ($cycleAssignments as $a) {
             $assignments->add($a->employee_id, $a->workcenter_id, $a->shift_id, $a->date->toDateString(), $isLocked($a));
         }
 
-        $unfulfilled = (new GreedyConstructor($problem, $eligibility))->construct($assignments);
+        (new GreedyConstructor($problem, $eligibility))->construct($assignments);
+        (new HillClimbOptimizer($problem, $eligibility, $scorer))->optimize($assignments);
 
+        $unfulfilled = $this->unfulfilled($problem, $assignments);
         $solution = new PlanSolution($assignments->movable(), $unfulfilled);
 
         $this->apply($solution, $run, $cycleAssignments, $isLocked);
+    }
+
+    /**
+     * Computed once, after both phases settle — hill-climbing's relocate
+     * moves can shift *which* cells end up open even though they never
+     * change how many are (see HillClimbOptimizer's docblock), so
+     * construction's own open-cell list would be stale here.
+     *
+     * @return array<int, array{workcenter_id: int, shift_id: int, date: string, reason: string}>
+     */
+    private function unfulfilled(PlanProblem $problem, PlanAssignmentSet $assignments): array
+    {
+        $unfulfilled = [];
+        foreach ($problem->spots as $spot) {
+            if ($assignments->countForCell($spot['workcenter_id'], $spot['shift_id'], $spot['date']) >= $spot['spots']) {
+                continue;
+            }
+            $unfulfilled[] = [
+                'workcenter_id' => $spot['workcenter_id'],
+                'shift_id' => $spot['shift_id'],
+                'date' => $spot['date'],
+                'reason' => $assignments->hadCandidate($spot['workcenter_id'], $spot['shift_id'], $spot['date'])
+                    ? 'hard_cap_reached'
+                    : 'no_eligible_employee',
+            ];
+        }
+
+        return $unfulfilled;
     }
 
     /** True when $a must not be touched: fixed, or in a published (workcenter, week) pair. */

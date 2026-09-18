@@ -1,6 +1,6 @@
 # Scheduling Engine — Plan
 
-Status: in progress — 1/5
+Status: in progress — 2/5
 
 Spec: `spec.md`. Reversed mid-design from a separate Python/OR-Tools
 service to an in-process PHP heuristic — this plan reflects that
@@ -73,22 +73,46 @@ in a working, tested state.
   `npm run build` green, `php artisan migrate` clean on a fresh
   database.
 
-- [ ] 2. **Hill-climbing optimization.** Add the tiered penalty
-  function (`W1`/`W2`/`W3`), the fill/relocate/swap move set (no bare
-  removal), targeted move generation for tier 2 against the current
-  maximum-hours employee, every soft term (severity-weighted
-  `not_preferred_shift`, `alternating_shift_pair` using
-  `previous_week_assignments`, soft `competence_required`/
-  `business_line_preference`, soft caps costed per unit over), the
-  iteration/wall-clock stopping criteria (seeded randomness for
-  reproducible tests), and `no_eligible_employee` /
-  `hard_cap_reached` unfulfilled classification. Feature tests per
-  constraint and per tier against small synthetic scenarios (a
-  handful of employees/shifts/days each), including: a case that
-  would stall plain random-swap hill-climbing but resolves with
-  targeted tier-2 moves, a mixed-publish/locked-assignment case, and
-  an alternating-pair case reaching back to
-  `previous_week_assignments`.
+- [x] 2. **Hill-climbing optimization.** Added `PlanSoftRules` (soft-
+  rule data, parsed the same way `PlanEligibility` parses hard rules)
+  and `PlanScorer` (the tiered `W1`/`W2`/`W3` penalty — coverage
+  shortfall, max-hours-when-`equal_workload`-present, and the sum of
+  every soft term: severity-weighted `not_preferred_shift`,
+  `alternating_shift_pair` against `previous_week_assignments`, soft
+  `competence_required`/`business_line_preference`, and soft caps
+  costed per unit over). `HillClimbOptimizer` runs first-improvement
+  local search (seeded `mt_srand`, 2,000-iteration/10s budget) over
+  **four** move types, not the three `spec.md` first named — a
+  **substitute** move (replace one cell's occupant with a different
+  eligible employee, no compensating assignment) had to be added once
+  it was clear fill+relocate+swap couldn't rebalance a fully-staffed
+  cycle where one employee holds nothing at all. Move generation is
+  fully exhaustive each pass rather than the "targeted toward the
+  max-hours employee" generator `spec.md` first planned — once
+  generation is exhaustive rather than sampled, a rebalancing move is
+  already in the candidate set by construction, so a separate
+  targeting mechanism would only duplicate it; `spec.md` updated to
+  match both changes.
+
+  Unfulfilled-reason classification moved out of `GreedyConstructor`
+  entirely: `PlanAssignmentSet` now tracks "ever had a candidate" as
+  shared state across both phases (`noteCandidateSeen`/`hadCandidate`),
+  and `HeuristicPlanGenerator` computes the final unfulfilled list once
+  after optimization settles — construction's own list would go stale,
+  since a relocate can change *which* cell ends up open without
+  changing how many do.
+
+  New `tests/Feature/HillClimbOptimizerTest.php` (9 tests, all
+  end-to-end through `generate()`): `equal_workload` rebalancing a
+  fully-staffed cycle via substitute, a fixed and a published
+  assignment each surviving that same rebalancing pressure untouched,
+  `not_preferred_shift` correcting a bad construction pick, soft
+  `max_shifts_per_day` and soft `max_hours_per_week` each preferring
+  the under-cap candidate, `alternating_shift_pair` reaching into
+  `previous_week_assignments`, and soft `competence_required`/
+  `business_line_preference` each preferring the matching candidate.
+  657 PHP tests passing (was 648), 615 JS unaffected, Pint clean,
+  `npm run build` green.
 
 - [ ] 3. **Trigger UX: cycle resolution, run status, polling.**
   `/planning` resolves the cycle containing the viewed week (same
