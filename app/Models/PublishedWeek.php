@@ -2,8 +2,10 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Collection;
 
 class PublishedWeek extends Model
 {
@@ -22,5 +24,23 @@ class PublishedWeek extends Model
     public function workcenter(): BelongsTo
     {
         return $this->belongsTo(Workcenter::class);
+    }
+
+    /**
+     * Every published (week, workcenter) pair with a week_start between
+     * $start and $end (inclusive) and a workcenter in $workcenterIds, as a
+     * flipped `"{week_start}:{workcenter_id}"` lookup set. The single
+     * source of truth for "is this pair published" — shared by
+     * HeuristicPlanGenerator's lock rule and PlanClearController's delete
+     * scope, so the two can never disagree about what's protected.
+     */
+    public static function lockedPairs(Carbon $start, Carbon $end, Collection $workcenterIds): Collection
+    {
+        return static::query()
+            ->whereBetween('week_start', [$start->toDateString(), $end->toDateString()])
+            ->whereIn('workcenter_id', $workcenterIds)
+            ->get(['week_start', 'workcenter_id'])
+            ->map(fn (self $p) => "{$p->week_start->toDateString()}:{$p->workcenter_id}")
+            ->flip();
     }
 }

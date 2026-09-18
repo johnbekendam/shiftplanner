@@ -5,11 +5,13 @@ import AppLayout from '@/layouts/AppLayout.vue'
 import Card from '@/components/ui/Card.vue'
 import Calendar from '@/components/ui/Calendar.vue'
 import ButtonPrimary from '@/components/ui/ButtonPrimary.vue'
+import ButtonDanger from '@/components/ui/ButtonDanger.vue'
+import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 import WorkcenterScheduleCard from '@/components/scheduling/WorkcenterScheduleCard.vue'
 import GenerationChangeSummary from '@/components/scheduling/GenerationChangeSummary.vue'
 import { CheckboxInput } from '@/components/ui/Input'
 import { useI18n } from '@/composables/useI18n'
-import { postAsync } from '@/utils/inertiaAsync'
+import { postAsync, deleteAsync } from '@/utils/inertiaAsync'
 
 const __ = useI18n()
 
@@ -46,22 +48,35 @@ function isGenerationActive(status) {
     return !!status?.active
 }
 
-async function generate() {
-    await postAsync('/planning/generate').catch(() => {})
-}
-
 function formatCycleDate(dateStr) {
     const [y, m, d] = dateStr.split('-').map(Number)
     return new Date(y, m - 1, d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
+const periodRangeLabel = computed(() => {
+    if (!props.planningPeriod) return ''
+    return `${formatCycleDate(props.planningPeriod.start)} – ${formatCycleDate(props.planningPeriod.end)}`
+})
+
+// Both actions open a ConfirmDialog first; the actual write only happens
+// once the manager confirms, then the dialog closes itself.
+const generateDialogOpen = ref(false)
+const clearDialogOpen = ref(false)
+
+async function confirmGenerate() {
+    generateDialogOpen.value = false
+    await postAsync('/planning/generate').catch(() => {})
+}
+
+async function confirmClear() {
+    clearDialogOpen.value = false
+    await deleteAsync('/planning/clear').catch(() => {})
+}
+
 const generateLabel = computed(() => {
     if (isGenerationActive(props.generationStatus)) return __('planning.generating')
     if (props.generationStatus?.failedCount > 0) return __('planning.generate_again')
-    return __('planning.generate_period', {
-        start: formatCycleDate(props.planningPeriod.start),
-        end: formatCycleDate(props.planningPeriod.end),
-    })
+    return __('planning.generate')
 })
 
 const generationErrorMessage = computed(() => {
@@ -306,10 +321,18 @@ const visibleWorkcenters = computed(() =>
                     type="button"
                     data-testid="generate-plan-button"
                     :disabled="isGenerationActive(generationStatus)"
-                    @click="generate"
+                    @click="generateDialogOpen = true"
                 >
                     {{ generateLabel }}
                 </ButtonPrimary>
+                <ButtonDanger
+                    type="button"
+                    data-testid="clear-plan-button"
+                    :disabled="isGenerationActive(generationStatus)"
+                    @click="clearDialogOpen = true"
+                >
+                    {{ __('planning.clear') }}
+                </ButtonDanger>
                 <span
                     v-if="generationErrorMessage"
                     data-testid="generation-error"
@@ -318,6 +341,31 @@ const visibleWorkcenters = computed(() =>
                     {{ generationErrorMessage }}
                 </span>
             </div>
+
+            <ConfirmDialog
+                :open="generateDialogOpen"
+                :title="__('planning.generate_dialog.title')"
+                :confirm-label="__('planning.generate')"
+                variant="primary"
+                @confirm="confirmGenerate"
+                @cancel="generateDialogOpen = false"
+            >
+                <p>{{ __('planning.generate_dialog.body') }}</p>
+                <p class="mt-2 font-medium text-(--color-text-primary)">
+                    {{ __('planning.generate_dialog.period', { range: periodRangeLabel }) }}
+                </p>
+            </ConfirmDialog>
+
+            <ConfirmDialog
+                :open="clearDialogOpen"
+                :title="__('planning.clear_dialog.title')"
+                :confirm-label="__('planning.clear')"
+                variant="danger"
+                @confirm="confirmClear"
+                @cancel="clearDialogOpen = false"
+            >
+                {{ __('planning.clear_dialog.body') }}
+            </ConfirmDialog>
 
             <GenerationChangeSummary
                 v-if="generationRun?.status === 'done' && generationRun.changes.length"

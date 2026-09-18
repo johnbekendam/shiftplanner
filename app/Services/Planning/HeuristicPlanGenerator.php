@@ -87,12 +87,7 @@ class HeuristicPlanGenerator implements PlanGeneratorContract
     /** True when $a must not be touched: fixed, or in a published (workcenter, week) pair. */
     private function lockPredicate(Carbon $cycleStart, Collection $workcenterIds): \Closure
     {
-        $publishedPairs = PublishedWeek::query()
-            ->whereIn('week_start', [$cycleStart->toDateString(), $cycleStart->copy()->addWeek()->toDateString()])
-            ->whereIn('workcenter_id', $workcenterIds)
-            ->get(['week_start', 'workcenter_id'])
-            ->map(fn (PublishedWeek $p) => "{$p->week_start->toDateString()}:{$p->workcenter_id}")
-            ->flip();
+        $publishedPairs = PublishedWeek::lockedPairs($cycleStart, $cycleStart->copy()->addWeek(), $workcenterIds);
 
         return fn (ShiftAssignment $a) => $a->fixed
             || $publishedPairs->has("{$a->date->copy()->startOfWeek(Carbon::MONDAY)->toDateString()}:{$a->workcenter_id}");
