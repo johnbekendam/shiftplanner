@@ -12,16 +12,16 @@ starts, a `plan.md` (the steps and progress).
 | 0 | Scaffold — TeamApps template snapshot, SQLite dev DB, compose stub | Done | — |
 | 1 | Employee admin prototype — manager employee list/editor, personal-page preview link | Done | `features/employee-admin/spec.md`, `features/employee-admin/plan.md` |
 | 2 | Auth hardening — manager Entra ID (OIDC), employee token hardening | Planned | grill first, then `features/auth-hardening/spec.md` |
-| 3 | Business Lines and standard day schedules — config list, per-employee assignment, FTE dashboard; then schedules and coverage | In progress | Business Lines shipped (`features/business-lines/`). Shift definitions shipped (`features/shift-definitions/`). Workcenters shipped (`features/workcenters/`): a Settings tab maintains the named workcenter list. Workcenter shift assignment shipped (`features/workcenter-shift-assignments/`): its own `/schedule` page links workcenters to shifts and sets per-weekday open-spot capacity, one flat table across every workcenter. Scheduling shipped (`features/scheduling/`): a `/planning` page assigns employees into those spots, one workcenter and one week at a time, with per-date capacity overrides and a "fixed" flag against future automatic re-planning. Planning-rule data and its `/planning-rules` page shipped (`features/planning-rules/`). Rule enforcement and the `/solve` service remain in phase 5. |
+| 3 | Business Lines and standard day schedules — config list, per-employee assignment, FTE dashboard; then schedules and coverage | In progress | Business Lines shipped (`features/business-lines/`). Shift definitions shipped (`features/shift-definitions/`). Workcenters shipped (`features/workcenters/`): a Settings tab maintains the named workcenter list. Workcenter shift assignment shipped (`features/workcenter-shift-assignments/`): its own `/schedule` page links workcenters to shifts and sets per-weekday open-spot capacity, one flat table across every workcenter. Scheduling shipped (`features/scheduling/`): a `/planning` page assigns employees into those spots, one workcenter and one week at a time, with per-date capacity overrides and a "fixed" flag against future automatic re-planning. Planning-rule data and its `/planning-rules` page shipped (`features/planning-rules/`). Rule enforcement and the scheduling engine shipped in phase 5. |
 | 3.5 | Competences — config list on a Settings page, per-employee checkmarks | Done | `features/competences/spec.md`, `features/competences/plan.md`. Planning use is out of scope. |
 | 3.6 | Product groups | Removed | Shipped, then removed from the product. Tables dropped by `2026_09_09_000007`; the config tab, per-employee checklist, routes, and language keys are gone. |
 | 3.7 | Account management (interim auth) — admin/manager roles, password or email code, admin `/users`, account page | Done | `features/account-management/`. The email-code passwordless path is superseded by phase 3.10. Entra ID, the PostgreSQL switch, and employee token hardening stay in phase 2. |
 | 3.8 | Mailbox and employee change lock — typed messages with a reusable template, one type (personal-page link), Microsoft Graph transport prepared but inert; a global switch that makes the personal page read-only | Mostly done | Both features shipped (`features/mailbox/`, `features/employee-change-lock/`). Only the Graph tenant values (Azure app registration, shared mailbox, admin consent) are pending, on a machine with tenant access. Supersedes the phase-2 `mailto:` line with a shared Graph mailbox. |
 | 3.9 | Employee self-signup — a public page where a person requests their personal-page link by first name, last name and email; creates the employee when none matches, then sends the link through the mailbox pipeline | Done | `features/employee-self-signup/`. Token hardening stays in phase 2. |
 | 3.10 | Login links — admin-created users get an emailed invite link to set a password; the login page's passwordless action emails a sign-in link, covering forgot-password too | Done | `features/login-links/`. Replaces phase 3.7's email-code path. |
-| 4 | Availability and wishes — recurring availability, date-specific exceptions, fairness model | In progress | Holidays and the recurring availability grid shipped (`features/employee-availability/`); the grid is weekday-only and carries manager-defined yes/no questions (`features/availability-questions/`). The fairness design session is resolved: workload fairness and wish fairness are both defined (see the phase 4 section below); no new data model was needed. Date-specific shift exceptions are a known, deliberately deferred gap — shelved until phase 5. |
-| 5 | Scheduling engine — in-process PHP heuristic planner, `GeneratePlan` job, draft review and edit | Planned | `features/scheduling-engine/spec.md` written; depends on phases 3 and 4 (both resolved) and `features/publish-per-workcenter/` (shipped). Reversed from an earlier plan to call a separate Python/OR-Tools service — see that phase's section. |
-| 6 | Publish and employee schedule view — publish a plan, employees see own assignments only | Done | `features/publish-planning/`, built ahead of phase 5. Publishing is a per-(week, workcenter) toggle on `/planning` (`features/publish-per-workcenter/` narrowed it from whole-week, as a phase-5 prerequisite); it never gates editing. Nothing enforces it against an auto-planner yet — there isn't one. |
+| 4 | Availability and wishes — recurring availability, date-specific exceptions, fairness model | In progress | Holidays and the recurring availability grid shipped (`features/employee-availability/`); the grid is weekday-only and carries manager-defined yes/no questions (`features/availability-questions/`). The fairness design session is resolved: workload fairness and wish fairness are both defined (see the phase 4 section below); no new data model was needed. Date-specific shift exceptions are a known, deliberately deferred gap — shelving held until phase 5 shipped (it has, see phase 5's section), and the gap stays open, just no longer blocked on anything. |
+| 5 | Scheduling engine — in-process PHP heuristic planner, `GeneratePlan` job, draft review and edit | Done | `features/scheduling-engine/`. Reversed mid-build from an earlier plan to call a separate Python/OR-Tools service, and from generating one cycle at a time to the whole planning period per click — see that phase's section. |
+| 6 | Publish and employee schedule view — publish a plan, employees see own assignments only | Done | `features/publish-planning/`, built ahead of phase 5. Publishing is a per-(week, workcenter) toggle on `/planning` (`features/publish-per-workcenter/` narrowed it from whole-week, as a phase-5 prerequisite); it never gates editing. Phase 5's scheduling engine respects the invariant this phase set out: it never touches a published `(workcenter, week)` pair. |
 | 7 | Container release — production image, Compose stack, and versioned release bundle | Deferred | `features/containerization/`; complete after the product phases. |
 
 ## Phase 0 — Scaffold
@@ -147,10 +147,11 @@ editable the same way the old week-grid was (assign/remove/pin,
 per-date spot overrides) — the original single-workcenter week-grid
 page these replaced is gone.
 
-Still open: rule enforcement and the phase-5 scheduling engine, and,
-further out, an employee-facing schedule view (phase 6).
-Calendar recurrence and date-specific exceptions for availability stay in
-phase 4.
+Rule enforcement shipped via phase 5's scheduling engine
+(`features/scheduling-engine/`), and the employee-facing schedule view
+via phase 6 (`features/publish-planning/`) — both ahead of this note's
+original placement here. Calendar recurrence and date-specific
+exceptions for availability stay in phase 4.
 
 ## Phase 3.5 — Competences
 
@@ -252,9 +253,9 @@ rules/`, built after this phase started. Workload fairness: the
 an employee on a `not_preferred` cell stays an ordinary severity-weighted
 soft penalty (the `not_preferred_shift` rule), summed and minimized like
 `alternating_shift_pair`, with no per-employee spread guarantee. No new
-rule type or table was needed for either. What phase 5 still owns: the
-severity-to-objective-coefficient mapping and the `/solve` JSON contract
-itself — both were always phase-5 scope, not phase 4's.
+rule type or table was needed for either. What phase 5 owned from here —
+the severity-to-objective-coefficient mapping and the planner's own
+problem/solution shape — is resolved too; see that phase's section.
 
 Done so far — `features/employee-availability/`:
 
@@ -282,15 +283,15 @@ Done so far — `features/employee-availability/`:
   grid cannot — a shift that ends earlier on one weekday, for example.
   The structured per-cell time override it stands in for is still open.
 
-Still open: the severity-to-objective-coefficient weighting and the
-`/solve` service that reads this data — the fairness definitions
-themselves are resolved (see the phase 4 section above). Date-specific
-shift exceptions (overriding the recurring grid's weekday default for one
-date, in either direction) are a known gap — holidays only block whole
-days, the grid only sets weekday defaults — but are deliberately
-shelved, data model and UI both, until after phase 5 so the exception
-shape is designed against the finished `/solve` contract rather than
-reworked against it later.
+Phase 5's scheduling engine has since shipped and resolved the
+severity-weighting and problem/solution-shape questions this phase left
+open — see that phase's section. Date-specific shift exceptions
+(overriding the recurring grid's weekday default for one date, in either
+direction) remain a known gap — holidays only block whole days, the
+grid only sets weekday defaults — deliberately shelved, data model and
+UI both, until phase 5 existed to design the exception shape against;
+that condition is now met, so this is open again for scheduling
+whenever it's wanted, not actively blocked.
 
 ## Phase 5 — Scheduling engine
 
@@ -304,24 +305,50 @@ especially given the plan is advisory, never auto-published, which
 lowers the bar from "provably optimal" to "a good enough draft a
 manager reviews." See `features/scheduling-engine/spec.md`.
 
-- An in-process PHP heuristic planner: a greedy feasible construction,
-  then hill-climbing local search against a tiered penalty function
+Shipped (`features/scheduling-engine/`):
+
+- An in-process PHP heuristic planner: greedy feasible construction
+  (most-constrained-spot-first, least-loaded-candidate), then
+  hill-climbing local search against a tiered penalty function
   (coverage, then workload fairness as a minimax, then severity-weighted
   soft-rule costs — the same tier order `features/planning-rules/`
-  already defined). No separate service, container, or language.
+  already defined). Four move types — fill, relocate, substitute,
+  swap; substitute (replace one cell's occupant with someone else, no
+  compensating assignment either way) was added once it was clear
+  fill+relocate+swap alone couldn't rebalance a fully-staffed cycle
+  where one employee holds nothing at all. No separate service,
+  container, or language.
 - Laravel-side planning sits behind a `PlanGenerator` interface — kept
   from the original plan specifically because it makes this reversible:
   a different implementation (including a real constraint solver,
   in-process or as a service) could replace the heuristic later without
   touching routes, the data model, or the UI, if its output quality ever
   proves insufficient in practice.
-- A `GeneratePlan` queue job builds the problem in memory, runs the
-  planner, and writes the returned draft plus unfulfilled-wish reasons
-  straight into `shift_assignments` and a new `plan_generation_runs`
-  table — no separate wire contract or JSON document exchanged over
-  HTTP, since nothing crosses a process boundary.
-- Manager reviews and manually adjusts the draft. The plan is advice,
-  not an automatic publication.
+- The planner is a full re-optimizer over a 2-week cycle, not a
+  gap-filler: it may move or remove any assignment except one marked
+  fixed or one inside a published `(workcenter, week)` pair
+  (`features/publish-per-workcenter/`), which stay fully untouched.
+- **Generate covers the whole planning period, not one cycle** —
+  reversed mid-build from the original one-cycle-at-a-time design. One
+  click enumerates every 2-week cycle across `PlanningSettings.
+  period_start`–`period_end` and creates/dispatches a `GeneratePlan`
+  job per cycle; each cycle still solves independently, with its own
+  fairness pool and hour caps, unchanged. This is also what makes
+  every unpublished week get taken into account on every click, not
+  just whichever cycle a manager happened to be viewing — the
+  fixed/published locking rule above already protects settled cycles,
+  so a period-wide run never redoes them.
+- Each `GeneratePlan` run writes its draft straight into
+  `shift_assignments` — no staging/accept step, `/planning` is the
+  review surface as-is — plus a `plan_generation_runs` row (status,
+  what changed, and why any spot stayed unfulfilled).
+- `/planning`'s Generate button shows the period's date range, disables
+  to "Generating…" while any cycle is active, and offers "Generate
+  again" with the first error once any cycle fails. Once a run
+  finishes, a dismissible change-summary panel lists what moved,
+  and unfilled spots the run couldn't cover carry an inline reason.
+- Manager reviews and manually adjusts the draft — the plan is advice,
+  not an automatic publication, and nothing here changes that.
 
 ## Phase 6 — Publish and employee schedule view
 
@@ -352,10 +379,9 @@ admin's employee editor shows everything, draft included, each
 assignment marked published or not, since the admin already sees
 everything else on `/planning`.
 
-Nothing here enforces the invariant against an auto-planner — Phase 5
-still doesn't exist. Whenever `PlanGenerator` is built, it must skip
-any (week, workcenter) pair with a `published_weeks` row; that's a
-rule for that future work, not code that exists today.
+Phase 5's scheduling engine now enforces this invariant: `PlanGenerator`
+never touches an assignment inside a published `(workcenter, week)`
+pair, including its still-open spots — see that phase's section.
 
 ## Deferred and out of scope for the first increments
 

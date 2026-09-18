@@ -1,6 +1,6 @@
 # Scheduling Engine — Plan
 
-Status: in progress — 4/5
+Status: done — 5/5
 
 Spec: `spec.md`. Reversed mid-design from a separate Python/OR-Tools
 service to an in-process PHP heuristic — this plan reflects that
@@ -197,14 +197,31 @@ in a working, tested state.
   `#id` fallback). 677 PHP + 641 JS tests passing, Pint clean,
   `npm run build` green.
 
-- [ ] 5. **Docs and full checks.** `doc/roadmap.md` — phase 5 row and
-  section: scheduling engine shipped, what it covers, what's still
-  advisory-only (a manager must still review). `doc/concept.md` if it
-  still names anything provisional about the optimizer. Pint clean.
-  Full PHP suite green (this feature's tests included — no separate
-  test command to document, unlike the abandoned Python plan). Full
-  JS suite green. `npm run build` green. `php artisan migrate` clean
-  on a fresh database.
+- [x] 5. **Docs and full checks.** `doc/roadmap.md`: phase 5's status
+  row marked `Done`; its section rewritten around what actually
+  shipped (four move types including the added-mid-build substitute,
+  the period-wide Generate reversal, fixed/published locking, the UI).
+  Fixed several now-stale cross-references left over from the
+  Python/`/solve` plan and from phase 5 having been "still doesn't
+  exist" at the time they were written: phase 3's and phase 4's
+  "still open" notes, phase 6's status row and closing paragraph
+  (published weeks are now actually protected by a real
+  `PlanGenerator`, not just a documented invariant for future work).
+  `doc/concept.md`: the optimizer paragraph's stale "not built in the
+  first increment" closing sentence replaced with what shipped; the
+  Deferred Decisions list updated — fairness definitions and the
+  problem/solution shape are resolved (only planning cadence, i.e. no
+  automatic/scheduled regeneration, stays open), and the date-specific-
+  exceptions entry now notes its shelving condition (phase 5 existing)
+  is met, so it's open-but-unblocked rather than still waiting.
+
+  Pint clean (repo-wide check still reports its existing 14-file
+  unrelated baseline, none of them touched by this feature). Full PHP
+  suite green (677 passed). Full JS suite green (641 passed).
+  `npm run build` green. `php artisan migrate` clean against a fresh
+  database. No separate test command to document, unlike the
+  abandoned Python plan — everything runs through this repo's normal
+  `php artisan test` / `npm run test`.
 
 ## Not done / deferred
 
