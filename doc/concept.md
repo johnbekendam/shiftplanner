@@ -194,6 +194,8 @@ The planner produces the best feasible draft using this priority order:
 
 Fairness applies both to assigned workload and to fulfilled wishes. The system must show a clear overview of unfulfilled wishes, including a reason when it can determine one, such as insufficient coverage alternatives or a higher-priority constraint.
 
+Workload fairness means equal absolute assigned hours among eligible employees, not a percentage of each employee's offered `weekly_hours` (`features/planning-rules/`'s `equal_workload` rule). Wish fairness means minimizing the total severity-weighted count of unfulfilled preferences (the `not_preferred_shift` rule) — not guaranteeing each employee carries an equal share of them.
+
 The generated plan is advice, not an automatic publication. Managers remain responsible for review and publication.
 
 ## Initial Product Shape
@@ -248,7 +250,7 @@ The schedule optimizer is a separate service from the start, not a deferred addi
 
 ## Deferred Decisions
 
-- Availability model — holidays and the recurring weekday/shift grid are done (`features/employee-availability/`, `features/shift-definitions/`). Date-specific shift exceptions and fairness weights are still open.
+- Availability model — holidays and the recurring weekday/shift grid are done (`features/employee-availability/`, `features/shift-definitions/`). Date-specific shift exceptions (e.g. unavailable for one shift on one date, or available despite the recurring default) and fairness weights are still open. Decision: date-specific exceptions would coexist with holidays, not replace them — holidays stay for whole-day ranges, a new per-date/per-shift mechanism would add finer-grained, two-way overrides. Deliberately shelved (data model and UI both) until after the phase-5 `/solve` service exists, so the exception shape gets designed against the finished solve contract instead of risking rework.
 - Calendar recurrence and exceptions for standard day schedules.
 - Employee assignment confirmation, swap, or self-scheduling workflows.
 - Exact token-link security, expiry, revocation, and recovery behavior.
@@ -257,7 +259,7 @@ The schedule optimizer is a separate service from the start, not a deferred addi
   mailbox address, and admin consent for `Mail.Send`
   (`features/mailbox/`). The transport and config keys exist; only the
   values are outstanding.
-- Fairness definitions, planning cadence, and the exact JSON contract for the OR-Tools worker.
+- Planning cadence and the exact JSON contract for the OR-Tools worker, including how severity scores map to objective-function coefficients. Fairness definitions themselves are resolved — see above and `features/planning-rules/spec.md`.
 - The Entra ID integration package and claims mapping.
 
 ## Out of Scope for the First Increment

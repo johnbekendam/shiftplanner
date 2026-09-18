@@ -19,7 +19,7 @@ starts, a `plan.md` (the steps and progress).
 | 3.8 | Mailbox and employee change lock — typed messages with a reusable template, one type (personal-page link), Microsoft Graph transport prepared but inert; a global switch that makes the personal page read-only | Mostly done | Both features shipped (`features/mailbox/`, `features/employee-change-lock/`). Only the Graph tenant values (Azure app registration, shared mailbox, admin consent) are pending, on a machine with tenant access. Supersedes the phase-2 `mailto:` line with a shared Graph mailbox. |
 | 3.9 | Employee self-signup — a public page where a person requests their personal-page link by first name, last name and email; creates the employee when none matches, then sends the link through the mailbox pipeline | Done | `features/employee-self-signup/`. Token hardening stays in phase 2. |
 | 3.10 | Login links — admin-created users get an emailed invite link to set a password; the login page's passwordless action emails a sign-in link, covering forgot-password too | Done | `features/login-links/`. Replaces phase 3.7's email-code path. |
-| 4 | Availability and wishes — recurring availability, date-specific exceptions, fairness model | In progress | Holidays and the recurring availability grid shipped (`features/employee-availability/`); the grid is weekday-only and carries manager-defined yes/no questions (`features/availability-questions/`). Fairness model still needs a design session. |
+| 4 | Availability and wishes — recurring availability, date-specific exceptions, fairness model | In progress | Holidays and the recurring availability grid shipped (`features/employee-availability/`); the grid is weekday-only and carries manager-defined yes/no questions (`features/availability-questions/`). The fairness design session is resolved: workload fairness and wish fairness are both defined (see the phase 4 section below); no new data model was needed. Date-specific shift exceptions are a known, deliberately deferred gap — shelved until phase 5. |
 | 5 | Scheduling engine — Python OR-Tools `/solve` service, JSON contract, `GeneratePlan` job, draft review and edit | Planned | depends on phases 3 and 4 |
 | 6 | Publish and employee schedule view — publish a plan, employees see own assignments only | Done | `features/publish-planning/`, built ahead of phase 5. Publishing is a per-week, all-workcenters toggle on `/planning`; it never gates editing. Nothing enforces it against an auto-planner yet — there isn't one. |
 | 7 | Container release — production image, Compose stack, and versioned release bundle | Deferred | `features/containerization/`; complete after the product phases. |
@@ -239,8 +239,20 @@ route are untouched.
 
 Dedicated design session before any code. Recurring availability,
 date-specific exceptions, and the fairness definitions (workload fairness,
-wish fairness) that become objective terms in the optimizer. Output: the
-data model and the shape of the `/solve` JSON contract.
+wish fairness) that become objective terms in the optimizer.
+
+The fairness design session is resolved, mostly by `features/planning-
+rules/`, built after this phase started. Workload fairness: the
+`equal_workload` rule, its fairness pool (confirmed employees with
+`weekly_hours > 0`, eligible for the 2-week cycle anchored on
+`period_start`), and "equal" meaning absolute hours, not a percentage of
+`weekly_hours`. Wish fairness: resolved as minimize-total-only — landing
+an employee on a `not_preferred` cell stays an ordinary severity-weighted
+soft penalty (the `not_preferred_shift` rule), summed and minimized like
+`alternating_shift_pair`, with no per-employee spread guarantee. No new
+rule type or table was needed for either. What phase 5 still owns: the
+severity-to-objective-coefficient mapping and the `/solve` JSON contract
+itself — both were always phase-5 scope, not phase 4's.
 
 Done so far — `features/employee-availability/`:
 
@@ -268,8 +280,15 @@ Done so far — `features/employee-availability/`:
   grid cannot — a shift that ends earlier on one weekday, for example.
   The structured per-cell time override it stands in for is still open.
 
-Still open: the fairness definitions and objective-term weights, and the
-`/solve` service that reads this data.
+Still open: the severity-to-objective-coefficient weighting and the
+`/solve` service that reads this data — the fairness definitions
+themselves are resolved (see the phase 4 section above). Date-specific
+shift exceptions (overriding the recurring grid's weekday default for one
+date, in either direction) are a known gap — holidays only block whole
+days, the grid only sets weekday defaults — but are deliberately
+shelved, data model and UI both, until after phase 5 so the exception
+shape is designed against the finished `/solve` contract rather than
+reworked against it later.
 
 ## Phase 5 — Scheduling engine
 
