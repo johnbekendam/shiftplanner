@@ -436,4 +436,96 @@ class SchedulingIndexTest extends TestCase
         $this->get('/planning?year=2026&month=9&date=2026-09-10')->assertOk()
             ->assertInertia(fn ($page) => $page->where('generationRun', null));
     }
+
+    public function test_planning_period_is_null_until_both_dates_are_configured(): void
+    {
+        $this->actingAsAdmin();
+
+        $this->get('/planning')->assertOk()->assertInertia(fn ($page) => $page->where('planningPeriod', null));
+
+        PlanningSettings::current()->update(['period_start' => '2026-09-07']);
+        $this->get('/planning')->assertOk()->assertInertia(fn ($page) => $page->where('planningPeriod', null));
+    }
+
+    public function test_planning_period_reflects_settings(): void
+    {
+        $this->actingAsAdmin();
+        PlanningSettings::current()->update(['period_start' => '2026-09-07', 'period_end' => '2026-10-18']);
+
+        $this->get('/planning')->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('planningPeriod.start', '2026-09-07')
+                ->where('planningPeriod.end', '2026-10-18')
+            );
+    }
+
+    public function test_generation_status_is_null_when_the_period_is_not_configured(): void
+    {
+        $this->actingAsAdmin();
+
+        $this->get('/planning')->assertOk()->assertInertia(fn ($page) => $page->where('generationStatus', null));
+    }
+
+    public function test_generation_status_is_inactive_with_no_failures_when_nothing_has_run(): void
+    {
+        $this->actingAsAdmin();
+        PlanningSettings::current()->update(['period_start' => '2026-09-07', 'period_end' => '2026-10-04']);
+
+        $this->get('/planning')->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('generationStatus.active', false)
+                ->where('generationStatus.failedCount', 0)
+                ->where('generationStatus.firstError', null)
+            );
+    }
+
+    public function test_generation_status_is_active_when_any_cycle_in_the_period_is_pending_or_running(): void
+    {
+        $this->actingAsAdmin();
+        PlanningSettings::current()->update(['period_start' => '2026-09-07', 'period_end' => '2026-10-04']);
+        PlanGenerationRun::create(['cycle_start' => '2026-09-07', 'status' => PlanGenerationRun::STATUS_DONE]);
+        PlanGenerationRun::create(['cycle_start' => '2026-09-21', 'status' => PlanGenerationRun::STATUS_RUNNING]);
+
+        $this->get('/planning')->assertOk()
+            ->assertInertia(fn ($page) => $page->where('generationStatus.active', true));
+    }
+
+    public function test_generation_status_reports_failed_cycles_once_none_are_active(): void
+    {
+        $this->actingAsAdmin();
+        PlanningSettings::current()->update(['period_start' => '2026-09-07', 'period_end' => '2026-10-04']);
+        PlanGenerationRun::create(['cycle_start' => '2026-09-07', 'status' => PlanGenerationRun::STATUS_FAILED, 'error' => 'first boom']);
+        PlanGenerationRun::create(['cycle_start' => '2026-09-21', 'status' => PlanGenerationRun::STATUS_FAILED, 'error' => 'second boom']);
+
+        $this->get('/planning')->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('generationStatus.active', false)
+                ->where('generationStatus.failedCount', 2)
+                ->has('generationStatus.firstError')
+            );
+    }
+
+    public function test_generation_status_uses_only_the_latest_run_per_cycle(): void
+    {
+        $this->actingAsAdmin();
+        PlanningSettings::current()->update(['period_start' => '2026-09-07', 'period_end' => '2026-09-20']);
+        PlanGenerationRun::create(['cycle_start' => '2026-09-07', 'status' => PlanGenerationRun::STATUS_FAILED, 'error' => 'stale']);
+        PlanGenerationRun::create(['cycle_start' => '2026-09-07', 'status' => PlanGenerationRun::STATUS_DONE]);
+
+        $this->get('/planning')->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('generationStatus.active', false)
+                ->where('generationStatus.failedCount', 0)
+            );
+    }
+
+    public function test_generation_status_ignores_a_run_outside_the_current_period(): void
+    {
+        $this->actingAsAdmin();
+        PlanningSettings::current()->update(['period_start' => '2026-09-07', 'period_end' => '2026-09-20']);
+        PlanGenerationRun::create(['cycle_start' => '2026-10-05', 'status' => PlanGenerationRun::STATUS_RUNNING]);
+
+        $this->get('/planning')->assertOk()
+            ->assertInertia(fn ($page) => $page->where('generationStatus.active', false));
+    }
 }

@@ -24,23 +24,30 @@ const props = defineProps({
     publishedWorkcenterWeeks: { type: Array, default: () => [] }, // { workcenter_id, week_start }, within the visible month
     // Y-m-d, the Monday of the 2-week cycle containing weekStart, or null when no
     // planning period start is configured yet (there's no anchor to compute cycles from).
+    // Not shown directly yet — carried for the per-week change summary/unfulfilled-
+    // reason display that lands in a later step.
     cycleStart: { type: String, default: null },
     // { status: 'pending'|'running'|'done'|'failed', error: string|null } for the most
-    // recent run of the viewed cycle, or null if none has ever run.
+    // recent run of the viewed cycle, or null if none has ever run. Same as cycleStart:
+    // not shown directly yet.
     generationRun: { type: Object, default: null },
+    // { start, end } (Y-m-d) from Settings, or null until both are configured.
+    planningPeriod: { type: Object, default: null },
+    // { active, failedCount, firstError } across every cycle in the planning period,
+    // or null when the period isn't configured — drives the Generate button, since one
+    // click now generates every cycle in the period at once, not just the viewed one.
+    generationStatus: { type: Object, default: null },
 })
 
 const GENERATION_POLL_MS = 3000
 
-function isGenerationActive(run) {
-    return !!run && (run.status === 'pending' || run.status === 'running')
+function isGenerationActive(status) {
+    return !!status?.active
 }
 
 async function generate() {
-    await postAsync(`/planning/cycles/${props.cycleStart}/generate`).catch(() => {})
+    await postAsync('/planning/generate').catch(() => {})
 }
-
-const cycleEnd = computed(() => (props.cycleStart ? addDays(props.cycleStart, 13) : null))
 
 function formatCycleDate(dateStr) {
     const [y, m, d] = dateStr.split('-').map(Number)
@@ -48,9 +55,20 @@ function formatCycleDate(dateStr) {
 }
 
 const generateLabel = computed(() => {
-    if (isGenerationActive(props.generationRun)) return __('planning.generating')
-    if (props.generationRun?.status === 'failed') return __('planning.generate_again')
-    return __('planning.generate_cycle', { start: formatCycleDate(props.cycleStart), end: formatCycleDate(cycleEnd.value) })
+    if (isGenerationActive(props.generationStatus)) return __('planning.generating')
+    if (props.generationStatus?.failedCount > 0) return __('planning.generate_again')
+    return __('planning.generate_period', {
+        start: formatCycleDate(props.planningPeriod.start),
+        end: formatCycleDate(props.planningPeriod.end),
+    })
+})
+
+const generationErrorMessage = computed(() => {
+    const status = props.generationStatus
+    if (!status || status.failedCount === 0) return null
+    let message = __('planning.generation_failed', { error: status.firstError })
+    if (status.failedCount > 1) message += __('planning.generation_failed_more', { count: status.failedCount - 1 })
+    return message
 })
 
 let pollTimer = null
@@ -70,20 +88,20 @@ function scheduleGenerationPoll() {
     stopGenerationPoll()
     pollTimer = setTimeout(() => {
         router.reload({
-            only: ['generationRun', 'weekCells', 'coverage'],
+            only: ['generationStatus', 'weekCells', 'coverage'],
             preserveScroll: true,
             preserveState: true,
             onFinish: () => {
-                if (isGenerationActive(props.generationRun)) scheduleGenerationPoll()
+                if (isGenerationActive(props.generationStatus)) scheduleGenerationPoll()
             },
         })
     }, GENERATION_POLL_MS)
 }
 
 watch(
-    () => props.generationRun,
-    (run) => {
-        if (isGenerationActive(run)) scheduleGenerationPoll()
+    () => props.generationStatus,
+    (status) => {
+        if (isGenerationActive(status)) scheduleGenerationPoll()
         else stopGenerationPoll()
     },
     { immediate: true },
@@ -282,21 +300,21 @@ const visibleWorkcenters = computed(() =>
                 </div>
             </div>
 
-            <div v-if="cycleStart" class="mt-4 flex items-center gap-3">
+            <div v-if="planningPeriod" class="mt-4 flex items-center gap-3">
                 <ButtonPrimary
                     type="button"
                     data-testid="generate-plan-button"
-                    :disabled="isGenerationActive(generationRun)"
+                    :disabled="isGenerationActive(generationStatus)"
                     @click="generate"
                 >
                     {{ generateLabel }}
                 </ButtonPrimary>
                 <span
-                    v-if="generationRun?.status === 'failed'"
+                    v-if="generationErrorMessage"
                     data-testid="generation-error"
                     class="text-sm text-(--color-badge-error-text)"
                 >
-                    {{ __('planning.generation_failed', { error: generationRun.error }) }}
+                    {{ generationErrorMessage }}
                 </span>
             </div>
 

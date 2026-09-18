@@ -53,4 +53,44 @@ class PlanningCycleTest extends TestCase
 
         $this->assertSame('2026-09-07', PlanningCycle::containing(Carbon::parse('2026-09-07'))->toDateString());
     }
+
+    public function test_all_within_period_is_empty_when_the_period_is_not_fully_configured(): void
+    {
+        $this->assertSame([], PlanningCycle::allWithinPeriod());
+
+        PlanningSettings::current()->update(['period_start' => '2026-09-07', 'period_end' => null]);
+        $this->assertSame([], PlanningCycle::allWithinPeriod());
+    }
+
+    public function test_all_within_period_includes_every_cycle_that_starts_on_or_before_the_period_end(): void
+    {
+        // A cycle starting within the period runs in full even though its own end
+        // (10-04) extends past period_end (09-25) — cycles aren't truncated.
+        PlanningSettings::current()->update(['period_start' => '2026-09-07', 'period_end' => '2026-09-25']);
+
+        $this->assertSame(
+            ['2026-09-07', '2026-09-21'],
+            array_map(fn ($c) => $c->toDateString(), PlanningCycle::allWithinPeriod()),
+        );
+    }
+
+    public function test_all_within_period_excludes_a_cycle_that_starts_after_the_period_end(): void
+    {
+        PlanningSettings::current()->update(['period_start' => '2026-09-07', 'period_end' => '2026-09-20']);
+
+        $this->assertSame(
+            ['2026-09-07'],
+            array_map(fn ($c) => $c->toDateString(), PlanningCycle::allWithinPeriod()),
+        );
+    }
+
+    public function test_all_within_period_snaps_to_the_monday_of_the_anchor_week(): void
+    {
+        PlanningSettings::current()->update(['period_start' => '2026-09-10', 'period_end' => '2026-09-10']);
+
+        $this->assertSame(
+            ['2026-09-07'],
+            array_map(fn ($c) => $c->toDateString(), PlanningCycle::allWithinPeriod()),
+        );
+    }
 }

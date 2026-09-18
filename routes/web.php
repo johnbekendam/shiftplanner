@@ -115,8 +115,7 @@ Route::middleware('auth')->group(function () {
             ->where('weekStart', '\d{4}-\d{2}-\d{2}')->name('planning.weeks.workcenters.publish');
         Route::delete('/planning/weeks/{weekStart}/workcenters/{workcenter}/publish', [PublishedWeekController::class, 'destroy'])
             ->where('weekStart', '\d{4}-\d{2}-\d{2}')->name('planning.weeks.workcenters.unpublish');
-        Route::post('/planning/cycles/{cycleStart}/generate', [PlanGenerationController::class, 'store'])
-            ->where('cycleStart', '\d{4}-\d{2}-\d{2}')->name('planning.cycles.generate');
+        Route::post('/planning/generate', [PlanGenerationController::class, 'store'])->name('planning.generate');
 
         Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
 

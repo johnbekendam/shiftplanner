@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\PlanGenerationRun;
+use App\Models\PlanningSettings;
 use App\Models\PublishedWeek;
 use App\Models\Shift;
 use App\Models\ShiftAssignment;
@@ -60,7 +61,54 @@ class SchedulingController extends Controller
             'publishedWorkcenterWeeks' => $this->publishedWorkcenterWeeks($monthStart, $workcenterIds),
             'cycleStart' => $cycleStart?->toDateString(),
             'generationRun' => $cycleStart ? $this->latestGenerationRun($cycleStart) : null,
+            'planningPeriod' => $this->planningPeriod(),
+            'generationStatus' => $this->generationStatus(),
         ]);
+    }
+
+    /** { start, end } from Settings, or null until both are configured. */
+    private function planningPeriod(): ?array
+    {
+        $settings = PlanningSettings::current();
+        if ($settings->period_start === null || $settings->period_end === null) {
+            return null;
+        }
+
+        return [
+            'start' => $settings->period_start->toDateString(),
+            'end' => $settings->period_end->toDateString(),
+        ];
+    }
+
+    /**
+     * Aggregate across every cycle in the planning period, for the Generate
+     * button: active if any cycle's latest run is pending/running; failed
+     * (with the first error) if none are active but at least one cycle's
+     * latest run failed. Null when the period isn't configured.
+     */
+    private function generationStatus(): ?array
+    {
+        $cycles = PlanningCycle::allWithinPeriod();
+        if ($cycles === []) {
+            return null;
+        }
+
+        $cycleStarts = collect($cycles)->map(fn (Carbon $c) => $c->toDateString());
+
+        $latestPerCycle = PlanGenerationRun::query()
+            ->whereIn('cycle_start', $cycleStarts)
+            ->orderByDesc('id')
+            ->get()
+            ->unique('cycle_start');
+
+        $active = $latestPerCycle->contains(fn (PlanGenerationRun $run) => in_array($run->status, PlanGenerationRun::ACTIVE_STATUSES, true));
+        $failed = $latestPerCycle->filter(fn (PlanGenerationRun $run) => $run->status === PlanGenerationRun::STATUS_FAILED)->values();
+
+        return [
+            'active' => $active,
+            'failedCount' => $failed->count(),
+            'firstError' => $failed->first()?->error,
+        ];
     }
 
     /** The most recent generation run for this cycle, or null if none has ever run. */

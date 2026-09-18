@@ -143,6 +143,25 @@ in a working, tested state.
   `PlanGenerationControllerTest.php`. 661 PHP + 621 JS tests passing,
   Pint clean, `npm run build` green.
 
+  **Revised after this step shipped**: Generate no longer targets one
+  cycle — see `spec.md`'s "Cycle and scope" (Reversed mid-build). Route
+  is now `POST /planning/generate` (no params); `PlanGenerationController`
+  loops `PlanningCycle::allWithinPeriod()` and creates/dispatches one
+  run per cycle. `SchedulingController@index` gained `planningPeriod`
+  (`{ start, end }` from Settings, or `null`) and `generationStatus`
+  (`{ active, failedCount, firstError }`, aggregated over every
+  cycle's latest run) — `cycleStart`/`generationRun` (the viewed
+  cycle's own run) stay as they were, now driving nothing directly in
+  the UI but carried forward for step 4's per-week change
+  summary/unfulfilled display. `Scheduling.vue`'s button and poll now
+  key off `planningPeriod`/`generationStatus` instead. New
+  `PlanningCycle::allWithinPeriod()`, tested in `PlanningCycleTest.php`
+  (+4). `PlanGenerationControllerTest.php` rewritten for the new route
+  and multi-cycle semantics (9 tests). `SchedulingIndexTest.php` (+7)
+  and `Scheduling.test.js` (button/polling tests rewritten against the
+  new props) extended for `planningPeriod`/`generationStatus`. 674 PHP
+  + 622 JS tests passing, Pint clean, `npm run build` green.
+
 - [ ] 4. **Change summary + inline unfulfilled reasons.** A dismissible
   panel above the week cards renders a `done` run's `changes` (counts
   plus an expandable added/removed line list; an employee in both an

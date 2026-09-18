@@ -52,16 +52,42 @@ by hand, fairly, against a dozen constraints, does not scale.
 
 - A **cycle** is the existing 2-week concept from `planning-rules`:
   non-overlapping 2-week blocks starting from the Monday of the week
-  containing `PlanningSettings.period_start`.
-- One Generate action always covers **every** workcenter for one
-  cycle — never a subset, and independent of `/planning`'s
-  view-only workcenter/shift filter checkboxes. `equal_workload`'s
-  fairness pool needs the whole cross-workcenter picture; scoping a
-  run to a subset would silently break that comparison.
-- `/planning` resolves "the cycle containing the currently viewed
-  week" (same boundary math `planning-rules` already uses) and shows
-  one Generate action for it, with its date range
-  (e.g. "Generate Sep 7 – Sep 20").
+  containing `PlanningSettings.period_start`. This is still the unit
+  everything below solves and accounts fairness against — unchanged
+  from the original design.
+- One Generate action always covers **every** workcenter within a
+  cycle — never a subset, and independent of `/planning`'s view-only
+  workcenter/shift filter checkboxes. `equal_workload`'s fairness pool
+  needs the whole cross-workcenter picture; scoping a run to a subset
+  would silently break that comparison.
+- **Reversed mid-build**: Generate no longer covers a single cycle
+  (originally, whichever one contained the currently-viewed week).
+  One click now covers *every* cycle across the whole planning period
+  — `PlanningSettings.period_start` through `period_end`, the same
+  bounded span the dashboard's FTE chart already uses, and a
+  materially longer, separately-configured span than a single cycle.
+  `PlanningCycle::allWithinPeriod()` enumerates every cycle start from
+  the period's anchor up to the last one that starts on or before
+  `period_end` — a cycle that starts within the period runs in full
+  even if its second week extends past `period_end`; cycles are the
+  fairness unit and are never truncated. One `PlanGenerationRun` (and
+  one `GeneratePlan` job) is still created per cycle, exactly as
+  before — Generate now just loops over every cycle instead of
+  creating one. Each cycle keeps solving independently, with its own
+  fairness pool and hour caps, unchanged; nothing about
+  `HeuristicPlanGenerator`, `PlanScorer`, `HillClimbOptimizer`, or
+  `PlanEligibility` changed for this — only the trigger's scope did.
+  Since every unpublished week is now in scope on every click (not
+  just whichever cycle the manager happened to be viewing), the
+  existing "never touch a published week" rule is what actually keeps
+  a Generate run from redoing settled work — a manager publishes a
+  cycle once satisfied with it, and every later Generate simply skips
+  over it.
+- `/planning` still resolves "the cycle containing the currently
+  viewed week" (unchanged `PlanningCycle::containing()`), but now only
+  to show that week's own run (its unfulfilled reasons and change
+  summary belong to the cycle it's part of) — not to scope what
+  Generate itself does.
 
 ### What the planner may and may not touch
 
@@ -216,24 +242,36 @@ given the final assignment state).
    `failed`), timestamps.
 
 Only one `pending`/`running` run per `cycle_start` is allowed — a
-second Generate click on the same cycle while one is in flight is
-rejected (`409`). A `failed` run (an unexpected exception; the
+second Generate click while any cycle across the whole period already
+has one in flight is rejected (`409`) for the entire click, not just
+the conflicting cycle. A `failed` run (an unexpected exception; the
 heuristic itself never "can't connect" the way a network call could)
-leaves the cycle untouched; a manager can click Generate again, which
-starts a fresh run row.
+leaves that cycle untouched; a manager can click Generate again, which
+starts a fresh run row for every cycle in the period, including the
+ones that already succeeded — harmless, since a cycle with nothing
+left to improve just settles back into the same state.
 
 ### `/planning` UI
 
-- **Trigger**: `POST /planning/cycles/{cycleStart}/generate`, admin
-  gated, `cycleStart` date-constrained like `weekStart` elsewhere.
-  Dispatches `GeneratePlan` and creates the `pending` run row
+- **Trigger**: `POST /planning/generate`, admin gated, no parameters —
+  the period comes from `PlanningSettings`, not the URL. Enumerates
+  every cycle via `PlanningCycle::allWithinPeriod()`, creates one
+  `pending` run and dispatches one `GeneratePlan` job per cycle,
   immediately (so a concurrent second click is rejected even before
-  the queue worker picks the job up).
-- **In progress**: while the viewed cycle has a `pending`/`running`
-  run, the Generate button is replaced with a disabled "Generating…"
-  state and the page polls (`router.reload` on an interval) until the
-  run resolves. A `failed` run shows its error and offers Generate
-  again.
+  the queue worker picks any of them up). Rejected outright (`422`) if
+  `period_start`/`period_end` aren't both configured.
+- **The button**: labeled with the period's date range (e.g. "Generate
+  Sep 7 – Oct 18"), shown only once both period dates are set.
+  Disabled and reading "Generating…" while *any* cycle in the period
+  has a pending/running run; showing the first failure's error message
+  (plus a "+N more" count when several cycles failed) and relabeled
+  "Generate again" once none are active but at least one failed — the
+  simpler of two options weighed here, over introducing a new
+  aggregate run-batch concept purely to track one click's multiple
+  cycles as a single unit.
+- **In progress**: the page polls (`router.reload` on an interval,
+  refreshing only the aggregate status and the viewed week's data)
+  until no cycle in the period is still active.
 - **Change summary**: once a run is `done`, a dismissible panel above
   the week cards lists what changed — counts (added/removed,
   "moved" is not tracked as a distinct type; an employee appearing in
@@ -267,6 +305,26 @@ starts a fresh run row.
   (a working PHP-only match-planner using greedy construction +
   hill-climbing) gave real evidence the technique holds up for a
   similarly-shaped problem at this scale.
+- **Generate covers the whole planning period, not one cycle —
+  reversed mid-build.** Originally one click generated whichever
+  cycle contained the currently-viewed week, requiring a manager to
+  navigate to and click Generate separately for every cycle they
+  wanted refreshed. Changed to: one click enumerates every cycle in
+  `PlanningSettings.period_start`–`period_end` and creates/dispatches
+  a run for each. Deliberately kept surgical — each cycle still solves
+  independently with its own fairness pool and hour caps exactly as
+  designed; only the *trigger's* scope grew, not the accounting unit
+  the solver itself reasons about. This is also what makes "every
+  unpublished week gets taken into account on every Generate" true
+  without new code: the existing fixed/published locking rule already
+  protects settled cycles, so a period-wide run just means nothing
+  unpublished is ever stale for lack of a click.
+- **Aggregate button status ("active/failed if any cycle is"), not a
+  new run-batch concept.** A period can span many cycles per click;
+  rather than introduce a data model tracking "this click" as its own
+  unit, the button reads a live aggregate over the existing per-cycle
+  `plan_generation_runs` rows. Simpler, and consistent with treating
+  each cycle's run as the real unit of record.
 - **Greedy construction, then hill-climbing — not a from-scratch
   random start.** Starting close to feasible and workload-balanced
   means the optimization phase spends its iteration budget improving
@@ -342,7 +400,12 @@ starts a fresh run row.
   above.
 - Notifying anyone (email, in-app) when a run completes — the manager
   checks `/planning` themselves.
-- Scoping a Generate run to specific workcenters.
+- Scoping a Generate run to specific workcenters or specific cycles —
+  one click always covers every workcenter, across every cycle in the
+  planning period.
+- A run-batch/group data model tracking one Generate click's several
+  cycles as a single unit — the button's status is a live aggregate
+  over the existing per-cycle runs instead (see Key decisions).
 - Any change to `SchedulingEligibility`, the manual assignment
   endpoints, or their validation — the planner reads the same
   eligibility rules but writes through the same `ShiftAssignment`

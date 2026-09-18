@@ -10,10 +10,11 @@ const en = {
     "scheduling.legend_open_spots": "Open spots",
     "scheduling.publish": "Publish",
     "scheduling.unpublish": "Unpublish",
-    "planning.generate_cycle": "Generate :start – :end",
+    "planning.generate_period": "Generate :start – :end",
     "planning.generating": "Generating…",
     "planning.generate_again": "Generate again",
     "planning.generation_failed": "Generation failed: :error",
+    "planning.generation_failed_more": " (+:count more)",
     "calendar.reset": "Jump to today",
     "calendar.prev_month": "Previous month",
     "calendar.next_month": "Next month",
@@ -76,6 +77,8 @@ const baseProps = {
     publishedWorkcenterWeeks: [],
     cycleStart: null,
     generationRun: null,
+    planningPeriod: null,
+    generationStatus: null,
     weekCells: [
         { workcenter_id: 1, shift_id: 9, date: "2026-09-07", spots: 1, overridden: false, assignments: [] },
         { workcenter_id: 1, shift_id: 9, date: "2026-09-08", spots: 1, overridden: false, assignments: [] },
@@ -256,36 +259,38 @@ describe("Scheduling", () => {
         );
     });
 
-    it("hides the Generate button when no cycle start is resolved (no period start configured)", () => {
-        const w = mountPage({ cycleStart: null });
+    it("hides the Generate button when the planning period is not configured", () => {
+        const w = mountPage({ planningPeriod: null });
         expect(w.find('[data-testid="generate-plan-button"]').exists()).toBe(false);
     });
 
-    it("shows a Generate button labeled with the cycle's date range and posts to its generate endpoint", async () => {
-        const w = mountPage({ cycleStart: "2026-09-07" });
+    it("shows a Generate button labeled with the period's date range and posts to the generate endpoint", async () => {
+        const w = mountPage({
+            planningPeriod: { start: "2026-09-07", end: "2026-10-18" },
+            generationStatus: { active: false, failedCount: 0, firstError: null },
+        });
         const button = w.get('[data-testid="generate-plan-button"]');
-        expect(button.text()).toBe("Generate Sep 7 – Sep 20");
+        expect(button.text()).toBe("Generate Sep 7 – Oct 18");
         expect(button.element.disabled).toBe(false);
 
         await button.trigger("click");
 
-        expect(routerCalls).toContainEqual(["post", "/planning/cycles/2026-09-07/generate", undefined]);
+        expect(routerCalls).toContainEqual(["post", "/planning/generate", undefined]);
     });
 
-    it("disables the button and shows a Generating label while a run is pending or running", () => {
-        const pending = mountPage({ cycleStart: "2026-09-07", generationRun: { status: "pending", error: null } });
-        expect(pending.get('[data-testid="generate-plan-button"]').text()).toBe("Generating…");
-        expect(pending.get('[data-testid="generate-plan-button"]').element.disabled).toBe(true);
-
-        const running = mountPage({ cycleStart: "2026-09-07", generationRun: { status: "running", error: null } });
-        expect(running.get('[data-testid="generate-plan-button"]').text()).toBe("Generating…");
-        expect(running.get('[data-testid="generate-plan-button"]').element.disabled).toBe(true);
-    });
-
-    it("shows the error and a Generate again label when the run failed, and the button stays clickable", async () => {
+    it("disables the button and shows a Generating label while any cycle in the period is active", () => {
         const w = mountPage({
-            cycleStart: "2026-09-07",
-            generationRun: { status: "failed", error: "no eligible employees" },
+            planningPeriod: { start: "2026-09-07", end: "2026-10-18" },
+            generationStatus: { active: true, failedCount: 0, firstError: null },
+        });
+        expect(w.get('[data-testid="generate-plan-button"]').text()).toBe("Generating…");
+        expect(w.get('[data-testid="generate-plan-button"]').element.disabled).toBe(true);
+    });
+
+    it("shows the error and a Generate again label once a cycle failed and nothing is still active", async () => {
+        const w = mountPage({
+            planningPeriod: { start: "2026-09-07", end: "2026-10-18" },
+            generationStatus: { active: false, failedCount: 1, firstError: "no eligible employees" },
         });
         const button = w.get('[data-testid="generate-plan-button"]');
         expect(button.text()).toBe("Generate again");
@@ -294,28 +299,42 @@ describe("Scheduling", () => {
 
         await button.trigger("click");
 
-        expect(routerCalls).toContainEqual(["post", "/planning/cycles/2026-09-07/generate", undefined]);
+        expect(routerCalls).toContainEqual(["post", "/planning/generate", undefined]);
     });
 
-    it("hides the error message once the run is not failed", () => {
-        const w = mountPage({ cycleStart: "2026-09-07", generationRun: { status: "done", error: null } });
+    it("mentions how many more cycles failed beyond the first", () => {
+        const w = mountPage({
+            planningPeriod: { start: "2026-09-07", end: "2026-10-18" },
+            generationStatus: { active: false, failedCount: 3, firstError: "no eligible employees" },
+        });
+        expect(w.get('[data-testid="generation-error"]').text()).toBe("Generation failed: no eligible employees (+2 more)");
+    });
+
+    it("hides the error message once nothing has failed", () => {
+        const w = mountPage({
+            planningPeriod: { start: "2026-09-07", end: "2026-10-18" },
+            generationStatus: { active: false, failedCount: 0, firstError: null },
+        });
         expect(w.find('[data-testid="generation-error"]').exists()).toBe(false);
     });
 
-    it("polls for updates while a run is pending, and stops once it resolves", async () => {
+    it("polls for updates while any cycle is active, and stops once none are", async () => {
         vi.useFakeTimers();
         try {
-            const w = mountPage({ cycleStart: "2026-09-07", generationRun: { status: "pending", error: null } });
+            const w = mountPage({
+                planningPeriod: { start: "2026-09-07", end: "2026-10-18" },
+                generationStatus: { active: true, failedCount: 0, firstError: null },
+            });
 
             expect(routerReloadCalls).toHaveLength(0);
             await vi.advanceTimersByTimeAsync(3000);
             expect(routerReloadCalls).toHaveLength(1);
-            expect(routerReloadCalls[0][0]).toMatchObject({ only: ["generationRun", "weekCells", "coverage"] });
+            expect(routerReloadCalls[0][0]).toMatchObject({ only: ["generationStatus", "weekCells", "coverage"] });
 
             await vi.advanceTimersByTimeAsync(3000);
             expect(routerReloadCalls).toHaveLength(2);
 
-            await w.setProps({ generationRun: { status: "done", error: null } });
+            await w.setProps({ generationStatus: { active: false, failedCount: 0, firstError: null } });
             routerReloadCalls.length = 0;
             await vi.advanceTimersByTimeAsync(10000);
             expect(routerReloadCalls).toHaveLength(0);
@@ -324,10 +343,13 @@ describe("Scheduling", () => {
         }
     });
 
-    it("does not poll when mounted with an already-resolved run", async () => {
+    it("does not poll when mounted with nothing active", async () => {
         vi.useFakeTimers();
         try {
-            mountPage({ cycleStart: "2026-09-07", generationRun: { status: "done", error: null } });
+            mountPage({
+                planningPeriod: { start: "2026-09-07", end: "2026-10-18" },
+                generationStatus: { active: false, failedCount: 0, firstError: null },
+            });
             await vi.advanceTimersByTimeAsync(10000);
             expect(routerReloadCalls).toHaveLength(0);
         } finally {
@@ -338,7 +360,10 @@ describe("Scheduling", () => {
     it("stops polling once the component unmounts", async () => {
         vi.useFakeTimers();
         try {
-            const w = mountPage({ cycleStart: "2026-09-07", generationRun: { status: "pending", error: null } });
+            const w = mountPage({
+                planningPeriod: { start: "2026-09-07", end: "2026-10-18" },
+                generationStatus: { active: true, failedCount: 0, firstError: null },
+            });
             w.unmount();
             await vi.advanceTimersByTimeAsync(10000);
             expect(routerReloadCalls).toHaveLength(0);
