@@ -85,7 +85,7 @@ class PlanningRuleController extends Controller
         return [
             'type' => ['required', Rule::in(PlanningRule::TYPES)],
             'mode' => $type === 'equal_workload' || $type === 'alternating_shift_pair'
-                ? ['nullable', 'prohibited']
+                ? ['nullable', Rule::in(['hard', 'soft'])]
                 : ['required', Rule::in(['hard', 'soft'])],
             'severity' => $type === 'equal_workload'
                 ? ['nullable', 'prohibited']
