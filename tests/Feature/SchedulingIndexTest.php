@@ -427,6 +427,70 @@ class SchedulingIndexTest extends TestCase
         $this->assertNotNull($latest);
     }
 
+    public function test_generation_run_carries_its_id_and_empty_changes_and_unfulfilled_when_not_done(): void
+    {
+        $this->actingAsAdmin();
+        PlanningSettings::current()->update(['period_start' => '2026-09-07']);
+        $run = PlanGenerationRun::create(['cycle_start' => '2026-09-07', 'status' => PlanGenerationRun::STATUS_RUNNING]);
+
+        $this->get('/planning?year=2026&month=9&date=2026-09-10')->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('generationRun.id', $run->id)
+                ->where('generationRun.changes', [])
+                ->where('generationRun.unfulfilled', [])
+            );
+    }
+
+    public function test_generation_run_resolves_changes_and_unfulfilled_to_display_names(): void
+    {
+        $this->actingAsAdmin();
+        PlanningSettings::current()->update(['period_start' => '2026-09-07']);
+        $employee = Employee::factory()->create(['first_name' => 'Anna', 'last_name' => 'Jansen']);
+        $workcenter = Workcenter::factory()->create(['name' => 'Line 1']);
+        $shift = Shift::factory()->create(['name' => 'Early']);
+        PlanGenerationRun::create([
+            'cycle_start' => '2026-09-07',
+            'status' => PlanGenerationRun::STATUS_DONE,
+            'changes' => [
+                ['type' => 'added', 'employee_id' => $employee->id, 'workcenter_id' => $workcenter->id, 'shift_id' => $shift->id, 'date' => '2026-09-08'],
+            ],
+            'unfulfilled' => [
+                ['workcenter_id' => $workcenter->id, 'shift_id' => $shift->id, 'date' => '2026-09-09', 'reason' => 'no_eligible_employee'],
+            ],
+        ]);
+
+        $this->get('/planning?year=2026&month=9&date=2026-09-10')->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('generationRun.changes.0.type', 'added')
+                ->where('generationRun.changes.0.employee_name', 'Anna Jansen')
+                ->where('generationRun.changes.0.workcenter_name', 'Line 1')
+                ->where('generationRun.changes.0.shift_name', 'Early')
+                ->where('generationRun.changes.0.date', '2026-09-08')
+                ->where('generationRun.unfulfilled.0.workcenter_name', 'Line 1')
+                ->where('generationRun.unfulfilled.0.shift_name', 'Early')
+                ->where('generationRun.unfulfilled.0.reason', 'no_eligible_employee')
+            );
+    }
+
+    public function test_generation_run_falls_back_to_the_id_when_a_referenced_entity_no_longer_exists(): void
+    {
+        $this->actingAsAdmin();
+        PlanningSettings::current()->update(['period_start' => '2026-09-07']);
+        $workcenter = Workcenter::factory()->create();
+        $shift = Shift::factory()->create();
+        PlanGenerationRun::create([
+            'cycle_start' => '2026-09-07',
+            'status' => PlanGenerationRun::STATUS_DONE,
+            'changes' => [
+                ['type' => 'added', 'employee_id' => 999999, 'workcenter_id' => $workcenter->id, 'shift_id' => $shift->id, 'date' => '2026-09-08'],
+            ],
+            'unfulfilled' => [],
+        ]);
+
+        $this->get('/planning?year=2026&month=9&date=2026-09-10')->assertOk()
+            ->assertInertia(fn ($page) => $page->where('generationRun.changes.0.employee_name', '#999999'));
+    }
+
     public function test_generation_run_ignores_a_run_from_a_different_cycle(): void
     {
         $this->actingAsAdmin();

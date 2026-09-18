@@ -10,6 +10,8 @@ const en = {
     "scheduling.remove": "Remove",
     "scheduling.no_eligible_employees": "No one eligible.",
     "scheduling.open_spot": "Add employee",
+    "scheduling.unfulfilled_reason.no_eligible_employee": "No eligible employee found.",
+    "scheduling.unfulfilled_reason.hard_cap_reached": "Every eligible employee was blocked by a hard cap.",
 };
 
 const { routerCalls, failUrlsRef, router } = vi.hoisted(() => {
@@ -51,8 +53,8 @@ const baseCells = [
     { date: "2026-09-20", spots: 0, overridden: false, assignments: [] },
 ];
 
-const mountTable = (cells = baseCells) =>
-    mount(ShiftWeekTable, { props: { workcenterId: 1, shiftId: 9, cells } });
+const mountTable = (cells = baseCells, extraProps = {}) =>
+    mount(ShiftWeekTable, { props: { workcenterId: 1, shiftId: 9, cells, ...extraProps } });
 
 beforeEach(() => {
     routerCalls.length = 0;
@@ -235,6 +237,57 @@ describe("ShiftWeekTable", () => {
 
         offsetHeightSpy.mockRestore();
         window.innerHeight = originalInnerHeight;
+        w.unmount();
+    });
+
+    it("shows an unfulfilled-reason icon on an open cell matching this table's workcenter/shift/date", () => {
+        const w = mountTable(baseCells, {
+            unfulfilled: [{ workcenter_id: 1, shift_id: 9, date: "2026-09-17", reason: "no_eligible_employee" }],
+        });
+
+        const cell = w.get('[data-testid="cell-9-2026-09-17-0"]');
+        expect(cell.find('[data-testid="unfulfilled-icon"]').exists()).toBe(true);
+        expect(cell.get('[data-testid="unfulfilled-icon"]').attributes("title")).toBe("No eligible employee found.");
+    });
+
+    it("does not show the icon on a different date, shift, or workcenter", () => {
+        const wrongDate = mountTable(baseCells, {
+            unfulfilled: [{ workcenter_id: 1, shift_id: 9, date: "2026-09-18", reason: "no_eligible_employee" }],
+        });
+        expect(wrongDate.find('[data-testid="unfulfilled-icon"]').exists()).toBe(false);
+
+        const wrongShift = mountTable(baseCells, {
+            unfulfilled: [{ workcenter_id: 1, shift_id: 99, date: "2026-09-17", reason: "no_eligible_employee" }],
+        });
+        expect(wrongShift.find('[data-testid="unfulfilled-icon"]').exists()).toBe(false);
+
+        const wrongWorkcenter = mountTable(baseCells, {
+            unfulfilled: [{ workcenter_id: 99, shift_id: 9, date: "2026-09-17", reason: "no_eligible_employee" }],
+        });
+        expect(wrongWorkcenter.find('[data-testid="unfulfilled-icon"]').exists()).toBe(false);
+    });
+
+    it("shows no icon at all when nothing is unfulfilled", () => {
+        const w = mountTable();
+        expect(w.find('[data-testid="unfulfilled-icon"]').exists()).toBe(false);
+    });
+
+    it("shows the hard_cap_reached reason text", () => {
+        const w = mountTable(baseCells, {
+            unfulfilled: [{ workcenter_id: 1, shift_id: 9, date: "2026-09-17", reason: "hard_cap_reached" }],
+        });
+        expect(w.get('[data-testid="unfulfilled-icon"]').attributes("title")).toBe("Every eligible employee was blocked by a hard cap.");
+    });
+
+    it("still allows assigning through the open-spot button when the cell is unfulfilled", async () => {
+        const w = mountTable(baseCells, {
+            unfulfilled: [{ workcenter_id: 1, shift_id: 9, date: "2026-09-17", reason: "no_eligible_employee" }],
+        });
+
+        await w.get('[data-testid="cell-9-2026-09-17-0"] button[aria-label="Add employee"]').trigger("click");
+        await flushPromises();
+
+        expect(bodyWrapper().find('[data-testid="assign-popover"]').exists()).toBe(true);
         w.unmount();
     });
 });

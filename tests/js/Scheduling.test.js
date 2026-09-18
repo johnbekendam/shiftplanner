@@ -15,6 +15,13 @@ const en = {
     "planning.generate_again": "Generate again",
     "planning.generation_failed": "Generation failed: :error",
     "planning.generation_failed_more": " (+:count more)",
+    "planning.change_summary.added": ":count added",
+    "planning.change_summary.moved": ":count moved",
+    "planning.change_summary.removed": ":count removed",
+    "planning.change_summary.dismiss": "Dismiss",
+    "planning.change_summary.moved_line": ":employee moved from :from to :to",
+    "planning.change_summary.added_line": ":employee added to :cell",
+    "planning.change_summary.removed_line": ":employee removed from :cell",
     "calendar.reset": "Jump to today",
     "calendar.prev_month": "Previous month",
     "calendar.next_month": "Next month",
@@ -53,6 +60,7 @@ vi.mock("@inertiajs/vue3", () => ({
 
 import Scheduling from "@/pages/Scheduling.vue";
 import WorkcenterScheduleCard from "@/components/scheduling/WorkcenterScheduleCard.vue";
+import GenerationChangeSummary from "@/components/scheduling/GenerationChangeSummary.vue";
 
 const stubs = { AppLayout: { template: "<div><slot /></div>" } };
 
@@ -219,6 +227,44 @@ describe("Scheduling", () => {
         const card = w.findComponent(WorkcenterScheduleCard);
 
         expect(card.props("published")).toBe(false);
+    });
+
+    it("passes the viewed cycle's unfulfilled list down once the run is done", () => {
+        const unfulfilled = [{ workcenter_id: 1, shift_id: 9, workcenter_name: "Line 1", shift_name: "Early", date: "2026-09-08", reason: "no_eligible_employee" }];
+        const w = mountPage({ generationRun: { id: 1, status: "done", error: null, changes: [], unfulfilled } });
+
+        expect(w.findComponent(WorkcenterScheduleCard).props("unfulfilled")).toEqual(unfulfilled);
+    });
+
+    it("does not pass an unfulfilled list down while the run is not done", () => {
+        const unfulfilled = [{ workcenter_id: 1, shift_id: 9, workcenter_name: "Line 1", shift_name: "Early", date: "2026-09-08", reason: "no_eligible_employee" }];
+        const w = mountPage({ generationRun: { id: 1, status: "running", error: null, changes: [], unfulfilled } });
+
+        expect(w.findComponent(WorkcenterScheduleCard).props("unfulfilled")).toEqual([]);
+    });
+
+    it("does not show the change summary when there is no run", () => {
+        const w = mountPage({ generationRun: null });
+        expect(w.findComponent(GenerationChangeSummary).exists()).toBe(false);
+    });
+
+    it("does not show the change summary while the run is not done", () => {
+        const w = mountPage({ generationRun: { id: 1, status: "running", error: null, changes: [], unfulfilled: [] } });
+        expect(w.findComponent(GenerationChangeSummary).exists()).toBe(false);
+    });
+
+    it("does not show the change summary when the run is done but changed nothing", () => {
+        const w = mountPage({ generationRun: { id: 1, status: "done", error: null, changes: [], unfulfilled: [] } });
+        expect(w.findComponent(GenerationChangeSummary).exists()).toBe(false);
+    });
+
+    it("shows the change summary with the run's changes once done with changes", () => {
+        const changes = [{ type: "added", employee_id: 5, employee_name: "Anna Jansen", workcenter_name: "Line 1", shift_name: "Early", date: "2026-09-08" }];
+        const w = mountPage({ generationRun: { id: 7, status: "done", error: null, changes, unfulfilled: [] } });
+
+        const summary = w.findComponent(GenerationChangeSummary);
+        expect(summary.exists()).toBe(true);
+        expect(summary.props("changes")).toEqual(changes);
     });
 
     it("clicking a workcenter card's publish button posts to that workcenter's own publish endpoint", async () => {

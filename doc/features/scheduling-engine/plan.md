@@ -1,6 +1,6 @@
 # Scheduling Engine — Plan
 
-Status: in progress — 3/5
+Status: in progress — 4/5
 
 Spec: `spec.md`. Reversed mid-design from a separate Python/OR-Tools
 service to an in-process PHP heuristic — this plan reflects that
@@ -162,12 +162,40 @@ in a working, tested state.
   new props) extended for `planningPeriod`/`generationStatus`. 674 PHP
   + 622 JS tests passing, Pint clean, `npm run build` green.
 
-- [ ] 4. **Change summary + inline unfulfilled reasons.** A dismissible
-  panel above the week cards renders a `done` run's `changes` (counts
-  plus an expandable added/removed line list; an employee in both an
-  added and removed row that day reads as a move). `ShiftWeekTable`'s
-  "Open" cells show an icon + tooltip when the viewed cycle's most
-  recent run left that spot unfulfilled. Vitest coverage for both.
+- [x] 4. **Change summary + inline unfulfilled reasons.** New
+  `GenerationChangeSummary.vue`: a dismissible panel (shown when the
+  viewed cycle's run is `done` with a non-empty `changes` list, keyed
+  by `generationRun.id` so a new run resets any prior dismiss/expand
+  state) showing counts — added/moved/removed — with an expand toggle
+  revealing a per-line list. Pairing into "moved" happens client-side,
+  by employee, not by matching dates (a relocate can land on a
+  different day in the cycle than it left); `spec.md` corrected to
+  match (dropped the "that day" qualifier from the original draft).
+  `ShiftWeekTable.vue`'s "Open" cells gained an `unfulfilled` prop —
+  a warning-triangle icon with a `title` tooltip appears next to the
+  existing "+" button (which stays fully clickable) when the cell
+  matches an entry in the viewed cycle's run; threaded down through
+  `WorkcenterScheduleCard.vue` from `Scheduling.vue`, which passes `[]`
+  unless the run is `done`.
+
+  `SchedulingController::latestGenerationRun()` now resolves the
+  stored `changes`/`unfulfilled` (raw employee/workcenter/shift IDs)
+  to display names via bulk lookups, falling back to `#id` for a
+  since-deleted entity; also gained the run's own `id`, needed for the
+  panel's remount key.
+
+  New `tests/js/GenerationChangeSummary.test.js` (8: empty state,
+  count summary, move-pairing including the uneven-count and
+  different-employee-substitute cases, expand/collapse, dismiss).
+  Extended `tests/js/ShiftWeekTable.test.js` (+5: icon shown/hidden
+  per exact workcenter+shift+date match, both reason texts, the fill
+  button still works alongside it) and `tests/js/Scheduling.test.js`
+  (+6: summary/unfulfilled shown only once `done`, hidden for every
+  other status or an empty change list, correct props reach the
+  children). `tests/Feature/SchedulingIndexTest.php` (+3: `id` and
+  empty arrays on a non-`done` run, names resolved correctly, the
+  `#id` fallback). 677 PHP + 641 JS tests passing, Pint clean,
+  `npm run build` green.
 
 - [ ] 5. **Docs and full checks.** `doc/roadmap.md` — phase 5 row and
   section: scheduling engine shipped, what it covers, what's still

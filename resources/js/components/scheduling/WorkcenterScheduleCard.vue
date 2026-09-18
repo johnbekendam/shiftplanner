@@ -15,6 +15,9 @@ const props = defineProps({
     published: { type: Boolean, default: false },
     // [{ shift: { id, name }, cells: [7 cell objects] }]
     schedule: { type: Array, required: true },
+    // The viewed cycle's most recent run's unfulfilled spots, across every
+    // workcenter/shift. [{ workcenter_id, shift_id, date, reason }]
+    unfulfilled: { type: Array, default: () => [] },
 })
 
 async function togglePublish() {
@@ -48,7 +51,12 @@ async function togglePublish() {
                     <h3 class="mb-2 text-sm font-semibold text-(--color-text-primary)">
                         {{ entry.shift.name }}
                     </h3>
-                    <ShiftWeekTable :workcenter-id="workcenter.id" :shift-id="entry.shift.id" :cells="entry.cells" />
+                    <ShiftWeekTable
+                        :workcenter-id="workcenter.id"
+                        :shift-id="entry.shift.id"
+                        :cells="entry.cells"
+                        :unfulfilled="unfulfilled"
+                    />
                 </div>
             </template>
         </div>

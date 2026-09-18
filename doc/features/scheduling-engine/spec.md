@@ -272,18 +272,32 @@ left to improve just settles back into the same state.
 - **In progress**: the page polls (`router.reload` on an interval,
   refreshing only the aggregate status and the viewed week's data)
   until no cycle in the period is still active.
-- **Change summary**: once a run is `done`, a dismissible panel above
-  the week cards lists what changed — counts (added/removed,
-  "moved" is not tracked as a distinct type; an employee appearing in
-  both an added and a removed row that day reads as a move) and an
-  expandable per-line list (employee, workcenter, shift, date). This
-  is what makes "the manager reviews the draft" mean something now
-  that a rerun can silently rearrange manual work.
+- **Change summary**: once a run is `done`, a dismissible
+  `GenerationChangeSummary` panel above the week cards lists what
+  changed — counts (added/moved/removed) and an expandable per-line
+  list. `changes` isn't stored with "moved" as a distinct type (only
+  `added`/`removed`, per employee/workcenter/shift/date); the panel
+  pairs them client-side — any employee holding both a removed and an
+  added entry reads as a move, paired in the order they appear (not
+  restricted to the same date, since a relocate can land on a
+  different day within the cycle; an uneven count, e.g. two removed
+  and one added, pairs what it can and leaves the rest as plain
+  add/remove). A substitute's two different employees never pair —
+  each keeps their own single add or remove — since pairing is keyed
+  by employee, and the two sides of a substitute belong to different
+  people. This is what makes "the manager reviews the draft" mean
+  something now that a rerun can silently rearrange manual work.
+  `SchedulingController` resolves the stored `employee_id`/
+  `workcenter_id`/`shift_id` to display names server-side (falling
+  back to `#id` if the entity's since been deleted), so the panel
+  never needs its own lookups.
 - **Unfulfilled reasons**: an empty spot cell in `ShiftWeekTable`
   that the most recent run for its cycle left unfulfilled shows a
   small indicator (icon + tooltip) with the reason, instead of a
   plain "Open" — becomes stale the moment a manager fills it by hand,
-  which is fine, it's advisory.
+  which is fine, it's advisory. The "+" fill button stays fully usable
+  alongside it — the indicator only explains why the solver didn't
+  fill it, never blocks a manager from filling it themselves.
 
 ## Key decisions
 

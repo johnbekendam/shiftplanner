@@ -6,6 +6,7 @@ import Card from '@/components/ui/Card.vue'
 import Calendar from '@/components/ui/Calendar.vue'
 import ButtonPrimary from '@/components/ui/ButtonPrimary.vue'
 import WorkcenterScheduleCard from '@/components/scheduling/WorkcenterScheduleCard.vue'
+import GenerationChangeSummary from '@/components/scheduling/GenerationChangeSummary.vue'
 import { CheckboxInput } from '@/components/ui/Input'
 import { useI18n } from '@/composables/useI18n'
 import { postAsync } from '@/utils/inertiaAsync'
@@ -24,12 +25,12 @@ const props = defineProps({
     publishedWorkcenterWeeks: { type: Array, default: () => [] }, // { workcenter_id, week_start }, within the visible month
     // Y-m-d, the Monday of the 2-week cycle containing weekStart, or null when no
     // planning period start is configured yet (there's no anchor to compute cycles from).
-    // Not shown directly yet — carried for the per-week change summary/unfulfilled-
-    // reason display that lands in a later step.
     cycleStart: { type: String, default: null },
-    // { status: 'pending'|'running'|'done'|'failed', error: string|null } for the most
-    // recent run of the viewed cycle, or null if none has ever run. Same as cycleStart:
-    // not shown directly yet.
+    // The most recent run of the viewed cycle, or null if none has ever run:
+    // { id, status: 'pending'|'running'|'done'|'failed', error: string|null,
+    //   changes: [{ type: 'added'|'removed', employee_id, employee_name, workcenter_name, shift_name, date }],
+    //   unfulfilled: [{ workcenter_id, shift_id, workcenter_name, shift_name, date, reason }] }.
+    // changes/unfulfilled are only ever populated once status is 'done'.
     generationRun: { type: Object, default: null },
     // { start, end } (Y-m-d) from Settings, or null until both are configured.
     planningPeriod: { type: Object, default: null },
@@ -318,6 +319,13 @@ const visibleWorkcenters = computed(() =>
                 </span>
             </div>
 
+            <GenerationChangeSummary
+                v-if="generationRun?.status === 'done' && generationRun.changes.length"
+                :key="generationRun.id"
+                :changes="generationRun.changes"
+                class="mt-4"
+            />
+
             <div v-if="visibleWorkcenters.length" class="mt-4 flex flex-col gap-4">
                 <WorkcenterScheduleCard
                     v-for="{ workcenter, schedule } in visibleWorkcenters"
@@ -326,6 +334,7 @@ const visibleWorkcenters = computed(() =>
                     :schedule="schedule"
                     :week-start="weekStart"
                     :published="isWorkcenterWeekPublished(workcenter.id, weekStart)"
+                    :unfulfilled="generationRun?.status === 'done' ? generationRun.unfulfilled : []"
                 />
             </div>
         </div>

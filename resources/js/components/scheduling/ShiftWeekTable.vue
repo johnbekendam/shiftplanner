@@ -34,7 +34,21 @@ const props = defineProps({
     shiftId: { type: Number, required: true },
     // 7 { date, spots, overridden, assignments: [{id, employee_id, employee_name, fixed}] }, Mon..Sun.
     cells: { type: Array, required: true },
+    // The viewed cycle's most recent run's unfulfilled spots, across every
+    // workcenter/shift — filtered to this table's own cells below.
+    // [{ workcenter_id, shift_id, date, reason }]
+    unfulfilled: { type: Array, default: () => [] },
 })
+
+function unfulfilledFor(cell) {
+    return props.unfulfilled.find(
+        (u) => u.workcenter_id === props.workcenterId && u.shift_id === props.shiftId && u.date === cell.date,
+    ) ?? null
+}
+
+function unfulfilledReasonLabel(entry) {
+    return __(`scheduling.unfulfilled_reason.${entry.reason}`)
+}
 
 const maxSpots = computed(() => Math.max(0, ...props.cells.map((c) => c.spots)))
 const rows = computed(() => Array.from({ length: maxSpots.value }, (_, i) => i))
@@ -277,15 +291,25 @@ onBeforeUnmount(() => {
                                 <span v-else class="block min-w-0 truncate">{{ cellState(cell, row).assignment.employee_name }}</span>
                             </button>
                         </template>
-                        <button
-                            v-else-if="cellState(cell, row).type === 'open'"
-                            type="button"
-                            class="inline-flex items-center text-(--color-btn-primary-bg)"
-                            :aria-label="__('scheduling.open_spot')"
-                            @click="(e) => openAssign(cell.date, e)"
-                        >
-                            <Icon name="plus-circle" class="size-4" />
-                        </button>
+                        <template v-else-if="cellState(cell, row).type === 'open'">
+                            <div class="flex items-center gap-1">
+                                <button
+                                    type="button"
+                                    class="inline-flex items-center text-(--color-btn-primary-bg)"
+                                    :aria-label="__('scheduling.open_spot')"
+                                    @click="(e) => openAssign(cell.date, e)"
+                                >
+                                    <Icon name="plus-circle" class="size-4" />
+                                </button>
+                                <span
+                                    v-if="unfulfilledFor(cell)"
+                                    data-testid="unfulfilled-icon"
+                                    :title="unfulfilledReasonLabel(unfulfilledFor(cell))"
+                                >
+                                    <Icon name="exclamation-triangle" class="size-3.5 text-(--color-badge-warning-text)" />
+                                </span>
+                            </div>
+                        </template>
                         <span v-else class="text-(--color-text-muted)">—</span>
                     </div>
                 </td>

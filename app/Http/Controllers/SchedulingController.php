@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Employee;
 use App\Models\PlanGenerationRun;
 use App\Models\PlanningSettings;
 use App\Models\PublishedWeek;
@@ -124,9 +125,53 @@ class SchedulingController extends Controller
         }
 
         return [
+            'id' => $run->id,
             'status' => $run->status,
             'error' => $run->error,
+            'changes' => $this->resolveChanges($run->changes ?? []),
+            'unfulfilled' => $this->resolveUnfulfilled($run->unfulfilled ?? []),
         ];
+    }
+
+    /** @return array<int, array{type: string, employee_id: int, employee_name: string, workcenter_name: string, shift_name: string, date: string}> */
+    private function resolveChanges(array $changes): array
+    {
+        if ($changes === []) {
+            return [];
+        }
+
+        $employees = Employee::query()->whereIn('id', collect($changes)->pluck('employee_id')->unique())->get()->keyBy('id');
+        $workcenters = Workcenter::query()->whereIn('id', collect($changes)->pluck('workcenter_id')->unique())->get()->keyBy('id');
+        $shifts = Shift::query()->whereIn('id', collect($changes)->pluck('shift_id')->unique())->get()->keyBy('id');
+
+        return collect($changes)->map(fn (array $c) => [
+            'type' => $c['type'],
+            'employee_id' => $c['employee_id'],
+            'employee_name' => $employees->get($c['employee_id'])?->name ?? "#{$c['employee_id']}",
+            'workcenter_name' => $workcenters->get($c['workcenter_id'])?->name ?? "#{$c['workcenter_id']}",
+            'shift_name' => $shifts->get($c['shift_id'])?->name ?? "#{$c['shift_id']}",
+            'date' => $c['date'],
+        ])->values()->all();
+    }
+
+    /** @return array<int, array{workcenter_id: int, shift_id: int, workcenter_name: string, shift_name: string, date: string, reason: string}> */
+    private function resolveUnfulfilled(array $unfulfilled): array
+    {
+        if ($unfulfilled === []) {
+            return [];
+        }
+
+        $workcenters = Workcenter::query()->whereIn('id', collect($unfulfilled)->pluck('workcenter_id')->unique())->get()->keyBy('id');
+        $shifts = Shift::query()->whereIn('id', collect($unfulfilled)->pluck('shift_id')->unique())->get()->keyBy('id');
+
+        return collect($unfulfilled)->map(fn (array $u) => [
+            'workcenter_id' => $u['workcenter_id'],
+            'shift_id' => $u['shift_id'],
+            'workcenter_name' => $workcenters->get($u['workcenter_id'])?->name ?? "#{$u['workcenter_id']}",
+            'shift_name' => $shifts->get($u['shift_id'])?->name ?? "#{$u['shift_id']}",
+            'date' => $u['date'],
+            'reason' => $u['reason'],
+        ])->values()->all();
     }
 
     /** [{ workcenter_id, week_start }] for every (workcenter, week) published within the visible month. */
