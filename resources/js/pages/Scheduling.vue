@@ -4,12 +4,9 @@ import { Head, router } from '@inertiajs/vue3'
 import AppLayout from '@/layouts/AppLayout.vue'
 import Card from '@/components/ui/Card.vue'
 import Calendar from '@/components/ui/Calendar.vue'
-import ButtonPrimary from '@/components/ui/ButtonPrimary.vue'
-import ButtonDanger from '@/components/ui/ButtonDanger.vue'
 import WorkcenterScheduleCard from '@/components/scheduling/WorkcenterScheduleCard.vue'
 import { CheckboxInput } from '@/components/ui/Input'
 import { useI18n } from '@/composables/useI18n'
-import { postAsync, deleteAsync } from '@/utils/inertiaAsync'
 
 const __ = useI18n()
 
@@ -22,8 +19,7 @@ const props = defineProps({
     date: { type: String, required: true }, // Y-m-d, the currently selected day
     weekStart: { type: String, required: true }, // Y-m-d, the Monday of the selected day's week
     weekCells: { type: Array, default: () => [] }, // { workcenter_id, shift_id, date, spots, overridden, assignments }
-    weekPublished: { type: Boolean, default: false },
-    publishedDays: { type: Object, default: () => ({}) }, // { [day]: true }, days in the visible month with a published week
+    publishedWorkcenterWeeks: { type: Array, default: () => [] }, // { workcenter_id, week_start }, within the visible month
 })
 
 const checkedWorkcenterIds = ref(props.workcenters.map((w) => w.id))
@@ -66,6 +62,49 @@ const legenda = computed(() => ({
     success: __('scheduling.legend_staffed'),
     warning: __('scheduling.legend_open_spots'),
 }))
+
+function isWorkcenterWeekPublished(workcenterId, weekStart) {
+    return props.publishedWorkcenterWeeks.some((p) => p.workcenter_id === workcenterId && p.week_start === weekStart)
+}
+
+// Same "relevant" idea dayStates uses (checked, checked shift, attached, spots > 0), just
+// asking "does this workcenter have anything relevant in this week" instead of "this day".
+function relevantWorkcenterIdsForWeek(weekStart) {
+    const weekEnd = addDays(weekStart, 6)
+    const ids = new Set()
+    for (const c of props.coverage) {
+        if (c.date < weekStart || c.date > weekEnd) continue
+        if (!checkedWorkcenterIds.value.includes(c.workcenter_id)) continue
+        if (!checkedShiftIds.value.includes(c.shift_id)) continue
+        ids.add(c.workcenter_id)
+    }
+    return [...ids]
+}
+
+// A week's calendar marker lights up only when every workcenter relevant to it (checked,
+// with checked-shift coverage that week) is published — mirrors dayStates' AND-aggregation
+// and "zero-relevant is muted, not vacuously true" rules above, just at week granularity.
+const weekMarkerDays = computed(() => {
+    const states = {}
+
+    for (let day = 1; day <= daysInMonth.value; day++) {
+        const dateStr = `${props.year}-${String(props.month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+        const monday = mondayOf(dateStr)
+        const relevantIds = relevantWorkcenterIdsForWeek(monday)
+        if (relevantIds.length && relevantIds.every((id) => isWorkcenterWeekPublished(id, monday))) {
+            states[day] = true
+        }
+    }
+    return states
+})
+
+function mondayOf(dateString) {
+    const [y, m, d] = dateString.split('-').map(Number)
+    const date = new Date(y, m - 1, d)
+    const offset = (date.getDay() + 6) % 7 // 0 = Monday
+    date.setDate(date.getDate() - offset)
+    return dateStr(date.getFullYear(), date.getMonth() + 1, date.getDate())
+}
 
 const selectedDay = computed(() => Number(props.date.split('-')[2]))
 
@@ -113,15 +152,6 @@ const visibleWorkcenters = computed(() =>
         .map((w) => ({ workcenter: w, schedule: scheduleFor(w.id) }))
         .filter(({ schedule }) => schedule.length > 0),
 )
-
-async function togglePublish() {
-    const url = `/planning/weeks/${props.weekStart}/publish`
-    if (props.weekPublished) {
-        await deleteAsync(url).catch(() => {})
-    } else {
-        await postAsync(url).catch(() => {})
-    }
-}
 </script>
 
 <template>
@@ -141,7 +171,7 @@ async function togglePublish() {
                     :legenda="legenda"
                     :enable-day-selection="true"
                     :enable-week-day-selection="false"
-                    :week-marker-days="publishedDays"
+                    :week-marker-days="weekMarkerDays"
                     week-marker-color="warning"
                     @change="onCalendarChange"
                 />
@@ -183,27 +213,14 @@ async function togglePublish() {
                 </div>
             </div>
 
-            <div v-if="workcenters.length" class="mt-4 flex items-center gap-3">
-                <ButtonDanger
-                    v-if="weekPublished"
-                    type="button"
-                    data-testid="publish-week-button"
-                    @click="togglePublish"
-                >
-                    {{ weekPublished ? __('scheduling.unpublish') : __('scheduling.publish') }}
-                </ButtonDanger>
-                <ButtonPrimary v-else type="button" data-testid="publish-week-button" @click="togglePublish">
-                    {{ __('scheduling.publish') }}
-                </ButtonPrimary>
-            </div>
-
             <div v-if="visibleWorkcenters.length" class="mt-4 flex flex-col gap-4">
                 <WorkcenterScheduleCard
                     v-for="{ workcenter, schedule } in visibleWorkcenters"
                     :key="workcenter.id"
                     :workcenter="workcenter"
                     :schedule="schedule"
-                    :week-published="weekPublished"
+                    :week-start="weekStart"
+                    :published="isWorkcenterWeekPublished(workcenter.id, weekStart)"
                 />
             </div>
         </div>

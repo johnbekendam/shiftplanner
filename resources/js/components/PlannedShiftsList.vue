@@ -4,9 +4,11 @@ import { useI18n } from '@/composables/useI18n'
 const __ = useI18n()
 
 defineProps({
-    // [{ weekStart, weekEnd, published, assignments: [{ date, workcenter_name, shift_name, start_time, end_time }] }]
+    // [{ weekStart, weekEnd, assignments: [{ date, workcenter_name, shift_name, start_time, end_time, published }] }]
     weeks: { type: Array, default: () => [] },
-    // Shows a Published/Draft marker per week — only meaningful for the admin's view.
+    // Shows a Published/Draft marker per assignment row — only meaningful for the admin's
+    // view; the employee's own page never needs it since everything shown is already
+    // published.
     showPublishedMarker: { type: Boolean, default: false },
 })
 
@@ -30,20 +32,9 @@ function formatWeekRange(start, end) {
     </p>
     <div v-else class="space-y-6">
         <section v-for="week in weeks" :key="week.weekStart">
-            <div class="mb-2 flex items-center gap-2">
-                <h3 class="text-sm font-semibold text-(--color-text-primary)">
-                    {{ formatWeekRange(week.weekStart, week.weekEnd) }}
-                </h3>
-                <span
-                    v-if="showPublishedMarker"
-                    class="rounded-full border px-2 py-0.5 text-xs font-medium"
-                    :class="week.published
-                        ? 'border-(--color-badge-custom-border) bg-(--color-badge-custom-bg) text-(--color-badge-custom-text)'
-                        : 'border-(--color-badge-standard-border) bg-(--color-badge-standard-bg) text-(--color-badge-standard-text)'"
-                >
-                    {{ week.published ? __('planning.published') : __('planning.draft') }}
-                </span>
-            </div>
+            <h3 class="mb-2 text-sm font-semibold text-(--color-text-primary)">
+                {{ formatWeekRange(week.weekStart, week.weekEnd) }}
+            </h3>
             <ul class="divide-y divide-(--color-table-row-separator)">
                 <li
                     v-for="(assignment, i) in week.assignments"
@@ -54,6 +45,15 @@ function formatWeekRange(start, end) {
                     <span>{{ assignment.workcenter_name }}</span>
                     <span class="text-(--color-text-secondary)">
                         {{ assignment.shift_name }} {{ assignment.start_time }}–{{ assignment.end_time }}
+                    </span>
+                    <span
+                        v-if="showPublishedMarker"
+                        class="rounded-full border px-2 py-0.5 text-xs font-medium"
+                        :class="assignment.published
+                            ? 'border-(--color-badge-custom-border) bg-(--color-badge-custom-bg) text-(--color-badge-custom-text)'
+                            : 'border-(--color-badge-standard-border) bg-(--color-badge-standard-bg) text-(--color-badge-standard-text)'"
+                    >
+                        {{ assignment.published ? __('planning.published') : __('planning.draft') }}
                     </span>
                 </li>
             </ul>

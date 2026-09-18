@@ -21,7 +21,7 @@ starts, a `plan.md` (the steps and progress).
 | 3.10 | Login links — admin-created users get an emailed invite link to set a password; the login page's passwordless action emails a sign-in link, covering forgot-password too | Done | `features/login-links/`. Replaces phase 3.7's email-code path. |
 | 4 | Availability and wishes — recurring availability, date-specific exceptions, fairness model | In progress | Holidays and the recurring availability grid shipped (`features/employee-availability/`); the grid is weekday-only and carries manager-defined yes/no questions (`features/availability-questions/`). The fairness design session is resolved: workload fairness and wish fairness are both defined (see the phase 4 section below); no new data model was needed. Date-specific shift exceptions are a known, deliberately deferred gap — shelved until phase 5. |
 | 5 | Scheduling engine — Python OR-Tools `/solve` service, JSON contract, `GeneratePlan` job, draft review and edit | Planned | depends on phases 3 and 4 |
-| 6 | Publish and employee schedule view — publish a plan, employees see own assignments only | Done | `features/publish-planning/`, built ahead of phase 5. Publishing is a per-week, all-workcenters toggle on `/planning`; it never gates editing. Nothing enforces it against an auto-planner yet — there isn't one. |
+| 6 | Publish and employee schedule view — publish a plan, employees see own assignments only | Done | `features/publish-planning/`, built ahead of phase 5. Publishing is a per-(week, workcenter) toggle on `/planning` (`features/publish-per-workcenter/` narrowed it from whole-week, as a phase-5 prerequisite); it never gates editing. Nothing enforces it against an auto-planner yet — there isn't one. |
 | 7 | Container release — production image, Compose stack, and versioned release bundle | Deferred | `features/containerization/`; complete after the product phases. |
 
 ## Phase 0 — Scaffold
@@ -310,25 +310,32 @@ doesn't wait on the auto-planner, it applies to whatever's on
 `/planning` today, hand-built or (later) generated alike.
 
 A `published_weeks` table (a row's existence means that Monday–Sunday
-week is published) covers every active workcenter at once — there's no
-per-workcenter publish state. `/planning`'s calendar marks a
-published week with a left-border bar down its row; a Publish/Unpublish
-button sits above the week's schedule cards, immediate, no
-confirmation, no precondition. Publishing never locks editing — a
-manager keeps assigning, removing, freezing, and adjusting spot counts
-on a published week exactly like a draft one.
+week is published for one workcenter) originally covered every active
+workcenter at once; `features/publish-per-workcenter/` narrowed it to
+per-(week, workcenter) granularity, a prerequisite for phase 5's
+solver, which must protect exactly what's actually settled rather than
+a whole week regardless of workcenter. `/planning`'s calendar marks a
+week with a left-border bar only when every workcenter relevant to it
+is published; each workcenter's own schedule card carries its own
+Publish/Unpublish button, immediate, no confirmation, no precondition.
+Publishing never locks editing — a manager keeps assigning, removing,
+freezing, and adjusting spot counts on a published week exactly like a
+draft one.
 
 Two new read-only "Planning" tabs, both listing an employee's
 assignments grouped by week: the employee's own personal page shows
-published weeks only (`doc/concept.md`'s original rule — "employees
-view their own published assignments"); the admin's employee editor
-shows everything, draft included, each week marked published or not,
-since the admin already sees everything else on `/planning`.
+only assignments from a published (week, workcenter) pair
+(`doc/concept.md`'s original rule — "employees view their own
+published assignments"), so a week can show a subset of its
+assignments if only some of that week's workcenters are published; the
+admin's employee editor shows everything, draft included, each
+assignment marked published or not, since the admin already sees
+everything else on `/planning`.
 
 Nothing here enforces the invariant against an auto-planner — Phase 5
 still doesn't exist. Whenever `PlanGenerator` is built, it must skip
-any week with a `published_weeks` row; that's a rule for that future
-work, not code that exists today.
+any (week, workcenter) pair with a `published_weeks` row; that's a
+rule for that future work, not code that exists today.
 
 ## Deferred and out of scope for the first increments
 

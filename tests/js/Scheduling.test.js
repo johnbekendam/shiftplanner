@@ -10,7 +10,6 @@ const en = {
     "scheduling.legend_open_spots": "Open spots",
     "scheduling.publish": "Publish",
     "scheduling.unpublish": "Unpublish",
-    "scheduling.published_label": "Published",
     "calendar.reset": "Jump to today",
     "calendar.prev_month": "Previous month",
     "calendar.next_month": "Next month",
@@ -60,8 +59,7 @@ const baseProps = {
     ],
     date: "2026-09-10",
     weekStart: "2026-09-07",
-    weekPublished: false,
-    publishedDays: {},
+    publishedWorkcenterWeeks: [],
     weekCells: [
         { workcenter_id: 1, shift_id: 9, date: "2026-09-07", spots: 1, overridden: false, assignments: [] },
         { workcenter_id: 1, shift_id: 9, date: "2026-09-08", spots: 1, overridden: false, assignments: [] },
@@ -188,43 +186,56 @@ describe("Scheduling", () => {
         expect(w.findAllComponents(WorkcenterScheduleCard)).toHaveLength(0);
     });
 
-    it("shows a Publish button for an unpublished week; clicking it publishes", async () => {
-        const w = mountPage({ weekPublished: false });
+    it("passes the visible workcenter card its own published state and weekStart", () => {
+        const w = mountPage({ publishedWorkcenterWeeks: [{ workcenter_id: 1, week_start: "2026-09-07" }] });
+        const card = w.findComponent(WorkcenterScheduleCard);
 
-        expect(w.text()).toContain("Publish");
-        expect(w.text()).not.toContain("Unpublish");
-        expect(w.text()).not.toContain("Published");
-
-        await w.get('[data-testid="publish-week-button"]').trigger("click");
-
-        expect(routerCalls).toContainEqual(["post", "/planning/weeks/2026-09-07/publish", undefined]);
+        expect(card.props("published")).toBe(true);
+        expect(card.props("weekStart")).toBe("2026-09-07");
     });
 
-    it("shows Unpublish and a Published label for a published week; clicking it unpublishes", async () => {
-        const w = mountPage({ weekPublished: true });
+    it("a card's published state is false when only a different workcenter is published that week", () => {
+        const w = mountPage({ publishedWorkcenterWeeks: [{ workcenter_id: 2, week_start: "2026-09-07" }] });
+        const card = w.findComponent(WorkcenterScheduleCard);
 
-        expect(w.text()).toContain("Unpublish");
-        expect(w.text()).toContain("Published");
-
-        await w.get('[data-testid="publish-week-button"]').trigger("click");
-
-        expect(routerCalls).toContainEqual(["delete", "/planning/weeks/2026-09-07/publish"]);
+        expect(card.props("published")).toBe(false);
     });
 
-    it("shows the publish header even when the filter hides every workcenter card", async () => {
-        const w = mountPage({ weekPublished: true });
-        const line1Checkbox = w.findAll('input[type="checkbox"]').at(0);
-        await line1Checkbox.setValue(false);
+    it("clicking a workcenter card's publish button posts to that workcenter's own publish endpoint", async () => {
+        const w = mountPage();
 
-        expect(w.findAllComponents(WorkcenterScheduleCard)).toHaveLength(0);
-        expect(w.find('[data-testid="publish-week-button"]').exists()).toBe(true);
+        await w.get('[data-testid="publish-workcenter-button"]').trigger("click");
+
+        expect(routerCalls).toContainEqual(["post", "/planning/weeks/2026-09-07/workcenters/1/publish", undefined]);
     });
 
-    it("passes publishedDays through to the calendar as week markers", () => {
-        const w = mountPage({ publishedDays: { 10: true } });
-        const day10 = w.findAll("button").find((b) => b.text() === "10");
-        const row = day10.element.closest('[data-testid^="calendar-week-"]');
+    it("marks a week's calendar row only once every relevant workcenter is published", () => {
+        // Week 2026-09-07..13 has coverage from both workcenter 1 (Sep 10-11) and
+        // workcenter 2 (Sep 12), so both must be published for the marker to show.
+        const onlyOne = mountPage({ publishedWorkcenterWeeks: [{ workcenter_id: 1, week_start: "2026-09-07" }] });
+        const day10a = onlyOne.findAll("button").find((b) => b.text() === "10");
+        expect(day10a.element.closest('[data-testid^="calendar-week-"]').className).not.toContain(
+            "border-(--color-btn-danger-bg)",
+        );
 
-        expect(row.className).toContain("border-(--color-btn-danger-bg)");
+        const both = mountPage({
+            publishedWorkcenterWeeks: [
+                { workcenter_id: 1, week_start: "2026-09-07" },
+                { workcenter_id: 2, week_start: "2026-09-07" },
+            ],
+        });
+        const day10b = both.findAll("button").find((b) => b.text() === "10");
+        expect(day10b.element.closest('[data-testid^="calendar-week-"]').className).toContain(
+            "border-(--color-btn-danger-bg)",
+        );
+    });
+
+    it("does not mark a week with no relevant workcenter, even with an unrelated publish row", () => {
+        const w = mountPage({ publishedWorkcenterWeeks: [{ workcenter_id: 1, week_start: "2026-09-21" }] });
+        const day21 = w.findAll("button").find((b) => b.text() === "21");
+
+        expect(day21.element.closest('[data-testid^="calendar-week-"]').className).not.toContain(
+            "border-(--color-btn-danger-bg)",
+        );
     });
 });

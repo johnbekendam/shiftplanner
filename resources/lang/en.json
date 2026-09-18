@@ -421,7 +421,6 @@
     "scheduling.legend_open_spots": "Open spots",
     "scheduling.publish": "Publish",
     "scheduling.unpublish": "Unpublish",
-    "scheduling.published_label": "Published",
     "scheduling.reset_spots": "Reset to the weekday default",
     "scheduling.freeze": "Freeze",
     "scheduling.unfreeze": "Unfreeze",

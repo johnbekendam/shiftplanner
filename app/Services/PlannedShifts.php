@@ -10,11 +10,11 @@ use Carbon\Carbon;
 /**
  * One employee's shift assignments grouped by week, for the Planning tabs
  * on both Personal/Show.vue (published only) and Employees/Form.vue
- * (everything, each week marked published or not).
+ * (everything, each assignment marked published or not).
  */
 class PlannedShifts
 {
-    /** @return array<int, array{weekStart: string, weekEnd: string, published: bool, assignments: array}> */
+    /** @return array<int, array{weekStart: string, weekEnd: string, assignments: array}> */
     public function forEmployee(Employee $employee, bool $publishedOnly): array
     {
         $assignments = ShiftAssignment::query()
@@ -29,26 +29,35 @@ class PlannedShifts
 
         $weekKey = fn (ShiftAssignment $a) => $a->date->copy()->startOfWeek(Carbon::MONDAY)->toDateString();
 
-        $publishedWeekStarts = PublishedWeek::query()
+        $publishedPairs = PublishedWeek::query()
             ->whereIn('week_start', $assignments->map($weekKey)->unique()->values())
-            ->pluck('week_start')
-            ->map(fn (Carbon $date) => $date->toDateString());
+            ->whereIn('workcenter_id', $assignments->pluck('workcenter_id')->unique()->values())
+            ->get(['week_start', 'workcenter_id'])
+            ->map(fn (PublishedWeek $p) => "{$p->week_start->toDateString()}:{$p->workcenter_id}")
+            ->flip();
 
-        return $assignments->groupBy($weekKey)
-            ->filter(fn ($group, string $weekStart) => ! $publishedOnly || $publishedWeekStarts->contains($weekStart))
-            ->map(function ($group, string $weekStart) use ($publishedWeekStarts) {
+        $isPublished = fn (ShiftAssignment $a) => $publishedPairs->has("{$weekKey($a)}:{$a->workcenter_id}");
+
+        $relevant = $publishedOnly ? $assignments->filter($isPublished)->values() : $assignments;
+
+        if ($relevant->isEmpty()) {
+            return [];
+        }
+
+        return $relevant->groupBy($weekKey)
+            ->map(function ($group, string $weekStart) use ($isPublished) {
                 $start = Carbon::parse($weekStart);
 
                 return [
                     'weekStart' => $start->toDateString(),
                     'weekEnd' => $start->copy()->addDays(6)->toDateString(),
-                    'published' => $publishedWeekStarts->contains($weekStart),
                     'assignments' => $group->map(fn (ShiftAssignment $a) => [
                         'date' => $a->date->toDateString(),
                         'workcenter_name' => $a->workcenter->name,
                         'shift_name' => $a->shift->name,
                         'start_time' => $a->shift->start_time,
                         'end_time' => $a->shift->end_time,
+                        'published' => $isPublished($a),
                     ])->values()->all(),
                 ];
             })

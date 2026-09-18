@@ -15,17 +15,29 @@ const weeks = [
     {
         weekStart: "2026-09-07",
         weekEnd: "2026-09-13",
-        published: true,
         assignments: [
-            { date: "2026-09-08", workcenter_name: "Line 1", shift_name: "Early", start_time: "06:00", end_time: "14:00" },
+            {
+                date: "2026-09-08",
+                workcenter_name: "Line 1",
+                shift_name: "Early",
+                start_time: "06:00",
+                end_time: "14:00",
+                published: true,
+            },
         ],
     },
     {
         weekStart: "2026-09-14",
         weekEnd: "2026-09-20",
-        published: false,
         assignments: [
-            { date: "2026-09-15", workcenter_name: "Line 2", shift_name: "Late", start_time: "14:00", end_time: "22:00" },
+            {
+                date: "2026-09-15",
+                workcenter_name: "Line 2",
+                shift_name: "Late",
+                start_time: "14:00",
+                end_time: "22:00",
+                published: false,
+            },
         ],
     },
 ];
@@ -53,9 +65,42 @@ describe("PlannedShiftsList", () => {
         expect(w.text()).not.toContain("Draft");
     });
 
-    it("shows a Published or Draft marker per week when showPublishedMarker is set", () => {
+    it("shows a Published or Draft marker per assignment row when showPublishedMarker is set", () => {
         const w = mount(PlannedShiftsList, { props: { weeks, showPublishedMarker: true } });
         expect(w.text()).toContain("Published");
         expect(w.text()).toContain("Draft");
+    });
+
+    it("shows a mix of Published and Draft rows within the same week", () => {
+        const mixedWeek = [
+            {
+                weekStart: "2026-09-07",
+                weekEnd: "2026-09-13",
+                assignments: [
+                    {
+                        date: "2026-09-08",
+                        workcenter_name: "Line 1",
+                        shift_name: "Early",
+                        start_time: "06:00",
+                        end_time: "14:00",
+                        published: true,
+                    },
+                    {
+                        date: "2026-09-09",
+                        workcenter_name: "Line 2",
+                        shift_name: "Late",
+                        start_time: "14:00",
+                        end_time: "22:00",
+                        published: false,
+                    },
+                ],
+            },
+        ];
+        const w = mount(PlannedShiftsList, { props: { weeks: mixedWeek, showPublishedMarker: true } });
+        const rows = w.findAll("li");
+
+        expect(rows).toHaveLength(2);
+        expect(rows[0].text()).toContain("Published");
+        expect(rows[1].text()).toContain("Draft");
     });
 });

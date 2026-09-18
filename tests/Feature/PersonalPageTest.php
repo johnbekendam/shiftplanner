@@ -229,18 +229,43 @@ class PersonalPageTest extends TestCase
             'employee_id' => $employee->id, 'workcenter_id' => $workcenter->id, 'shift_id' => $shift->id,
             'date' => '2026-09-15', // Tuesday, week starting 2026-09-14, not published
         ]);
-        PublishedWeek::query()->create(['week_start' => '2026-09-07']);
+        PublishedWeek::query()->create(['week_start' => '2026-09-07', 'workcenter_id' => $workcenter->id]);
 
         $this->get("/personal/{$token}")->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->has('plannedShifts', 1)
                 ->where('plannedShifts.0.weekStart', '2026-09-07')
                 ->where('plannedShifts.0.weekEnd', '2026-09-13')
-                ->where('plannedShifts.0.published', true)
                 ->has('plannedShifts.0.assignments', 1)
                 ->where('plannedShifts.0.assignments.0.date', '2026-09-08')
                 ->where('plannedShifts.0.assignments.0.workcenter_name', 'Line 1')
                 ->where('plannedShifts.0.assignments.0.shift_name', 'Early')
+                ->where('plannedShifts.0.assignments.0.published', true)
+            );
+    }
+
+    public function test_planned_shifts_only_includes_assignments_from_a_published_workcenter(): void
+    {
+        [$employee, $token] = $this->linkedEmployee();
+        $published = Workcenter::factory()->create(['name' => 'Line 1']);
+        $draft = Workcenter::factory()->create(['name' => 'Line 2']);
+        $shift = Shift::factory()->create();
+        // Both assignments fall in the same week; only Line 1 is published for it.
+        ShiftAssignment::factory()->create([
+            'employee_id' => $employee->id, 'workcenter_id' => $published->id, 'shift_id' => $shift->id,
+            'date' => '2026-09-08',
+        ]);
+        ShiftAssignment::factory()->create([
+            'employee_id' => $employee->id, 'workcenter_id' => $draft->id, 'shift_id' => $shift->id,
+            'date' => '2026-09-09',
+        ]);
+        PublishedWeek::query()->create(['week_start' => '2026-09-07', 'workcenter_id' => $published->id]);
+
+        $this->get("/personal/{$token}")->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->has('plannedShifts', 1)
+                ->has('plannedShifts.0.assignments', 1)
+                ->where('plannedShifts.0.assignments.0.workcenter_name', 'Line 1')
             );
     }
 

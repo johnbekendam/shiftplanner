@@ -137,12 +137,18 @@ describe("Employees/Form", () => {
     it("shows every assignment on the Planning tab, marked published or draft", () => {
         const plannedShifts = [
             {
-                weekStart: "2026-09-07", weekEnd: "2026-09-13", published: true,
-                assignments: [{ date: "2026-09-08", workcenter_name: "Line 1", shift_name: "Early", start_time: "06:00", end_time: "14:00" }],
+                weekStart: "2026-09-07", weekEnd: "2026-09-13",
+                assignments: [{
+                    date: "2026-09-08", workcenter_name: "Line 1", shift_name: "Early",
+                    start_time: "06:00", end_time: "14:00", published: true,
+                }],
             },
             {
-                weekStart: "2026-09-14", weekEnd: "2026-09-20", published: false,
-                assignments: [{ date: "2026-09-15", workcenter_name: "Line 2", shift_name: "Late", start_time: "14:00", end_time: "22:00" }],
+                weekStart: "2026-09-14", weekEnd: "2026-09-20",
+                assignments: [{
+                    date: "2026-09-15", workcenter_name: "Line 2", shift_name: "Late",
+                    start_time: "14:00", end_time: "22:00", published: false,
+                }],
             },
         ];
         const w = mount(Form, {

@@ -422,8 +422,10 @@ describe("Personal/Show", () => {
         const plannedShifts = [{
             weekStart: "2026-09-07",
             weekEnd: "2026-09-13",
-            published: true,
-            assignments: [{ date: "2026-09-08", workcenter_name: "Line 1", shift_name: "Early", start_time: "06:00", end_time: "14:00" }],
+            assignments: [{
+                date: "2026-09-08", workcenter_name: "Line 1", shift_name: "Early",
+                start_time: "06:00", end_time: "14:00", published: true,
+            }],
         }];
         const w = mountShow([], { plannedShifts });
 

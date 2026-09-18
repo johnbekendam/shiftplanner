@@ -300,15 +300,15 @@ class EmployeeAdminTest extends TestCase
             'employee_id' => $employee->id, 'workcenter_id' => $workcenter->id, 'shift_id' => $shift->id,
             'date' => '2026-09-15', // week starting 2026-09-14, draft
         ]);
-        PublishedWeek::query()->create(['week_start' => '2026-09-07']);
+        PublishedWeek::query()->create(['week_start' => '2026-09-07', 'workcenter_id' => $workcenter->id]);
 
         $this->actingAs($user)->get("/employees/{$employee->id}/edit")->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->has('plannedShifts', 2)
                 ->where('plannedShifts.0.weekStart', '2026-09-07')
-                ->where('plannedShifts.0.published', true)
+                ->where('plannedShifts.0.assignments.0.published', true)
                 ->where('plannedShifts.1.weekStart', '2026-09-14')
-                ->where('plannedShifts.1.published', false)
+                ->where('plannedShifts.1.assignments.0.published', false)
             );
     }
 

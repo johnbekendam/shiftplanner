@@ -110,10 +110,10 @@ Route::middleware('auth')->group(function () {
         Route::delete('/planning/spots/{workcenter}/{shift}/{date}', [ScheduleSpotController::class, 'destroy'])
             ->where('date', '\d{4}-\d{2}-\d{2}')->name('planning.spots.destroy');
         Route::get('/planning/eligible-employees', [EligibleEmployeeController::class, 'index'])->name('planning.eligible-employees');
-        Route::post('/planning/weeks/{weekStart}/publish', [PublishedWeekController::class, 'store'])
-            ->where('weekStart', '\d{4}-\d{2}-\d{2}')->name('planning.weeks.publish');
-        Route::delete('/planning/weeks/{weekStart}/publish', [PublishedWeekController::class, 'destroy'])
-            ->where('weekStart', '\d{4}-\d{2}-\d{2}')->name('planning.weeks.unpublish');
+        Route::post('/planning/weeks/{weekStart}/workcenters/{workcenter}/publish', [PublishedWeekController::class, 'store'])
+            ->where('weekStart', '\d{4}-\d{2}-\d{2}')->name('planning.weeks.workcenters.publish');
+        Route::delete('/planning/weeks/{weekStart}/workcenters/{workcenter}/publish', [PublishedWeekController::class, 'destroy'])
+            ->where('weekStart', '\d{4}-\d{2}-\d{2}')->name('planning.weeks.workcenters.unpublish');
 
         Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
 

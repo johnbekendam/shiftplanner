@@ -53,27 +53,27 @@ class SchedulingController extends Controller
             'date' => $selectedDate->toDateString(),
             'weekStart' => $weekStart->toDateString(),
             'weekCells' => $this->weekCells($attachments, $capacities, $workcenterIds, $weekStart),
-            'weekPublished' => PublishedWeek::query()->whereDate('week_start', $weekStart)->exists(),
-            'publishedDays' => $this->publishedDays($monthStart),
+            'publishedWorkcenterWeeks' => $this->publishedWorkcenterWeeks($monthStart, $workcenterIds),
         ]);
     }
 
-    /** { [day] => true } for every day in the visible month whose Monday–Sunday week is published. */
-    private function publishedDays(Carbon $monthStart): array
+    /** [{ workcenter_id, week_start }] for every (workcenter, week) published within the visible month. */
+    private function publishedWorkcenterWeeks(Carbon $monthStart, Collection $workcenterIds): array
     {
-        $weekStartsByDay = collect(range(1, $monthStart->daysInMonth))
-            ->mapWithKeys(fn (int $day) => [
-                $day => $monthStart->copy()->day($day)->startOfWeek(Carbon::MONDAY)->toDateString(),
-            ]);
+        $weekStarts = collect(range(1, $monthStart->daysInMonth))
+            ->map(fn (int $day) => $monthStart->copy()->day($day)->startOfWeek(Carbon::MONDAY)->toDateString())
+            ->unique()
+            ->values();
 
-        $publishedWeekStarts = PublishedWeek::query()
-            ->whereIn('week_start', $weekStartsByDay->unique()->values())
-            ->pluck('week_start')
-            ->map(fn (Carbon $date) => $date->toDateString());
-
-        return $weekStartsByDay
-            ->filter(fn (string $weekStart) => $publishedWeekStarts->contains($weekStart))
-            ->map(fn () => true)
+        return PublishedWeek::query()
+            ->whereIn('week_start', $weekStarts)
+            ->whereIn('workcenter_id', $workcenterIds)
+            ->get(['week_start', 'workcenter_id'])
+            ->map(fn (PublishedWeek $p) => [
+                'workcenter_id' => $p->workcenter_id,
+                'week_start' => $p->week_start->toDateString(),
+            ])
+            ->values()
             ->all();
     }
 

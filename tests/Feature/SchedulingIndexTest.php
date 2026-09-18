@@ -320,59 +320,57 @@ class SchedulingIndexTest extends TestCase
         );
     }
 
-    public function test_week_published_is_true_when_the_selected_week_is_published(): void
+    public function test_published_workcenter_weeks_includes_a_published_pair_within_the_month(): void
     {
         $this->actingAsAdmin();
-        PublishedWeek::query()->create(['week_start' => '2026-09-07']);
-
-        $this->get('/planning?year=2026&month=9&date=2026-09-10')->assertOk()
-            ->assertInertia(fn ($page) => $page->where('weekPublished', true));
-    }
-
-    public function test_week_published_is_false_when_the_selected_week_is_not_published(): void
-    {
-        $this->actingAsAdmin();
-
-        $this->get('/planning?year=2026&month=9&date=2026-09-10')->assertOk()
-            ->assertInertia(fn ($page) => $page->where('weekPublished', false));
-    }
-
-    public function test_published_days_marks_every_day_in_a_published_week(): void
-    {
-        $this->actingAsAdmin();
-        // 2026-09-10 is a Thursday; its week runs 2026-09-07 through 2026-09-13.
-        PublishedWeek::query()->create(['week_start' => '2026-09-07']);
+        $workcenter = Workcenter::factory()->create();
+        PublishedWeek::query()->create(['week_start' => '2026-09-07', 'workcenter_id' => $workcenter->id]);
 
         $response = $this->get('/planning?year=2026&month=9')->assertOk();
-        $publishedDays = $response->viewData('page')['props']['publishedDays'];
+        $published = $response->viewData('page')['props']['publishedWorkcenterWeeks'];
 
-        foreach ([7, 8, 9, 10, 11, 12, 13] as $day) {
-            $this->assertTrue($publishedDays[$day] ?? false, "day {$day} should be published");
-        }
-        $this->assertArrayNotHasKey(6, $publishedDays);
-        $this->assertArrayNotHasKey(14, $publishedDays);
+        $this->assertEqualsCanonicalizing(
+            [['workcenter_id' => $workcenter->id, 'week_start' => '2026-09-07']],
+            $published,
+        );
     }
 
-    public function test_published_days_includes_days_from_a_week_starting_in_the_adjacent_month(): void
+    public function test_published_workcenter_weeks_keeps_workcenters_independent(): void
     {
         $this->actingAsAdmin();
+        $published = Workcenter::factory()->create();
+        $other = Workcenter::factory()->create();
+        PublishedWeek::query()->create(['week_start' => '2026-09-07', 'workcenter_id' => $published->id]);
+
+        $response = $this->get('/planning?year=2026&month=9')->assertOk();
+        $publishedPairs = collect($response->viewData('page')['props']['publishedWorkcenterWeeks']);
+
+        $this->assertTrue($publishedPairs->contains('workcenter_id', $published->id));
+        $this->assertFalse($publishedPairs->contains('workcenter_id', $other->id));
+    }
+
+    public function test_published_workcenter_weeks_includes_a_week_starting_in_the_adjacent_month(): void
+    {
+        $this->actingAsAdmin();
+        $workcenter = Workcenter::factory()->create();
         // 2026-09-01 is a Tuesday; its week starts 2026-08-31 (August).
-        PublishedWeek::query()->create(['week_start' => '2026-08-31']);
+        PublishedWeek::query()->create(['week_start' => '2026-08-31', 'workcenter_id' => $workcenter->id]);
 
         $response = $this->get('/planning?year=2026&month=9')->assertOk();
-        $publishedDays = $response->viewData('page')['props']['publishedDays'];
+        $published = $response->viewData('page')['props']['publishedWorkcenterWeeks'];
 
-        foreach ([1, 2, 3, 4, 5, 6] as $day) {
-            $this->assertTrue($publishedDays[$day] ?? false, "day {$day} should be published");
-        }
-        $this->assertArrayNotHasKey(7, $publishedDays);
+        $this->assertEqualsCanonicalizing(
+            [['workcenter_id' => $workcenter->id, 'week_start' => '2026-08-31']],
+            $published,
+        );
     }
 
-    public function test_published_days_is_empty_when_nothing_is_published(): void
+    public function test_published_workcenter_weeks_is_empty_when_nothing_is_published(): void
     {
         $this->actingAsAdmin();
+        Workcenter::factory()->create();
 
         $this->get('/planning?year=2026&month=9')->assertOk()
-            ->assertInertia(fn ($page) => $page->where('publishedDays', []));
+            ->assertInertia(fn ($page) => $page->where('publishedWorkcenterWeeks', []));
     }
 }
