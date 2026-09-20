@@ -257,4 +257,33 @@ class LivePlanningTest extends TestCase
         $this->get("/live/{$workcenter->live_token}")->assertInertia(fn ($page) => $page
             ->where('generatedAt', Carbon::now()->toIso8601String()));
     }
+
+    // ── Refresh ─────────────────────────────────────────────────────────
+
+    public function test_a_partial_reload_returns_only_the_planning_props(): void
+    {
+        [$workcenter, $shift] = $this->workcenterWithShift();
+        $this->publish($workcenter, self::THIS_WEEK);
+        $this->assign($workcenter, $shift, '2026-09-21', 'Ann', 'Able');
+
+        $this->get("/live/{$workcenter->live_token}")->assertInertia(fn ($page) => $page
+            ->reloadOnly(['workcenter', 'today', 'generatedAt', 'weeks'], fn ($reload) => $reload
+                ->where('weeks.0.shifts.0.cells.0.names', ['Ann Able'])
+                ->where('today', '2026-09-23')));
+    }
+
+    public function test_a_reload_shows_a_change_made_after_the_first_load(): void
+    {
+        [$workcenter, $shift] = $this->workcenterWithShift();
+        $token = $workcenter->live_token;
+
+        $this->get("/live/{$token}")->assertInertia(fn ($page) => $page->where('weeks.0.published', false));
+
+        $this->publish($workcenter, self::THIS_WEEK);
+        $this->assign($workcenter, $shift, '2026-09-21', 'Ann', 'Able');
+
+        $this->get("/live/{$token}")->assertInertia(fn ($page) => $page
+            ->where('weeks.0.published', true)
+            ->where('weeks.0.shifts.0.cells.0.names', ['Ann Able']));
+    }
 }

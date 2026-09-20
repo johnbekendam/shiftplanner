@@ -3,6 +3,7 @@ import { Head, usePage } from '@inertiajs/vue3'
 import LiveLayout from '@/layouts/LiveLayout.vue'
 import Card from '@/components/ui/Card.vue'
 import { useI18n } from '@/composables/useI18n'
+import { useLiveRefresh } from '@/composables/useLiveRefresh'
 import { formatDate } from '@/utils/date'
 
 const __ = useI18n()
@@ -17,6 +18,8 @@ const props = defineProps({
     //   start_time, end_time, cells: [{ date, spots, names, open }] }] }]
     weeks: { type: Array, required: true },
 })
+
+useLiveRefresh({ only: ['workcenter', 'today', 'generatedAt', 'weeks'] })
 
 function dayLabel(dateStr) {
     const [y, m, d] = dateStr.split('-').map(Number)

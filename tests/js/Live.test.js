@@ -1,5 +1,6 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { mount } from "@vue/test-utils";
+import { router } from "@inertiajs/vue3";
 
 const en = {
     "live.week": "Week :number",
@@ -11,11 +12,13 @@ const en = {
 };
 
 vi.mock("@inertiajs/vue3", () => ({
+    router: { reload: vi.fn(), on: vi.fn(() => () => {}) },
     usePage: () => ({ props: { translations: en, locale: "en", appName: "ShiftPlanner" } }),
     Head: { name: "Head", render: () => null },
 }));
 
 import Live from "@/pages/Live.vue";
+import { LIVE_REFRESH_MS } from "@/composables/useLiveRefresh";
 
 const days = ["2026-09-21", "2026-09-22", "2026-09-23", "2026-09-24", "2026-09-25"];
 
@@ -135,5 +138,24 @@ describe("Live", () => {
         const expected = new Date("2026-09-23T10:32:00.000Z").toLocaleTimeString("en", { hour: "2-digit", minute: "2-digit" });
 
         expect(mountLive().get('[data-testid="live-updated"]').text()).toBe(`Updated ${expected}`);
+    });
+
+    describe("refresh", () => {
+        beforeEach(() => {
+            vi.useFakeTimers();
+            router.reload.mockClear();
+        });
+
+        afterEach(() => vi.useRealTimers());
+
+        it("reloads its planning props every minute", () => {
+            const w = mountLive();
+            vi.advanceTimersByTime(LIVE_REFRESH_MS);
+
+            expect(router.reload).toHaveBeenCalledWith(expect.objectContaining({
+                only: ["workcenter", "today", "generatedAt", "weeks"],
+            }));
+            w.unmount();
+        });
     });
 });
