@@ -1,6 +1,6 @@
 # Planning Rule Tests — Plan
 
-Status: in progress — 4/15
+Status: in progress — 5/15
 
 Each step is one commit on the `work` branch. Each rule step follows the
 same order: write the control and rule tests, see them fail, fix the
@@ -10,7 +10,7 @@ planner if a defect shows, and run the full suite.
 - [x] 2. `EligibilityTest`: holiday, unavailable and missing availability, `not_preferred` still assignable, workcenter hard-mode restriction, and shift overlap.
 - [x] 3. Hard `not_preferred_shift`: `PlanEligibility` excludes `not_preferred` cells. Update the `planning-rules` and `scheduling-engine` specs.
 - [x] 4. `max_hours_per_week`: hard (exclusion, exact limit, `weekly_hours × 2` cap, unfulfilled reason) and soft (control and rule, cost for each hour over).
-- [ ] 5. `max_shifts_per_day`: hard (exclusion, exact limit, unfulfilled reason) and soft (control and rule, cost for each shift over).
+- [x] 5. `max_shifts_per_day`: hard (exclusion, exact limit, unfulfilled reason) and soft (control and rule, cost for each shift over).
 - [ ] 6. `competence_required`: hard (exclusion, two competences on one workcenter, unfulfilled reason) and soft (control and rule, severity conflict).
 - [ ] 7. `business_line_preference`: hard (exclusion, unfulfilled reason) and soft (control and rule, severity conflict).
 - [ ] 8. `not_preferred_shift`, soft: control and rule, coverage before the rule, severity conflict.
