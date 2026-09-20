@@ -9,8 +9,8 @@ An employee needs to know who to contact for a workcenter. The Responsible colum
 Add an optional text field, `responsible`, to each workcenter.
 
 - **Data:** a new nullable `responsible` string column on `workcenters`. The maximum length is 50 characters, the same as `name`. The field holds a name only. A blank value means no responsible person.
-- **Editing:** Settings → Workcenters gets a "Responsible" text input on each row, next to the name. New rows have it too. It saves with the existing Save action of the tab.
-- **Display:** the Responsible column in the planning tables on the employee edit page and on the employee's own page shows this name. It shows `-` when the field is blank.
+- **Editing:** Settings → Workcenters gets a "Contact" text input on each row, next to the name. New rows have it too. It saves with the existing Save action of the tab.
+- **Display:** the Contact column in the planning tables on the employee edit page and on the employee's own page shows this name. It shows `-` when the field is blank.
 - **Backend:** `Workcenter::toPayload()` and the workcenter validation include `responsible`. `PlannedShifts` adds `responsible` to each assignment.
 
 ## Key Decisions

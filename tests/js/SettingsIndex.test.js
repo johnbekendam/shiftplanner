@@ -45,7 +45,7 @@ const en = {
     "business_lines.add_description_placeholder": "New business line",
     "settings.tab.workcenters": "Workcenters",
     "workcenters.name": "Name",
-    "workcenters.responsible": "Responsible",
+    "workcenters.responsible": "Contact",
     "workcenters.list_empty": "No workcenters yet.",
     "workcenters.drag_handle": "Drag to reorder",
     "workcenters.delete": "Delete",

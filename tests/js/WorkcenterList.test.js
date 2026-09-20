@@ -3,8 +3,8 @@ import { mount } from "@vue/test-utils";
 
 const en = {
     "workcenters.name": "Name",
-    "workcenters.responsible": "Responsible",
-    "workcenters.add_responsible_placeholder": "Responsible person",
+    "workcenters.responsible": "Contact",
+    "workcenters.add_responsible_placeholder": "Contact person",
     "workcenters.add": "Add workcenter",
     "workcenters.add_name_placeholder": "New workcenter",
     "workcenters.drag_handle": "Drag to reorder",
@@ -32,7 +32,7 @@ describe("WorkcenterList", () => {
         const w = mountList();
         expect(w.findAll('[data-testid="workcenter-row"]')).toHaveLength(2);
         expect(w.text()).toContain("Name");
-        expect(w.text()).toContain("Responsible");
+        expect(w.text()).toContain("Contact");
     });
 
     it("edits the responsible name locally and emits update:items", async () => {
