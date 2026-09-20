@@ -14,7 +14,7 @@ import HolidayList from '@/components/HolidayList.vue'
 import QuestionChecklist from '@/components/QuestionChecklist.vue'
 import TagChecklist from '@/components/TagChecklist.vue'
 import WorkcenterChecklist from '@/components/WorkcenterChecklist.vue'
-import PlannedShiftsList from '@/components/PlannedShiftsList.vue'
+import PlanningTable from '@/components/PlanningTable.vue'
 import ButtonPrimary from '@/components/ui/ButtonPrimary.vue'
 import ButtonSecondary from '@/components/ui/ButtonSecondary.vue'
 import ButtonDanger from '@/components/ui/ButtonDanger.vue'
@@ -64,6 +64,10 @@ const form = useForm({
 const effectiveWeeklyHoursMinimum = computed(() =>
     form.weekly_hours_minimum ?? props.globalWeeklyHoursMinimum,
 )
+
+const plannedAssignments = computed(() => props.plannedShifts.flatMap((week) => week.assignments))
+const publishedAssignments = computed(() => plannedAssignments.value.filter((a) => a.published))
+const draftAssignments = computed(() => plannedAssignments.value.filter((a) => !a.published))
 
 const tab = ref('settings')
 const tabs = computed(() => [
@@ -505,7 +509,16 @@ function onDeleteConfirm() {
             </div>
 
             <div v-if="isEdit" v-show="tab === 'planning'" data-testid="panel-planning" class="p-6">
-                <PlannedShiftsList :weeks="plannedShifts" show-published-marker />
+                <div class="space-y-8">
+                    <section>
+                        <h3 class="mb-2 text-sm font-semibold text-(--color-text-primary)">{{ __('planning.published') }}</h3>
+                        <PlanningTable :assignments="publishedAssignments" :empty-text="__('planning.published_empty')" />
+                    </section>
+                    <section>
+                        <h3 class="mb-2 text-sm font-semibold text-(--color-text-primary)">{{ __('planning.draft') }}</h3>
+                        <PlanningTable :assignments="draftAssignments" :empty-text="__('planning.draft_empty')" />
+                    </section>
+                </div>
             </div>
 
             <div v-if="isEdit" class="p-6 pt-0">

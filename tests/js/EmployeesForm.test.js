@@ -134,7 +134,7 @@ describe("Employees/Form", () => {
         expect(w.find('[data-testid="panel-information"]').exists()).toBe(false);
     });
 
-    it("shows every assignment on the Planning tab, marked published or draft", () => {
+    it("shows published and draft assignments in separate tables on the Planning tab", () => {
         const plannedShifts = [
             {
                 weekStart: "2026-09-07", weekEnd: "2026-09-13",
@@ -156,11 +156,34 @@ describe("Employees/Form", () => {
             global: { stubs },
         });
 
+        const tables = w.get('[data-testid="panel-planning"]').findAll("table");
+        expect(tables).toHaveLength(2);
+
+        const published = tables[0].findAll("tbody tr");
+        expect(published).toHaveLength(1);
+        expect(published[0].findAll("td").map((td) => td.text())).toEqual(["37", "Tuesday", "08-09-2026", "Line 1", "-"]);
+
+        const draft = tables[1].findAll("tbody tr");
+        expect(draft).toHaveLength(1);
+        expect(draft[0].findAll("td").map((td) => td.text())).toEqual(["38", "Tuesday", "15-09-2026", "Line 2", "-"]);
+    });
+
+    it("shows an empty message for a Planning table without assignments", () => {
+        const plannedShifts = [{
+            weekStart: "2026-09-07", weekEnd: "2026-09-13",
+            assignments: [{
+                date: "2026-09-08", workcenter_name: "Line 1", shift_name: "Early",
+                start_time: "06:00", end_time: "14:00", published: false,
+            }],
+        }];
+        const w = mount(Form, {
+            props: { employee: { id: 3, name: "A", email: "a@b.c", weekly_hours: 24 }, holidays: [], plannedShifts },
+            global: { stubs },
+        });
+
         const panel = w.get('[data-testid="panel-planning"]');
-        expect(panel.text()).toContain("Line 1");
-        expect(panel.text()).toContain("Published");
-        expect(panel.text()).toContain("Line 2");
-        expect(panel.text()).toContain("Draft");
+        expect(panel.findAll("table")).toHaveLength(1);
+        expect(panel.text()).toContain("planning.published_empty");
     });
 
     it("shows employee planning rules only on the manager edit page", () => {

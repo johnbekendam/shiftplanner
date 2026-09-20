@@ -11,7 +11,7 @@ import ShiftNote from '@/components/ShiftNote.vue'
 import HolidayList from '@/components/HolidayList.vue'
 import QuestionChecklist from '@/components/QuestionChecklist.vue'
 import TagChecklist from '@/components/TagChecklist.vue'
-import PlannedShiftsList from '@/components/PlannedShiftsList.vue'
+import PlanningTable from '@/components/PlanningTable.vue'
 import ButtonPrimary from '@/components/ui/ButtonPrimary.vue'
 import ButtonSecondary from '@/components/ui/ButtonSecondary.vue'
 import ButtonDanger from '@/components/ui/ButtonDanger.vue'
@@ -55,6 +55,8 @@ const form = useForm({
     weekly_hours: props.employee.weekly_hours,
     business_line_id: props.employee.business_line_id,
 })
+
+const plannedAssignments = computed(() => props.plannedShifts.flatMap((week) => week.assignments))
 
 const tab = ref('information')
 const tabs = computed(() => [
@@ -423,7 +425,7 @@ function onWithdrawConfirm() {
         </div>
 
         <div v-show="tab === 'planning'" data-testid="panel-planning">
-            <PlannedShiftsList :weeks="plannedShifts" />
+            <PlanningTable :assignments="plannedAssignments" :empty-text="__('planning.empty')" />
         </div>
 
         <template v-if="editable">

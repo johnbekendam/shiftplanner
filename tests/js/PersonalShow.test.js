@@ -418,7 +418,7 @@ describe("Personal/Show", () => {
         expect(hidden(w, '[data-testid="panel-availability"]')).toBe(true);
     });
 
-    it("renders the planned shifts list on the Planning tab", () => {
+    it("renders the planned shifts table on the Planning tab", () => {
         const plannedShifts = [{
             weekStart: "2026-09-07",
             weekEnd: "2026-09-13",
@@ -429,7 +429,8 @@ describe("Personal/Show", () => {
         }];
         const w = mountShow([], { plannedShifts });
 
-        expect(w.get('[data-testid="panel-planning"]').text()).toContain("Line 1");
+        const cells = w.get('[data-testid="panel-planning"]').findAll("tbody tr td").map((td) => td.text());
+        expect(cells).toEqual(["37", "Tuesday", "08-09-2026", "Line 1", "-"]);
     });
 
     it("renders the shift note on the Information tab when set", () => {
