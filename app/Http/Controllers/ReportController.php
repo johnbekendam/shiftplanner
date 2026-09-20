@@ -5,25 +5,31 @@ namespace App\Http\Controllers;
 use App\Models\BusinessLine;
 use App\Models\Employee;
 use App\Models\Shift;
+use App\Services\UninformedPlanning;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
 class ReportController extends Controller
 {
+    public function __construct(private UninformedPlanning $planning) {}
+
     public function index(Request $request)
     {
         $shiftId = $request->integer('shift') ?: null;
         $businessLineId = $request->integer('business_line') ?: null;
         $includeUnconfirmed = $request->boolean('unconfirmed', true);
+        $planningBusinessLineId = $request->integer('planning_business_line') ?: null;
 
         return Inertia::render('Reports/Index', [
             'employees' => $this->missingAvailability($shiftId, $businessLineId, $includeUnconfirmed),
+            'uninformedPlanning' => $this->planning->summary($planningBusinessLineId)->all(),
             'shifts' => Shift::all()->map->toPayload()->all(),
             'businessLines' => BusinessLine::all()->map->toPayload()->all(),
             'filters' => [
                 'shift' => $shiftId,
                 'business_line' => $businessLineId,
                 'unconfirmed' => $includeUnconfirmed,
+                'planning_business_line' => $planningBusinessLineId,
             ],
         ]);
     }

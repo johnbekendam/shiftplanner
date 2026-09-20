@@ -568,6 +568,21 @@ class MailboxTest extends TestCase
 
     // ── Planning messages ───────────────────────────────────────────────
 
+    public function test_compose_tab_opens_the_planning_type_with_its_template_and_recipients(): void
+    {
+        $this->admin();
+        $a = Employee::factory()->create();
+        $b = Employee::factory()->create();
+
+        $this->get("/mailbox?tab=compose&type=planning&employee_ids[]={$a->id}&employee_ids[]={$b->id}")
+            ->assertInertia(fn ($page) => $page
+                ->where('compose.type', MessageType::Planning->value)
+                ->where('compose.preselected_employee_ids', [$a->id, $b->id])
+                ->where('compose.template.subject', 'Your planning')
+                ->where('compose.types', fn ($types) => collect($types)->pluck('value')->contains('planning'))
+            );
+    }
+
     /** @return array{Employee, array<int, ShiftAssignment>} an employee with two upcoming published shifts and one past */
     private function plannedEmployee(): array
     {
