@@ -482,6 +482,20 @@ describe("Personal/Show", () => {
         expect(hidden(w, '[data-testid="panel-information"]')).toBe(false);
     });
 
+    it("shows the schedule note below the table on the Planning tab", () => {
+        const w = mountShow([], { scheduleNoteHtml: "<p>Schedule remarks</p>" });
+        const panel = w.get('[data-testid="panel-planning"]');
+
+        expect(panel.text()).toContain("Schedule remarks");
+        expect(panel.findComponent(ShiftNote).props("html")).toBe("<p>Schedule remarks</p>");
+    });
+
+    it("shows no note on the Planning tab when the schedule note is empty", () => {
+        const w = mountShow([], { scheduleNoteHtml: null });
+
+        expect(w.get('[data-testid="panel-planning"]').findComponent(ShiftNote).exists()).toBe(false);
+    });
+
     it("renders the shift note on the Information tab when set", () => {
         const w = mountShow([], { shiftNoteHtml: "<p>Allowances table here</p>" });
         const note = w.findComponent(ShiftNote);
