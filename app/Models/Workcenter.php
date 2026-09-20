@@ -6,6 +6,7 @@ use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Support\Str;
 
 class Workcenter extends Model
 {
@@ -14,6 +15,7 @@ class Workcenter extends Model
     protected $fillable = [
         'name',
         'responsible',
+        'live_token',
         'position',
         'archived_at',
     ];
@@ -31,6 +33,10 @@ class Workcenter extends Model
         static::addGlobalScope('ordered', fn ($query) => $query
             ->orderByRaw('archived_at is not null')
             ->orderBy('position'));
+
+        static::creating(function (self $workcenter) {
+            $workcenter->live_token ??= Str::random(40);
+        });
     }
 
     public function shifts(): BelongsToMany
