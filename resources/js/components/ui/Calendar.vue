@@ -19,8 +19,9 @@
                 data-testid="calendar-weekday-header"
                 :class="['mb-4 grid justify-items-center gap-x-0 gap-y-1 border-b border-(--color-card-border)', GRID_COLUMNS]"
             >
-                <!-- Blank cell above the week numbers -->
-                <div></div>
+                <span data-testid="calendar-week-label" class="self-center text-xs text-(--color-text-muted)">
+                    {{ __('calendar.week_abbr') }}
+                </span>
                 <button
                     v-for="(letter, i) in weekdayLetters"
                     :key="'wd-' + i"
@@ -47,7 +48,8 @@
                     :key="'week-' + wi"
                     :data-testid="'calendar-week-' + wi"
                     class="grid items-center justify-items-center gap-x-0 rounded-md border-2"
-                    :class="[GRID_COLUMNS, isWeekSelected(week) ? 'border-(--color-tab-active-border)' : 'border-transparent']"
+                    :class="[GRID_COLUMNS, weekRowClass(week)]"
+                    @click="onWeekRowClick($event, week)"
                 >
                     <span
                         :data-testid="'calendar-week-number-' + wi"
@@ -60,7 +62,7 @@
                         <div v-if="cell.type === 'pad'"></div>
                         <button
                             v-else
-                            :class="dayClass(colorForDay(cell.day), false, isToday(cell.day), isDisabled(cell.day))"
+                            :class="dayClass(colorForDay(cell.day), false, isToday(cell.day), isDisabled(cell.day), false)"
                             :disabled="isDisabled(cell.day)"
                             @click="!isDisabled(cell.day) && enableDaySelection && selectDay(cell.day)"
                         >
@@ -258,11 +260,13 @@ function isDisabled(day) {
     return false
 }
 
-function dayClass(color, selected, today, disabled) {
+function dayClass(color, selected, today, disabled, hoverable = true) {
     const base = 'border-2 text-center rounded-md text-sm font-semibold m-1 h-8 w-8 cursor-pointer'
     const border = selected
         ? 'border-(--color-tab-active-border)'
-        : 'border-transparent hover:border-(--color-tab-hover-border)'
+        : hoverable
+          ? 'border-transparent hover:border-(--color-tab-hover-border)'
+          : 'border-transparent'
 
     if (disabled) {
         return `${base} ${border} bg-transparent text-(--color-text-muted) cursor-not-allowed`
@@ -271,6 +275,14 @@ function dayClass(color, selected, today, disabled) {
     const colorCls = COLOR_CLASS[color] ?? ''
     const todayCls = today ? 'text-(--color-badge-error-text)' : ''
     return `${base} ${border} ${colorCls} ${todayCls}`
+}
+
+// The border of a week row: active when selected, hoverable when a click can select it.
+function weekRowClass(week) {
+    if (isWeekSelected(week)) return 'border-(--color-tab-active-border)'
+    return props.enableDaySelection
+        ? 'border-transparent hover:border-(--color-tab-hover-border) cursor-pointer'
+        : 'border-transparent'
 }
 
 function colorBg(color) {
@@ -320,6 +332,14 @@ function selectWeekday(i) {
     selectedDayOfWeek.value = i
     selectedWeekStart.value = null
     emitChange()
+}
+
+// Anywhere in a week row that is not a day button (the week number, the gaps, the
+// blank cells) selects the week, using its first selectable day.
+function onWeekRowClick(event, week) {
+    if (!props.enableDaySelection || event.target.closest('button')) return
+    const first = week.find((cell) => cell.type === 'day' && !isDisabled(cell.day))
+    if (first) selectDay(first.day)
 }
 
 function selectDay(day) {

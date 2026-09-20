@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 import { mount } from "@vue/test-utils";
 
 const en = {
+    "calendar.week_abbr": "WK",
     "calendar.reset": "Jump to today",
     "calendar.prev_month": "Previous month",
     "calendar.next_month": "Next month",
@@ -72,7 +73,80 @@ describe("Calendar", () => {
         const days = w.findAll("button").filter((b) => /^\d+$/.test(b.text()));
 
         expect(days.some((b) => b.classes().join(" ").includes("border-(--color-tab-active-border)"))).toBe(false);
-        expect(days.every((b) => b.classes().join(" ").includes("hover:border-(--color-tab-hover-border)"))).toBe(true);
+    });
+
+    it("gives no day a hover border of its own, the week row carries it", () => {
+        const w = mount(Calendar, { props: { year: 2026, month: 9 } });
+
+        const days = w.findAll("button").filter((b) => /^\d+$/.test(b.text()));
+
+        expect(days.some((b) => b.classes().join(" ").includes("hover:border-(--color-tab-hover-border)"))).toBe(false);
+    });
+
+    it("shows a hover border on a week row that is not selected, and keeps the active border on the selected one", async () => {
+        const w = mount(Calendar, { props: { year: 2026, month: 9 } });
+        await w.findAll("button").find((b) => b.text() === "10").trigger("click");
+
+        const selected = weekRow(w.findAll("button").find((b) => b.text() === "10")).className;
+        const other = weekRow(w.findAll("button").find((b) => b.text() === "20")).className;
+
+        expect(other).toContain("hover:border-(--color-tab-hover-border)");
+        expect(selected).toContain("border-(--color-tab-active-border)");
+        expect(selected).not.toContain("hover:border-(--color-tab-hover-border)");
+    });
+
+    // ── Week selection area ─────────────────────────────────────────────
+
+    it("selects a week when its week number is clicked, using the first day of the row", async () => {
+        const w = mount(Calendar, { props: { year: 2026, month: 9 } });
+
+        await w.get('[data-testid="calendar-week-number-1"]').trigger("click"); // week 37: Mon 7 - Sun 13
+
+        expect(w.emitted("change").at(-1)[0]).toMatchObject({ year: 2026, month: 9, day: 7 });
+        expect(weekRow(w.findAll("button").find((b) => b.text() === "10")).className)
+            .toContain("border-(--color-tab-active-border)");
+    });
+
+    it("uses the first day that is in the month when the clicked week starts in the previous month", async () => {
+        const w = mount(Calendar, { props: { year: 2026, month: 9 } });
+
+        await w.get('[data-testid="calendar-week-number-0"]').trigger("click"); // Tue 1 - Sun 6
+
+        expect(w.emitted("change").at(-1)[0]).toMatchObject({ day: 1 });
+    });
+
+    it("skips disabled days when a week is selected from its number", async () => {
+        const w = mount(Calendar, { props: { year: 2026, month: 9, dateRangeStart: "2026-09-03" } });
+
+        await w.get('[data-testid="calendar-week-number-0"]').trigger("click");
+
+        expect(w.emitted("change").at(-1)[0]).toMatchObject({ day: 3 });
+    });
+
+    it("selects a week when the blank space in its row is clicked", async () => {
+        const w = mount(Calendar, { props: { year: 2026, month: 9 } });
+
+        await w.get('[data-testid="calendar-week-2"]').trigger("click"); // week 38: Mon 14 - Sun 20
+
+        expect(w.emitted("change").at(-1)[0]).toMatchObject({ day: 14 });
+    });
+
+    it("still selects the clicked day itself, not the first day of the row", async () => {
+        const w = mount(Calendar, { props: { year: 2026, month: 9 } });
+
+        await w.findAll("button").find((b) => b.text() === "10").trigger("click");
+
+        expect(w.emitted("change").at(-1)[0]).toMatchObject({ day: 10 });
+        expect(w.emitted("change")).toHaveLength(2); // mount + this click, no second emit from the row
+    });
+
+    it("does not select a week from its row when enableDaySelection is false", async () => {
+        const w = mount(Calendar, { props: { year: 2026, month: 9, enableDaySelection: false } });
+
+        await w.get('[data-testid="calendar-week-number-1"]').trigger("click");
+
+        expect(w.emitted("change")).toHaveLength(1);
+        expect(w.get('[data-testid="calendar-week-1"]').element.className).not.toContain("hover:border-(--color-tab-hover-border)");
     });
 
     it("does not select a day when enableDaySelection is false", async () => {
@@ -203,12 +277,16 @@ describe("Calendar", () => {
         expect(cell.element.closest("button")).toBeNull();
     });
 
-    it("keeps the weekday headers aligned with a blank cell above the week numbers", () => {
+    it("puts a WK label above the week numbers, in the same color as the numbers", () => {
         const w = mount(Calendar, { props: { year: 2026, month: 9 } });
         const header = w.get('[data-testid="calendar-weekday-header"]');
+        const label = w.get('[data-testid="calendar-week-label"]');
 
         expect(header.element.children).toHaveLength(8);
-        expect(header.element.children[0].textContent.trim()).toBe("");
+        expect(header.element.children[0]).toBe(label.element);
+        expect(label.text()).toBe("WK");
+        expect(label.classes()).toContain("text-(--color-text-muted)");
+        expect(w.get('[data-testid="calendar-week-number-0"]').classes()).toContain("text-(--color-text-muted)");
         expect(header.findAll("button")).toHaveLength(7);
     });
 });

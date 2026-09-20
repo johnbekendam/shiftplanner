@@ -425,6 +425,7 @@
     "workcenter_shifts.error.workcenter_archived": "This workcenter is archived and cannot take a new assignment.",
     "workcenter_shifts.flash.saved": "Workcenter shifts saved.",
 
+    "calendar.week_abbr": "WK",
     "calendar.reset": "Jump to today",
     "calendar.prev_month": "Previous month",
     "calendar.next_month": "Next month",
