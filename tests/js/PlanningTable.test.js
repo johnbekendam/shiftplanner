@@ -44,12 +44,37 @@ const mountTable = (props = {}) =>
 beforeEach(() => downloadIcs.mockClear());
 
 describe("PlanningTable", () => {
-    it("has no tooltip and no calendar column", () => {
+    it("has no tooltip and no button in a row", () => {
         const w = mountTable({ calendarExport: true });
 
         expect(w.find("tbody tr").attributes("title")).toBeUndefined();
-        expect(w.findAll("thead th")).toHaveLength(6);
         expect(w.find("tbody button").exists()).toBe(false);
+    });
+
+    it("shows week, day, shift, workcenter and contact, without a date column", () => {
+        const w = mountTable();
+
+        expect(w.findAll("thead th").map((th) => th.text())).toEqual(["Week", "Day", "Shift", "Workcenter", "Contact", ""]);
+        expect(w.findAll("tbody tr")[0].findAll("td").map((td) => td.text()))
+            .toEqual(["37", "Tuesday", "Early", "Line 1", "Jane Doe", ""]);
+    });
+
+    it("ends each row with a decorative information icon that has no action of its own", () => {
+        const w = mountTable();
+
+        for (const row of w.findAll("tbody tr")) {
+            const cell = row.findAll("td").at(-1);
+            expect(cell.find("svg").exists()).toBe(true);
+            expect(cell.find("svg").attributes("aria-hidden")).toBe("true");
+            expect(cell.find("button, a").exists()).toBe(false);
+        }
+    });
+
+    it("uses the normal font size", () => {
+        const w = mountTable();
+
+        expect(w.get("table").classes()).toContain("text-sm");
+        expect(w.get("table").classes()).not.toContain("text-xs");
     });
 
     it("shows no card until a row is clicked", () => {

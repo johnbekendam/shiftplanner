@@ -162,11 +162,11 @@ describe("Employees/Form", () => {
 
         const published = tables[0].findAll("tbody tr");
         expect(published).toHaveLength(1);
-        expect(published[0].findAll("td").map((td) => td.text())).toEqual(["37", "08-09-2026", "Tuesday", "Early", "Line 1", "Jane Doe"]);
+        expect(published[0].findAll("td").map((td) => td.text())).toEqual(["37", "Tuesday", "Early", "Line 1", "Jane Doe", ""]);
 
         const draft = tables[1].findAll("tbody tr");
         expect(draft).toHaveLength(1);
-        expect(draft[0].findAll("td").map((td) => td.text())).toEqual(["38", "15-09-2026", "Tuesday", "Late", "Line 2", "-"]);
+        expect(draft[0].findAll("td").map((td) => td.text())).toEqual(["38", "Tuesday", "Late", "Line 2", "-", ""]);
     });
 
     it("shows an empty message for a Planning table without assignments", () => {

@@ -9,13 +9,13 @@ The Planning tab on the employee edit page and on the employee's own page shows 
 On the employee edit page, show two tables on the Planning tab: one for published planning and one for draft planning. The employee's own page shows one table, because it only holds published planning. Each table has these columns:
 
 1. Week number (ISO week)
-2. Date (`dd-mm-yyyy`)
-3. Day of the week
-4. Shift (name)
-5. Workcenter
-6. Contact person (see `doc/features/workcenter-responsible/`)
+2. Day of the week
+3. Shift (name)
+4. Workcenter
+5. Contact person (see `doc/features/workcenter-responsible/`)
+6. An information icon without an action
 
-Rows are sorted by date. An empty table shows a short "none" message.
+Rows are sorted by date. The date and the working hours are in the shift card that opens when the user clicks a row (see `doc/features/planning-calendar-export/`). An empty table shows a short "none" message.
 
 ## Key Decisions
 

@@ -1,5 +1,6 @@
 <script setup>
 import { computed, ref } from 'vue'
+import Icon from '@/components/ui/Icon.vue'
 import ShiftDetailsDialog from '@/components/ShiftDetailsDialog.vue'
 import { useI18n } from '@/composables/useI18n'
 import { buildShiftIcs, downloadIcs, shiftIcsFilename } from '@/utils/shiftIcs'
@@ -61,15 +62,15 @@ const rows = computed(() => [...props.assignments]
 
 <template>
     <p v-if="!rows.length" class="text-sm text-(--color-text-secondary)">{{ emptyText }}</p>
-    <table v-else class="w-full text-left text-xs">
+    <table v-else class="w-full text-left text-sm">
         <thead>
             <tr class="border-b border-(--color-table-header-separator) text-(--color-text-secondary)">
                 <th class="px-2 py-2 font-medium">{{ __('planning.table.week') }}</th>
-                <th class="px-2 py-2 font-medium">{{ __('planning.table.date') }}</th>
                 <th class="px-2 py-2 font-medium">{{ __('planning.table.day') }}</th>
                 <th class="px-2 py-2 font-medium">{{ __('planning.table.shift') }}</th>
                 <th class="px-2 py-2 font-medium">{{ __('planning.table.workcenter') }}</th>
                 <th class="px-2 py-2 font-medium">{{ __('planning.table.responsible') }}</th>
+                <th class="w-8 px-2 py-2" />
             </tr>
         </thead>
         <tbody class="divide-y divide-(--color-table-row-separator)">
@@ -82,11 +83,13 @@ const rows = computed(() => [...props.assignments]
                 @keydown.enter="selected = row"
             >
                 <td class="px-2 py-2">{{ row.week }}</td>
-                <td class="px-2 py-2">{{ row.date }}</td>
                 <td class="px-2 py-2">{{ row.day }}</td>
                 <td class="px-2 py-2">{{ row.shift }}</td>
                 <td class="px-2 py-2">{{ row.workcenter }}</td>
                 <td class="px-2 py-2">{{ row.responsible }}</td>
+                <td class="px-2 py-2 text-right text-(--color-text-secondary)">
+                    <Icon name="information-circle" class="inline size-4" aria-hidden="true" />
+                </td>
             </tr>
         </tbody>
     </table>

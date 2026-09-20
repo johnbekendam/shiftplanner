@@ -439,7 +439,7 @@ describe("Personal/Show", () => {
         const w = mountShow([], { plannedShifts });
 
         const cells = w.get('[data-testid="panel-planning"]').findAll("tbody tr td").map((td) => td.text());
-        expect(cells).toEqual(["37", "08-09-2026", "Tuesday", "Early", "Line 1", "Jane Doe"]);
+        expect(cells).toEqual(["37", "Tuesday", "Early", "Line 1", "Jane Doe", ""]);
     });
 
     it("opens a shift card from a table row with an Add to calendar button that downloads the shift", async () => {
