@@ -15,6 +15,7 @@ class WorkcenterController extends Controller
 
         Workcenter::create([
             'name' => $data['name'],
+            'responsible' => $data['responsible'] ?? null,
             'position' => (int) Workcenter::max('position') + 1,
             'archived_at' => $data['archived'] ? now() : null,
         ]);
@@ -28,6 +29,7 @@ class WorkcenterController extends Controller
 
         $workcenter->update([
             'name' => $data['name'],
+            'responsible' => $data['responsible'] ?? null,
             'archived_at' => $data['archived'] ? ($workcenter->archived_at ?? now()) : null,
         ]);
 
@@ -81,6 +83,7 @@ class WorkcenterController extends Controller
     {
         return $request->validate([
             'name' => ['required', 'string', 'max:50', $this->uniqueName($ignore)],
+            'responsible' => ['nullable', 'string', 'max:50'],
             'archived' => ['sometimes', 'boolean'],
         ]) + ['archived' => $request->boolean('archived')];
     }
