@@ -36,6 +36,8 @@ class PersonalPageController extends Controller
             return redirect('/signup')->with('error', __('personal.link_invalid'));
         }
 
+        $responsible = $employee->businessLine?->responsibleUser;
+
         $shifts = Shift::all();
         $visibleShifts = $shifts->where('visible_by_default', true);
 
@@ -63,6 +65,10 @@ class PersonalPageController extends Controller
             'questions' => AvailabilityQuestion::all()->map->toPayload()->all(),
             'questionAnswers' => $employee->availabilityQuestions->pluck('id')->all(),
             'plannedShifts' => $this->plannedShifts->forEmployee($employee, publishedOnly: true),
+            // Who to contact instead of withdrawing; null when nobody active is set.
+            'businessLineResponsible' => $responsible?->is_active
+                ? ['name' => $responsible->name, 'email' => $responsible->email]
+                : null,
         ]);
     }
 
@@ -78,20 +84,6 @@ class PersonalPageController extends Controller
         $employee->update($data);
 
         return redirect("/personal/{$token}")->with('success', __('personal.flash.saved'));
-    }
-
-    /**
-     * Employee-initiated withdrawal: permanently deletes their own employee
-     * record. Existing foreign-key cascades remove holidays, availability,
-     * competence and question assignments, and the personal link itself —
-     * the same cascade the admin bulk-delete relies on.
-     */
-    public function destroy(string $token)
-    {
-        $employee = $this->resolveOrFail($token);
-        $employee->delete();
-
-        return redirect('/signup')->with('warning', __('personal.withdraw.flash'));
     }
 
     private function resolveOrFail(string $token): Employee

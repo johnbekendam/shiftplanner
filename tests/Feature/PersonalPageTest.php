@@ -8,6 +8,7 @@ use App\Models\PlanningSettings;
 use App\Models\PublishedWeek;
 use App\Models\Shift;
 use App\Models\ShiftAssignment;
+use App\Models\User;
 use App\Models\Workcenter;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -107,10 +108,10 @@ class PersonalPageTest extends TestCase
             ->assertSessionHas('error');
     }
 
-    public function test_visiting_a_withdrawn_employees_old_link_redirects_to_signup(): void
+    public function test_visiting_a_deleted_employees_old_link_redirects_to_signup(): void
     {
-        [, $token] = $this->linkedEmployee();
-        $this->delete("/personal/{$token}");
+        [$employee, $token] = $this->linkedEmployee();
+        $employee->delete();
 
         $this->get("/personal/{$token}")
             ->assertRedirect('/signup')
@@ -177,43 +178,55 @@ class PersonalPageTest extends TestCase
         $response->assertDontSee('Someone Else');
     }
 
-    // ── Withdraw: self-service permanent deletion ─────────────────────────
+    // ── Withdraw: not possible on the personal page ───────────────────────
 
-    public function test_employee_can_withdraw_and_is_redirected_to_signup(): void
+    public function test_an_employee_cannot_withdraw_from_the_personal_page(): void
     {
         [$employee, $token] = $this->linkedEmployee();
 
-        $this->delete("/personal/{$token}")
-            ->assertRedirect('/signup')
-            ->assertSessionHas('warning');
-
-        $this->assertModelMissing($employee);
-    }
-
-    public function test_withdrawing_removes_dependent_records(): void
-    {
-        [$employee, $token] = $this->linkedEmployee();
-        $employee->holidays()->create(['start_date' => '2026-01-01', 'end_date' => '2026-01-02']);
-
-        $this->delete("/personal/{$token}");
-
-        $this->assertSame(0, $employee->holidays()->count());
-        $this->assertSame(0, $employee->personalLink()->count());
-    }
-
-    public function test_withdrawing_is_blocked_when_a_manager_has_closed_employee_changes(): void
-    {
-        PlanningSettings::current()->update(['allow_employee_changes' => false]);
-        [$employee, $token] = $this->linkedEmployee();
-
-        $this->delete("/personal/{$token}")->assertForbidden();
+        $this->delete("/personal/{$token}")->assertStatus(405);
 
         $this->assertModelExists($employee);
     }
 
-    public function test_withdrawing_with_a_malformed_token_is_not_found(): void
+    public function test_the_business_line_responsible_is_shared_for_the_withdraw_card(): void
     {
-        $this->delete('/personal/definitely-not-a-real-token')->assertNotFound();
+        $responsible = User::factory()->create(['name' => 'Rita Lead', 'email' => 'rita@example.com']);
+        $line = BusinessLine::factory()->create(['responsible_user_id' => $responsible->id]);
+        [, $token] = $this->linkedEmployee(['business_line_id' => $line->id]);
+
+        $this->get("/personal/{$token}")->assertInertia(fn ($page) => $page
+            ->where('businessLineResponsible.name', 'Rita Lead')
+            ->where('businessLineResponsible.email', 'rita@example.com')
+            ->missing('businessLineResponsible.id')
+        );
+    }
+
+    public function test_no_business_line_responsible_without_a_business_line(): void
+    {
+        [, $token] = $this->linkedEmployee(['business_line_id' => null]);
+
+        $this->get("/personal/{$token}")->assertInertia(fn ($page) => $page
+            ->where('businessLineResponsible', null));
+    }
+
+    public function test_no_business_line_responsible_when_the_line_has_none(): void
+    {
+        $line = BusinessLine::factory()->create(['responsible_user_id' => null]);
+        [, $token] = $this->linkedEmployee(['business_line_id' => $line->id]);
+
+        $this->get("/personal/{$token}")->assertInertia(fn ($page) => $page
+            ->where('businessLineResponsible', null));
+    }
+
+    public function test_an_inactive_business_line_responsible_is_not_shared(): void
+    {
+        $responsible = User::factory()->inactive()->create();
+        $line = BusinessLine::factory()->create(['responsible_user_id' => $responsible->id]);
+        [, $token] = $this->linkedEmployee(['business_line_id' => $line->id]);
+
+        $this->get("/personal/{$token}")->assertInertia(fn ($page) => $page
+            ->where('businessLineResponsible', null));
     }
 
     public function test_planned_shifts_only_includes_published_weeks(): void
