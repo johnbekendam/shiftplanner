@@ -416,4 +416,53 @@ class SpotsAndLockingTest extends TestCase
 
         $this->assertDatabaseMissing('shift_assignments', ['employee_id' => $employee->id, 'date' => '2026-09-08']);
     }
+
+    // ── Second week of the cycle ────────────────────────────────────────
+
+    public function test_a_published_second_week_keeps_its_assignments_when_fairness_would_move_them(): void
+    {
+        [$workcenter, $shift] = $this->workcenterWithOverride('2026-09-15'); // Tuesday of week 2
+        $this->openDay($workcenter, $shift, '2026-09-16');
+        $a = $this->employee();
+        $c = $this->employee();
+        foreach (['2026-09-15', '2026-09-16'] as $date) {
+            $this->makeAvailable($a, $shift, $date);
+            $this->makeAvailable($c, $shift, $date);
+        }
+        PlanningRule::create(['type' => 'equal_workload']);
+        $hold = fn () => collect(['2026-09-15', '2026-09-16'])->each(fn (string $date) => ShiftAssignment::factory()->create([
+            'employee_id' => $a->id, 'workcenter_id' => $workcenter->id, 'shift_id' => $shift->id, 'date' => $date, 'fixed' => false,
+        ]));
+
+        // Control: with week 2 unpublished, the planner moves one shift to the second employee.
+        $hold();
+        $this->generator()->generate($this->makeRun());
+        $this->assertSame(1, ShiftAssignment::query()->where('employee_id', $c->id)->count());
+
+        ShiftAssignment::query()->delete();
+        $hold();
+        PublishedWeek::query()->create(['week_start' => '2026-09-14', 'workcenter_id' => $workcenter->id]);
+        $this->generator()->generate($this->makeRun());
+
+        $this->assertSame(2, ShiftAssignment::query()->where('employee_id', $a->id)->count());
+        $this->assertSame(0, ShiftAssignment::query()->where('employee_id', $c->id)->count());
+    }
+
+    public function test_the_open_spot_of_a_published_second_week_stays_empty_until_the_planner_is_allowed(): void
+    {
+        [$workcenter, $shift] = $this->workcenterWithOverride('2026-09-15'); // Tuesday of week 2
+        $employee = $this->eligibleEmployee($shift, '2026-09-15');
+        $week = PublishedWeek::query()->create(['week_start' => '2026-09-14', 'workcenter_id' => $workcenter->id]);
+
+        $run = $this->makeRun();
+        $this->generator()->generate($run);
+
+        $this->assertSame(0, ShiftAssignment::count());
+        $this->assertSame([], $run->refresh()->unfulfilled);
+
+        $week->update(['planner_open' => true]);
+        $this->generator()->generate($this->makeRun());
+
+        $this->assertDatabaseHas('shift_assignments', ['employee_id' => $employee->id, 'date' => '2026-09-15']);
+    }
 }

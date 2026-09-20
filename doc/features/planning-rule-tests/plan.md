@@ -1,6 +1,6 @@
 # Planning Rule Tests — Plan
 
-Status: in progress — 11/15
+Status: in progress — 12/15
 
 Each step is one commit on the `work` branch. Each rule step follows the
 same order: write the control and rule tests, see them fail, fix the
@@ -17,7 +17,7 @@ planner if a defect shows, and run the full suite.
 - [x] 9. `equal_workload`: absolute hours (not a percentage), fixed and published hours count, and coverage comes first.
 - [x] 10. `alternating_shift_pair`: second week against the generated first week, no preference for both or neither member, opposite shift satisfies the rule, unrelated shifts, severity conflict.
 - [x] 11. `SpotsAndLockingTest`, spots: weekday-default capacity, date overrides, the cycle bounds (first and last day, and which hours count toward the cap), archived workcenters, and a cell with fewer candidates than spots.
-- [ ] 12. `SpotsAndLockingTest`, locking: fixed and published assignments stay in place when the optimizer wants to move them, and the second week of a cycle is locked and frozen.
+- [x] 12. `SpotsAndLockingTest`, locking: the second week of a cycle is locked and frozen. Fixed and published rows staying in place under fairness pressure landed in step 9.
 - [ ] 13. `SpotsAndLockingTest`, result: the run records `removed` changes, and created rows are not fixed.
 - [ ] 14. `ObjectiveTiersTest`: coverage before fairness, fairness before soft rules, the optimizer uses fill, relocate, and swap moves, and a fill move that raises the highest hour total still wins (the `W1` and `W2` weight mutants survived step 9).
 - [ ] 15. Run the one-off mutation script. Add a test or fix for each surviving rule mutant. Report the result and each planner fix.
