@@ -1,6 +1,6 @@
 # Planning Rule Tests — Plan
 
-Status: in progress — 7/15
+Status: in progress — 8/15
 
 Each step is one commit on the `work` branch. Each rule step follows the
 same order: write the control and rule tests, see them fail, fix the
@@ -13,7 +13,7 @@ planner if a defect shows, and run the full suite.
 - [x] 5. `max_shifts_per_day`: hard (exclusion, exact limit, unfulfilled reason) and soft (control and rule, cost for each shift over).
 - [x] 6. `competence_required`: hard (exclusion, two competences on one workcenter, unfulfilled reason) and soft (control and rule, severity conflict).
 - [x] 7. `business_line_preference`: hard (exclusion, unfulfilled reason) and soft (control and rule, severity conflict).
-- [ ] 8. `not_preferred_shift`, soft: control and rule, coverage before the rule, severity conflict.
+- [x] 8. `not_preferred_shift`, soft: control and rule, coverage before the rule, severity conflict.
 - [ ] 9. `equal_workload`: absolute hours (not a percentage), fixed and published hours count, and coverage comes first.
 - [ ] 10. `alternating_shift_pair`: second week against the generated first week, no preference for both or neither member, opposite shift satisfies the rule, unrelated shifts, severity conflict.
 - [ ] 11. `SpotsAndLockingTest`, spots: weekday-default capacity, last day of the cycle, and archived workcenters.
