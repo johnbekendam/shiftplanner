@@ -28,3 +28,10 @@ Status: done — 4/4
 - [x] 4. Extend the same export page and endpoints with a complete,
   version-2 application archive, preserve version-1 imports, and document
   the included data and credential boundary.
+## Completeness fixes
+
+Status: done — 3/3
+
+- [x] 1. Add a test that compares the archive tables with the schema.
+- [x] 2. Clear `plan_generation_runs` on import and list it as excluded.
+- [x] 3. Reset PostgreSQL ID sequences after a version 2 import.
