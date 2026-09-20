@@ -58,7 +58,7 @@ const rows = computed(() => [...props.assignments]
 
 <template>
     <p v-if="!rows.length" class="text-sm text-(--color-text-secondary)">{{ emptyText }}</p>
-    <table v-else class="w-full text-left text-sm">
+    <table v-else class="w-full text-left text-xs">
         <thead>
             <tr class="border-b border-(--color-table-header-separator) text-(--color-text-secondary)">
                 <th class="px-2 py-2 font-medium">{{ __('planning.table.week') }}</th>
