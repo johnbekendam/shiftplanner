@@ -375,17 +375,17 @@ onBeforeUnmount(() => {
             ref="panelRef"
             data-testid="assign-popover"
             :style="panelStyle"
-            class="fixed z-50 w-48 rounded-md border border-(--color-dropdown-panel-border) bg-(--color-dropdown-panel-bg) p-2 shadow-lg"
+            class="fixed z-50 w-max min-w-48 max-w-[calc(100vw-2rem)] rounded-md border border-(--color-dropdown-panel-border) bg-(--color-dropdown-panel-bg) p-2 shadow-lg"
         >
             <SearchInput v-model="searchTerm" class="w-full" />
-            <ul class="mt-1 max-h-40 overflow-y-auto">
+            <ul data-testid="assign-list" class="mt-1 max-h-40 overflow-y-auto">
                 <li v-for="employee in filteredEligible" :key="employee.id">
                     <button
                         type="button"
                         class="flex w-full items-center justify-between gap-1 rounded px-1 py-1 text-left hover:bg-(--color-dropdown-option-hover-bg)"
                         @click="assign(employee)"
                     >
-                        <span>{{ employee.name }}</span>
+                        <span class="whitespace-nowrap">{{ employee.name }}</span>
                         <span class="flex shrink-0 items-center gap-1">
                             <span v-if="employee.not_preferred" data-testid="not-preferred-icon" class="contents">
                                 <Icon name="exclamation-triangle" class="size-3 text-(--color-badge-warning-text)" />
@@ -398,6 +398,12 @@ onBeforeUnmount(() => {
                 </li>
                 <li v-if="!filteredEligible.length" class="px-1 py-1 text-(--color-text-secondary)">
                     {{ __('scheduling.no_eligible_employees') }}
+                </li>
+            </ul>
+            <!-- Invisible copy of the full list: the panel is as wide as the longest name, however the search filters. -->
+            <ul data-testid="assign-sizer" aria-hidden="true" class="invisible h-0 overflow-hidden">
+                <li v-for="employee in eligible" :key="employee.id" class="whitespace-nowrap pl-1 pr-8">
+                    {{ employee.name }}
                 </li>
             </ul>
         </div>

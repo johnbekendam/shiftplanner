@@ -38,6 +38,7 @@ vi.mock("@/composables/useI18n", () => ({
     useI18n: () => (key) => en[key] ?? key,
 }));
 
+import { SearchInput } from "@/components/ui/Input";
 import ShiftWeekTable from "@/components/scheduling/ShiftWeekTable.vue";
 
 // A week of cells (Mon 14 .. Sun 20). Mon: 2 spots, 1 assigned (1 open row).
@@ -222,6 +223,42 @@ describe("ShiftWeekTable", () => {
             { employee_id: 3, workcenter_id: 1, shift_id: 9, date: "2026-09-17" },
         ]);
         expect(bodyWrapper().find('[data-testid="assign-popover"]').exists()).toBe(false);
+        w.unmount();
+    });
+
+    const openPopoverWith = async (names) => {
+        axiosGet.mockResolvedValue({ data: names.map((name, i) => ({ id: i + 1, name, not_preferred: false })) });
+        const w = mountTable();
+        await w.get('[data-testid="cell-9-2026-09-17-0"] button').trigger("click");
+        await flushPromises();
+
+        return w;
+    };
+
+    it("sizes the assign popover to its content and keeps names on one line", async () => {
+        const w = await openPopoverWith(["Maria Alexandra van der Westhuizen-Oosterhoutstraat"]);
+        const popover = bodyWrapper().get('[data-testid="assign-popover"]');
+
+        expect(popover.classes()).toContain("w-max");
+        expect(popover.classes()).toContain("min-w-48");
+        expect(popover.classes()).not.toContain("w-48");
+        expect(popover.get('[data-testid="assign-list"] li button span').classes()).toContain("whitespace-nowrap");
+        w.unmount();
+    });
+
+    it("keeps the popover width steady while the search narrows the list", async () => {
+        const w = await openPopoverWith(["Els de Vries", "Bram Bakker"]);
+        const list = () => bodyWrapper().get('[data-testid="assign-list"]');
+        const sizer = () => bodyWrapper().get('[data-testid="assign-sizer"]');
+        expect(list().findAll("li")).toHaveLength(2);
+
+        w.findComponent(SearchInput).vm.$emit("update:modelValue", "Els");
+        await flushPromises();
+
+        expect(list().findAll("li")).toHaveLength(1);
+        // A hidden copy of the full list keeps the width the same.
+        expect(sizer().attributes("aria-hidden")).toBe("true");
+        expect(sizer().findAll("li").map((li) => li.text())).toEqual(["Els de Vries", "Bram Bakker"]);
         w.unmount();
     });
 
