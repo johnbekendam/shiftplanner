@@ -50,8 +50,8 @@ const rows = computed(() => [...props.assignments]
         <thead>
             <tr class="border-b border-(--color-table-header-separator) text-(--color-text-secondary)">
                 <th class="px-2 py-2 font-medium">{{ __('planning.table.week') }}</th>
-                <th class="px-2 py-2 font-medium">{{ __('planning.table.day') }}</th>
                 <th class="px-2 py-2 font-medium">{{ __('planning.table.date') }}</th>
+                <th class="px-2 py-2 font-medium">{{ __('planning.table.day') }}</th>
                 <th class="px-2 py-2 font-medium">{{ __('planning.table.shift') }}</th>
                 <th class="px-2 py-2 font-medium">{{ __('planning.table.workcenter') }}</th>
                 <th class="px-2 py-2 font-medium">{{ __('planning.table.responsible') }}</th>
@@ -60,8 +60,8 @@ const rows = computed(() => [...props.assignments]
         <tbody class="divide-y divide-(--color-table-row-separator)">
             <tr v-for="(row, i) in rows" :key="i">
                 <td class="px-2 py-2">{{ row.week }}</td>
-                <td class="px-2 py-2">{{ row.day }}</td>
                 <td class="px-2 py-2">{{ row.date }}</td>
+                <td class="px-2 py-2">{{ row.day }}</td>
                 <td class="px-2 py-2">{{ row.shift }}</td>
                 <td class="px-2 py-2">{{ row.workcenter }}</td>
                 <td class="px-2 py-2">{{ row.responsible }}</td>

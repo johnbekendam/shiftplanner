@@ -9,8 +9,8 @@ The Planning tab on the employee edit page and on the employee's own page shows 
 On the employee edit page, show two tables on the Planning tab: one for published planning and one for draft planning. The employee's own page shows one table, because it only holds published planning. Each table has these columns:
 
 1. Week number (ISO week)
-2. Day of the week
-3. Date (`dd-mm-yyyy`)
+2. Date (`dd-mm-yyyy`)
+3. Day of the week
 4. Shift (name)
 5. Workcenter
 6. Contact person (see `doc/features/workcenter-responsible/`)
