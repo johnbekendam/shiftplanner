@@ -14,6 +14,10 @@ enum MessageType: string
 
     case Custom = 'custom';
 
+    // Lists the employee's upcoming published shifts; sending it marks them
+    // informed (features/planning-notifications/).
+    case Planning = 'planning';
+
     // Account login-links (features/login-links/): system-triggered, never
     // manually composed — see composable() below.
     case UserInvite = 'user_invite';
@@ -29,7 +33,7 @@ enum MessageType: string
     public function composable(): bool
     {
         return match ($this) {
-            self::PersonalPageLink, self::Custom => true,
+            self::PersonalPageLink, self::Custom, self::Planning => true,
             self::UserInvite, self::UserLoginLink => false,
         };
     }

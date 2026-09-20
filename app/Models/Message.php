@@ -19,6 +19,7 @@ class Message extends Model
         'subject',
         'body',
         'body_html',
+        'assignment_ids',
         'status',
         'sent_at',
     ];
@@ -27,6 +28,7 @@ class Message extends Model
     {
         return [
             'type' => MessageType::class,
+            'assignment_ids' => 'array',
             'sent_at' => 'datetime',
         ];
     }
