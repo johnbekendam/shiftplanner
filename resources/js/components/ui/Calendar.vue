@@ -15,7 +15,12 @@
         <!-- Body -->
         <div class="p-4">
             <!-- Weekday headers -->
-            <div class="mb-4 grid grid-cols-7 justify-items-center gap-x-0 gap-y-1 border-b border-(--color-card-border)">
+            <div
+                data-testid="calendar-weekday-header"
+                :class="['mb-4 grid justify-items-center gap-x-0 gap-y-1 border-b border-(--color-card-border)', GRID_COLUMNS]"
+            >
+                <!-- Blank cell above the week numbers -->
+                <div></div>
                 <button
                     v-for="(letter, i) in weekdayLetters"
                     :key="'wd-' + i"
@@ -40,9 +45,15 @@
                     v-for="(week, wi) in weeks"
                     :key="'week-' + wi"
                     :data-testid="'calendar-week-' + wi"
-                    class="grid grid-cols-7 justify-items-center gap-x-0 border-l-4 pl-0.5"
-                    :class="isWeekMarked(week) ? weekMarkerBorderClass : 'border-transparent'"
+                    class="grid items-center justify-items-center gap-x-0 border-l-4 pl-0.5"
+                    :class="[GRID_COLUMNS, isWeekMarked(week) ? weekMarkerBorderClass : 'border-transparent']"
                 >
+                    <span
+                        :data-testid="'calendar-week-number-' + wi"
+                        class="text-xs text-(--color-text-muted)"
+                    >
+                        {{ weekNumber(week) }}
+                    </span>
                     <template v-for="(cell, ci) in week" :key="ci">
                         <div v-if="cell.type === 'pad'"></div>
                         <button
@@ -109,6 +120,9 @@ const BORDER_CLASS = {
     standard: 'border-(--color-badge-standard-border)',
     muted: 'border-(--color-badge-muted-border)',
 }
+
+// A narrow week-number column, then the seven days.
+const GRID_COLUMNS = 'grid-cols-[1.75rem_repeat(7,minmax(0,1fr))]'
 
 const props = defineProps({
     year: { type: Number, required: true },
@@ -192,6 +206,15 @@ const weeks = computed(() => {
 })
 
 const weekMarkerBorderClass = computed(() => BORDER_CLASS[props.weekMarkerColor] ?? '')
+
+// ISO 8601 week number of a week row: the week containing its Thursday.
+function weekNumber(week) {
+    const first = week.find((cell) => cell.type === 'day')
+    const date = new Date(props.year, props.month - 1, first.day)
+    date.setDate(date.getDate() + 3 - ((date.getDay() + 6) % 7))
+    const firstThursday = new Date(date.getFullYear(), 0, 4)
+    return 1 + Math.round(((date - firstThursday) / 86400000 - 3 + ((firstThursday.getDay() + 6) % 7)) / 7)
+}
 
 function isWeekMarked(week) {
     return week.some((cell) => cell.type === 'day' && props.weekMarkerDays[cell.day])

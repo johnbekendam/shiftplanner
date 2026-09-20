@@ -129,4 +129,54 @@ describe("Calendar", () => {
 
         expect(row.className).toContain("border-(--color-btn-danger-bg)");
     });
+
+    // ── Week numbers ────────────────────────────────────────────────────
+
+    const weekNumbers = (w) =>
+        w.findAll('[data-testid^="calendar-week-number-"]').map((cell) => cell.text());
+
+    it("shows the ISO week number in front of every week row", () => {
+        const w = mount(Calendar, { props: { year: 2026, month: 9 } });
+
+        expect(weekNumbers(w)).toEqual(["36", "37", "38", "39", "40"]);
+    });
+
+    it("counts a week that starts in the previous year as week 53", () => {
+        // 1 Jan 2027 is a Friday, so the first row belongs to ISO week 53 of 2026.
+        const w = mount(Calendar, { props: { year: 2027, month: 1 } });
+
+        expect(weekNumbers(w)).toEqual(["53", "1", "2", "3", "4"]);
+    });
+
+    it("counts a week that ends in the next year as week 1", () => {
+        // Mon 29 Dec 2025 starts ISO week 1 of 2026.
+        const w = mount(Calendar, { props: { year: 2025, month: 12 } });
+
+        expect(weekNumbers(w).at(-1)).toBe("1");
+    });
+
+    it("shows the same number for a week that crosses a month boundary in both months", () => {
+        const september = mount(Calendar, { props: { year: 2026, month: 9 } });
+        const october = mount(Calendar, { props: { year: 2026, month: 10 } });
+
+        expect(weekNumbers(september).at(-1)).toBe("40");
+        expect(weekNumbers(october)[0]).toBe("40");
+    });
+
+    it("shows the week number as a label, not a button", () => {
+        const w = mount(Calendar, { props: { year: 2026, month: 9 } });
+        const cell = w.get('[data-testid="calendar-week-number-0"]');
+
+        expect(cell.element.tagName).not.toBe("BUTTON");
+        expect(cell.element.closest("button")).toBeNull();
+    });
+
+    it("keeps the weekday headers aligned with a blank cell above the week numbers", () => {
+        const w = mount(Calendar, { props: { year: 2026, month: 9 } });
+        const header = w.get('[data-testid="calendar-weekday-header"]');
+
+        expect(header.element.children).toHaveLength(8);
+        expect(header.element.children[0].textContent.trim()).toBe("");
+        expect(header.findAll("button")).toHaveLength(7);
+    });
 });
