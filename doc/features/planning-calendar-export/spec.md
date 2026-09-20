@@ -6,7 +6,7 @@ An employee sees planned shifts on the personal page. The employee must copy eac
 
 ## Solution
 
-Each row of the planning table opens a shift card when the user clicks it. The card shows the week, date, day, shift, working hours, workcenter, and contact. On the personal page, the card has an **Add to calendar** button. The button downloads an `.ics` file with one event for that shift. The employee opens the file to add the event to any calendar app.
+Each row of the planning table opens a shift card when the user clicks it. The card shows the week, day, shift, date, working hours, workcenter, and contact. On the personal page, the card has an **Add to calendar** button. The button downloads an `.ics` file with one event for that shift. The employee opens the file to add the event to any calendar app.
 
 The event has these fields:
 

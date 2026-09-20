@@ -44,12 +44,12 @@ defineEmits(['close', 'add-to-calendar'])
                     <dl class="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 px-6 py-5 text-sm">
                         <dt class="text-(--color-text-secondary)">{{ __('planning.table.week') }}</dt>
                         <dd data-testid="shift-detail-week">{{ row.week }}</dd>
-                        <dt class="text-(--color-text-secondary)">{{ __('planning.table.date') }}</dt>
-                        <dd data-testid="shift-detail-date">{{ row.date }}</dd>
                         <dt class="text-(--color-text-secondary)">{{ __('planning.table.day') }}</dt>
                         <dd data-testid="shift-detail-day">{{ row.day }}</dd>
                         <dt class="text-(--color-text-secondary)">{{ __('planning.table.shift') }}</dt>
                         <dd data-testid="shift-detail-shift">{{ row.shift }}</dd>
+                        <dt class="text-(--color-text-secondary)">{{ __('planning.table.date') }}</dt>
+                        <dd data-testid="shift-detail-date">{{ row.date }}</dd>
                         <dt class="text-(--color-text-secondary)">{{ __('planning.details.hours') }}</dt>
                         <dd data-testid="shift-detail-hours">{{ row.hours }}</dd>
                         <dt class="text-(--color-text-secondary)">{{ __('planning.table.workcenter') }}</dt>

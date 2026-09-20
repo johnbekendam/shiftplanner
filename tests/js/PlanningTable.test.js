@@ -72,6 +72,15 @@ describe("PlanningTable", () => {
         expect(dialog.text()).toContain("Jane Doe");
     });
 
+    it("lists the card fields as week, day, shift, date, hours, workcenter, contact", async () => {
+        const w = mountTable();
+
+        await w.findAll("tbody tr")[0].trigger("click");
+
+        const labels = w.get('[role="dialog"]').findAll("dt").map((dt) => dt.text());
+        expect(labels).toEqual(["Week", "Day", "Shift", "Date", "Working hours", "Workcenter", "Contact"]);
+    });
+
     it("opens the card from the keyboard", async () => {
         const w = mountTable();
 
