@@ -58,7 +58,7 @@ const form = useForm({
 
 const plannedAssignments = computed(() => props.plannedShifts.flatMap((week) => week.assignments))
 
-const tab = ref('information')
+const tab = ref(plannedAssignments.value.length ? 'planning' : 'information')
 const tabs = computed(() => [
     { value: 'information', label: __('availability.tab.information') },
     { value: 'details', label: __('availability.tab.details'), hasError: registry.hasError('personal') },

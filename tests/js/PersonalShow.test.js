@@ -433,6 +433,28 @@ describe("Personal/Show", () => {
         expect(cells).toEqual(["37", "Tuesday", "08-09-2026", "Early", "Line 1", "Jane Doe"]);
     });
 
+    it("opens on the Planning tab when planned shifts exist", () => {
+        const plannedShifts = [{
+            weekStart: "2026-09-07",
+            weekEnd: "2026-09-13",
+            assignments: [{
+                date: "2026-09-08", workcenter_name: "Line 1", shift_name: "Early",
+                start_time: "06:00", end_time: "14:00", published: true,
+            }],
+        }];
+        const w = mountShow([], { plannedShifts });
+
+        expect(hidden(w, '[data-testid="panel-planning"]')).toBe(false);
+        expect(hidden(w, '[data-testid="panel-information"]')).toBe(true);
+    });
+
+    it("opens on the Information tab when there are no planned shifts", () => {
+        const w = mountShow([], { plannedShifts: [] });
+
+        expect(hidden(w, '[data-testid="panel-planning"]')).toBe(true);
+        expect(hidden(w, '[data-testid="panel-information"]')).toBe(false);
+    });
+
     it("renders the shift note on the Information tab when set", () => {
         const w = mountShow([], { shiftNoteHtml: "<p>Allowances table here</p>" });
         const note = w.findComponent(ShiftNote);
