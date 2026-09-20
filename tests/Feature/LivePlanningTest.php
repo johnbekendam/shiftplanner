@@ -116,7 +116,9 @@ class LivePlanningTest extends TestCase
         $this->get("/live/{$workcenter->live_token}")->assertInertia(fn ($page) => $page
             ->has('weeks', 2)
             ->where('weeks.0.weekStart', self::THIS_WEEK)
+            ->where('weeks.0.weekNumber', 39)
             ->where('weeks.1.weekStart', self::NEXT_WEEK)
+            ->where('weeks.1.weekNumber', 40)
             ->where('today', '2026-09-23'));
     }
 

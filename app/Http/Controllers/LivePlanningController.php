@@ -56,13 +56,14 @@ class LivePlanningController extends Controller
         ]);
     }
 
-    /** @return array{weekStart: string, published: bool, days: array, shifts: array} */
+    /** @return array{weekStart: string, weekNumber: int, published: bool, days: array, shifts: array} */
     private function week(Workcenter $workcenter, Carbon $weekStart, bool $published): array
     {
         $days = collect(range(0, self::DAY_COUNT - 1))->map(fn (int $i) => $weekStart->copy()->addDays($i));
 
         return [
             'weekStart' => $weekStart->toDateString(),
+            'weekNumber' => $weekStart->isoWeek,
             'published' => $published,
             'days' => $days->map->toDateString()->all(),
             'shifts' => $published ? $this->shifts($workcenter, $days) : [],
