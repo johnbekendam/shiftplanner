@@ -5,7 +5,7 @@ import { useI18n } from '@/composables/useI18n'
 const __ = useI18n()
 
 const props = defineProps({
-    // [{ date, workcenter_name, ... }] — flat list of assignments, any order.
+    // [{ date, workcenter_name, responsible, ... }] — flat list of assignments, any order.
     assignments: { type: Array, default: () => [] },
     emptyText: { type: String, required: true },
 })
@@ -38,6 +38,7 @@ const rows = computed(() => [...props.assignments]
             day: date.toLocaleDateString('en-US', { weekday: 'long' }),
             date: formatDate(date),
             workcenter: assignment.workcenter_name,
+            responsible: assignment.responsible || '-',
         }
     }))
 </script>
@@ -60,7 +61,7 @@ const rows = computed(() => [...props.assignments]
                 <td class="px-2 py-2">{{ row.day }}</td>
                 <td class="px-2 py-2">{{ row.date }}</td>
                 <td class="px-2 py-2">{{ row.workcenter }}</td>
-                <td class="px-2 py-2">-</td>
+                <td class="px-2 py-2">{{ row.responsible }}</td>
             </tr>
         </tbody>
     </table>

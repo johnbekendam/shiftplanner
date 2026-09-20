@@ -423,14 +423,14 @@ describe("Personal/Show", () => {
             weekStart: "2026-09-07",
             weekEnd: "2026-09-13",
             assignments: [{
-                date: "2026-09-08", workcenter_name: "Line 1", shift_name: "Early",
+                date: "2026-09-08", workcenter_name: "Line 1", responsible: "Jane Doe", shift_name: "Early",
                 start_time: "06:00", end_time: "14:00", published: true,
             }],
         }];
         const w = mountShow([], { plannedShifts });
 
         const cells = w.get('[data-testid="panel-planning"]').findAll("tbody tr td").map((td) => td.text());
-        expect(cells).toEqual(["37", "Tuesday", "08-09-2026", "Line 1", "-"]);
+        expect(cells).toEqual(["37", "Tuesday", "08-09-2026", "Line 1", "Jane Doe"]);
     });
 
     it("renders the shift note on the Information tab when set", () => {

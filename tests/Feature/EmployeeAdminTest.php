@@ -290,7 +290,7 @@ class EmployeeAdminTest extends TestCase
     {
         $user = User::factory()->create();
         $employee = Employee::factory()->create();
-        $workcenter = Workcenter::factory()->create(['name' => 'Line 1']);
+        $workcenter = Workcenter::factory()->create(['name' => 'Line 1', 'responsible' => 'Jane Doe']);
         $shift = Shift::factory()->create(['name' => 'Early', 'start_time' => '06:00', 'end_time' => '14:00']);
         ShiftAssignment::factory()->create([
             'employee_id' => $employee->id, 'workcenter_id' => $workcenter->id, 'shift_id' => $shift->id,
@@ -307,6 +307,7 @@ class EmployeeAdminTest extends TestCase
                 ->has('plannedShifts', 2)
                 ->where('plannedShifts.0.weekStart', '2026-09-07')
                 ->where('plannedShifts.0.assignments.0.published', true)
+                ->where('plannedShifts.0.assignments.0.responsible', 'Jane Doe')
                 ->where('plannedShifts.1.weekStart', '2026-09-14')
                 ->where('plannedShifts.1.assignments.0.published', false)
             );

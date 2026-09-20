@@ -54,6 +54,7 @@ class PlannedShifts
                     'assignments' => $group->map(fn (ShiftAssignment $a) => [
                         'date' => $a->date->toDateString(),
                         'workcenter_name' => $a->workcenter->name,
+                        'responsible' => $a->workcenter->responsible,
                         'shift_name' => $a->shift->name,
                         'start_time' => $a->shift->start_time,
                         'end_time' => $a->shift->end_time,

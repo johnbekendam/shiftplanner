@@ -139,7 +139,7 @@ describe("Employees/Form", () => {
             {
                 weekStart: "2026-09-07", weekEnd: "2026-09-13",
                 assignments: [{
-                    date: "2026-09-08", workcenter_name: "Line 1", shift_name: "Early",
+                    date: "2026-09-08", workcenter_name: "Line 1", responsible: "Jane Doe", shift_name: "Early",
                     start_time: "06:00", end_time: "14:00", published: true,
                 }],
             },
@@ -161,7 +161,7 @@ describe("Employees/Form", () => {
 
         const published = tables[0].findAll("tbody tr");
         expect(published).toHaveLength(1);
-        expect(published[0].findAll("td").map((td) => td.text())).toEqual(["37", "Tuesday", "08-09-2026", "Line 1", "-"]);
+        expect(published[0].findAll("td").map((td) => td.text())).toEqual(["37", "Tuesday", "08-09-2026", "Line 1", "Jane Doe"]);
 
         const draft = tables[1].findAll("tbody tr");
         expect(draft).toHaveLength(1);

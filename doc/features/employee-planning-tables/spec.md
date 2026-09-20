@@ -21,7 +21,7 @@ Rows are sorted by date. An empty table shows a short "none" message.
 - Split published and draft in the browser. The controller already sends a `published` flag for each assignment.
 - Add one `PlanningTable` component and use it on both pages.
 - Delete `PlannedShiftsList` and its test. Nothing uses it after this change.
-- The responsible-person column is a placeholder. It shows `-` until the workcenter responsible feature exists.
+- The responsible-person column started as a placeholder. `doc/features/workcenter-responsible/` fills it.
 
 ## Non-goals
 
