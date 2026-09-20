@@ -465,4 +465,72 @@ class SpotsAndLockingTest extends TestCase
 
         $this->assertDatabaseHas('shift_assignments', ['employee_id' => $employee->id, 'date' => '2026-09-15']);
     }
+
+    // ── Recorded result ─────────────────────────────────────────────────
+
+    public function test_a_created_assignment_is_recorded_as_added_and_is_not_fixed(): void
+    {
+        [$workcenter, $shift] = $this->workcenterWithOverride('2026-09-08');
+        $employee = $this->eligibleEmployee($shift, '2026-09-08');
+
+        $run = $this->makeRun();
+        $this->generator()->generate($run);
+
+        $this->assertDatabaseHas('shift_assignments', ['employee_id' => $employee->id, 'date' => '2026-09-08', 'fixed' => false]);
+        $this->assertSame([[
+            'type' => 'added', 'employee_id' => $employee->id, 'workcenter_id' => $workcenter->id,
+            'shift_id' => $shift->id, 'date' => '2026-09-08',
+        ]], $run->refresh()->changes);
+    }
+
+    public function test_a_moved_shift_is_recorded_as_one_removed_and_one_added_change(): void
+    {
+        [$workcenter, $shift] = $this->workcenterWithOverride('2026-09-08');
+        $this->openDay($workcenter, $shift, '2026-09-09');
+        $a = $this->employee();
+        $c = $this->employee();
+        $originals = [];
+        foreach (['2026-09-08', '2026-09-09'] as $date) {
+            $this->makeAvailable($a, $shift, $date);
+            $this->makeAvailable($c, $shift, $date);
+            $originals[] = ShiftAssignment::factory()->create([
+                'employee_id' => $a->id, 'workcenter_id' => $workcenter->id, 'shift_id' => $shift->id, 'date' => $date, 'fixed' => false,
+            ])->id;
+        }
+        PlanningRule::create(['type' => 'equal_workload']);
+
+        $run = $this->makeRun();
+        $this->generator()->generate($run);
+
+        $changes = collect($run->refresh()->changes);
+        $this->assertCount(2, $changes);
+        $removed = $changes->firstWhere('type', 'removed');
+        $added = $changes->firstWhere('type', 'added');
+        $this->assertSame($a->id, $removed['employee_id']);
+        $this->assertSame($c->id, $added['employee_id']);
+        $this->assertSame($removed['date'], $added['date']);
+        $this->assertSame([$workcenter->id, $shift->id], [$removed['workcenter_id'], $removed['shift_id']]);
+
+        // The removed row is gone, the other one keeps its id, and the new row is not fixed.
+        $this->assertDatabaseMissing('shift_assignments', ['employee_id' => $a->id, 'date' => $removed['date']]);
+        $kept = ShiftAssignment::query()->where('employee_id', $a->id)->firstOrFail();
+        $this->assertContains($kept->id, $originals);
+        $this->assertDatabaseHas('shift_assignments', ['employee_id' => $c->id, 'date' => $added['date'], 'fixed' => false]);
+    }
+
+    public function test_an_assignment_the_planner_keeps_is_not_recreated(): void
+    {
+        [$workcenter, $shift] = $this->workcenterWithOverride('2026-09-08');
+        $employee = $this->eligibleEmployee($shift, '2026-09-08');
+        $existing = ShiftAssignment::factory()->create([
+            'employee_id' => $employee->id, 'workcenter_id' => $workcenter->id, 'shift_id' => $shift->id,
+            'date' => '2026-09-08', 'fixed' => false,
+        ]);
+
+        $run = $this->makeRun();
+        $this->generator()->generate($run);
+
+        $this->assertSame([$existing->id], ShiftAssignment::query()->pluck('id')->all());
+        $this->assertSame([], $run->refresh()->changes);
+    }
 }
