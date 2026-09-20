@@ -11,6 +11,7 @@ use App\Models\MessageTemplate;
 use App\Models\User;
 use App\Services\MessageComposer;
 use App\Services\MessagePlaceholders;
+use App\Services\UninformedPlanning;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -26,6 +27,7 @@ class MailboxController extends Controller
     public function __construct(
         private MessageComposer $composer,
         private MessagePlaceholders $placeholders,
+        private UninformedPlanning $planning,
     ) {}
 
     public function index(Request $request)
@@ -227,6 +229,9 @@ class MailboxController extends Controller
                 'subject' => $subject,
                 'body' => $body,
                 'body_html' => new ComposedMessage($subject, $fragment, logoSrc: ComposedMessage::browserLogoUrl())->render(),
+                'assignment_ids' => $type === MessageType::Planning && str_contains($data['body'], ':planning')
+                    ? $this->planningAssignmentIds($recipient)
+                    : null,
                 'status' => $status,
             ]);
 
@@ -238,6 +243,14 @@ class MailboxController extends Controller
         $key = $status === 'outbox' ? 'mailbox.flash.queued' : 'mailbox.flash.drafts_created';
 
         return redirect()->back()->with('success', __($key, ['count' => $sendable->count()]));
+    }
+
+    /** The upcoming published shifts a Planning message lists for this recipient. */
+    private function planningAssignmentIds(Employee|User $recipient): array
+    {
+        $employee = $recipient instanceof Employee ? $recipient : $recipient->employee;
+
+        return $employee ? $this->planning->upcomingFor($employee)->pluck('id')->all() : [];
     }
 
     public function updateTemplate(Request $request, MessageType $type)

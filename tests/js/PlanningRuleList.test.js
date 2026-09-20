@@ -6,6 +6,8 @@ const en = {
     "planning_rules.type.max_hours_per_week": "Max hours per week",
     "planning_rules.type.max_shifts_per_day": "Max shifts per day",
     "planning_rules.type.not_preferred_shift": "Not-preferred-shift assignment",
+    "planning_rules.type.equal_workload": "Equal workload",
+    "planning_rules.type.alternating_shift_pair": "Alternating shift pair",
     "planning_rules.type.competence_required": "Competence required",
     "planning_rules.type.business_line_preference": "Business-line preference",
     "planning_rules.mode": "Mode",
@@ -35,9 +37,10 @@ import { SelectInput, NumberInput } from "@/components/ui/Input";
 const workcenters = [{ id: 1, name: "Line 1" }];
 const competences = [{ id: 3, name: "Welding" }];
 const businessLines = [{ id: 5, abbreviation: "PMP" }, { id: 6, abbreviation: "VLV" }];
+const shifts = [{ id: 10, name: "Morning" }, { id: 11, name: "Evening" }];
 
 const mountList = (props = {}) => mount(PlanningRuleList, {
-    props: { items: [], workcenters, competences, businessLines, ...props },
+    props: { items: [], workcenters, competences, businessLines, shifts, ...props },
 });
 
 describe("PlanningRuleList", () => {
@@ -115,6 +118,52 @@ describe("PlanningRuleList", () => {
         await w.vm.$nextTick();
 
         expect(addSection.findAllComponents(NumberInput)).toHaveLength(1);
+    });
+
+    it("adds equal_workload without mode or severity controls", async () => {
+        const w = mountList();
+        const addSection = w.get('[data-testid="planning-rule-add"]');
+        addSection.findComponent(SelectInput).vm.$emit("update:modelValue", "equal_workload");
+        await w.vm.$nextTick();
+
+        expect(addSection.findAllComponents(SelectInput)).toHaveLength(1);
+        expect(addSection.findAllComponents(NumberInput)).toHaveLength(0);
+
+        await addSection.findAll("button").find((b) => b.text() === "Add rule").trigger("click");
+        expect(w.emitted("update:items").at(-1)[0][0]).toMatchObject({
+            type: "equal_workload",
+            mode: null,
+            severity: null,
+            config: {},
+        });
+    });
+
+    it("adds an alternating shift pair with soft severity", async () => {
+        const w = mountList();
+        const addSection = w.get('[data-testid="planning-rule-add"]');
+        addSection.findComponent(SelectInput).vm.$emit("update:modelValue", "alternating_shift_pair");
+        await w.vm.$nextTick();
+
+        const selects = addSection.findAllComponents(SelectInput);
+        expect(selects).toHaveLength(3);
+        expect(selects[1].props("options")).toEqual([{ value: 10, label: "Morning" }, { value: 11, label: "Evening" }]);
+        selects[1].vm.$emit("update:modelValue", 10);
+        await w.vm.$nextTick();
+        expect(selects[2].props("options")).toEqual([{ value: 11, label: "Evening" }]);
+        selects[2].vm.$emit("update:modelValue", 11);
+        await w.vm.$nextTick();
+
+        expect(addSection.findAllComponents(NumberInput)).toHaveLength(1);
+        addSection.findAllComponents(NumberInput)[0].vm.$emit("update:modelValue", 8);
+        await w.vm.$nextTick();
+        await addSection.findAll("button").find((b) => b.text() === "Add rule").trigger("click");
+
+        expect(w.emitted("update:items").at(-1)[0][0]).toMatchObject({
+            type: "alternating_shift_pair",
+            mode: "soft",
+            severity: 8,
+            config: { first_shift_id: 10, second_shift_id: 11 },
+        });
     });
 
     it("uses a single business line for a workcenter", async () => {

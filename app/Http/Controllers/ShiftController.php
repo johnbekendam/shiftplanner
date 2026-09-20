@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\PlanningRule;
 use App\Models\PlanningSettings;
 use App\Models\Shift;
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class ShiftController extends Controller
 {
@@ -25,7 +27,18 @@ class ShiftController extends Controller
 
     public function destroy(Shift $shift)
     {
-        $shift->delete();
+        DB::transaction(function () use ($shift) {
+            PlanningRule::query()
+                ->where('type', 'alternating_shift_pair')
+                ->get()
+                ->filter(fn (PlanningRule $rule) => in_array($shift->id, [
+                    $rule->config['first_shift_id'] ?? null,
+                    $rule->config['second_shift_id'] ?? null,
+                ], true))
+                ->each->delete();
+
+            $shift->delete();
+        });
 
         return back()->with('success', __('shifts.flash.deleted'));
     }

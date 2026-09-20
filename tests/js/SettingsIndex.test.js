@@ -45,6 +45,7 @@ const en = {
     "business_lines.add_description_placeholder": "New business line",
     "settings.tab.workcenters": "Workcenters",
     "workcenters.name": "Name",
+    "workcenters.responsible": "Contact",
     "workcenters.list_empty": "No workcenters yet.",
     "workcenters.drag_handle": "Drag to reorder",
     "workcenters.delete": "Delete",
@@ -427,6 +428,29 @@ describe("Settings/Index", () => {
         expect(list.props("items")).toHaveLength(1);
     });
 
+    it("passes each workcenter's live URL to the list", () => {
+        const w = mountPage({
+            workcenters: [{ id: 3, name: "Line 1", position: 1, archived_at: null, shifts: [], live_url: "https://app.test/live/abc" }],
+        });
+
+        expect(w.findComponent(WorkcenterList).props("liveUrls")).toEqual({ 3: "https://app.test/live/abc" });
+    });
+
+    it("regenerates a live link with one POST and leaves the Workcenters tab clean", async () => {
+        const w = mountPage({
+            workcenters: [{ id: 3, name: "Line 1", position: 1, archived_at: null, shifts: [], live_url: "https://app.test/live/abc" }],
+        });
+
+        w.findComponent(WorkcenterList).vm.$emit("regenerate-live-link", 3);
+        await w.vm.$nextTick();
+
+        expect(routerCalls).toEqual([
+            ["post", "/settings/workcenters/3/live-token", {}, { preserveScroll: true, preserveState: true }],
+        ]);
+        const bar = w.get('[data-testid="panel-workcenters"]');
+        expect(bar.findAll("button").find((b) => b.text() === "Save").attributes("disabled")).toBeDefined();
+    });
+
     it("saves the read-only state of a competence", async () => {
         const w = mountPage({ competences: [{ id: 3, name: "Forklift", read_only: false }] });
         const panel = w.get('[data-testid="panel-competences"]');
@@ -475,7 +499,29 @@ describe("Settings/Index", () => {
         expect(routerCalls).toContainEqual([
             "put",
             "/settings/workcenters/3",
-            { name: "Line 1A", archived: false },
+            { name: "Line 1A", responsible: null, archived: false },
+        ]);
+    });
+
+    it("saves a changed responsible name via a PUT", async () => {
+        const w = mountPage({
+            workcenters: [{ id: 3, name: "Line 1", responsible: null, position: 1, archived_at: null, shifts: [] }],
+        });
+        w.findComponent(WorkcenterList).vm.$emit("update:items", [
+            { id: 3, name: "Line 1", responsible: "Jane Doe", position: 1, archived_at: null, shifts: [] },
+        ]);
+        await w.vm.$nextTick();
+
+        const bar = w.get('[data-testid="panel-workcenters"]');
+        const save = bar.findAll("button").find((b) => ["Save", "Saving…", "Saved"].includes(b.text()));
+        expect(save.attributes("disabled")).toBeUndefined();
+        await save.trigger("click");
+        await flushPromises();
+
+        expect(routerCalls).toContainEqual([
+            "put",
+            "/settings/workcenters/3",
+            { name: "Line 1", responsible: "Jane Doe", archived: false },
         ]);
     });
 
@@ -495,7 +541,7 @@ describe("Settings/Index", () => {
         expect(routerCalls).toContainEqual([
             "post",
             "/settings/workcenters",
-            { name: "Line 2", archived: false },
+            { name: "Line 2", responsible: null, archived: false },
         ]);
         expect(routerCalls.some((c) => c[0] === "delete" && c[1] === "/settings/workcenters/3")).toBe(true);
     });
@@ -536,7 +582,7 @@ describe("Settings/Index", () => {
         expect(routerCalls).toContainEqual([
             "put",
             "/settings/workcenters/3",
-            { name: "Line 1", archived: true },
+            { name: "Line 1", responsible: null, archived: true },
         ]);
     });
 

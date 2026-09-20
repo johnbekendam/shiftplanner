@@ -1,12 +1,15 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch, onBeforeUnmount } from 'vue'
 import { Head, router } from '@inertiajs/vue3'
 import AppLayout from '@/layouts/AppLayout.vue'
 import Card from '@/components/ui/Card.vue'
 import Calendar from '@/components/ui/Calendar.vue'
 import ButtonPrimary from '@/components/ui/ButtonPrimary.vue'
 import ButtonDanger from '@/components/ui/ButtonDanger.vue'
+import ButtonSecondary from '@/components/ui/ButtonSecondary.vue'
+import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 import WorkcenterScheduleCard from '@/components/scheduling/WorkcenterScheduleCard.vue'
+import GenerationChangeSummary from '@/components/scheduling/GenerationChangeSummary.vue'
 import { CheckboxInput } from '@/components/ui/Input'
 import { useI18n } from '@/composables/useI18n'
 import { postAsync, deleteAsync } from '@/utils/inertiaAsync'
@@ -22,9 +25,128 @@ const props = defineProps({
     date: { type: String, required: true }, // Y-m-d, the currently selected day
     weekStart: { type: String, required: true }, // Y-m-d, the Monday of the selected day's week
     weekCells: { type: Array, default: () => [] }, // { workcenter_id, shift_id, date, spots, overridden, assignments }
-    weekPublished: { type: Boolean, default: false },
-    publishedDays: { type: Object, default: () => ({}) }, // { [day]: true }, days in the visible month with a published week
+    publishedWorkcenterWeeks: { type: Array, default: () => [] }, // { workcenter_id, week_start, planner_open }, within the visible month
+    // Y-m-d, the Monday of the 2-week cycle containing weekStart, or null when no
+    // planning period start is configured yet (there's no anchor to compute cycles from).
+    cycleStart: { type: String, default: null },
+    // The most recent run of the viewed cycle, or null if none has ever run:
+    // { id, status: 'pending'|'running'|'done'|'failed', error: string|null,
+    //   changes: [{ type: 'added'|'removed', employee_id, employee_name, workcenter_name, shift_name, date }],
+    //   unfulfilled: [{ workcenter_id, shift_id, workcenter_name, shift_name, date, reason }] }.
+    // changes/unfulfilled are only ever populated once status is 'done'.
+    generationRun: { type: Object, default: null },
+    // { start, end } (Y-m-d) from Settings, or null until both are configured.
+    planningPeriod: { type: Object, default: null },
+    // { start, end } (Y-m-d) of the cycles Clear Planning covers, or null until the period is configured.
+    clearRange: { type: Object, default: null },
+    // { active, failedCount, firstError } across every cycle in the planning period,
+    // or null when the period isn't configured — drives the Generate button, since one
+    // click now generates every cycle in the period at once, not just the viewed one.
+    generationStatus: { type: Object, default: null },
+    // Employees with published shifts they were not told about (and no queued email yet):
+    // Send planning is only enabled when this is above zero.
+    uninformedCount: { type: Number, default: 0 },
 })
+
+const GENERATION_POLL_MS = 3000
+
+function isGenerationActive(status) {
+    return !!status?.active
+}
+
+function formatCycleDate(dateStr) {
+    const [y, m, d] = dateStr.split('-').map(Number)
+    return new Date(y, m - 1, d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+}
+
+const periodRangeLabel = computed(() => {
+    if (!props.planningPeriod) return ''
+    return `${formatCycleDate(props.planningPeriod.start)} – ${formatCycleDate(props.planningPeriod.end)}`
+})
+
+// Both actions open a ConfirmDialog first; the actual write only happens
+// once the manager confirms, then the dialog closes itself.
+const generateDialogOpen = ref(false)
+const clearDialogOpen = ref(false)
+const sendDialogOpen = ref(false)
+
+async function confirmGenerate() {
+    generateDialogOpen.value = false
+    await postAsync('/planning/generate').catch(() => {})
+}
+
+async function confirmSend() {
+    sendDialogOpen.value = false
+    await postAsync('/planning/send').catch(() => {})
+}
+
+async function confirmClear() {
+    clearDialogOpen.value = false
+    await deleteAsync('/planning/clear').catch(() => {})
+}
+
+// Clear Planning acts on its own range of cycles, whatever week is shown. When the shown
+// week is outside that range there is nothing on screen it could clear.
+const weekOutsideClearRange = computed(() =>
+    props.clearRange !== null
+        && (props.weekStart < props.clearRange.start || props.weekStart > props.clearRange.end),
+)
+
+const clearRangeLabel = computed(() => props.clearRange
+    ? `${formatCycleDate(props.clearRange.start)} – ${formatCycleDate(props.clearRange.end)}`
+    : '')
+
+const generateLabel = computed(() => {
+    if (isGenerationActive(props.generationStatus)) return __('planning.generating')
+    if (props.generationStatus?.failedCount > 0) return __('planning.generate_again')
+    return __('planning.generate')
+})
+
+const generationErrorMessage = computed(() => {
+    const status = props.generationStatus
+    if (!status || status.failedCount === 0) return null
+    let message = __('planning.generation_failed', { error: status.firstError })
+    if (status.failedCount > 1) message += __('planning.generation_failed_more', { count: status.failedCount - 1 })
+    return message
+})
+
+let pollTimer = null
+
+function stopGenerationPoll() {
+    if (pollTimer) {
+        clearTimeout(pollTimer)
+        pollTimer = null
+    }
+}
+
+// Self-perpetuating via onFinish, rather than relying solely on the watch
+// below picking up a "new" prop object with the same still-pending status —
+// keeps polling correctly even if a reload's response were ever reference-
+// equal to what's already there.
+function scheduleGenerationPoll() {
+    stopGenerationPoll()
+    pollTimer = setTimeout(() => {
+        router.reload({
+            only: ['generationStatus', 'weekCells', 'coverage', 'publishedWorkcenterWeeks', 'uninformedCount'],
+            preserveScroll: true,
+            preserveState: true,
+            onFinish: () => {
+                if (isGenerationActive(props.generationStatus)) scheduleGenerationPoll()
+            },
+        })
+    }, GENERATION_POLL_MS)
+}
+
+watch(
+    () => props.generationStatus,
+    (status) => {
+        if (isGenerationActive(status)) scheduleGenerationPoll()
+        else stopGenerationPoll()
+    },
+    { immediate: true },
+)
+
+onBeforeUnmount(stopGenerationPoll)
 
 const checkedWorkcenterIds = ref(props.workcenters.map((w) => w.id))
 const checkedShiftIds = ref(props.shifts.map((s) => s.id))
@@ -66,6 +188,56 @@ const legenda = computed(() => ({
     success: __('scheduling.legend_staffed'),
     warning: __('scheduling.legend_open_spots'),
 }))
+
+// Whether the next Generate run may fill this published week's open spots.
+function isPlannerOpen(workcenterId, weekStart) {
+    return props.publishedWorkcenterWeeks.some(
+        (p) => p.workcenter_id === workcenterId && p.week_start === weekStart && p.planner_open,
+    )
+}
+
+function isWorkcenterWeekPublished(workcenterId, weekStart) {
+    return props.publishedWorkcenterWeeks.some((p) => p.workcenter_id === workcenterId && p.week_start === weekStart)
+}
+
+// Same "relevant" idea dayStates uses (checked, checked shift, attached, spots > 0), just
+// asking "does this workcenter have anything relevant in this week" instead of "this day".
+function relevantWorkcenterIdsForWeek(weekStart) {
+    const weekEnd = addDays(weekStart, 6)
+    const ids = new Set()
+    for (const c of props.coverage) {
+        if (c.date < weekStart || c.date > weekEnd) continue
+        if (!checkedWorkcenterIds.value.includes(c.workcenter_id)) continue
+        if (!checkedShiftIds.value.includes(c.shift_id)) continue
+        ids.add(c.workcenter_id)
+    }
+    return [...ids]
+}
+
+// A week's calendar marker lights up only when every workcenter relevant to it (checked,
+// with checked-shift coverage that week) is published — mirrors dayStates' AND-aggregation
+// and "zero-relevant is muted, not vacuously true" rules above, just at week granularity.
+const weekMarkerDays = computed(() => {
+    const states = {}
+
+    for (let day = 1; day <= daysInMonth.value; day++) {
+        const dateStr = `${props.year}-${String(props.month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+        const monday = mondayOf(dateStr)
+        const relevantIds = relevantWorkcenterIdsForWeek(monday)
+        if (relevantIds.length && relevantIds.every((id) => isWorkcenterWeekPublished(id, monday))) {
+            states[day] = true
+        }
+    }
+    return states
+})
+
+function mondayOf(dateString) {
+    const [y, m, d] = dateString.split('-').map(Number)
+    const date = new Date(y, m - 1, d)
+    const offset = (date.getDay() + 6) % 7 // 0 = Monday
+    date.setDate(date.getDate() - offset)
+    return dateStr(date.getFullYear(), date.getMonth() + 1, date.getDate())
+}
 
 const selectedDay = computed(() => Number(props.date.split('-')[2]))
 
@@ -113,15 +285,6 @@ const visibleWorkcenters = computed(() =>
         .map((w) => ({ workcenter: w, schedule: scheduleFor(w.id) }))
         .filter(({ schedule }) => schedule.length > 0),
 )
-
-async function togglePublish() {
-    const url = `/planning/weeks/${props.weekStart}/publish`
-    if (props.weekPublished) {
-        await deleteAsync(url).catch(() => {})
-    } else {
-        await postAsync(url).catch(() => {})
-    }
-}
 </script>
 
 <template>
@@ -141,7 +304,7 @@ async function togglePublish() {
                     :legenda="legenda"
                     :enable-day-selection="true"
                     :enable-week-day-selection="false"
-                    :week-marker-days="publishedDays"
+                    :week-marker-days="weekMarkerDays"
                     week-marker-color="warning"
                     @change="onCalendarChange"
                 />
@@ -183,19 +346,89 @@ async function togglePublish() {
                 </div>
             </div>
 
-            <div v-if="workcenters.length" class="mt-4 flex items-center gap-3">
-                <ButtonDanger
-                    v-if="weekPublished"
+            <div class="mt-4 flex items-center gap-3">
+                <template v-if="planningPeriod">
+                    <ButtonSecondary
+                        type="button"
+                        data-testid="generate-plan-button"
+                        :disabled="isGenerationActive(generationStatus)"
+                        @click="generateDialogOpen = true"
+                    >
+                        {{ generateLabel }}
+                    </ButtonSecondary>
+                    <ButtonDanger
+                        type="button"
+                        data-testid="clear-plan-button"
+                        :disabled="isGenerationActive(generationStatus) || weekOutsideClearRange"
+                        :title="weekOutsideClearRange ? __('planning.clear_outside_range', { range: clearRangeLabel }) : undefined"
+                        @click="clearDialogOpen = true"
+                    >
+                        {{ __('planning.clear') }}
+                    </ButtonDanger>
+                </template>
+                <ButtonPrimary
                     type="button"
-                    data-testid="publish-week-button"
-                    @click="togglePublish"
+                    icon="envelope"
+                    data-testid="send-plan-button"
+                    :disabled="uninformedCount === 0"
+                    @click="sendDialogOpen = true"
                 >
-                    {{ weekPublished ? __('scheduling.unpublish') : __('scheduling.publish') }}
-                </ButtonDanger>
-                <ButtonPrimary v-else type="button" data-testid="publish-week-button" @click="togglePublish">
-                    {{ __('scheduling.publish') }}
+                    {{ __('planning.send') }}
                 </ButtonPrimary>
+                <span
+                    v-if="generationErrorMessage"
+                    data-testid="generation-error"
+                    class="text-sm text-(--color-badge-error-text)"
+                >
+                    {{ generationErrorMessage }}
+                </span>
             </div>
+
+            <ConfirmDialog
+                :open="generateDialogOpen"
+                :title="__('planning.generate_dialog.title')"
+                :confirm-label="__('planning.generate')"
+                variant="primary"
+                @confirm="confirmGenerate"
+                @cancel="generateDialogOpen = false"
+            >
+                <p>{{ __('planning.generate_dialog.body') }}</p>
+                <p class="mt-2 font-medium text-(--color-text-primary)">
+                    {{ __('planning.generate_dialog.period', { range: periodRangeLabel }) }}
+                </p>
+            </ConfirmDialog>
+
+            <ConfirmDialog
+                :open="sendDialogOpen"
+                :title="__('planning.send_dialog.title')"
+                :confirm-label="__('planning.send')"
+                variant="primary"
+                @confirm="confirmSend"
+                @cancel="sendDialogOpen = false"
+            >
+                <p>{{ __('planning.send_dialog.body') }}</p>
+                <p class="mt-2 font-medium text-(--color-text-primary)">
+                    {{ __('planning.send_dialog.count', { count: uninformedCount }) }}
+                </p>
+            </ConfirmDialog>
+
+            <ConfirmDialog
+                :open="clearDialogOpen"
+                :title="__('planning.clear_dialog.title')"
+                :confirm-label="__('planning.clear')"
+                variant="danger"
+                @confirm="confirmClear"
+                @cancel="clearDialogOpen = false"
+            >
+                {{ __('planning.clear_dialog.body') }}
+            </ConfirmDialog>
+
+            <GenerationChangeSummary
+                v-if="generationRun?.status === 'done' && generationRun.changes.length"
+                :key="generationRun.id"
+                :changes="generationRun.changes"
+                class="mt-4"
+            />
 
             <div v-if="visibleWorkcenters.length" class="mt-4 flex flex-col gap-4">
                 <WorkcenterScheduleCard
@@ -203,7 +436,10 @@ async function togglePublish() {
                     :key="workcenter.id"
                     :workcenter="workcenter"
                     :schedule="schedule"
-                    :week-published="weekPublished"
+                    :week-start="weekStart"
+                    :published="isWorkcenterWeekPublished(workcenter.id, weekStart)"
+                    :planner-open="isPlannerOpen(workcenter.id, weekStart)"
+                    :unfulfilled="generationRun?.status === 'done' ? generationRun.unfulfilled : []"
                 />
             </div>
         </div>

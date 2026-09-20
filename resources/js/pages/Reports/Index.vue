@@ -6,6 +6,7 @@ import Card from '@/components/ui/Card.vue'
 import CardSeparator from '@/components/ui/CardSeparator.vue'
 import Tabs from '@/components/ui/Tabs.vue'
 import ButtonPrimary from '@/components/ui/ButtonPrimary.vue'
+import UninformedPlanningReport from '@/components/UninformedPlanningReport.vue'
 import { SelectInput, CheckboxInput } from '@/components/ui/Input'
 import { useI18n } from '@/composables/useI18n'
 
@@ -15,15 +16,20 @@ const props = defineProps({
     employees: { type: Array, default: () => [] }, // { id, name, business_line, weekly_hours, confirmed }
     shifts: { type: Array, default: () => [] }, // { id, name, start_time, end_time }
     businessLines: { type: Array, default: () => [] }, // { id, abbreviation }
-    filters: { type: Object, required: true }, // { shift, business_line, unconfirmed }
+    uninformedPlanning: { type: Array, default: () => [] }, // { id, name, business_line, uninformed_count, first_date }
+    filters: { type: Object, required: true }, // { shift, business_line, unconfirmed, planning_business_line }
 })
 
-const tabs = [{ value: 'missing-availability', label: __('reports.tab.missing_availability') }]
+const tabs = [
+    { value: 'missing-availability', label: __('reports.tab.missing_availability') },
+    { value: 'uninformed-planning', label: __('reports.tab.uninformed_planning') },
+]
 const tab = ref('missing-availability')
 
 const shift = ref(props.filters.shift ?? '')
 const businessLine = ref(props.filters.business_line ?? '')
 const includeUnconfirmed = ref(props.filters.unconfirmed)
+const planningBusinessLine = ref(props.filters.planning_business_line ?? '')
 
 const shiftOptions = computed(() => [
     { value: '', label: __('reports.missing_availability.shift_placeholder') },
@@ -39,10 +45,11 @@ function reload() {
         shift: shift.value || undefined,
         business_line: businessLine.value || undefined,
         unconfirmed: includeUnconfirmed.value ? 1 : 0,
+        planning_business_line: planningBusinessLine.value || undefined,
     }, { preserveState: true })
 }
 
-watch([shift, businessLine, includeUnconfirmed], reload)
+watch([shift, businessLine, includeUnconfirmed, planningBusinessLine], reload)
 
 const selectedIds = ref([])
 watch(() => props.employees, () => { selectedIds.value = [] })
@@ -69,7 +76,14 @@ function emailSelected() {
                 <Tabs v-model="tab" :tabs="tabs" />
             </template>
 
-            <div class="p-6 space-y-5">
+            <UninformedPlanningReport
+                v-if="tab === 'uninformed-planning'"
+                v-model:business-line="planningBusinessLine"
+                :rows="uninformedPlanning"
+                :business-lines="businessLines"
+            />
+
+            <div v-else class="p-6 space-y-5">
                 <div class="flex flex-wrap items-center gap-4">
                     <SelectInput
                         v-model="shift"

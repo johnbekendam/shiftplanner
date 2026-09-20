@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\PlanningRule;
 use App\Models\Shift;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -183,6 +184,24 @@ class ShiftConfigTest extends TestCase
     }
 
     /** @param array<string, mixed> $overrides */
+    public function test_deleting_a_shift_also_deletes_its_alternating_pair_rule(): void
+    {
+        $this->actingAsAdmin();
+        $shift = Shift::factory()->create();
+        $otherShift = Shift::factory()->create();
+        $rule = PlanningRule::create([
+            'type' => 'alternating_shift_pair',
+            'mode' => 'soft',
+            'severity' => 5,
+            'config' => ['first_shift_id' => $shift->id, 'second_shift_id' => $otherShift->id],
+        ]);
+
+        $this->delete("/settings/shifts/{$shift->id}")->assertRedirect();
+
+        $this->assertModelMissing($shift);
+        $this->assertModelMissing($rule);
+    }
+
     private function validPayload(array $overrides = []): array
     {
         return array_merge([

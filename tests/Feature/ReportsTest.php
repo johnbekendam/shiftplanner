@@ -4,9 +4,13 @@ namespace Tests\Feature;
 
 use App\Models\BusinessLine;
 use App\Models\Employee;
+use App\Models\PublishedWeek;
 use App\Models\RecurringAvailability;
 use App\Models\Shift;
+use App\Models\ShiftAssignment;
 use App\Models\User;
+use App\Models\Workcenter;
+use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -138,5 +142,68 @@ class ReportsTest extends TestCase
             ->where('employees.0.id', $employeeA->id)
             ->has('employees', 1)
         );
+    }
+
+    // ── Uninformed planning ─────────────────────────────────────────────
+
+    private function plan(Employee $employee, string $date, ?string $informedAt = null): void
+    {
+        $workcenter = Workcenter::factory()->create();
+        PublishedWeek::query()->create([
+            'week_start' => Carbon::parse($date)->startOfWeek(Carbon::MONDAY)->toDateString(),
+            'workcenter_id' => $workcenter->id,
+        ]);
+        ShiftAssignment::factory()->create([
+            'employee_id' => $employee->id, 'workcenter_id' => $workcenter->id,
+            'date' => $date, 'informed_at' => $informedAt,
+        ]);
+    }
+
+    public function test_the_report_lists_employees_with_uninformed_published_planning(): void
+    {
+        Carbon::setTestNow('2026-09-20 10:00:00');
+        $this->admin();
+        $line = BusinessLine::factory()->create(['abbreviation' => 'PMP']);
+        $uninformed = Employee::factory()->create(['first_name' => 'Ann', 'last_name' => 'Ant', 'business_line_id' => $line->id]);
+        $informed = Employee::factory()->create();
+        $this->plan($uninformed, '2026-09-22');
+        $this->plan($uninformed, '2026-09-23');
+        $this->plan($informed, '2026-09-22', '2026-09-19 08:00:00');
+
+        $this->get('/reports')->assertInertia(fn ($page) => $page
+            ->has('uninformedPlanning', 1)
+            ->where('uninformedPlanning.0.id', $uninformed->id)
+            ->where('uninformedPlanning.0.name', 'Ann Ant')
+            ->where('uninformedPlanning.0.business_line', 'PMP')
+            ->where('uninformedPlanning.0.uninformed_count', 2)
+            ->where('uninformedPlanning.0.first_date', '2026-09-22')
+        );
+        Carbon::setTestNow();
+    }
+
+    public function test_the_uninformed_planning_report_filters_by_business_line(): void
+    {
+        Carbon::setTestNow('2026-09-20 10:00:00');
+        $this->admin();
+        $line = BusinessLine::factory()->create();
+        $inLine = Employee::factory()->create(['business_line_id' => $line->id]);
+        $this->plan($inLine, '2026-09-22');
+        $this->plan(Employee::factory()->create(), '2026-09-22');
+
+        $this->get("/reports?planning_business_line={$line->id}")->assertInertia(fn ($page) => $page
+            ->has('uninformedPlanning', 1)
+            ->where('uninformedPlanning.0.id', $inLine->id)
+            ->where('filters.planning_business_line', $line->id)
+        );
+        Carbon::setTestNow();
+    }
+
+    public function test_the_uninformed_planning_filter_is_null_by_default(): void
+    {
+        $this->admin();
+
+        $this->get('/reports')->assertInertia(fn ($page) => $page
+            ->where('filters.planning_business_line', null)
+            ->where('uninformedPlanning', []));
     }
 }

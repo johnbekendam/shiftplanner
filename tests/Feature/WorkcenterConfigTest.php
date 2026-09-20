@@ -154,6 +154,63 @@ class WorkcenterConfigTest extends TestCase
         $this->assertNull($workcenter->fresh()->archived_at);
     }
 
+    // ── Responsible ────────────────────────────────────────────────────
+
+    public function test_admin_adds_a_workcenter_with_a_responsible_name(): void
+    {
+        $this->actingAsAdmin();
+
+        $this->post('/settings/workcenters', $this->validPayload(['responsible' => 'Jane Doe']))
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('workcenters', ['name' => 'Assembly', 'responsible' => 'Jane Doe']);
+    }
+
+    public function test_the_responsible_name_is_optional(): void
+    {
+        $this->actingAsAdmin();
+
+        $this->post('/settings/workcenters', $this->validPayload())->assertRedirect();
+
+        $this->assertDatabaseHas('workcenters', ['name' => 'Assembly', 'responsible' => null]);
+    }
+
+    public function test_admin_updates_and_clears_the_responsible_name(): void
+    {
+        $this->actingAsAdmin();
+        $workcenter = Workcenter::factory()->create(['responsible' => 'Jane Doe']);
+
+        $this->put("/settings/workcenters/{$workcenter->id}", [
+            'name' => $workcenter->name,
+            'responsible' => 'John Smith',
+        ])->assertRedirect();
+        $this->assertSame('John Smith', $workcenter->fresh()->responsible);
+
+        $this->put("/settings/workcenters/{$workcenter->id}", [
+            'name' => $workcenter->name,
+            'responsible' => '',
+        ])->assertRedirect();
+        $this->assertNull($workcenter->fresh()->responsible);
+    }
+
+    public function test_an_over_long_responsible_name_is_rejected(): void
+    {
+        $this->actingAsAdmin();
+
+        $this->post('/settings/workcenters', $this->validPayload(['responsible' => str_repeat('a', 51)]))
+            ->assertSessionHasErrors('responsible');
+        $this->assertSame(0, Workcenter::count());
+    }
+
+    public function test_settings_payload_includes_the_responsible_name(): void
+    {
+        $this->actingAsAdmin();
+        Workcenter::factory()->create(['responsible' => 'Jane Doe']);
+
+        $this->get('/settings')->assertInertia(fn ($page) => $page
+            ->where('workcenters.0.responsible', 'Jane Doe'));
+    }
+
     // ── Delete ─────────────────────────────────────────────────────────
 
     public function test_deleting_an_empty_workcenter(): void

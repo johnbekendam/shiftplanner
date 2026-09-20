@@ -3,6 +3,8 @@
 namespace App\Jobs;
 
 use App\Models\Message;
+use App\Models\ShiftAssignment;
+use DateTimeInterface;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -29,9 +31,32 @@ class SendMailboxMessage implements ShouldQueue
     {
         Mail::to($this->email)->send($this->mailable);
 
+        $sentAt = now();
+
         Message::whereKey($this->messageId)->update([
             'status' => 'sent',
-            'sent_at' => now(),
+            'sent_at' => $sentAt,
         ]);
+
+        $this->markListedAssignmentsInformed($sentAt);
+    }
+
+    /**
+     * A Planning message lists shift assignments (features/planning-notifications/).
+     * Once it is really sent, those assignments count as informed. An earlier
+     * informed time stays as it is.
+     */
+    private function markListedAssignmentsInformed(DateTimeInterface $sentAt): void
+    {
+        $ids = Message::whereKey($this->messageId)->value('assignment_ids');
+
+        if (empty($ids)) {
+            return;
+        }
+
+        ShiftAssignment::query()
+            ->whereIn('id', $ids)
+            ->whereNull('informed_at')
+            ->update(['informed_at' => $sentAt]);
     }
 }

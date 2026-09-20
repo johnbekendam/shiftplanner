@@ -21,11 +21,11 @@ const props = defineProps({
     width: {
         type: String,
         default: 'md',
-        validator: (v) => ['md', 'lg'].includes(v),
+        validator: (v) => ['md', 'lg', 'xl'].includes(v),
     },
 })
 
-const widthClass = { md: 'max-w-md', lg: 'max-w-xl' }[props.width]
+const widthClass = { md: 'max-w-md', lg: 'max-w-xl', xl: 'max-w-2xl' }[props.width]
 </script>
 
 <template>

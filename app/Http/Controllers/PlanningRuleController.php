@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\BusinessLine;
 use App\Models\Competence;
 use App\Models\PlanningRule;
+use App\Models\Shift;
 use App\Models\Workcenter;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
@@ -28,6 +29,11 @@ class PlanningRuleController extends Controller
                 ->all(),
             'businessLines' => BusinessLine::all()
                 ->map(fn (BusinessLine $b) => ['id' => $b->id, 'abbreviation' => $b->abbreviation])
+                ->all(),
+            'shifts' => Shift::query()
+                ->orderBy('start_time')
+                ->get()
+                ->map(fn (Shift $s) => ['id' => $s->id, 'name' => $s->name])
                 ->all(),
         ]);
     }
@@ -56,7 +62,7 @@ class PlanningRuleController extends Controller
             $merged[$field] = $planningRule->config[$field] ?? null;
         }
 
-        $data = Validator::make($merged, $this->rules())->validate();
+        $data = Validator::make($merged, $this->rules($planningRule->type))->validate();
 
         $this->guardAgainstDuplicate($data, ignoreId: $planningRule->id);
 
@@ -72,16 +78,20 @@ class PlanningRuleController extends Controller
         return back()->with('success', __('planning_rules.flash.saved'));
     }
 
-    private function rules(): array
+    private function rules(?string $type = null): array
     {
+        $type ??= request()->input('type');
+
         return [
             'type' => ['required', Rule::in(PlanningRule::TYPES)],
-            'mode' => ['required', Rule::in(['hard', 'soft'])],
-            'severity' => [
-                'required_if:mode,soft',
-                'prohibited_unless:mode,soft',
-                'nullable', 'integer', 'between:1,10',
-            ],
+            'mode' => $type === 'equal_workload' || $type === 'alternating_shift_pair'
+                ? ['nullable', Rule::in(['hard', 'soft'])]
+                : ['required', Rule::in(['hard', 'soft'])],
+            'severity' => $type === 'equal_workload'
+                ? ['nullable', 'prohibited']
+                : ($type === 'alternating_shift_pair'
+                    ? ['required', 'integer', 'between:1,10']
+                    : ['required_if:mode,soft', 'prohibited_unless:mode,soft', 'nullable', 'integer', 'between:1,10']),
             'value' => ['required_if:type,max_shifts_per_day', 'integer', 'min:1'],
             'workcenter_id' => [
                 'required_if:type,competence_required,business_line_preference',
@@ -89,6 +99,8 @@ class PlanningRuleController extends Controller
             ],
             'competence_id' => ['required_if:type,competence_required', 'integer', 'exists:competences,id'],
             'business_line_id' => ['required_if:type,business_line_preference', 'integer', 'exists:business_lines,id'],
+            'first_shift_id' => ['required_if:type,alternating_shift_pair', 'integer', 'exists:shifts,id'],
+            'second_shift_id' => ['required_if:type,alternating_shift_pair', 'integer', 'different:first_shift_id', 'exists:shifts,id'],
         ];
     }
 
@@ -125,6 +137,22 @@ class PlanningRuleController extends Controller
                 throw ValidationException::withMessages(['workcenter_id' => __('planning_rules.error.duplicate_business_line_preference')]);
             }
         }
+
+        if ($data['type'] === 'alternating_shift_pair') {
+            $shiftIds = [(int) $data['first_shift_id'], (int) $data['second_shift_id']];
+            $duplicate = $existing->contains(function (PlanningRule $rule) use ($shiftIds) {
+                $existingIds = [
+                    (int) $rule->config['first_shift_id'],
+                    (int) $rule->config['second_shift_id'],
+                ];
+
+                return count(array_intersect($shiftIds, $existingIds)) > 0;
+            });
+
+            if ($duplicate) {
+                throw ValidationException::withMessages(['first_shift_id' => __('planning_rules.error.duplicate_shift_pair')]);
+            }
+        }
     }
 
     private function identityFields(string $type): array
@@ -132,6 +160,7 @@ class PlanningRuleController extends Controller
         return match ($type) {
             'competence_required' => ['workcenter_id', 'competence_id'],
             'business_line_preference' => ['workcenter_id'],
+            'alternating_shift_pair' => ['first_shift_id', 'second_shift_id'],
             default => [],
         };
     }
@@ -140,8 +169,8 @@ class PlanningRuleController extends Controller
     {
         return [
             'type' => $data['type'],
-            'mode' => $data['mode'],
-            'severity' => $data['mode'] === 'soft' ? $data['severity'] : null,
+            'mode' => $data['type'] === 'equal_workload' ? null : ($data['type'] === 'alternating_shift_pair' ? 'soft' : $data['mode']),
+            'severity' => $data['type'] === 'equal_workload' ? null : ($data['type'] === 'alternating_shift_pair' ? $data['severity'] : ($data['mode'] === 'soft' ? $data['severity'] : null)),
             'config' => match ($data['type']) {
                 'max_shifts_per_day' => ['value' => $data['value']],
                 'competence_required' => [
@@ -151,6 +180,10 @@ class PlanningRuleController extends Controller
                 'business_line_preference' => [
                     'workcenter_id' => $data['workcenter_id'],
                     'business_line_id' => $data['business_line_id'],
+                ],
+                'alternating_shift_pair' => [
+                    'first_shift_id' => $data['first_shift_id'],
+                    'second_shift_id' => $data['second_shift_id'],
                 ],
                 default => [],
             },

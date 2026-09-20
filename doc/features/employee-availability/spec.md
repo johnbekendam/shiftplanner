@@ -82,7 +82,7 @@ Monday to Sunday. Each of the 21 cells holds one state:
 | state | meaning | planner |
 | --- | --- | --- |
 | `available` | the default. Nothing stored. | no constraint |
-| `not_preferred` | the employee would rather not work this slot | soft penalty in the objective |
+| `not_preferred` | the employee would rather not work this slot | soft penalty in the objective, or a hard constraint when the `not_preferred_shift` planning rule is hard |
 | `unavailable` | the employee cannot work this slot | hard constraint |
 
 New table `recurring_availabilities`:
@@ -135,7 +135,7 @@ The `edit` and `show` payloads carry an `availability` array of
 
 - Holidays become per-date hard unavailability for the employee.
 - Recurring `unavailable` cells become hard constraints.
-- Recurring `not_preferred` cells become penalty terms in the objective.
+- Recurring `not_preferred` cells become penalty terms in the objective. When the `not_preferred_shift` planning rule is hard, they become hard constraints instead.
 - Daypart-to-shift resolution uses the phase-3 shift daypart tag.
 
 Fairness weights and shift-level single-day exceptions stay deferred to

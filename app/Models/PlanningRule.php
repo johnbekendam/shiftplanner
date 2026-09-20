@@ -11,12 +11,14 @@ class PlanningRule extends Model
         'max_hours_per_week',
         'max_shifts_per_day',
         'not_preferred_shift',
+        'equal_workload',
     ];
 
     /** Types that may have many rows, one per scope. */
     public const SCOPED_TYPES = [
         'competence_required',
         'business_line_preference',
+        'alternating_shift_pair',
     ];
 
     public const TYPES = [

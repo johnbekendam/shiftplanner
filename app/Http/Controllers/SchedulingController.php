@@ -2,12 +2,17 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Employee;
+use App\Models\PlanGenerationRun;
+use App\Models\PlanningSettings;
 use App\Models\PublishedWeek;
 use App\Models\Shift;
 use App\Models\ShiftAssignment;
 use App\Models\Workcenter;
 use App\Models\WorkcenterShiftCapacity;
 use App\Models\WorkcenterShiftDateOverride;
+use App\Services\Planning\PlanningCycle;
+use App\Services\UninformedPlanning;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -16,6 +21,8 @@ use Inertia\Inertia;
 
 class SchedulingController extends Controller
 {
+    public function __construct(private UninformedPlanning $uninformedPlanning) {}
+
     public function index(Request $request)
     {
         $now = Carbon::now();
@@ -39,6 +46,8 @@ class SchedulingController extends Controller
             ->get()
             ->keyBy(fn (WorkcenterShiftCapacity $c) => "{$c->workcenter_id}:{$c->shift_id}:{$c->weekday}");
 
+        $cycleStart = PlanningCycle::containing($weekStart);
+
         return Inertia::render('Scheduling', [
             'workcenters' => $workcenters->map(fn (Workcenter $w) => ['id' => $w->id, 'name' => $w->name])->values()->all(),
             'shifts' => $shifts->map(fn (Shift $s) => [
@@ -53,27 +62,160 @@ class SchedulingController extends Controller
             'date' => $selectedDate->toDateString(),
             'weekStart' => $weekStart->toDateString(),
             'weekCells' => $this->weekCells($attachments, $capacities, $workcenterIds, $weekStart),
-            'weekPublished' => PublishedWeek::query()->whereDate('week_start', $weekStart)->exists(),
-            'publishedDays' => $this->publishedDays($monthStart),
+            'publishedWorkcenterWeeks' => $this->publishedWorkcenterWeeks($monthStart, $workcenterIds),
+            'cycleStart' => $cycleStart?->toDateString(),
+            'generationRun' => $cycleStart ? $this->latestGenerationRun($cycleStart) : null,
+            'planningPeriod' => $this->planningPeriod(),
+            'clearRange' => $this->clearRange(),
+            'generationStatus' => $this->generationStatus(),
+            // Employees with published shifts they were not told about and no queued email yet: enables Send planning.
+            'uninformedCount' => $this->uninformedPlanning->summary(excludeQueued: true)->count(),
         ]);
     }
 
-    /** { [day] => true } for every day in the visible month whose Monday–Sunday week is published. */
-    private function publishedDays(Carbon $monthStart): array
+    /**
+     * { start, end } of the cycles Clear Planning covers (the same range PlanClearController
+     * deletes in), or null until the period is configured. Lets the page disable Clear for
+     * a week it cannot touch.
+     */
+    private function clearRange(): ?array
     {
-        $weekStartsByDay = collect(range(1, $monthStart->daysInMonth))
-            ->mapWithKeys(fn (int $day) => [
-                $day => $monthStart->copy()->day($day)->startOfWeek(Carbon::MONDAY)->toDateString(),
-            ]);
+        $cycles = PlanningCycle::allWithinPeriod();
+        if ($cycles === []) {
+            return null;
+        }
 
-        $publishedWeekStarts = PublishedWeek::query()
-            ->whereIn('week_start', $weekStartsByDay->unique()->values())
-            ->pluck('week_start')
-            ->map(fn (Carbon $date) => $date->toDateString());
+        return [
+            'start' => $cycles[0]->toDateString(),
+            'end' => end($cycles)->copy()->addDays(13)->toDateString(),
+        ];
+    }
 
-        return $weekStartsByDay
-            ->filter(fn (string $weekStart) => $publishedWeekStarts->contains($weekStart))
-            ->map(fn () => true)
+    /** { start, end } from Settings, or null until both are configured. */
+    private function planningPeriod(): ?array
+    {
+        $settings = PlanningSettings::current();
+        if ($settings->period_start === null || $settings->period_end === null) {
+            return null;
+        }
+
+        return [
+            'start' => $settings->period_start->toDateString(),
+            'end' => $settings->period_end->toDateString(),
+        ];
+    }
+
+    /**
+     * Aggregate across every cycle in the planning period, for the Generate
+     * button: active if any cycle's latest run is pending/running; failed
+     * (with the first error) if none are active but at least one cycle's
+     * latest run failed. Null when the period isn't configured.
+     */
+    private function generationStatus(): ?array
+    {
+        $cycles = PlanningCycle::allWithinPeriod();
+        if ($cycles === []) {
+            return null;
+        }
+
+        $cycleStarts = collect($cycles)->map(fn (Carbon $c) => $c->toDateString());
+
+        $latestPerCycle = PlanGenerationRun::query()
+            ->whereIn('cycle_start', $cycleStarts)
+            ->orderByDesc('id')
+            ->get()
+            ->unique('cycle_start');
+
+        $active = $latestPerCycle->contains(fn (PlanGenerationRun $run) => in_array($run->status, PlanGenerationRun::ACTIVE_STATUSES, true));
+        $failed = $latestPerCycle->filter(fn (PlanGenerationRun $run) => $run->status === PlanGenerationRun::STATUS_FAILED)->values();
+
+        return [
+            'active' => $active,
+            'failedCount' => $failed->count(),
+            'firstError' => $failed->first()?->error,
+        ];
+    }
+
+    /** The most recent generation run for this cycle, or null if none has ever run. */
+    private function latestGenerationRun(Carbon $cycleStart): ?array
+    {
+        $run = PlanGenerationRun::query()
+            ->whereDate('cycle_start', $cycleStart)
+            ->latest('id')
+            ->first();
+
+        if (! $run) {
+            return null;
+        }
+
+        return [
+            'id' => $run->id,
+            'status' => $run->status,
+            'error' => $run->error,
+            'changes' => $this->resolveChanges($run->changes ?? []),
+            'unfulfilled' => $this->resolveUnfulfilled($run->unfulfilled ?? []),
+        ];
+    }
+
+    /** @return array<int, array{type: string, employee_id: int, employee_name: string, workcenter_name: string, shift_name: string, date: string}> */
+    private function resolveChanges(array $changes): array
+    {
+        if ($changes === []) {
+            return [];
+        }
+
+        $employees = Employee::query()->whereIn('id', collect($changes)->pluck('employee_id')->unique())->get()->keyBy('id');
+        $workcenters = Workcenter::query()->whereIn('id', collect($changes)->pluck('workcenter_id')->unique())->get()->keyBy('id');
+        $shifts = Shift::query()->whereIn('id', collect($changes)->pluck('shift_id')->unique())->get()->keyBy('id');
+
+        return collect($changes)->map(fn (array $c) => [
+            'type' => $c['type'],
+            'employee_id' => $c['employee_id'],
+            'employee_name' => $employees->get($c['employee_id'])?->name ?? "#{$c['employee_id']}",
+            'workcenter_name' => $workcenters->get($c['workcenter_id'])?->name ?? "#{$c['workcenter_id']}",
+            'shift_name' => $shifts->get($c['shift_id'])?->name ?? "#{$c['shift_id']}",
+            'date' => $c['date'],
+        ])->values()->all();
+    }
+
+    /** @return array<int, array{workcenter_id: int, shift_id: int, workcenter_name: string, shift_name: string, date: string, reason: string}> */
+    private function resolveUnfulfilled(array $unfulfilled): array
+    {
+        if ($unfulfilled === []) {
+            return [];
+        }
+
+        $workcenters = Workcenter::query()->whereIn('id', collect($unfulfilled)->pluck('workcenter_id')->unique())->get()->keyBy('id');
+        $shifts = Shift::query()->whereIn('id', collect($unfulfilled)->pluck('shift_id')->unique())->get()->keyBy('id');
+
+        return collect($unfulfilled)->map(fn (array $u) => [
+            'workcenter_id' => $u['workcenter_id'],
+            'shift_id' => $u['shift_id'],
+            'workcenter_name' => $workcenters->get($u['workcenter_id'])?->name ?? "#{$u['workcenter_id']}",
+            'shift_name' => $shifts->get($u['shift_id'])?->name ?? "#{$u['shift_id']}",
+            'date' => $u['date'],
+            'reason' => $u['reason'],
+        ])->values()->all();
+    }
+
+    /** [{ workcenter_id, week_start }] for every (workcenter, week) published within the visible month. */
+    private function publishedWorkcenterWeeks(Carbon $monthStart, Collection $workcenterIds): array
+    {
+        $weekStarts = collect(range(1, $monthStart->daysInMonth))
+            ->map(fn (int $day) => $monthStart->copy()->day($day)->startOfWeek(Carbon::MONDAY)->toDateString())
+            ->unique()
+            ->values();
+
+        return PublishedWeek::query()
+            ->whereIn('week_start', $weekStarts)
+            ->whereIn('workcenter_id', $workcenterIds)
+            ->get(['week_start', 'workcenter_id', 'planner_open'])
+            ->map(fn (PublishedWeek $p) => [
+                'workcenter_id' => $p->workcenter_id,
+                'week_start' => $p->week_start->toDateString(),
+                'planner_open' => $p->planner_open,
+            ])
+            ->values()
             ->all();
     }
 

@@ -194,6 +194,8 @@ The planner produces the best feasible draft using this priority order:
 
 Fairness applies both to assigned workload and to fulfilled wishes. The system must show a clear overview of unfulfilled wishes, including a reason when it can determine one, such as insufficient coverage alternatives or a higher-priority constraint.
 
+Workload fairness means equal absolute assigned hours among eligible employees, not a percentage of each employee's offered `weekly_hours` (`features/planning-rules/`'s `equal_workload` rule). Wish fairness means minimizing the total severity-weighted count of unfulfilled preferences (the `not_preferred_shift` rule) — not guaranteeing each employee carries an equal share of them.
+
 The generated plan is advice, not an automatic publication. Managers remain responsible for review and publication.
 
 ## Initial Product Shape
@@ -217,7 +219,7 @@ Decided in a design session on 2026-09-08. `roadmap.md` holds the build order.
 
 Schedule generation runs outside HTTP requests through a Laravel queue job.
 
-The schedule optimizer is a separate service from the start, not a deferred addition. A private Python worker uses Google OR-Tools (CP-SAT). Laravel stays the system of record and calls the worker through one narrow interface: the queue job builds a JSON problem document, the worker returns a draft plus unfulfilled-wish reasons. Laravel-side planning sits behind a `PlanGenerator` interface so no throwaway PHP planner is written. The worker is not built in the first increment, which has no scheduling, but the architecture accounts for it now.
+The schedule optimizer runs inside Laravel, not a separate service — a PHP heuristic planner (greedy construction, then hill-climbing local search against a tiered penalty function), reversing the project's original plan to call out to a Python/OR-Tools worker. That plan assumed a real constraint solver was necessary for good results; it wasn't attempted until the actual constraint shape was fully known (`features/planning-rules/`), at which point a second language and service for one queued job stopped looking worth its operational cost — especially with the plan explicitly advisory, never auto-published, which lowers the bar from "provably optimal" to "a good enough draft a manager reviews." Laravel-side planning still sits behind a `PlanGenerator` interface, which is what makes this reversible: if the heuristic's output quality proves insufficient in practice, a different implementation (including a real solver, in-process or as a service) can replace it without touching routes, the data model, or the UI. The queue job builds the problem in memory, the planner returns a draft plus unfulfilled-wish reasons. Shipped (`features/scheduling-engine/`): a manager-triggered Generate action covers every 2-week cycle across the whole planning period at once, writing straight into the live schedule with a change summary and inline unfulfilled reasons for review — still advice, never an automatic publication.
 
 ## Authentication
 
@@ -248,7 +250,7 @@ The schedule optimizer is a separate service from the start, not a deferred addi
 
 ## Deferred Decisions
 
-- Availability model — holidays and the recurring weekday/shift grid are done (`features/employee-availability/`, `features/shift-definitions/`). Date-specific shift exceptions and fairness weights are still open.
+- Availability model — holidays and the recurring weekday/shift grid are done (`features/employee-availability/`, `features/shift-definitions/`). Date-specific shift exceptions (e.g. unavailable for one shift on one date, or available despite the recurring default) are still open; fairness weights are resolved (see below). Decision: date-specific exceptions would coexist with holidays, not replace them — holidays stay for whole-day ranges, a new per-date/per-shift mechanism would add finer-grained, two-way overrides. Deliberately shelved (data model and UI both) until phase 5's scheduling engine existed, so the exception shape would get designed against a finished planner instead of risking rework — phase 5 has since shipped (`features/scheduling-engine/`), so that condition is met; still not scheduled, but no longer blocked on anything.
 - Calendar recurrence and exceptions for standard day schedules.
 - Employee assignment confirmation, swap, or self-scheduling workflows.
 - Exact token-link security, expiry, revocation, and recovery behavior.
@@ -257,7 +259,7 @@ The schedule optimizer is a separate service from the start, not a deferred addi
   mailbox address, and admin consent for `Mail.Send`
   (`features/mailbox/`). The transport and config keys exist; only the
   values are outstanding.
-- Fairness definitions, planning cadence, and the exact JSON contract for the OR-Tools worker.
+- Planning cadence — Generate is manager-triggered only; no automatic or scheduled regeneration exists. The problem/solution shape and severity-to-penalty-weight mapping are resolved — see `features/scheduling-engine/spec.md` — as are the fairness definitions themselves, see above and `features/planning-rules/spec.md`.
 - The Entra ID integration package and claims mapping.
 
 ## Out of Scope for the First Increment

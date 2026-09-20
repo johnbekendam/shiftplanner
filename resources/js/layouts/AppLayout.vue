@@ -44,7 +44,6 @@ const navItems = computed(() => {
         items.push(
             { label: __('nav.workcenter_shifts'), href: '/schedule', icon: 'table-cells' },
             { label: __('nav.scheduling'), href: '/planning', icon: 'calendar-days' },
-            { label: __('nav.planning_rules'), href: '/planning-rules', icon: 'adjustments-horizontal' },
             { label: __('nav.mailbox'), href: '/mailbox', icon: 'envelope' },
             { label: __('nav.reports'), href: '/reports', icon: 'clipboard-list' },
             { separator: true },
@@ -65,6 +64,7 @@ const navItems = computed(() => {
     if (isAdmin.value) {
         items.push(
             { label: __('nav.settings'), href: '/settings', icon: 'cog' },
+            { label: __('nav.planning_rules'), href: '/planning-rules', icon: 'adjustments-horizontal' },
             { label: __('nav.employee_backup'), href: '/employee-backup', icon: 'archive-box-x-mark' },
         )
         // Theme builder stays reachable at /theme-builder but is not in the nav.

@@ -53,6 +53,51 @@ class MessageComposerTest extends TestCase
         $this->assertStringContainsString('alt="'.config('app.name').'"', $result['html']);
     }
 
+    public function test_a_markdown_table_is_styled_by_the_email_layout(): void
+    {
+        $body = "| Week | Day |\n| --- | --- |\n| 39 | Tuesday |";
+
+        $html = (new MessageComposer)->renderForRecipient('Hello', $body)['html'];
+
+        // The layout's CSS is inlined into the table cells.
+        $this->assertMatchesRegularExpression('/<table class="md-table" style="[^"]*border-collapse: collapse[^"]*">/', $html);
+        $this->assertMatchesRegularExpression('/<th style="[^"]*border-bottom: 1px solid[^"]*">Week<\/th>/', $html);
+        $this->assertMatchesRegularExpression('/<td style="[^"]*padding: 8px[^"]*">Tuesday<\/td>/', $html);
+    }
+
+    public function test_a_button_keeps_its_own_size_and_is_not_styled_like_a_data_table(): void
+    {
+        $html = (new MessageComposer)->renderForRecipient('Hello', ':button[Open schedule](https://example.test/schedule)')['html'];
+
+        preg_match('/<table role="presentation"[^>]*style="([^"]*)">\s*<tr>\s*<td style="([^"]*)">\s*<a href="https:\/\/example.test\/schedule"/', $html, $button);
+
+        $this->assertNotEmpty($button);
+        $this->assertStringNotContainsString('width: 100%', $button[1]);
+        $this->assertStringNotContainsString('border-collapse', $button[1]);
+        $this->assertStringNotContainsString('padding: 8px', $button[2]);
+        $this->assertStringNotContainsString('border-bottom', $button[2]);
+    }
+
+    public function test_a_markdown_table_next_to_a_button_is_still_styled(): void
+    {
+        $body = "| A |\n| --- |\n| 1 |\n\n:button[Open](https://example.test)";
+
+        $html = (new MessageComposer)->renderForRecipient('Hello', $body)['html'];
+
+        $this->assertMatchesRegularExpression('/<td style="[^"]*padding: 8px[^"]*">1<\/td>/', $html);
+    }
+
+    public function test_the_email_layout_cells_are_not_styled_like_table_cells(): void
+    {
+        $html = (new MessageComposer)->renderForRecipient('Hello', 'Plain text')['html'];
+
+        preg_match('/<td class="email-content" style="([^"]*)"/', $html, $cell);
+
+        $this->assertNotEmpty($cell);
+        $this->assertStringContainsString('padding:32px', $cell[1]);
+        $this->assertStringNotContainsString('border-bottom', $cell[1]);
+    }
+
     public function test_composed_message_embeds_the_email_logo_when_available(): void
     {
         $emailLogoPath = public_path('images/logo-custom-email.png');

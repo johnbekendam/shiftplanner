@@ -1,6 +1,6 @@
 <script setup>
 import { computed, reactive, ref } from 'vue'
-import { Head, router, useForm } from '@inertiajs/vue3'
+import { Head, useForm } from '@inertiajs/vue3'
 import CenteredLayout from '@/layouts/CenteredLayout.vue'
 import CardSeparator from '@/components/ui/CardSeparator.vue'
 import Tabs from '@/components/ui/Tabs.vue'
@@ -11,11 +11,11 @@ import ShiftNote from '@/components/ShiftNote.vue'
 import HolidayList from '@/components/HolidayList.vue'
 import QuestionChecklist from '@/components/QuestionChecklist.vue'
 import TagChecklist from '@/components/TagChecklist.vue'
-import PlannedShiftsList from '@/components/PlannedShiftsList.vue'
+import PlanningTable from '@/components/PlanningTable.vue'
 import ButtonPrimary from '@/components/ui/ButtonPrimary.vue'
 import ButtonSecondary from '@/components/ui/ButtonSecondary.vue'
 import ButtonDanger from '@/components/ui/ButtonDanger.vue'
-import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
+import WithdrawContactDialog from '@/components/WithdrawContactDialog.vue'
 import { useI18n } from '@/composables/useI18n'
 import { useSaveRegistry } from '@/composables/useSaveRegistry'
 import { useUnsavedChangesGuard } from '@/composables/useUnsavedChangesGuard'
@@ -33,6 +33,8 @@ const props = defineProps({
     weeklyHoursMinimum: { type: Number, default: 20 },
     shiftNoteHtml: { type: String, default: null },
     scheduleNoteHtml: { type: String, default: null },
+    // { name } of the employee's business line responsible, or null.
+    businessLineResponsible: { type: Object, default: null },
     availability: { type: Array, default: () => [] },
     competences: { type: Array, default: () => [] },
     competenceIds: { type: Array, default: () => [] },
@@ -56,7 +58,18 @@ const form = useForm({
     business_line_id: props.employee.business_line_id,
 })
 
-const tab = ref('information')
+const plannedAssignments = computed(() => props.plannedShifts.flatMap((week) => week.assignments))
+
+// The distinct shifts the employee is planned on, earliest start first.
+const plannedShiftTimes = computed(() => {
+    const byName = new Map()
+    for (const a of plannedAssignments.value) {
+        byName.set(a.shift_name, { name: a.shift_name, start: a.start_time.slice(0, 5), end: a.end_time.slice(0, 5) })
+    }
+    return [...byName.values()].sort((a, b) => a.start.localeCompare(b.start) || a.name.localeCompare(b.name))
+})
+
+const tab = ref(plannedAssignments.value.length ? 'planning' : 'information')
 const tabs = computed(() => [
     { value: 'information', label: __('availability.tab.information') },
     { value: 'details', label: __('availability.tab.details'), hasError: registry.hasError('personal') },
@@ -292,16 +305,12 @@ function onCancelClick() {
     competencesVersion.value++
 }
 
-// ── Withdraw: self-service, permanent account deletion ─────────────────
+// ── Withdraw: not self-service; the card names who to contact instead ──
 const withdrawDialogOpen = ref(false)
-
-function onWithdrawConfirm() {
-    router.delete(`/personal/${props.token}`)
-}
 </script>
 
 <template>
-    <CenteredLayout align="top" width="lg">
+    <CenteredLayout align="top" width="xl">
         <Head :title="__('personal.title')" />
 
         <template #header>
@@ -423,7 +432,16 @@ function onWithdrawConfirm() {
         </div>
 
         <div v-show="tab === 'planning'" data-testid="panel-planning">
-            <PlannedShiftsList :weeks="plannedShifts" />
+            <PlanningTable :assignments="plannedAssignments" :empty-text="__('planning.empty')" calendar-export />
+            <section v-if="plannedShiftTimes.length" data-testid="planning-shift-times" class="mt-6">
+                <h3 class="mb-2 text-sm font-semibold text-(--color-text-primary)">{{ __('planning.shift_times') }}</h3>
+                <ul class="space-y-1 text-xs text-(--color-text-primary)">
+                    <li v-for="shift in plannedShiftTimes" :key="shift.name">
+                        {{ shift.name }} {{ shift.start }}–{{ shift.end }}
+                    </li>
+                </ul>
+            </section>
+            <ShiftNote v-if="scheduleNoteHtml" :html="scheduleNoteHtml" class="mt-6" />
         </div>
 
         <template v-if="editable">
@@ -459,15 +477,10 @@ function onWithdrawConfirm() {
             </div>
         </template>
 
-        <ConfirmDialog
+        <WithdrawContactDialog
             :open="withdrawDialogOpen"
-            :title="__('personal.withdraw.title')"
-            :confirm-label="__('personal.withdraw.confirm')"
-            variant="danger"
-            @confirm="onWithdrawConfirm"
-            @cancel="withdrawDialogOpen = false"
-        >
-            {{ __('personal.withdraw.body') }}
-        </ConfirmDialog>
+            :contact="businessLineResponsible"
+            @close="withdrawDialogOpen = false"
+        />
     </CenteredLayout>
 </template>

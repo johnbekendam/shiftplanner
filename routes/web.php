@@ -13,6 +13,7 @@ use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\EmployeeHolidayController;
 use App\Http\Controllers\EmployeeQuestionController;
 use App\Http\Controllers\EmployeeWorkcenterController;
+use App\Http\Controllers\LivePlanningController;
 use App\Http\Controllers\MailboxController;
 use App\Http\Controllers\PeriodController;
 use App\Http\Controllers\PersonalCompetenceController;
@@ -21,6 +22,10 @@ use App\Http\Controllers\PersonalLinkController;
 use App\Http\Controllers\PersonalPageController;
 use App\Http\Controllers\PersonalQuestionController;
 use App\Http\Controllers\PersonalRecurringAvailabilityController;
+use App\Http\Controllers\PlanClearController;
+use App\Http\Controllers\PlanGenerationController;
+use App\Http\Controllers\PlannerOpenWeekController;
+use App\Http\Controllers\PlanNotificationController;
 use App\Http\Controllers\PlanningRuleController;
 use App\Http\Controllers\PublishedWeekController;
 use App\Http\Controllers\QuestionController;
@@ -52,6 +57,9 @@ Route::post('/logout', [LoginController::class, 'destroy'])->name('logout');
 // Public employee self-signup — features/employee-self-signup/.
 Route::get('/signup', [SignupController::class, 'show'])->name('signup.show');
 Route::post('/signup', [SignupController::class, 'store'])->middleware('throttle:5,1')->name('signup.store');
+
+// Workcenter wall screen — token-only, no auth. See features/workcenter-live-planning/.
+Route::get('/live/{token}', [LivePlanningController::class, 'show'])->name('live.show');
 
 Route::middleware('auth')->group(function () {
     // Admin-only: everything except the employee list/editor.
@@ -89,6 +97,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/settings/workcenters', [WorkcenterController::class, 'store'])->name('settings.workcenters.store');
         Route::put('/settings/workcenters/reorder', [WorkcenterController::class, 'reorder'])->name('settings.workcenters.reorder');
         Route::put('/settings/workcenters/{workcenter}', [WorkcenterController::class, 'update'])->name('settings.workcenters.update');
+        Route::post('/settings/workcenters/{workcenter}/live-token', [WorkcenterController::class, 'regenerateLiveToken'])->name('settings.workcenters.live-token');
         Route::delete('/settings/workcenters/{workcenter}', [WorkcenterController::class, 'destroy'])->name('settings.workcenters.destroy');
 
         Route::get('/planning-rules', [PlanningRuleController::class, 'index'])->name('planning-rules.index');
@@ -110,10 +119,15 @@ Route::middleware('auth')->group(function () {
         Route::delete('/planning/spots/{workcenter}/{shift}/{date}', [ScheduleSpotController::class, 'destroy'])
             ->where('date', '\d{4}-\d{2}-\d{2}')->name('planning.spots.destroy');
         Route::get('/planning/eligible-employees', [EligibleEmployeeController::class, 'index'])->name('planning.eligible-employees');
-        Route::post('/planning/weeks/{weekStart}/publish', [PublishedWeekController::class, 'store'])
-            ->where('weekStart', '\d{4}-\d{2}-\d{2}')->name('planning.weeks.publish');
-        Route::delete('/planning/weeks/{weekStart}/publish', [PublishedWeekController::class, 'destroy'])
-            ->where('weekStart', '\d{4}-\d{2}-\d{2}')->name('planning.weeks.unpublish');
+        Route::post('/planning/weeks/{weekStart}/workcenters/{workcenter}/publish', [PublishedWeekController::class, 'store'])
+            ->where('weekStart', '\d{4}-\d{2}-\d{2}')->name('planning.weeks.workcenters.publish');
+        Route::delete('/planning/weeks/{weekStart}/workcenters/{workcenter}/publish', [PublishedWeekController::class, 'destroy'])
+            ->where('weekStart', '\d{4}-\d{2}-\d{2}')->name('planning.weeks.workcenters.unpublish');
+        Route::put('/planning/weeks/{weekStart}/workcenters/{workcenter}/planner-open', [PlannerOpenWeekController::class, 'update'])
+            ->where('weekStart', '\d{4}-\d{2}-\d{2}')->name('planning.weeks.workcenters.planner-open');
+        Route::post('/planning/generate', [PlanGenerationController::class, 'store'])->name('planning.generate');
+        Route::delete('/planning/clear', [PlanClearController::class, 'destroy'])->name('planning.clear');
+        Route::post('/planning/send', [PlanNotificationController::class, 'store'])->name('planning.send');
 
         Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
 
@@ -183,5 +197,4 @@ Route::middleware('employee.changes')->group(function () {
     Route::put('/personal/{token}/competences/{competence}', [PersonalCompetenceController::class, 'update'])->name('personal.competences.update');
     Route::delete('/personal/{token}/competences/{competence}', [PersonalCompetenceController::class, 'destroy'])->name('personal.competences.destroy');
     Route::put('/personal/{token}/questions/{question}', [PersonalQuestionController::class, 'update'])->name('personal.questions.update');
-    Route::delete('/personal/{token}', [PersonalPageController::class, 'destroy'])->name('personal.destroy');
 });

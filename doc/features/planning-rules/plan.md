@@ -1,18 +1,14 @@
 # Planning Rules — Plan
 
-Status: in progress — 2/4
+Status: done — 4/4
 
 Spec: `spec.md`. One generic `planning_rules` table (`type` + `mode` +
 `severity` + JSON `config`) replaces the original per-type-table design
 after a mid-build redesign — see the note below before touching the
 migration.
 
-**Migration note:** the schema is still being iterated on. Per
-instruction, edit the existing migration
-(`2026_09_15_150000_add_global_planning_rules_to_planning_settings.php`)
-in place rather than adding new migration files, until this feature's
-data model is settled. A fresh, correctly-named migration replaces it
-once the design is final.
+The data model is settled. The table uses the correctly named migration
+`2026_09_17_000001_create_planning_rules_table.php`.
 
 - [x] 1. **Backend + UI: `planning_rules` table and full CRUD for all
   five types.** Migration (rewritten in place) creates `planning_rules`
@@ -89,16 +85,18 @@ once the design is final.
   failure). Full JS suite green (509 passed). `npm run build` green.
   Pint clean.
 
-- [ ] 3. **Equal workload and alternating shift pairs.** Add the
+- [x] 3. **Equal workload and alternating shift pairs.** Add the
   `equal_workload` singleton and `alternating_shift_pair` scoped rule.
   Equal workload is presence-only. Alternating pairs select two unique,
   non-overlapping shifts and require severity. Extend backend validation,
   payloads, the planning-rules UI, translations, and PHP/Vitest coverage.
   Delete a pair rule in the same transaction as either referenced shift.
   Store no solver behavior yet. Use the week that contains
-  `PlanningSettings.period_start` as the two-week boundary.
+  `PlanningSettings.period_start` as the two-week boundary. Implemented
+  with shift lookup payloads, distinct/overlap validation, severity-only
+  updates, and transactional cleanup when a shift is deleted.
 
-- [ ] 4. **Docs and full checks.** Once the data model is settled and
+- [x] 4. **Docs and full checks.** Once the data model is settled and
   the user has replaced the in-place migration with a fresh,
   correctly-named one: `doc/roadmap.md` — phase 3's status row and
   section note that rule-based planning's data model and its own
@@ -106,7 +104,9 @@ once the design is final.
   nothing enforces the rules and `/solve` remains phase 5.
   `doc/concept.md` updated if it lists phase-3 scope. Pint clean. Full
   PHP suite green. Full JS suite green. `npm run build` green.
-  `php artisan migrate` clean on a fresh database.
+  `php artisan migrate` clean on a fresh database. Completed. The
+  touched PHP files pass Pint. The full repository Pint check still
+  reports 20 unrelated files.
 
 ## Not done / deferred
 

@@ -11,14 +11,21 @@ const en = {
     "employees.field.business_line_none": "None",
     "employees.hours_option": ":count hours",
     "employees.hours_below_minimum": "I can only work less than :min hours",
+    "planning.shift_times": "Working times",
+    "planning.add_to_calendar": "Add to calendar",
+    "planning.details.title": "Shift details",
+    "planning.details.hours": "Working hours",
+    "planning.details.close": "Close",
+    "planning.calendar_contact": "Contact",
     "personal.title": "Your working hours",
     "personal.action.save": "Save",
     "personal.action.saving": "Saving…",
     "personal.action.cancel": "Cancel",
     "personal.action.withdraw": "Withdraw",
-    "personal.withdraw.title": "Withdraw?",
-    "personal.withdraw.body": "This permanently removes your details from ShiftPlanner.",
-    "personal.withdraw.confirm": "Yes, withdraw",
+    "personal.withdraw.title": "Withdraw",
+    "personal.withdraw.info": "You cannot withdraw on this page. Contact your business line responsible.",
+    "personal.withdraw.contact_planner": "You cannot withdraw on this page. Contact your planner.",
+    "personal.withdraw.close": "Close",
     "app.cancel": "Cancel",
     "personal.saved": "Saved",
     "personal.locked_notice": "Changes are currently closed by your planner.",
@@ -66,6 +73,9 @@ const { routerCalls, failUrlsRef, router, useFormMock } = vi.hoisted(() => {
     const useFormMock = (...args) => useFormMock.impl(...args);
     return { routerCalls, failUrlsRef, router, useFormMock };
 });
+
+const { downloadIcs } = vi.hoisted(() => ({ downloadIcs: vi.fn() }));
+vi.mock("@/utils/shiftIcs", async (importOriginal) => ({ ...(await importOriginal()), downloadIcs }));
 
 vi.mock("@inertiajs/vue3", () => ({
     router,
@@ -229,37 +239,38 @@ describe("Personal/Show", () => {
         expect(findWithdrawButton(locked)).toBeUndefined();
     });
 
-    it("clicking Withdraw opens the confirmation dialog without deleting anything yet", async () => {
-        const w = mountShow();
-        expect(w.text()).not.toContain("Withdraw?");
+    it("clicking Withdraw opens a card that names the business line responsible, and deletes nothing", async () => {
+        const w = mountShow([], { businessLineResponsible: { name: "Rita Lead" } });
+        expect(w.find('[role="dialog"]').exists()).toBe(false);
 
         await findWithdrawButton(w).trigger("click");
 
-        expect(w.text()).toContain("Withdraw?");
-        expect(w.text()).toContain("This permanently removes your details from ShiftPlanner.");
+        const dialog = w.get('[role="dialog"]');
+        expect(dialog.text()).toContain("You cannot withdraw on this page. Contact your business line responsible.");
+        expect(dialog.text()).toContain("Rita Lead");
+        expect(dialog.find("a").exists()).toBe(false);
+        expect(dialog.findAll("button").some((b) => b.text() === "Yes, withdraw")).toBe(false);
         expect(routerCalls).toEqual([]);
     });
 
-    it("dismissing the withdraw dialog does not delete anything", async () => {
-        const w = mountShow();
+    it("tells the employee to contact the planner when there is no business line responsible", async () => {
+        const w = mountShow([], { businessLineResponsible: null });
+
         await findWithdrawButton(w).trigger("click");
 
-        const dialogCancel = w.findAll("button").filter((b) => b.text() === "Cancel").at(-1);
-        await dialogCancel.trigger("click");
-        await w.vm.$nextTick();
-
-        expect(w.text()).not.toContain("Withdraw?");
-        expect(routerCalls).toEqual([]);
+        const dialog = w.get('[role="dialog"]');
+        expect(dialog.text()).toContain("You cannot withdraw on this page. Contact your planner.");
+        expect(dialog.find("a").exists()).toBe(false);
     });
 
-    it("confirming withdrawal deletes the personal record", async () => {
+    it("closes the withdraw card with Close", async () => {
         const w = mountShow();
         await findWithdrawButton(w).trigger("click");
 
-        const dialogConfirm = w.findAll("button").find((b) => b.text() === "Yes, withdraw");
-        await dialogConfirm.trigger("click");
+        await w.get('[role="dialog"]').findAll("button").find((b) => b.text() === "Close").trigger("click");
 
-        expect(routerCalls).toContainEqual(["delete", "/personal/tok-1"]);
+        expect(w.find('[role="dialog"]').exists()).toBe(false);
+        expect(routerCalls).toEqual([]);
     });
 
     it("enables Save when weekly hours change, and saves via the personal endpoint on click", async () => {
@@ -418,16 +429,100 @@ describe("Personal/Show", () => {
         expect(hidden(w, '[data-testid="panel-availability"]')).toBe(true);
     });
 
-    it("renders the planned shifts list on the Planning tab", () => {
+    it("renders the planned shifts table on the Planning tab", () => {
         const plannedShifts = [{
             weekStart: "2026-09-07",
             weekEnd: "2026-09-13",
-            published: true,
-            assignments: [{ date: "2026-09-08", workcenter_name: "Line 1", shift_name: "Early", start_time: "06:00", end_time: "14:00" }],
+            assignments: [{
+                date: "2026-09-08", workcenter_name: "Line 1", responsible: "Jane Doe", shift_name: "Early",
+                start_time: "06:00:00", end_time: "14:00:00", published: true,
+            }],
         }];
         const w = mountShow([], { plannedShifts });
 
-        expect(w.get('[data-testid="panel-planning"]').text()).toContain("Line 1");
+        const cells = w.get('[data-testid="panel-planning"]').findAll("tbody tr td").map((td) => td.text());
+        expect(cells).toEqual(["37", "Tuesday", "Early", "Line 1", "Jane Doe", ""]);
+    });
+
+    it("opens a shift card from a table row with an Add to calendar button that downloads the shift", async () => {
+        downloadIcs.mockClear();
+        const plannedShifts = [{
+            weekStart: "2026-09-07",
+            weekEnd: "2026-09-13",
+            assignments: [{
+                date: "2026-09-08", workcenter_name: "Line 1", responsible: "Jane Doe", shift_name: "Early",
+                start_time: "06:00:00", end_time: "14:00:00", published: true,
+            }],
+        }];
+        const w = mountShow([], { plannedShifts });
+
+        await w.get('[data-testid="panel-planning"] tbody tr').trigger("click");
+        const dialog = w.get('[role="dialog"]');
+        expect(dialog.text()).toContain("06:00–14:00");
+        await dialog.findAll("button").find((b) => b.text() === "Add to calendar").trigger("click");
+
+        expect(downloadIcs).toHaveBeenCalledTimes(1);
+        const [filename, content] = downloadIcs.mock.calls[0];
+        expect(filename).toBe("shift-08-09-2026.ics");
+        expect(content).toContain("DTSTART:20260908T060000");
+        expect(content).toContain("SUMMARY:Early – Line 1");
+        expect(content).toContain("DESCRIPTION:Contact: Jane Doe");
+    });
+
+    it("lists the working times of the planned shifts once each, ordered by start time", () => {
+        const assignment = (date, shift_name, start_time, end_time) => ({
+            date, workcenter_name: "Line 1", shift_name, start_time, end_time, published: true,
+        });
+        const plannedShifts = [{
+            weekStart: "2026-09-07",
+            weekEnd: "2026-09-13",
+            assignments: [
+                assignment("2026-09-08", "Late", "14:00:00", "22:00:00"),
+                assignment("2026-09-09", "Early", "06:00:00", "14:00:00"),
+                assignment("2026-09-10", "Late", "14:00:00", "22:00:00"),
+            ],
+        }];
+        const w = mountShow([], { plannedShifts });
+
+        const items = w.get('[data-testid="planning-shift-times"]').findAll("li").map((li) => li.text());
+        expect(items).toEqual(["Early 06:00–14:00", "Late 14:00–22:00"]);
+        expect(w.get('[data-testid="planning-shift-times"]').text()).toContain("Working times");
+    });
+
+    it("shows no working times when nothing is planned", () => {
+        const w = mountShow([], { plannedShifts: [] });
+
+        expect(w.find('[data-testid="planning-shift-times"]').exists()).toBe(false);
+    });
+
+    it("puts the working times above the schedule note", () => {
+        const plannedShifts = [{
+            weekStart: "2026-09-07",
+            weekEnd: "2026-09-13",
+            assignments: [{
+                date: "2026-09-08", workcenter_name: "Line 1", shift_name: "Early",
+                start_time: "06:00", end_time: "14:00", published: true,
+            }],
+        }];
+        const w = mountShow([], { plannedShifts, scheduleNoteHtml: "<p>Schedule remarks</p>" });
+
+        const html = w.get('[data-testid="panel-planning"]').html();
+        expect(html.indexOf("planning-shift-times")).toBeLessThan(html.indexOf("Schedule remarks"));
+        expect(html.indexOf("<table")).toBeLessThan(html.indexOf("planning-shift-times"));
+    });
+
+    it("shows the schedule note below the table on the Planning tab", () => {
+        const w = mountShow([], { scheduleNoteHtml: "<p>Schedule remarks</p>" });
+        const panel = w.get('[data-testid="panel-planning"]');
+
+        expect(panel.text()).toContain("Schedule remarks");
+        expect(panel.findComponent(ShiftNote).props("html")).toBe("<p>Schedule remarks</p>");
+    });
+
+    it("shows no note on the Planning tab when the schedule note is empty", () => {
+        const w = mountShow([], { scheduleNoteHtml: null });
+
+        expect(w.get('[data-testid="panel-planning"]').findComponent(ShiftNote).exists()).toBe(false);
     });
 
     it("renders the shift note on the Information tab when set", () => {

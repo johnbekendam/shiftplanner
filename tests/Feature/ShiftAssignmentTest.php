@@ -92,7 +92,7 @@ class ShiftAssignmentTest extends TestCase
             'workcenter_id' => $workcenter->id,
             'shift_id' => $shift->id,
             'date' => $this->aTuesday()->toDateString(),
-            'fixed' => false,
+            'fixed' => true,
         ]);
     }
 

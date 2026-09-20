@@ -16,6 +16,7 @@ class ShiftAssignment extends Model
         'shift_id',
         'date',
         'fixed',
+        'informed_at',
     ];
 
     protected function casts(): array
@@ -23,6 +24,7 @@ class ShiftAssignment extends Model
         return [
             'date' => 'date:Y-m-d',
             'fixed' => 'boolean',
+            'informed_at' => 'datetime',
         ];
     }
 

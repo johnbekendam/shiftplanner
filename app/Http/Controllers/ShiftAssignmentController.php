@@ -71,7 +71,10 @@ class ShiftAssignmentController extends Controller
             'workcenter_id' => $workcenter->id,
             'shift_id' => $shift->id,
             'date' => $date->toDateString(),
-            'fixed' => false,
+            // A manual placement is protected from a future Generate run by
+            // default — a manager can still unfreeze it with the existing
+            // Freeze/Unfreeze toggle. Only new assignments; no backfill.
+            'fixed' => true,
         ]);
 
         return back()->with('success', __('scheduling.flash.assigned'));

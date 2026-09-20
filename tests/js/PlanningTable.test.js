@@ -1,0 +1,153 @@
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { mount } from "@vue/test-utils";
+
+const en = {
+    "planning.table.week": "Week",
+    "planning.table.date": "Date",
+    "planning.table.day": "Day",
+    "planning.table.shift": "Shift",
+    "planning.table.workcenter": "Workcenter",
+    "planning.table.responsible": "Contact",
+    "planning.details.title": "Shift details",
+    "planning.details.hours": "Working hours",
+    "planning.details.close": "Close",
+    "planning.add_to_calendar": "Add to calendar",
+    "planning.calendar_contact": "Contact",
+};
+
+vi.mock("@inertiajs/vue3", () => ({
+    usePage: () => ({ props: { translations: en } }),
+}));
+
+const { downloadIcs } = vi.hoisted(() => ({ downloadIcs: vi.fn() }));
+vi.mock("@/utils/shiftIcs", async (importOriginal) => ({ ...(await importOriginal()), downloadIcs }));
+
+import PlanningTable from "@/components/PlanningTable.vue";
+
+const assignments = [
+    {
+        date: "2026-09-15", workcenter_name: "Line 2", responsible: null, shift_name: "Late",
+        start_time: "14:00:00", end_time: "22:00:00",
+    },
+    {
+        date: "2026-09-08", workcenter_name: "Line 1", responsible: "Jane Doe", shift_name: "Early",
+        start_time: "06:00:00", end_time: "14:00:00",
+    },
+];
+
+const mountTable = (props = {}) =>
+    mount(PlanningTable, {
+        props: { assignments, emptyText: "Nothing", ...props },
+        global: { stubs: { teleport: true } },
+    });
+
+beforeEach(() => downloadIcs.mockClear());
+
+describe("PlanningTable", () => {
+    it("has no tooltip and no button in a row", () => {
+        const w = mountTable({ calendarExport: true });
+
+        expect(w.find("tbody tr").attributes("title")).toBeUndefined();
+        expect(w.find("tbody button").exists()).toBe(false);
+    });
+
+    it("shows week, day, shift, workcenter and contact, without a date column", () => {
+        const w = mountTable();
+
+        expect(w.findAll("thead th").map((th) => th.text())).toEqual(["Week", "Day", "Shift", "Workcenter", "Contact", ""]);
+        expect(w.findAll("tbody tr")[0].findAll("td").map((td) => td.text()))
+            .toEqual(["37", "Tuesday", "Early", "Line 1", "Jane Doe", ""]);
+    });
+
+    it("ends each row with a decorative information icon that has no action of its own", () => {
+        const w = mountTable();
+
+        for (const row of w.findAll("tbody tr")) {
+            const cell = row.findAll("td").at(-1);
+            expect(cell.find("svg").exists()).toBe(true);
+            expect(cell.find("svg").attributes("aria-hidden")).toBe("true");
+            expect(cell.find("button, a").exists()).toBe(false);
+        }
+    });
+
+    it("uses the normal font size", () => {
+        const w = mountTable();
+
+        expect(w.get("table").classes()).toContain("text-sm");
+        expect(w.get("table").classes()).not.toContain("text-xs");
+    });
+
+    it("shows no card until a row is clicked", () => {
+        expect(mountTable().find('[role="dialog"]').exists()).toBe(false);
+    });
+
+    it("opens a card with all shift details when a row is clicked", async () => {
+        const w = mountTable();
+
+        await w.findAll("tbody tr")[0].trigger("click");
+
+        const dialog = w.get('[role="dialog"]');
+        expect(dialog.text()).toContain("Shift details");
+        expect(dialog.text()).toContain("37");
+        expect(dialog.text()).toContain("08-09-2026");
+        expect(dialog.text()).toContain("Tuesday");
+        expect(dialog.text()).toContain("Early");
+        expect(dialog.text()).toContain("06:00–14:00");
+        expect(dialog.text()).toContain("Line 1");
+        expect(dialog.text()).toContain("Jane Doe");
+    });
+
+    it("lists the card fields as week, day, shift, date, hours, workcenter, contact", async () => {
+        const w = mountTable();
+
+        await w.findAll("tbody tr")[0].trigger("click");
+
+        const labels = w.get('[role="dialog"]').findAll("dt").map((dt) => dt.text());
+        expect(labels).toEqual(["Week", "Day", "Shift", "Date", "Working hours", "Workcenter", "Contact"]);
+    });
+
+    it("opens the card from the keyboard", async () => {
+        const w = mountTable();
+
+        await w.findAll("tbody tr")[1].trigger("keydown.enter");
+
+        expect(w.find('[role="dialog"]').exists()).toBe(true);
+    });
+
+    it("shows a dash for a missing contact in the card", async () => {
+        const w = mountTable();
+
+        await w.findAll("tbody tr")[1].trigger("click");
+
+        expect(w.get('[data-testid="shift-detail-contact"]').text()).toBe("-");
+    });
+
+    it("closes the card with the Close button", async () => {
+        const w = mountTable();
+        await w.findAll("tbody tr")[0].trigger("click");
+
+        await w.findAll('[role="dialog"] button').find((b) => b.text() === "Close").trigger("click");
+
+        expect(w.find('[role="dialog"]').exists()).toBe(false);
+    });
+
+    it("has no Add to calendar button in the card unless calendar export is on", async () => {
+        const w = mountTable();
+        await w.findAll("tbody tr")[0].trigger("click");
+
+        expect(w.findAll('[role="dialog"] button').some((b) => b.text() === "Add to calendar")).toBe(false);
+    });
+
+    it("downloads the clicked shift from the Add to calendar button in the card", async () => {
+        const w = mountTable({ calendarExport: true });
+        await w.findAll("tbody tr")[0].trigger("click");
+
+        await w.findAll('[role="dialog"] button').find((b) => b.text() === "Add to calendar").trigger("click");
+
+        expect(downloadIcs).toHaveBeenCalledTimes(1);
+        const [filename, content] = downloadIcs.mock.calls[0];
+        expect(filename).toBe("shift-08-09-2026.ics");
+        expect(content).toContain("SUMMARY:Early – Line 1");
+        expect(content).toContain("DESCRIPTION:Contact: Jane Doe");
+    });
+});

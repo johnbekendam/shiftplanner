@@ -10,6 +10,8 @@ const en = {
     "scheduling.remove": "Remove",
     "scheduling.no_eligible_employees": "No one eligible.",
     "scheduling.open_spot": "Add employee",
+    "scheduling.unfulfilled_reason.no_eligible_employee": "No eligible employee found.",
+    "scheduling.unfulfilled_reason.hard_cap_reached": "Every eligible employee was blocked by a hard cap.",
 };
 
 const { routerCalls, failUrlsRef, router } = vi.hoisted(() => {
@@ -36,6 +38,7 @@ vi.mock("@/composables/useI18n", () => ({
     useI18n: () => (key) => en[key] ?? key,
 }));
 
+import { SearchInput } from "@/components/ui/Input";
 import ShiftWeekTable from "@/components/scheduling/ShiftWeekTable.vue";
 
 // A week of cells (Mon 14 .. Sun 20). Mon: 2 spots, 1 assigned (1 open row).
@@ -51,8 +54,8 @@ const baseCells = [
     { date: "2026-09-20", spots: 0, overridden: false, assignments: [] },
 ];
 
-const mountTable = (cells = baseCells) =>
-    mount(ShiftWeekTable, { props: { workcenterId: 1, shiftId: 9, cells } });
+const mountTable = (cells = baseCells, extraProps = {}) =>
+    mount(ShiftWeekTable, { props: { workcenterId: 1, shiftId: 9, cells, ...extraProps } });
 
 beforeEach(() => {
     routerCalls.length = 0;
@@ -94,16 +97,38 @@ describe("ShiftWeekTable", () => {
         expect(w.get('[data-testid="cell-9-2026-09-17-0"]').find('[aria-label="Add employee"]').exists()).toBe(true);
     });
 
-    it("shows a frozen assignee's name with a pin icon, and a non-frozen one as plain text with no icon", () => {
-        const w = mountTable();
+    const nameClasses = (w, cell) => w.get(`[data-testid="${cell}"] button`).find("span").classes();
+
+    it("shows an unpublished, not fixed assignee in gray", () => {
+        const w = mountTable(undefined, { published: false });
 
         // Bram Bakker (Mon, row 0) is not fixed.
-        expect(w.get('[data-testid="cell-9-2026-09-14-0"]').find("svg").exists()).toBe(false);
+        expect(nameClasses(w, "cell-9-2026-09-14-0")).toContain("text-(--color-text-muted)");
+        expect(nameClasses(w, "cell-9-2026-09-14-0")).not.toContain("text-(--color-text-primary)");
+    });
+
+    it("shows a fixed assignee in the standard text color, even when unpublished", () => {
+        const w = mountTable(undefined, { published: false });
 
         // Anna Jansen (Tue, row 0) is fixed.
+        expect(nameClasses(w, "cell-9-2026-09-15-0")).toContain("text-(--color-text-primary)");
+        expect(nameClasses(w, "cell-9-2026-09-15-0")).not.toContain("text-(--color-text-muted)");
+    });
+
+    it("shows every assignee of a published workcenter in the standard text color", () => {
+        const w = mountTable(undefined, { published: true });
+
+        expect(nameClasses(w, "cell-9-2026-09-14-0")).toContain("text-(--color-text-primary)");
+        expect(nameClasses(w, "cell-9-2026-09-15-0")).toContain("text-(--color-text-primary)");
+    });
+
+    it("shows no pin icon for a fixed assignee, only the name", () => {
+        const w = mountTable();
+
         const cell = w.get('[data-testid="cell-9-2026-09-15-0"]');
         expect(cell.text()).toBe("Anna Jansen");
-        expect(cell.find("svg").exists()).toBe(true);
+        expect(cell.find("svg").exists()).toBe(false);
+        expect(w.get('[data-testid="cell-9-2026-09-14-0"]').find("svg").exists()).toBe(false);
     });
 
     it("picking a value from the menu fires a PUT and closes the menu; picking the current value fires nothing", async () => {
@@ -201,6 +226,42 @@ describe("ShiftWeekTable", () => {
         w.unmount();
     });
 
+    const openPopoverWith = async (names) => {
+        axiosGet.mockResolvedValue({ data: names.map((name, i) => ({ id: i + 1, name, not_preferred: false })) });
+        const w = mountTable();
+        await w.get('[data-testid="cell-9-2026-09-17-0"] button').trigger("click");
+        await flushPromises();
+
+        return w;
+    };
+
+    it("sizes the assign popover to its content and keeps names on one line", async () => {
+        const w = await openPopoverWith(["Maria Alexandra van der Westhuizen-Oosterhoutstraat"]);
+        const popover = bodyWrapper().get('[data-testid="assign-popover"]');
+
+        expect(popover.classes()).toContain("w-max");
+        expect(popover.classes()).toContain("min-w-48");
+        expect(popover.classes()).not.toContain("w-48");
+        expect(popover.get('[data-testid="assign-list"] li button span').classes()).toContain("whitespace-nowrap");
+        w.unmount();
+    });
+
+    it("keeps the popover width steady while the search narrows the list", async () => {
+        const w = await openPopoverWith(["Els de Vries", "Bram Bakker"]);
+        const list = () => bodyWrapper().get('[data-testid="assign-list"]');
+        const sizer = () => bodyWrapper().get('[data-testid="assign-sizer"]');
+        expect(list().findAll("li")).toHaveLength(2);
+
+        w.findComponent(SearchInput).vm.$emit("update:modelValue", "Els");
+        await flushPromises();
+
+        expect(list().findAll("li")).toHaveLength(1);
+        // A hidden copy of the full list keeps the width the same.
+        expect(sizer().attributes("aria-hidden")).toBe("true");
+        expect(sizer().findAll("li").map((li) => li.text())).toEqual(["Els de Vries", "Bram Bakker"]);
+        w.unmount();
+    });
+
     it("flags a workcenter-not-preferred employee in the assign popover with a warning icon", async () => {
         axiosGet.mockResolvedValue({
             data: [{ id: 3, name: "Els de Vries", not_preferred: false, workcenter_not_preferred: true }],
@@ -235,6 +296,57 @@ describe("ShiftWeekTable", () => {
 
         offsetHeightSpy.mockRestore();
         window.innerHeight = originalInnerHeight;
+        w.unmount();
+    });
+
+    it("shows an unfulfilled-reason icon on an open cell matching this table's workcenter/shift/date", () => {
+        const w = mountTable(baseCells, {
+            unfulfilled: [{ workcenter_id: 1, shift_id: 9, date: "2026-09-17", reason: "no_eligible_employee" }],
+        });
+
+        const cell = w.get('[data-testid="cell-9-2026-09-17-0"]');
+        expect(cell.find('[data-testid="unfulfilled-icon"]').exists()).toBe(true);
+        expect(cell.get('[data-testid="unfulfilled-icon"]').attributes("title")).toBe("No eligible employee found.");
+    });
+
+    it("does not show the icon on a different date, shift, or workcenter", () => {
+        const wrongDate = mountTable(baseCells, {
+            unfulfilled: [{ workcenter_id: 1, shift_id: 9, date: "2026-09-18", reason: "no_eligible_employee" }],
+        });
+        expect(wrongDate.find('[data-testid="unfulfilled-icon"]').exists()).toBe(false);
+
+        const wrongShift = mountTable(baseCells, {
+            unfulfilled: [{ workcenter_id: 1, shift_id: 99, date: "2026-09-17", reason: "no_eligible_employee" }],
+        });
+        expect(wrongShift.find('[data-testid="unfulfilled-icon"]').exists()).toBe(false);
+
+        const wrongWorkcenter = mountTable(baseCells, {
+            unfulfilled: [{ workcenter_id: 99, shift_id: 9, date: "2026-09-17", reason: "no_eligible_employee" }],
+        });
+        expect(wrongWorkcenter.find('[data-testid="unfulfilled-icon"]').exists()).toBe(false);
+    });
+
+    it("shows no icon at all when nothing is unfulfilled", () => {
+        const w = mountTable();
+        expect(w.find('[data-testid="unfulfilled-icon"]').exists()).toBe(false);
+    });
+
+    it("shows the hard_cap_reached reason text", () => {
+        const w = mountTable(baseCells, {
+            unfulfilled: [{ workcenter_id: 1, shift_id: 9, date: "2026-09-17", reason: "hard_cap_reached" }],
+        });
+        expect(w.get('[data-testid="unfulfilled-icon"]').attributes("title")).toBe("Every eligible employee was blocked by a hard cap.");
+    });
+
+    it("still allows assigning through the open-spot button when the cell is unfulfilled", async () => {
+        const w = mountTable(baseCells, {
+            unfulfilled: [{ workcenter_id: 1, shift_id: 9, date: "2026-09-17", reason: "no_eligible_employee" }],
+        });
+
+        await w.get('[data-testid="cell-9-2026-09-17-0"] button[aria-label="Add employee"]').trigger("click");
+        await flushPromises();
+
+        expect(bodyWrapper().find('[data-testid="assign-popover"]').exists()).toBe(true);
         w.unmount();
     });
 });

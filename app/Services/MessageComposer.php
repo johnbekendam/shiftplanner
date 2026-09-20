@@ -9,14 +9,18 @@ class MessageComposer
 
     public function render(string $subject, string $body): array
     {
-        return ['subject' => $subject, 'body_html' => ($this->markdown ??= new MarkdownRenderer)->render(
+        $html = ($this->markdown ??= new MarkdownRenderer)->render(
             $body,
             fn (string $label, string $url): string => view('emails.components.button', [
                 'url' => $url,
                 'label' => $label,
                 'colors' => (new ThemeTokens)->emailColors(),
             ])->render(),
-        )];
+        );
+
+        // Marks the Markdown data tables so the email layout styles only them,
+        // not the button's layout table (which is rendered with attributes).
+        return ['subject' => $subject, 'body_html' => str_replace('<table>', '<table class="md-table">', $html)];
     }
 
     /**

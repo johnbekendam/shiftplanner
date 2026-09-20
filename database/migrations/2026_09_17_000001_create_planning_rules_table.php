@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::create('planning_rules', function (Blueprint $table) {
             $table->id();
             $table->string('type');
-            $table->string('mode')->default('hard');
+            $table->string('mode')->nullable();
             $table->unsignedTinyInteger('severity')->nullable();
             $table->json('config')->nullable();
             $table->timestamps();

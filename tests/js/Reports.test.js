@@ -18,6 +18,17 @@ const en = {
     "reports.missing_availability.select_all": "Select all employees in this report",
     "reports.missing_availability.select_employee": "Select :name",
     "reports.missing_availability.email_selected": "Email selected",
+    "reports.tab.uninformed_planning": "Uninformed planning",
+    "reports.uninformed_planning.business_line_placeholder": "All business lines",
+    "reports.uninformed_planning.empty": "Every employee with planning has been informed.",
+    "reports.uninformed_planning.column.name": "Name",
+    "reports.uninformed_planning.column.business_line": "Business line",
+    "reports.uninformed_planning.column.count": "Uninformed shifts",
+    "reports.uninformed_planning.column.first_date": "First shift",
+    "reports.uninformed_planning.no_business_line": "—",
+    "reports.uninformed_planning.select_all": "Select all employees with uninformed planning",
+    "reports.uninformed_planning.select_employee": "Select :name",
+    "reports.uninformed_planning.email_selected": "Email planning to selected",
 };
 
 const { router } = vi.hoisted(() => ({
@@ -47,7 +58,8 @@ const mountIndex = (props = {}) =>
             employees: [],
             shifts,
             businessLines,
-            filters: { shift: null, business_line: null, unconfirmed: true },
+            uninformedPlanning: [],
+            filters: { shift: null, business_line: null, unconfirmed: true, planning_business_line: null },
             ...props,
         },
         global: { stubs: { AppLayout: { template: "<div><slot /></div>" } } },
@@ -224,5 +236,87 @@ describe("Reports/Index", () => {
         expect(router.visit).toHaveBeenCalledWith(
             "/mailbox?tab=compose&type=custom&employee_ids[]=1&employee_ids[]=2",
         );
+    });
+
+    // ── Uninformed planning tab ─────────────────────────────────────────
+
+    const uninformedPlanning = [
+        { id: 1, name: "Ann Ant", business_line: "PMP", uninformed_count: 2, first_date: "2026-09-22" },
+        { id: 2, name: "Bo Bee", business_line: null, uninformed_count: 1, first_date: "2026-09-24" },
+    ];
+
+    const openPlanningTab = async (props = {}) => {
+        const w = mountIndex({ uninformedPlanning, ...props });
+        await w.findAll("button").find((b) => b.text() === "Uninformed planning").trigger("click");
+
+        return w;
+    };
+
+    it("has an Uninformed planning tab next to Missing availability", () => {
+        const w = mountIndex();
+
+        expect(w.text()).toContain("Missing availability");
+        expect(w.text()).toContain("Uninformed planning");
+    });
+
+    it("lists each employee with the count and the first shift date as dd-mm-yyyy", async () => {
+        const w = await openPlanningTab();
+
+        const rows = w.findAll("tbody tr").map((tr) => tr.findAll("td").slice(1).map((td) => td.text()));
+        expect(rows).toEqual([
+            ["Ann Ant", "PMP", "2", "22-09-2026"],
+            ["Bo Bee", "—", "1", "24-09-2026"],
+        ]);
+        expect(w.text()).not.toContain("Include unconfirmed employees");
+    });
+
+    it("shows the empty state when everyone is informed", async () => {
+        const w = await openPlanningTab({ uninformedPlanning: [] });
+
+        expect(w.text()).toContain("Every employee with planning has been informed.");
+    });
+
+    it("reloads with planning_business_line and keeps the other filters", async () => {
+        const w = await openPlanningTab({
+            filters: { shift: 5, business_line: null, unconfirmed: false, planning_business_line: null },
+        });
+
+        w.findComponent(SelectInput).vm.$emit("update:modelValue", 1);
+        await w.vm.$nextTick();
+
+        expect(router.get).toHaveBeenCalledWith(
+            "/reports",
+            expect.objectContaining({ shift: 5, unconfirmed: 0, planning_business_line: 1 }),
+            expect.anything(),
+        );
+    });
+
+    it("disables the email button until a row is selected, then shows the count", async () => {
+        const w = await openPlanningTab();
+        expect(w.get('[aria-label="Email planning to selected 0"]').attributes("disabled")).toBeDefined();
+
+        await w.get('[aria-label="Select Ann Ant"]').setValue(true);
+
+        const button = w.get('[aria-label="Email planning to selected 1"]');
+        expect(button.attributes("disabled")).toBeUndefined();
+        expect(button.text()).toContain("(1)");
+    });
+
+    it("selects every row with select all", async () => {
+        const w = await openPlanningTab();
+
+        await w.get('[aria-label="Select all employees with uninformed planning"]').setValue(true);
+
+        expect(w.get('[aria-label="Select Ann Ant"]').element.checked).toBe(true);
+        expect(w.get('[aria-label="Select Bo Bee"]').element.checked).toBe(true);
+    });
+
+    it("opens Compose with the Planning type and the selected employees", async () => {
+        const w = await openPlanningTab();
+        await w.get('[aria-label="Select all employees with uninformed planning"]').setValue(true);
+
+        await w.get('[aria-label="Email planning to selected 2"]').trigger("click");
+
+        expect(router.visit).toHaveBeenCalledWith("/mailbox?tab=compose&type=planning&employee_ids[]=1&employee_ids[]=2");
     });
 });

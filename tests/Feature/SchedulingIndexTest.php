@@ -3,6 +3,8 @@
 namespace Tests\Feature;
 
 use App\Models\Employee;
+use App\Models\PlanGenerationRun;
+use App\Models\PlanningSettings;
 use App\Models\PublishedWeek;
 use App\Models\Shift;
 use App\Models\ShiftAssignment;
@@ -320,59 +322,309 @@ class SchedulingIndexTest extends TestCase
         );
     }
 
-    public function test_week_published_is_true_when_the_selected_week_is_published(): void
+    public function test_published_workcenter_weeks_includes_a_published_pair_within_the_month(): void
     {
         $this->actingAsAdmin();
-        PublishedWeek::query()->create(['week_start' => '2026-09-07']);
-
-        $this->get('/planning?year=2026&month=9&date=2026-09-10')->assertOk()
-            ->assertInertia(fn ($page) => $page->where('weekPublished', true));
-    }
-
-    public function test_week_published_is_false_when_the_selected_week_is_not_published(): void
-    {
-        $this->actingAsAdmin();
-
-        $this->get('/planning?year=2026&month=9&date=2026-09-10')->assertOk()
-            ->assertInertia(fn ($page) => $page->where('weekPublished', false));
-    }
-
-    public function test_published_days_marks_every_day_in_a_published_week(): void
-    {
-        $this->actingAsAdmin();
-        // 2026-09-10 is a Thursday; its week runs 2026-09-07 through 2026-09-13.
-        PublishedWeek::query()->create(['week_start' => '2026-09-07']);
+        $workcenter = Workcenter::factory()->create();
+        PublishedWeek::query()->create(['week_start' => '2026-09-07', 'workcenter_id' => $workcenter->id]);
 
         $response = $this->get('/planning?year=2026&month=9')->assertOk();
-        $publishedDays = $response->viewData('page')['props']['publishedDays'];
+        $published = $response->viewData('page')['props']['publishedWorkcenterWeeks'];
 
-        foreach ([7, 8, 9, 10, 11, 12, 13] as $day) {
-            $this->assertTrue($publishedDays[$day] ?? false, "day {$day} should be published");
-        }
-        $this->assertArrayNotHasKey(6, $publishedDays);
-        $this->assertArrayNotHasKey(14, $publishedDays);
+        $this->assertEqualsCanonicalizing(
+            [['workcenter_id' => $workcenter->id, 'week_start' => '2026-09-07', 'planner_open' => false]],
+            $published,
+        );
     }
 
-    public function test_published_days_includes_days_from_a_week_starting_in_the_adjacent_month(): void
+    public function test_published_workcenter_weeks_carries_the_planner_open_flag(): void
     {
         $this->actingAsAdmin();
+        $open = Workcenter::factory()->create();
+        $frozen = Workcenter::factory()->create();
+        PublishedWeek::query()->create(['week_start' => '2026-09-07', 'workcenter_id' => $open->id, 'planner_open' => true]);
+        PublishedWeek::query()->create(['week_start' => '2026-09-07', 'workcenter_id' => $frozen->id]);
+
+        $published = collect($this->get('/planning?year=2026&month=9')->viewData('page')['props']['publishedWorkcenterWeeks']);
+
+        $this->assertTrue($published->firstWhere('workcenter_id', $open->id)['planner_open']);
+        $this->assertFalse($published->firstWhere('workcenter_id', $frozen->id)['planner_open']);
+    }
+
+    public function test_published_workcenter_weeks_keeps_workcenters_independent(): void
+    {
+        $this->actingAsAdmin();
+        $published = Workcenter::factory()->create();
+        $other = Workcenter::factory()->create();
+        PublishedWeek::query()->create(['week_start' => '2026-09-07', 'workcenter_id' => $published->id]);
+
+        $response = $this->get('/planning?year=2026&month=9')->assertOk();
+        $publishedPairs = collect($response->viewData('page')['props']['publishedWorkcenterWeeks']);
+
+        $this->assertTrue($publishedPairs->contains('workcenter_id', $published->id));
+        $this->assertFalse($publishedPairs->contains('workcenter_id', $other->id));
+    }
+
+    public function test_published_workcenter_weeks_includes_a_week_starting_in_the_adjacent_month(): void
+    {
+        $this->actingAsAdmin();
+        $workcenter = Workcenter::factory()->create();
         // 2026-09-01 is a Tuesday; its week starts 2026-08-31 (August).
-        PublishedWeek::query()->create(['week_start' => '2026-08-31']);
+        PublishedWeek::query()->create(['week_start' => '2026-08-31', 'workcenter_id' => $workcenter->id]);
 
         $response = $this->get('/planning?year=2026&month=9')->assertOk();
-        $publishedDays = $response->viewData('page')['props']['publishedDays'];
+        $published = $response->viewData('page')['props']['publishedWorkcenterWeeks'];
 
-        foreach ([1, 2, 3, 4, 5, 6] as $day) {
-            $this->assertTrue($publishedDays[$day] ?? false, "day {$day} should be published");
-        }
-        $this->assertArrayNotHasKey(7, $publishedDays);
+        $this->assertEqualsCanonicalizing(
+            [['workcenter_id' => $workcenter->id, 'week_start' => '2026-08-31', 'planner_open' => false]],
+            $published,
+        );
     }
 
-    public function test_published_days_is_empty_when_nothing_is_published(): void
+    public function test_published_workcenter_weeks_is_empty_when_nothing_is_published(): void
     {
         $this->actingAsAdmin();
+        Workcenter::factory()->create();
 
         $this->get('/planning?year=2026&month=9')->assertOk()
-            ->assertInertia(fn ($page) => $page->where('publishedDays', []));
+            ->assertInertia(fn ($page) => $page->where('publishedWorkcenterWeeks', []));
+    }
+
+    public function test_cycle_start_is_null_when_no_period_start_is_configured(): void
+    {
+        $this->actingAsAdmin();
+
+        $this->get('/planning?year=2026&month=9&date=2026-09-10')->assertOk()
+            ->assertInertia(fn ($page) => $page->where('cycleStart', null));
+    }
+
+    public function test_cycle_start_resolves_the_two_week_cycle_containing_the_viewed_week(): void
+    {
+        $this->actingAsAdmin();
+        PlanningSettings::current()->update(['period_start' => '2026-09-07']);
+
+        // 2026-09-10 falls in the second week of the 09-07..09-20 cycle.
+        $this->get('/planning?year=2026&month=9&date=2026-09-10')->assertOk()
+            ->assertInertia(fn ($page) => $page->where('cycleStart', '2026-09-07'));
+    }
+
+    public function test_generation_run_is_null_when_no_cycle_is_resolved(): void
+    {
+        $this->actingAsAdmin();
+
+        $this->get('/planning?year=2026&month=9&date=2026-09-10')->assertOk()
+            ->assertInertia(fn ($page) => $page->where('generationRun', null));
+    }
+
+    public function test_generation_run_is_null_when_the_cycle_has_never_run(): void
+    {
+        $this->actingAsAdmin();
+        PlanningSettings::current()->update(['period_start' => '2026-09-07']);
+
+        $this->get('/planning?year=2026&month=9&date=2026-09-10')->assertOk()
+            ->assertInertia(fn ($page) => $page->where('generationRun', null));
+    }
+
+    public function test_generation_run_reflects_the_most_recent_run_for_the_cycle(): void
+    {
+        $this->actingAsAdmin();
+        PlanningSettings::current()->update(['period_start' => '2026-09-07']);
+        PlanGenerationRun::create(['cycle_start' => '2026-09-07', 'status' => PlanGenerationRun::STATUS_FAILED, 'error' => 'boom']);
+        $latest = PlanGenerationRun::create(['cycle_start' => '2026-09-07', 'status' => PlanGenerationRun::STATUS_RUNNING]);
+
+        $this->get('/planning?year=2026&month=9&date=2026-09-10')->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('generationRun.status', PlanGenerationRun::STATUS_RUNNING)
+                ->where('generationRun.error', null)
+            );
+
+        $this->assertNotNull($latest);
+    }
+
+    public function test_generation_run_carries_its_id_and_empty_changes_and_unfulfilled_when_not_done(): void
+    {
+        $this->actingAsAdmin();
+        PlanningSettings::current()->update(['period_start' => '2026-09-07']);
+        $run = PlanGenerationRun::create(['cycle_start' => '2026-09-07', 'status' => PlanGenerationRun::STATUS_RUNNING]);
+
+        $this->get('/planning?year=2026&month=9&date=2026-09-10')->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('generationRun.id', $run->id)
+                ->where('generationRun.changes', [])
+                ->where('generationRun.unfulfilled', [])
+            );
+    }
+
+    public function test_generation_run_resolves_changes_and_unfulfilled_to_display_names(): void
+    {
+        $this->actingAsAdmin();
+        PlanningSettings::current()->update(['period_start' => '2026-09-07']);
+        $employee = Employee::factory()->create(['first_name' => 'Anna', 'last_name' => 'Jansen']);
+        $workcenter = Workcenter::factory()->create(['name' => 'Line 1']);
+        $shift = Shift::factory()->create(['name' => 'Early']);
+        PlanGenerationRun::create([
+            'cycle_start' => '2026-09-07',
+            'status' => PlanGenerationRun::STATUS_DONE,
+            'changes' => [
+                ['type' => 'added', 'employee_id' => $employee->id, 'workcenter_id' => $workcenter->id, 'shift_id' => $shift->id, 'date' => '2026-09-08'],
+            ],
+            'unfulfilled' => [
+                ['workcenter_id' => $workcenter->id, 'shift_id' => $shift->id, 'date' => '2026-09-09', 'reason' => 'no_eligible_employee'],
+            ],
+        ]);
+
+        $this->get('/planning?year=2026&month=9&date=2026-09-10')->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('generationRun.changes.0.type', 'added')
+                ->where('generationRun.changes.0.employee_name', 'Anna Jansen')
+                ->where('generationRun.changes.0.workcenter_name', 'Line 1')
+                ->where('generationRun.changes.0.shift_name', 'Early')
+                ->where('generationRun.changes.0.date', '2026-09-08')
+                ->where('generationRun.unfulfilled.0.workcenter_name', 'Line 1')
+                ->where('generationRun.unfulfilled.0.shift_name', 'Early')
+                ->where('generationRun.unfulfilled.0.reason', 'no_eligible_employee')
+            );
+    }
+
+    public function test_generation_run_falls_back_to_the_id_when_a_referenced_entity_no_longer_exists(): void
+    {
+        $this->actingAsAdmin();
+        PlanningSettings::current()->update(['period_start' => '2026-09-07']);
+        $workcenter = Workcenter::factory()->create();
+        $shift = Shift::factory()->create();
+        PlanGenerationRun::create([
+            'cycle_start' => '2026-09-07',
+            'status' => PlanGenerationRun::STATUS_DONE,
+            'changes' => [
+                ['type' => 'added', 'employee_id' => 999999, 'workcenter_id' => $workcenter->id, 'shift_id' => $shift->id, 'date' => '2026-09-08'],
+            ],
+            'unfulfilled' => [],
+        ]);
+
+        $this->get('/planning?year=2026&month=9&date=2026-09-10')->assertOk()
+            ->assertInertia(fn ($page) => $page->where('generationRun.changes.0.employee_name', '#999999'));
+    }
+
+    public function test_generation_run_ignores_a_run_from_a_different_cycle(): void
+    {
+        $this->actingAsAdmin();
+        PlanningSettings::current()->update(['period_start' => '2026-09-07']);
+        PlanGenerationRun::create(['cycle_start' => '2026-09-21', 'status' => PlanGenerationRun::STATUS_RUNNING]);
+
+        $this->get('/planning?year=2026&month=9&date=2026-09-10')->assertOk()
+            ->assertInertia(fn ($page) => $page->where('generationRun', null));
+    }
+
+    public function test_planning_period_is_null_until_both_dates_are_configured(): void
+    {
+        $this->actingAsAdmin();
+
+        $this->get('/planning')->assertOk()->assertInertia(fn ($page) => $page->where('planningPeriod', null));
+
+        PlanningSettings::current()->update(['period_start' => '2026-09-07']);
+        $this->get('/planning')->assertOk()->assertInertia(fn ($page) => $page->where('planningPeriod', null));
+    }
+
+    public function test_planning_period_reflects_settings(): void
+    {
+        $this->actingAsAdmin();
+        PlanningSettings::current()->update(['period_start' => '2026-09-07', 'period_end' => '2026-10-18']);
+
+        $this->get('/planning')->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('planningPeriod.start', '2026-09-07')
+                ->where('planningPeriod.end', '2026-10-18')
+            );
+    }
+
+    public function test_clear_range_is_null_until_the_period_is_configured(): void
+    {
+        $this->actingAsAdmin();
+
+        $this->get('/planning')->assertOk()->assertInertia(fn ($page) => $page->where('clearRange', null));
+    }
+
+    public function test_clear_range_is_the_span_of_the_cycles_that_clear_planning_covers(): void
+    {
+        $this->actingAsAdmin();
+        // The first cycle starts on the Monday of the week that holds the period start (2026-09-28);
+        // the last cycle (2026-12-21) runs in full, two weeks, even past the period end.
+        PlanningSettings::current()->update(['period_start' => '2026-10-01', 'period_end' => '2026-12-31']);
+
+        $this->get('/planning')->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('clearRange.start', '2026-09-28')
+                ->where('clearRange.end', '2027-01-03')
+            );
+    }
+
+    public function test_generation_status_is_null_when_the_period_is_not_configured(): void
+    {
+        $this->actingAsAdmin();
+
+        $this->get('/planning')->assertOk()->assertInertia(fn ($page) => $page->where('generationStatus', null));
+    }
+
+    public function test_generation_status_is_inactive_with_no_failures_when_nothing_has_run(): void
+    {
+        $this->actingAsAdmin();
+        PlanningSettings::current()->update(['period_start' => '2026-09-07', 'period_end' => '2026-10-04']);
+
+        $this->get('/planning')->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('generationStatus.active', false)
+                ->where('generationStatus.failedCount', 0)
+                ->where('generationStatus.firstError', null)
+            );
+    }
+
+    public function test_generation_status_is_active_when_any_cycle_in_the_period_is_pending_or_running(): void
+    {
+        $this->actingAsAdmin();
+        PlanningSettings::current()->update(['period_start' => '2026-09-07', 'period_end' => '2026-10-04']);
+        PlanGenerationRun::create(['cycle_start' => '2026-09-07', 'status' => PlanGenerationRun::STATUS_DONE]);
+        PlanGenerationRun::create(['cycle_start' => '2026-09-21', 'status' => PlanGenerationRun::STATUS_RUNNING]);
+
+        $this->get('/planning')->assertOk()
+            ->assertInertia(fn ($page) => $page->where('generationStatus.active', true));
+    }
+
+    public function test_generation_status_reports_failed_cycles_once_none_are_active(): void
+    {
+        $this->actingAsAdmin();
+        PlanningSettings::current()->update(['period_start' => '2026-09-07', 'period_end' => '2026-10-04']);
+        PlanGenerationRun::create(['cycle_start' => '2026-09-07', 'status' => PlanGenerationRun::STATUS_FAILED, 'error' => 'first boom']);
+        PlanGenerationRun::create(['cycle_start' => '2026-09-21', 'status' => PlanGenerationRun::STATUS_FAILED, 'error' => 'second boom']);
+
+        $this->get('/planning')->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('generationStatus.active', false)
+                ->where('generationStatus.failedCount', 2)
+                ->has('generationStatus.firstError')
+            );
+    }
+
+    public function test_generation_status_uses_only_the_latest_run_per_cycle(): void
+    {
+        $this->actingAsAdmin();
+        PlanningSettings::current()->update(['period_start' => '2026-09-07', 'period_end' => '2026-09-20']);
+        PlanGenerationRun::create(['cycle_start' => '2026-09-07', 'status' => PlanGenerationRun::STATUS_FAILED, 'error' => 'stale']);
+        PlanGenerationRun::create(['cycle_start' => '2026-09-07', 'status' => PlanGenerationRun::STATUS_DONE]);
+
+        $this->get('/planning')->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('generationStatus.active', false)
+                ->where('generationStatus.failedCount', 0)
+            );
+    }
+
+    public function test_generation_status_ignores_a_run_outside_the_current_period(): void
+    {
+        $this->actingAsAdmin();
+        PlanningSettings::current()->update(['period_start' => '2026-09-07', 'period_end' => '2026-09-20']);
+        PlanGenerationRun::create(['cycle_start' => '2026-10-05', 'status' => PlanGenerationRun::STATUS_RUNNING]);
+
+        $this->get('/planning')->assertOk()
+            ->assertInertia(fn ($page) => $page->where('generationStatus.active', false));
     }
 }

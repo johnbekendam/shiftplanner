@@ -63,12 +63,9 @@ services:
   #   ports:
   #     - "8000:80"
 
-  # scheduler:                     # roadmap phase 5 — Python OR-Tools CP-SAT
-  #   build: ./scheduler
-  #   environment:
-  #     SOLVE_SHARED_SECRET: ${SOLVE_SHARED_SECRET}
-  #   expose:
-  #     - "8080"
+  # Roadmap phase 5 (the scheduling engine) runs entirely inside the `app`
+  # and `queue` services above — a plain PHP heuristic planner, not a
+  # separate service. No extra compose entry needed for it.
 
 volumes:
   app-storage:
