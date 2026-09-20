@@ -617,9 +617,9 @@ class MailboxTest extends TestCase
 
         $message = Message::firstOrFail();
         $this->assertSame(MessageType::Planning, $message->type);
-        $this->assertStringContainsString('| 39 | Tuesday | Early | Line 1 | - |', $message->body);
-        $this->assertStringNotContainsString('| 38 |', $message->body);
-        $this->assertMatchesRegularExpression('/<td style="[^"]*">Tuesday<\/td>/', $message->body_html);
+        $this->assertStringContainsString('| 22-09-2026 | 06:00 - 14:00 | Line 1 | - |', $message->body);
+        $this->assertStringNotContainsString('15-09-2026', $message->body);
+        $this->assertMatchesRegularExpression('/<td style="[^"]*">22-09-2026<\/td>/', $message->body_html);
         $this->assertEqualsCanonicalizing([$new->id, $informed->id], $message->assignment_ids);
         Carbon::setTestNow();
     }

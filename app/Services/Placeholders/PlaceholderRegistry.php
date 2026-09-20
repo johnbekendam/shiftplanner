@@ -50,9 +50,9 @@ class PlaceholderRegistry
     }
 
     /**
-     * A Markdown table of the employee's upcoming published shifts, with the
-     * same columns as the planning table on the personal page, or null when
-     * there are none, so the recipient is reported as unresolved.
+     * A Markdown table of the employee's upcoming published shifts (date,
+     * hours, workcenter, contact), or null when there are none, so the
+     * recipient is reported as unresolved.
      */
     private function planningList(Employee $employee): ?string
     {
@@ -69,17 +69,15 @@ class PlaceholderRegistry
 
         return collect([
             $row([
-                __('planning.table.week'),
-                __('planning.table.day'),
-                __('planning.table.shift'),
+                __('planning.table.date'),
+                __('planning.table.hours'),
                 __('planning.table.workcenter'),
                 __('planning.table.responsible'),
             ]),
-            '| --- | --- | --- | --- | --- |',
+            '| --- | --- | --- | --- |',
             ...$assignments->map(fn (ShiftAssignment $a) => $row([
-                (string) $a->date->isoWeek,
-                $a->date->format('l'),
-                $a->shift->name,
+                $a->date->format('d-m-Y'),
+                substr($a->shift->start_time, 0, 5).' - '.substr($a->shift->end_time, 0, 5),
                 $a->workcenter->name,
                 $a->workcenter->responsible ?: '-',
             ])),

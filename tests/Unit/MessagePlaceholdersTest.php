@@ -89,7 +89,7 @@ class MessagePlaceholdersTest extends TestCase
         parent::tearDown();
     }
 
-    public function test_resolves_planning_to_a_table_like_the_personal_page(): void
+    public function test_resolves_planning_to_a_table_of_date_hours_workcenter_and_contact(): void
     {
         $employee = $this->plannedEmployee();
 
@@ -98,10 +98,10 @@ class MessagePlaceholdersTest extends TestCase
         $this->assertSame([], $result['unresolved']);
         $this->assertSame(
             "Shifts:\n\n"
-            ."| Week | Day | Shift | Workcenter | Contact |\n"
-            ."| --- | --- | --- | --- | --- |\n"
-            ."| 39 | Tuesday | Early | Line 1 | - |\n"
-            .'| 39 | Wednesday | Early | Line 1 | - |',
+            ."| Date | Hours | Workcenter | Contact |\n"
+            ."| --- | --- | --- | --- |\n"
+            ."| 22-09-2026 | 06:00 - 14:00 | Line 1 | - |\n"
+            .'| 23-09-2026 | 06:00 - 14:00 | Line 1 | - |',
             $result['body'],
         );
     }
@@ -113,7 +113,7 @@ class MessagePlaceholdersTest extends TestCase
 
         $result = app(MessagePlaceholders::class)->resolve('Plan', ':planning', $employee);
 
-        $this->assertStringContainsString('| 39 | Tuesday | Early | Line \\| 1 | Jane Doe |', $result['body']);
+        $this->assertStringContainsString('| 22-09-2026 | 06:00 - 14:00 | Line \\| 1 | Jane Doe |', $result['body']);
     }
 
     public function test_planning_is_unresolved_when_there_are_no_upcoming_published_shifts(): void
@@ -136,7 +136,7 @@ class MessagePlaceholdersTest extends TestCase
         $resolved = app(MessagePlaceholders::class)->resolve('Plan', ':planning', $user);
         $unresolved = app(MessagePlaceholders::class)->resolve('Plan', ':planning', $other);
 
-        $this->assertStringContainsString('| 39 | Tuesday | Early | Line 1 | - |', $resolved['body']);
+        $this->assertStringContainsString('| 22-09-2026 | 06:00 - 14:00 | Line 1 | - |', $resolved['body']);
         $this->assertSame([':planning'], $unresolved['unresolved']);
     }
 
