@@ -22,9 +22,10 @@ const en = {
     "personal.action.saving": "Saving…",
     "personal.action.cancel": "Cancel",
     "personal.action.withdraw": "Withdraw",
-    "personal.withdraw.title": "Withdraw?",
-    "personal.withdraw.body": "This permanently removes your details from ShiftPlanner.",
-    "personal.withdraw.confirm": "Yes, withdraw",
+    "personal.withdraw.title": "Withdraw",
+    "personal.withdraw.info": "You cannot withdraw on this page. Contact your business line responsible.",
+    "personal.withdraw.contact_planner": "You cannot withdraw on this page. Contact your planner.",
+    "personal.withdraw.close": "Close",
     "app.cancel": "Cancel",
     "personal.saved": "Saved",
     "personal.locked_notice": "Changes are currently closed by your planner.",
@@ -238,37 +239,38 @@ describe("Personal/Show", () => {
         expect(findWithdrawButton(locked)).toBeUndefined();
     });
 
-    it("clicking Withdraw opens the confirmation dialog without deleting anything yet", async () => {
-        const w = mountShow();
-        expect(w.text()).not.toContain("Withdraw?");
+    it("clicking Withdraw opens a card that names the business line responsible, and deletes nothing", async () => {
+        const w = mountShow([], { businessLineResponsible: { name: "Rita Lead", email: "rita@example.com" } });
+        expect(w.find('[role="dialog"]').exists()).toBe(false);
 
         await findWithdrawButton(w).trigger("click");
 
-        expect(w.text()).toContain("Withdraw?");
-        expect(w.text()).toContain("This permanently removes your details from ShiftPlanner.");
+        const dialog = w.get('[role="dialog"]');
+        expect(dialog.text()).toContain("You cannot withdraw on this page. Contact your business line responsible.");
+        expect(dialog.text()).toContain("Rita Lead");
+        expect(dialog.get('a[href="mailto:rita@example.com"]').text()).toBe("rita@example.com");
+        expect(dialog.findAll("button").some((b) => b.text() === "Yes, withdraw")).toBe(false);
         expect(routerCalls).toEqual([]);
     });
 
-    it("dismissing the withdraw dialog does not delete anything", async () => {
-        const w = mountShow();
+    it("tells the employee to contact the planner when there is no business line responsible", async () => {
+        const w = mountShow([], { businessLineResponsible: null });
+
         await findWithdrawButton(w).trigger("click");
 
-        const dialogCancel = w.findAll("button").filter((b) => b.text() === "Cancel").at(-1);
-        await dialogCancel.trigger("click");
-        await w.vm.$nextTick();
-
-        expect(w.text()).not.toContain("Withdraw?");
-        expect(routerCalls).toEqual([]);
+        const dialog = w.get('[role="dialog"]');
+        expect(dialog.text()).toContain("You cannot withdraw on this page. Contact your planner.");
+        expect(dialog.find("a").exists()).toBe(false);
     });
 
-    it("confirming withdrawal deletes the personal record", async () => {
+    it("closes the withdraw card with Close", async () => {
         const w = mountShow();
         await findWithdrawButton(w).trigger("click");
 
-        const dialogConfirm = w.findAll("button").find((b) => b.text() === "Yes, withdraw");
-        await dialogConfirm.trigger("click");
+        await w.get('[role="dialog"]').findAll("button").find((b) => b.text() === "Close").trigger("click");
 
-        expect(routerCalls).toContainEqual(["delete", "/personal/tok-1"]);
+        expect(w.find('[role="dialog"]').exists()).toBe(false);
+        expect(routerCalls).toEqual([]);
     });
 
     it("enables Save when weekly hours change, and saves via the personal endpoint on click", async () => {

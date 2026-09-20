@@ -1,6 +1,6 @@
 <script setup>
 import { computed, reactive, ref } from 'vue'
-import { Head, router, useForm } from '@inertiajs/vue3'
+import { Head, useForm } from '@inertiajs/vue3'
 import CenteredLayout from '@/layouts/CenteredLayout.vue'
 import CardSeparator from '@/components/ui/CardSeparator.vue'
 import Tabs from '@/components/ui/Tabs.vue'
@@ -15,7 +15,7 @@ import PlanningTable from '@/components/PlanningTable.vue'
 import ButtonPrimary from '@/components/ui/ButtonPrimary.vue'
 import ButtonSecondary from '@/components/ui/ButtonSecondary.vue'
 import ButtonDanger from '@/components/ui/ButtonDanger.vue'
-import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
+import WithdrawContactDialog from '@/components/WithdrawContactDialog.vue'
 import { useI18n } from '@/composables/useI18n'
 import { useSaveRegistry } from '@/composables/useSaveRegistry'
 import { useUnsavedChangesGuard } from '@/composables/useUnsavedChangesGuard'
@@ -33,6 +33,8 @@ const props = defineProps({
     weeklyHoursMinimum: { type: Number, default: 20 },
     shiftNoteHtml: { type: String, default: null },
     scheduleNoteHtml: { type: String, default: null },
+    // { name, email } of the employee's business line responsible, or null.
+    businessLineResponsible: { type: Object, default: null },
     availability: { type: Array, default: () => [] },
     competences: { type: Array, default: () => [] },
     competenceIds: { type: Array, default: () => [] },
@@ -303,12 +305,8 @@ function onCancelClick() {
     competencesVersion.value++
 }
 
-// ── Withdraw: self-service, permanent account deletion ─────────────────
+// ── Withdraw: not self-service; the card names who to contact instead ──
 const withdrawDialogOpen = ref(false)
-
-function onWithdrawConfirm() {
-    router.delete(`/personal/${props.token}`)
-}
 </script>
 
 <template>
@@ -479,15 +477,10 @@ function onWithdrawConfirm() {
             </div>
         </template>
 
-        <ConfirmDialog
+        <WithdrawContactDialog
             :open="withdrawDialogOpen"
-            :title="__('personal.withdraw.title')"
-            :confirm-label="__('personal.withdraw.confirm')"
-            variant="danger"
-            @confirm="onWithdrawConfirm"
-            @cancel="withdrawDialogOpen = false"
-        >
-            {{ __('personal.withdraw.body') }}
-        </ConfirmDialog>
+            :contact="businessLineResponsible"
+            @close="withdrawDialogOpen = false"
+        />
     </CenteredLayout>
 </template>
