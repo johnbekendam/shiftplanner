@@ -538,6 +538,7 @@
     "planning.table.week": "Week",
     "planning.table.day": "Day",
     "planning.table.date": "Date",
+    "planning.email.none": "There is no planning for you yet.",
     "planning.table.shift": "Shift",
     "planning.table.hours": "Hours",
     "planning.table.workcenter": "Workcenter",

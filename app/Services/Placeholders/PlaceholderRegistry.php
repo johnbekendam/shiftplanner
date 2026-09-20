@@ -43,7 +43,9 @@ class PlaceholderRegistry
             [
                 'token' => ':planning',
                 'resolveEmployee' => fn (Employee $employee) => $this->planningList($employee),
-                'resolveUser' => fn (User $user) => $user->employee ? $this->planningList($user->employee) : null,
+                'resolveUser' => fn (User $user) => $user->employee
+                    ? $this->planningList($user->employee)
+                    : __('planning.email.none'),
                 'sample' => __('mailbox.preview.sample_planning'),
             ],
         ];
@@ -51,15 +53,15 @@ class PlaceholderRegistry
 
     /**
      * A Markdown table of the employee's upcoming published shifts (date,
-     * hours, workcenter, contact), or null when there are none, so the
-     * recipient is reported as unresolved.
+     * hours, workcenter, contact), or a short "no planning yet" sentence
+     * when there are none.
      */
-    private function planningList(Employee $employee): ?string
+    private function planningList(Employee $employee): string
     {
         $assignments = $this->planning->upcomingFor($employee);
 
         if ($assignments->isEmpty()) {
-            return null;
+            return __('planning.email.none');
         }
 
         $row = fn (array $cells) => '| '.implode(' | ', array_map(

@@ -660,7 +660,7 @@ class MailboxTest extends TestCase
         Carbon::setTestNow();
     }
 
-    public function test_an_employee_without_upcoming_published_shifts_is_reported_unresolved(): void
+    public function test_an_employee_without_upcoming_published_shifts_gets_a_no_planning_message(): void
     {
         Queue::fake();
         $this->admin();
@@ -670,12 +670,30 @@ class MailboxTest extends TestCase
         $this->post('/mailbox/compose', [
             'type' => MessageType::Planning->value,
             'subject' => 'Your planning',
-            'body' => ':planning',
+            'body' => "Hi,\n\n:planning",
             'employee_ids' => [$employee->id],
             'send_mode' => 'draft',
-        ])->assertSessionHas('unresolved_recipients');
+        ])->assertSessionMissing('unresolved_recipients');
 
-        $this->assertSame(0, Message::count());
+        $message = Message::firstOrFail();
+        $this->assertStringContainsString('There is no planning for you yet.', $message->body);
+        $this->assertStringNotContainsString(':planning', $message->body);
+        $this->assertSame([], $message->assignment_ids);
+        Carbon::setTestNow();
+    }
+
+    public function test_the_preview_shows_the_no_planning_message_for_an_employee_without_shifts(): void
+    {
+        $this->admin();
+        Carbon::setTestNow('2026-09-20 10:00:00');
+        $employee = Employee::factory()->create();
+
+        $this->postJson('/mailbox/compose/preview', [
+            'type' => MessageType::Planning->value,
+            'subject' => 'Your planning',
+            'body' => ':planning',
+            'employee_id' => $employee->id,
+        ])->assertOk()->assertSee('There is no planning for you yet.', false);
         Carbon::setTestNow();
     }
 }

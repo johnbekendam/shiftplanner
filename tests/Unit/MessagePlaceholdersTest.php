@@ -116,15 +116,16 @@ class MessagePlaceholdersTest extends TestCase
         $this->assertStringContainsString('| 22-09-2026 | 06:00 - 14:00 | Line \\| 1 | Jane Doe |', $result['body']);
     }
 
-    public function test_planning_is_unresolved_when_there_are_no_upcoming_published_shifts(): void
+    public function test_planning_says_there_is_no_planning_yet_when_there_are_no_upcoming_published_shifts(): void
     {
         Carbon::setTestNow('2026-09-20 10:00:00');
         $employee = Employee::factory()->create();
 
-        $result = app(MessagePlaceholders::class)->resolve('Plan', ':planning', $employee);
+        $result = app(MessagePlaceholders::class)->resolve('Plan', "Hi\n\n:planning", $employee);
 
-        $this->assertSame([':planning'], $result['unresolved']);
-        $this->assertSame(':planning', $result['body']);
+        $this->assertSame([], $result['unresolved']);
+        $this->assertSame("Hi\n\nThere is no planning for you yet.", $result['body']);
+        $this->assertStringNotContainsString(':planning', $result['body']);
     }
 
     public function test_resolves_planning_for_a_user_with_a_linked_employee(): void
@@ -137,7 +138,8 @@ class MessagePlaceholdersTest extends TestCase
         $unresolved = app(MessagePlaceholders::class)->resolve('Plan', ':planning', $other);
 
         $this->assertStringContainsString('| 22-09-2026 | 06:00 - 14:00 | Line 1 | - |', $resolved['body']);
-        $this->assertSame([':planning'], $unresolved['unresolved']);
+        $this->assertSame([], $unresolved['unresolved']);
+        $this->assertSame('There is no planning for you yet.', $unresolved['body']);
     }
 
     public function test_planning_is_a_known_token_with_a_sample_for_previews(): void
