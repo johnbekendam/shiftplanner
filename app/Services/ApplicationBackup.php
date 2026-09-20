@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use RuntimeException;
 
 class ApplicationBackup
@@ -36,6 +37,27 @@ class ApplicationBackup
         'published_weeks',
         'messages',
     ];
+
+    /**
+     * Tables the archive leaves out on purpose: framework runtime state,
+     * short-lived login links, and transient plan generation runs.
+     *
+     * @var list<string>
+     */
+    public const EXCLUDED_TABLES = [
+        'cache',
+        'cache_locks',
+        'failed_jobs',
+        'job_batches',
+        'jobs',
+        'login_links',
+        'migrations',
+        'plan_generation_runs',
+        'sessions',
+    ];
+
+    /** Excluded tables that an import empties, so no stale rows survive a restore. */
+    private const CLEARED_ON_IMPORT = ['plan_generation_runs'];
 
     /** @return array<string, mixed> */
     public function export(): array
@@ -113,6 +135,8 @@ class ApplicationBackup
             ] as $table) {
                 $this->insertRows($table, $data[$table]);
             }
+
+            $this->resetSequences();
         });
 
         return [
@@ -170,8 +194,33 @@ class ApplicationBackup
         return array_map(fn (array $row): array => array_diff_key($row, array_flip($fields)), $rows);
     }
 
+    /**
+     * PostgreSQL does not advance a serial sequence when a row is inserted
+     * with an explicit ID, so the next new record would reuse ID 1.
+     */
+    private function resetSequences(): void
+    {
+        if (DB::getDriverName() !== 'pgsql') {
+            return;
+        }
+
+        foreach (self::TABLES as $table) {
+            if (! Schema::hasColumn($table, 'id')) {
+                continue;
+            }
+
+            DB::statement(
+                "SELECT setval(pg_get_serial_sequence('{$table}', 'id'), COALESCE(MAX(id), 1), MAX(id) IS NOT NULL) FROM {$table}"
+            );
+        }
+    }
+
     private function clearTables(): void
     {
+        foreach (self::CLEARED_ON_IMPORT as $table) {
+            DB::table($table)->delete();
+        }
+
         foreach (array_reverse(self::TABLES) as $table) {
             DB::table($table)->delete();
         }

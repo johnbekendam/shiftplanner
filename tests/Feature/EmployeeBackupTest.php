@@ -7,12 +7,15 @@ use App\Models\BusinessLine;
 use App\Models\Competence;
 use App\Models\Employee;
 use App\Models\EmployeeHoliday;
+use App\Models\PlanGenerationRun;
 use App\Models\RecurringAvailability;
 use App\Models\Shift;
 use App\Models\User;
+use App\Services\ApplicationBackup;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
 class EmployeeBackupTest extends TestCase
@@ -271,5 +274,34 @@ class EmployeeBackupTest extends TestCase
         $this->assertDatabaseHas('shifts', ['id' => $shift->id, 'name' => 'Early']);
         $this->assertDatabaseHas('employees', ['id' => $employee->id, 'business_line_id' => $businessLine->id]);
         $this->assertDatabaseHas('users', ['id' => $user->id, 'employee_id' => $employee->id]);
+    }
+
+    public function test_every_database_table_is_archived_or_explicitly_excluded(): void
+    {
+        $tables = collect(Schema::getTables())->pluck('name')->sort()->values()->all();
+
+        $export = $this->actingAs($this->admin())->get('/employee-backup/export');
+        $archived = array_keys($export->json('data'));
+
+        $this->assertSame(
+            [],
+            array_values(array_diff($tables, $archived, ApplicationBackup::EXCLUDED_TABLES)),
+            'A table is neither in the backup archive nor in ApplicationBackup::EXCLUDED_TABLES.',
+        );
+        $this->assertSame([], array_values(array_diff($archived, $tables)));
+    }
+
+    public function test_import_clears_stale_plan_generation_runs(): void
+    {
+        $admin = $this->admin();
+        $archive = $this->actingAs($admin)->get('/employee-backup/export')->getContent();
+
+        PlanGenerationRun::create(['cycle_start' => '2026-09-14', 'status' => PlanGenerationRun::STATUS_RUNNING]);
+
+        $this->actingAs($admin)->post('/employee-backup/import', [
+            'file' => UploadedFile::fake()->createWithContent('shiftplanner-backup.json', $archive),
+        ])->assertOk();
+
+        $this->assertDatabaseCount('plan_generation_runs', 0);
     }
 }

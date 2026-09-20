@@ -35,6 +35,13 @@ instance without pre-existing reference data.
 - Password hashes and personal-link bearer tokens are included because a
   complete restore must preserve access. The archive omits remember tokens,
   short-lived login links, sessions, queues, cache data, and migrations.
+- Plan generation runs (`plan_generation_runs`) are transient status
+  records, not durable data. The archive omits them and a version 2 import
+  deletes them, so no stale or active run blocks Generate after a restore.
+- After a version 2 import on PostgreSQL, the import moves each table's ID
+  sequence past the highest restored ID. New records then get free IDs.
+- A test compares the archive's table list with the database schema. A new
+  table must join the archive or the list of excluded tables.
 - The archive is sensitive. Only an admin can export or import it, and it
   must be stored and transferred like a credential backup.
 - The import uses email as the employee identity. A matching employee gets
@@ -54,6 +61,7 @@ instance without pre-existing reference data.
 
 - No export or import of framework runtime state such as sessions, cache,
   queues, failed jobs, or migrations.
+- No export or import of plan generation runs.
 - No export or import of short-lived login links or remember tokens.
 - No deletion of employees that are absent from an imported archive.
 - No partial import or background processing.
