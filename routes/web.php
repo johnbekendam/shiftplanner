@@ -13,6 +13,7 @@ use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\EmployeeHolidayController;
 use App\Http\Controllers\EmployeeQuestionController;
 use App\Http\Controllers\EmployeeWorkcenterController;
+use App\Http\Controllers\LivePlanningController;
 use App\Http\Controllers\MailboxController;
 use App\Http\Controllers\PeriodController;
 use App\Http\Controllers\PersonalCompetenceController;
@@ -56,6 +57,9 @@ Route::post('/logout', [LoginController::class, 'destroy'])->name('logout');
 // Public employee self-signup — features/employee-self-signup/.
 Route::get('/signup', [SignupController::class, 'show'])->name('signup.show');
 Route::post('/signup', [SignupController::class, 'store'])->middleware('throttle:5,1')->name('signup.store');
+
+// Workcenter wall screen — token-only, no auth. See features/workcenter-live-planning/.
+Route::get('/live/{token}', [LivePlanningController::class, 'show'])->name('live.show');
 
 Route::middleware('auth')->group(function () {
     // Admin-only: everything except the employee list/editor.
