@@ -52,6 +52,7 @@ const rows = computed(() => [...props.assignments]
             shift: assignment.shift_name,
             workcenter: assignment.workcenter_name,
             responsible: assignment.responsible || '-',
+            hours: `${assignment.start_time.slice(0, 5)}–${assignment.end_time.slice(0, 5)}`,
         }
     }))
 </script>
@@ -71,7 +72,7 @@ const rows = computed(() => [...props.assignments]
             </tr>
         </thead>
         <tbody class="divide-y divide-(--color-table-row-separator)">
-            <tr v-for="(row, i) in rows" :key="i">
+            <tr v-for="(row, i) in rows" :key="i" :title="`${row.day} ${row.date}, ${row.hours}`">
                 <td class="px-2 py-2">{{ row.week }}</td>
                 <td class="px-2 py-2">{{ row.date }}</td>
                 <td class="px-2 py-2">{{ row.day }}</td>

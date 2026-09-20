@@ -430,11 +430,12 @@ describe("Personal/Show", () => {
             weekEnd: "2026-09-13",
             assignments: [{
                 date: "2026-09-08", workcenter_name: "Line 1", responsible: "Jane Doe", shift_name: "Early",
-                start_time: "06:00", end_time: "14:00", published: true,
+                start_time: "06:00:00", end_time: "14:00:00", published: true,
             }],
         }];
         const w = mountShow([], { plannedShifts });
 
+        expect(w.get('[data-testid="panel-planning"] tbody tr').attributes("title")).toBe("Tuesday 08-09-2026, 06:00–14:00");
         const cells = w.get('[data-testid="panel-planning"]').findAll("tbody tr td").map((td) => td.text());
         expect(cells).toEqual(["37", "08-09-2026", "Tuesday", "Early", "Line 1", "Jane Doe", ""]);
     });
