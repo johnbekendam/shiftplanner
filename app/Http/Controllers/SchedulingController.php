@@ -190,10 +190,11 @@ class SchedulingController extends Controller
         return PublishedWeek::query()
             ->whereIn('week_start', $weekStarts)
             ->whereIn('workcenter_id', $workcenterIds)
-            ->get(['week_start', 'workcenter_id'])
+            ->get(['week_start', 'workcenter_id', 'planner_open'])
             ->map(fn (PublishedWeek $p) => [
                 'workcenter_id' => $p->workcenter_id,
                 'week_start' => $p->week_start->toDateString(),
+                'planner_open' => $p->planner_open,
             ])
             ->values()
             ->all();

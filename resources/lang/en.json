@@ -461,6 +461,8 @@
     "scheduling.flash.removed": "Employee removed.",
     "scheduling.flash.published": "Week published.",
     "scheduling.flash.unpublished": "Week unpublished.",
+    "scheduling.flash.planner_allowed": "The autoplanner may fill the open spots in the next Generate run.",
+    "scheduling.flash.planner_frozen": "The autoplanner may not fill the open spots of this week.",
 
     "signup.page_title": "Request your personal link",
     "signup.card_title": "Request your personal link",

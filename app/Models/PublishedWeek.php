@@ -12,12 +12,14 @@ class PublishedWeek extends Model
     protected $fillable = [
         'week_start',
         'workcenter_id',
+        'planner_open',
     ];
 
     protected function casts(): array
     {
         return [
             'week_start' => 'date:Y-m-d',
+            'planner_open' => 'boolean',
         ];
     }
 

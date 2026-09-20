@@ -332,9 +332,23 @@ class SchedulingIndexTest extends TestCase
         $published = $response->viewData('page')['props']['publishedWorkcenterWeeks'];
 
         $this->assertEqualsCanonicalizing(
-            [['workcenter_id' => $workcenter->id, 'week_start' => '2026-09-07']],
+            [['workcenter_id' => $workcenter->id, 'week_start' => '2026-09-07', 'planner_open' => false]],
             $published,
         );
+    }
+
+    public function test_published_workcenter_weeks_carries_the_planner_open_flag(): void
+    {
+        $this->actingAsAdmin();
+        $open = Workcenter::factory()->create();
+        $frozen = Workcenter::factory()->create();
+        PublishedWeek::query()->create(['week_start' => '2026-09-07', 'workcenter_id' => $open->id, 'planner_open' => true]);
+        PublishedWeek::query()->create(['week_start' => '2026-09-07', 'workcenter_id' => $frozen->id]);
+
+        $published = collect($this->get('/planning?year=2026&month=9')->viewData('page')['props']['publishedWorkcenterWeeks']);
+
+        $this->assertTrue($published->firstWhere('workcenter_id', $open->id)['planner_open']);
+        $this->assertFalse($published->firstWhere('workcenter_id', $frozen->id)['planner_open']);
     }
 
     public function test_published_workcenter_weeks_keeps_workcenters_independent(): void
@@ -362,7 +376,7 @@ class SchedulingIndexTest extends TestCase
         $published = $response->viewData('page')['props']['publishedWorkcenterWeeks'];
 
         $this->assertEqualsCanonicalizing(
-            [['workcenter_id' => $workcenter->id, 'week_start' => '2026-08-31']],
+            [['workcenter_id' => $workcenter->id, 'week_start' => '2026-08-31', 'planner_open' => false]],
             $published,
         );
     }

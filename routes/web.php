@@ -23,6 +23,7 @@ use App\Http\Controllers\PersonalQuestionController;
 use App\Http\Controllers\PersonalRecurringAvailabilityController;
 use App\Http\Controllers\PlanClearController;
 use App\Http\Controllers\PlanGenerationController;
+use App\Http\Controllers\PlannerOpenWeekController;
 use App\Http\Controllers\PlanNotificationController;
 use App\Http\Controllers\PlanningRuleController;
 use App\Http\Controllers\PublishedWeekController;
@@ -117,6 +118,8 @@ Route::middleware('auth')->group(function () {
             ->where('weekStart', '\d{4}-\d{2}-\d{2}')->name('planning.weeks.workcenters.publish');
         Route::delete('/planning/weeks/{weekStart}/workcenters/{workcenter}/publish', [PublishedWeekController::class, 'destroy'])
             ->where('weekStart', '\d{4}-\d{2}-\d{2}')->name('planning.weeks.workcenters.unpublish');
+        Route::put('/planning/weeks/{weekStart}/workcenters/{workcenter}/planner-open', [PlannerOpenWeekController::class, 'update'])
+            ->where('weekStart', '\d{4}-\d{2}-\d{2}')->name('planning.weeks.workcenters.planner-open');
         Route::post('/planning/generate', [PlanGenerationController::class, 'store'])->name('planning.generate');
         Route::delete('/planning/clear', [PlanClearController::class, 'destroy'])->name('planning.clear');
         Route::post('/planning/send', [PlanNotificationController::class, 'store'])->name('planning.send');
