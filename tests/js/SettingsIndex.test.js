@@ -49,7 +49,6 @@ const en = {
     "workcenters.list_empty": "No workcenters yet.",
     "workcenters.drag_handle": "Drag to reorder",
     "workcenters.delete": "Delete",
-    "workcenters.archived": "Archived",
     "workcenters.add_name_placeholder": "New workcenter",
 };
 

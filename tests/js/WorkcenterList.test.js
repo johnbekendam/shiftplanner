@@ -8,11 +8,9 @@ const en = {
     "workcenters.add": "Add workcenter",
     "workcenters.add_name_placeholder": "New workcenter",
     "workcenters.drag_handle": "Drag to reorder",
-    "workcenters.archived": "Archived",
     "workcenters.delete": "Delete",
     "workcenters.list_empty": "No workcenters yet.",
     "workcenters.live_screen": "Live screen",
-    "workcenters.live_open": "Open live screen",
     "workcenters.live_copy": "Copy link",
     "workcenters.live_copied": "Link copied",
     "workcenters.live_regenerate": "Regenerate link",
@@ -27,7 +25,7 @@ vi.mock("@inertiajs/vue3", () => ({
 }));
 
 import WorkcenterList from "@/components/WorkcenterList.vue";
-import { TextInput, CheckboxInput } from "@/components/ui/Input";
+import { TextInput } from "@/components/ui/Input";
 
 const items = [
     { id: 1, name: "Line 1", position: 1, archived_at: null, shifts: [] },
@@ -129,34 +127,20 @@ describe("WorkcenterList", () => {
         expect(emitted.at(-1)[0].map((r) => r.id)).toEqual([2, 1]);
     });
 
-    it("hides the bin button and shows the Archived checkbox once a row has an attached shift", () => {
+    it("hides the bin button once a row has an attached shift", () => {
         const w = mountList({
             items: [{ id: 1, name: "Line 1", position: 1, archived_at: null, shifts: [{ id: 9, name: "Early" }] }],
         });
         const row = w.findAll('[data-testid="workcenter-row"]')[0];
 
         expect(row.find('[aria-label="Delete"]').exists()).toBe(false);
-        expect(row.findComponent(CheckboxInput).exists()).toBe(true);
     });
 
-    it("shows the bin button and no Archived checkbox for a row with no attached shift", () => {
+    it("shows the bin button for a row with no attached shift", () => {
         const w = mountList();
         const row = w.findAll('[data-testid="workcenter-row"]')[0];
 
         expect(row.find('[aria-label="Delete"]').exists()).toBe(true);
-        expect(row.findComponent(CheckboxInput).exists()).toBe(false);
-    });
-
-    it("toggling Archived changes local state and emits, without a network call", async () => {
-        const w = mountList({
-            items: [{ id: 1, name: "Line 1", position: 1, archived_at: null, shifts: [{ id: 9, name: "Early" }] }],
-        });
-        const row = w.findAll('[data-testid="workcenter-row"]')[0];
-        row.findComponent(CheckboxInput).vm.$emit("update:modelValue", true);
-        await w.vm.$nextTick();
-
-        const emitted = w.emitted("update:items");
-        expect(emitted.at(-1)[0][0].archived_at).not.toBeNull();
     });
 
     describe("live screen link", () => {
@@ -168,13 +152,12 @@ describe("WorkcenterList", () => {
 
         afterEach(() => vi.unstubAllGlobals());
 
-        it("links each saved row to its own live screen in a new tab", () => {
+        it("shows the copy and regenerate buttons on each saved row, without an open link", () => {
             const w = mountLive();
-            const link = w.get('[data-testid="workcenter-live-link-2"]');
 
-            expect(link.attributes("href")).toBe("https://app.test/live/bbb");
-            expect(link.attributes("target")).toBe("_blank");
-            expect(link.text()).toBe("Open live screen");
+            expect(w.find('[data-testid="workcenter-live-copy-2"]').exists()).toBe(true);
+            expect(w.find('[data-testid="workcenter-live-regenerate-2"]').exists()).toBe(true);
+            expect(w.find("a").exists()).toBe(false);
         });
 
         it("shows no live link on a row that is not saved yet", async () => {
@@ -183,7 +166,6 @@ describe("WorkcenterList", () => {
             await w.get("form").trigger("submit");
 
             const row = w.get('[data-testid="workcenter-row"]');
-            expect(row.find("a").exists()).toBe(false);
             expect(row.find('[aria-label="Copy link"]').exists()).toBe(false);
         });
 
@@ -192,7 +174,7 @@ describe("WorkcenterList", () => {
                 items: [{ id: 1, name: "Line 1", position: 1, archived_at: "2026-09-01T00:00:00Z", shifts: [{ id: 9, name: "Early" }] }],
             });
 
-            expect(w.find('[data-testid="workcenter-live-link-1"]').exists()).toBe(false);
+            expect(w.find('[data-testid="workcenter-live-copy-1"]').exists()).toBe(false);
         });
 
         it("copies the link and confirms it", async () => {

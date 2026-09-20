@@ -5,7 +5,7 @@ import ButtonSecondary from '@/components/ui/ButtonSecondary.vue'
 import ButtonDanger from '@/components/ui/ButtonDanger.vue'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 import Icon from '@/components/ui/Icon.vue'
-import { TextInput, CheckboxInput } from '@/components/ui/Input'
+import { TextInput } from '@/components/ui/Input'
 import { useDragReorder } from '@/composables/useDragReorder'
 import { useI18n } from '@/composables/useI18n'
 
@@ -54,10 +54,6 @@ function isArchived(item) {
     return item.archived_at !== null
 }
 
-function setArchived(item, archived) {
-    item.archived_at = archived ? (item.archived_at ?? new Date().toISOString()) : null
-}
-
 // An unsaved row has no link yet, and an archived workcenter's link returns 404.
 function liveUrlFor(item) {
     return item.id !== null && !isArchived(item) ? (props.liveUrls[item.id] ?? null) : null
@@ -70,7 +66,7 @@ async function copyLiveUrl(item) {
     try {
         await navigator.clipboard.writeText(liveUrlFor(item))
     } catch {
-        // No clipboard (for example a plain-http page). The Open link stays as the fallback.
+        // No clipboard (for example a plain-http page). Nothing to confirm.
         return
     }
 
@@ -95,8 +91,7 @@ function confirmRegenerate() {
                     <th class="w-8 py-2" />
                     <th class="py-2 pr-3 font-medium">{{ __('workcenters.name') }}</th>
                     <th class="py-2 pr-3 font-medium">{{ __('workcenters.responsible') }}</th>
-                    <th class="w-64 py-2 pr-3 font-medium">{{ __('workcenters.live_screen') }}</th>
-                    <th class="w-24 py-2 pr-3 font-medium" />
+                    <th class="w-28 py-2 pr-3 font-medium">{{ __('workcenters.live_screen') }}</th>
                     <th class="w-14 py-2" />
                 </tr>
             </thead>
@@ -132,15 +127,6 @@ function confirmRegenerate() {
                     </td>
                     <td class="py-2 pr-3 align-top">
                         <div v-if="liveUrlFor(item)" class="flex items-center gap-1.5">
-                            <a
-                                :href="liveUrlFor(item)"
-                                target="_blank"
-                                rel="noopener"
-                                class="min-w-0 flex-1 truncate py-2 text-(--color-text-link) hover:text-(--color-text-link-hover)"
-                                :data-testid="`workcenter-live-link-${item.id}`"
-                            >
-                                {{ __('workcenters.live_open') }}
-                            </a>
                             <ButtonSecondary
                                 type="button"
                                 :icon="copiedId === item.id ? 'check-circle' : 'link'"
@@ -161,16 +147,6 @@ function confirmRegenerate() {
                             />
                         </div>
                     </td>
-                    <td class="py-2 pr-3 align-top">
-                        <CheckboxInput
-                            v-if="item.shifts.length"
-                            :model-value="isArchived(item)"
-                            :data-testid="`workcenter-archived-${item.id ?? item._key}`"
-                            @update:model-value="(v) => setArchived(item, v)"
-                        >
-                            {{ __('workcenters.archived') }}
-                        </CheckboxInput>
-                    </td>
                     <td class="px-1 py-2 align-top">
                         <ButtonDanger
                             v-if="!item.shifts.length"
@@ -184,7 +160,7 @@ function confirmRegenerate() {
                 </tr>
 
                 <tr v-if="!rows.length">
-                    <td colspan="6" class="py-6 text-center text-(--color-text-secondary)">
+                    <td colspan="5" class="py-6 text-center text-(--color-text-secondary)">
                         {{ __('workcenters.list_empty') }}
                     </td>
                 </tr>
@@ -205,7 +181,6 @@ function confirmRegenerate() {
                             :placeholder="__('workcenters.add_responsible_placeholder')"
                         />
                     </td>
-                    <td />
                     <td />
                     <td class="px-1 py-2 text-right align-top">
                         <ButtonPrimary
