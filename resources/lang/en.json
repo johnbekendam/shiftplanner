@@ -565,6 +565,7 @@
     "planning.error.generation_in_progress": "A generation run for this period is already in progress.",
     "planning.flash.generation_started": "Generation started.",
     "planning.clear": "Clear Planning",
+    "planning.clear_outside_range": "Clear Planning only covers :range. Select a week in that range.",
     "planning.flash.cleared": "Planning cleared.",
     "planning.flash.sent": ":count planning emails queued.",
     "planning.send": "Send planning",

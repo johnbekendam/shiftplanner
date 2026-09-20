@@ -16,6 +16,7 @@ const en = {
     "planning.generating": "Generating…",
     "planning.generate_again": "Generate again",
     "planning.clear": "Clear Planning",
+    "planning.clear_outside_range": "Clear Planning only covers :range. Select a week in that range.",
     "planning.generate_dialog.title": "Generate Planning?",
     "planning.generate_dialog.body": "This creates or updates the draft schedule for every unpublished week in the planning period. Assignments may be moved or replaced, except any marked fixed or already published.",
     "planning.generate_dialog.period": "Period: :range",
@@ -608,6 +609,38 @@ describe("Scheduling", () => {
 
         expect(dialog.props("open")).toBe(false);
         expect(routerCalls).toHaveLength(0);
+    });
+
+    const clearProps = (clearRange) => ({
+        planningPeriod: { start: "2026-10-01", end: "2026-12-31" },
+        generationStatus: { active: false, failedCount: 0, firstError: null },
+        clearRange,
+    });
+
+    it("disables Clear Planning when the shown week is before the range it covers, and says why", async () => {
+        // The shown week is 2026-09-07; Clear covers 2026-09-28 and later.
+        const w = mountPage(clearProps({ start: "2026-09-28", end: "2027-01-03" }));
+        const button = w.get('[data-testid="clear-plan-button"]');
+
+        expect(button.element.disabled).toBe(true);
+        expect(button.attributes("title")).toBe("Clear Planning only covers Sep 28 – Jan 3. Select a week in that range.");
+
+        await button.trigger("click");
+        expect(clearDialog(w).props("open")).toBe(false);
+    });
+
+    it("disables Clear Planning when the shown week is after the range it covers", () => {
+        const w = mountPage(clearProps({ start: "2026-08-03", end: "2026-08-30" }));
+
+        expect(w.get('[data-testid="clear-plan-button"]').element.disabled).toBe(true);
+    });
+
+    it("keeps Clear Planning enabled, without a tooltip, when the shown week is inside the range", () => {
+        const w = mountPage(clearProps({ start: "2026-09-07", end: "2026-09-20" }));
+        const button = w.get('[data-testid="clear-plan-button"]');
+
+        expect(button.element.disabled).toBe(false);
+        expect(button.attributes("title")).toBeUndefined();
     });
 
     it("disables the Clear Planning button while any cycle in the period is active", () => {

@@ -37,6 +37,8 @@ const props = defineProps({
     generationRun: { type: Object, default: null },
     // { start, end } (Y-m-d) from Settings, or null until both are configured.
     planningPeriod: { type: Object, default: null },
+    // { start, end } (Y-m-d) of the cycles Clear Planning covers, or null until the period is configured.
+    clearRange: { type: Object, default: null },
     // { active, failedCount, firstError } across every cycle in the planning period,
     // or null when the period isn't configured — drives the Generate button, since one
     // click now generates every cycle in the period at once, not just the viewed one.
@@ -82,6 +84,17 @@ async function confirmClear() {
     clearDialogOpen.value = false
     await deleteAsync('/planning/clear').catch(() => {})
 }
+
+// Clear Planning acts on its own range of cycles, whatever week is shown. When the shown
+// week is outside that range there is nothing on screen it could clear.
+const weekOutsideClearRange = computed(() =>
+    props.clearRange !== null
+        && (props.weekStart < props.clearRange.start || props.weekStart > props.clearRange.end),
+)
+
+const clearRangeLabel = computed(() => props.clearRange
+    ? `${formatCycleDate(props.clearRange.start)} – ${formatCycleDate(props.clearRange.end)}`
+    : '')
 
 const generateLabel = computed(() => {
     if (isGenerationActive(props.generationStatus)) return __('planning.generating')
@@ -346,7 +359,8 @@ const visibleWorkcenters = computed(() =>
                     <ButtonDanger
                         type="button"
                         data-testid="clear-plan-button"
-                        :disabled="isGenerationActive(generationStatus)"
+                        :disabled="isGenerationActive(generationStatus) || weekOutsideClearRange"
+                        :title="weekOutsideClearRange ? __('planning.clear_outside_range', { range: clearRangeLabel }) : undefined"
                         @click="clearDialogOpen = true"
                     >
                         {{ __('planning.clear') }}
