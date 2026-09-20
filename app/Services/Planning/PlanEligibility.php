@@ -37,6 +37,8 @@ final class PlanEligibility
 
     private bool $hardMaxHoursPerWeek = false;
 
+    private bool $hardNotPreferredShift = false;
+
     public function __construct(private readonly PlanProblem $problem)
     {
         foreach ($problem->employees as $employee) {
@@ -67,6 +69,7 @@ final class PlanEligibility
                 'business_line_preference' => $this->hardBusinessLinePreference[$rule['config']['workcenter_id']] = $rule['config']['business_line_id'],
                 'max_shifts_per_day' => $this->hardMaxShiftsPerDay = $rule['config']['value'],
                 'max_hours_per_week' => $this->hardMaxHoursPerWeek = true,
+                'not_preferred_shift' => $this->hardNotPreferredShift = true,
                 default => null,
             };
         }
@@ -78,13 +81,19 @@ final class PlanEligibility
         $id = $employee['id'];
 
         return ! $this->isOnHoliday($id, $date)
-            && in_array($this->recurringLevel($id, $date, $shiftId), ['available', 'not_preferred'], true)
+            && $this->isAssignableLevel($this->recurringLevel($id, $date, $shiftId))
             && ! $this->isWorkcenterIneligible($id, $workcenterId)
             && $this->holdsRequiredCompetences($id, $workcenterId)
             && $this->matchesRequiredBusinessLine($id, $workcenterId)
             && ! $current->hasOverlap($id, $date, $shiftId)
             && $this->withinMaxShiftsPerDay($current, $id, $date)
             && $this->withinMaxHoursPerWeek($current, $employee, $shiftId);
+    }
+
+    /** A hard not_preferred_shift rule closes not-preferred cells like unavailable ones. */
+    private function isAssignableLevel(string $level): bool
+    {
+        return $level === 'available' || ($level === 'not_preferred' && ! $this->hardNotPreferredShift);
     }
 
     private function isOnHoliday(int $employeeId, string $date): bool

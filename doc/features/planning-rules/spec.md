@@ -33,10 +33,13 @@ Three global, singleton rules:
   extra config value.
 2. **Max shifts per day** — one global integer value (e.g. `1`),
    applying to every employee.
-3. **Not-preferred-shift penalty** — applies when an assignment lands
+3. **Not-preferred-shift rule** — applies when an assignment lands
    on a weekday+shift cell the employee marked `not_preferred` on the
    recurring availability grid (`employee-availability`). Reuses that
-   existing data; adds no new table.
+   existing data; adds no new table. When the rule is soft, the
+   assignment costs the rule's severity. When the rule is hard, the
+   planner treats a `not_preferred` cell like an `unavailable` cell and
+   never assigns it.
 4. **Equal workload** — a presence-only singleton rule. It has no mode,
    severity, or config. In phase 5, it minimizes the highest absolute
    assigned-hour total after the solver maximizes shift coverage.

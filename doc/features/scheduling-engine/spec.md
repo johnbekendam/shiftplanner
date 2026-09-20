@@ -166,7 +166,7 @@ strict lexicographic tiers as one scalar for local search):
 | --- | --- | --- |
 | 1 | Unfilled spots (coverage shortfall) | `W1` |
 | 2 | The single highest employee's total hours (workload fairness, only when `equal_workload` exists) | `W2` |
-| 3 | Σ `severity × amount` over every soft rule violation (`not_preferred_shift`, `alternating_shift_pair`, soft `competence_required`/`business_line_preference`, soft caps costed per hour/shift over) | `W3` |
+| 3 | Σ `severity × amount` over every soft rule violation (soft `not_preferred_shift`, `alternating_shift_pair`, soft `competence_required`/`business_line_preference`, soft caps costed per hour/shift over) | `W3` |
 
 Move types, each only ever proposed when it keeps every hard
 constraint satisfied:
