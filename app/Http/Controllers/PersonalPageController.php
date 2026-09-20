@@ -67,7 +67,7 @@ class PersonalPageController extends Controller
             'plannedShifts' => $this->plannedShifts->forEmployee($employee, publishedOnly: true),
             // Who to contact instead of withdrawing; null when nobody active is set.
             'businessLineResponsible' => $responsible?->is_active
-                ? ['name' => $responsible->name, 'email' => $responsible->email]
+                ? ['name' => $responsible->name]
                 : null,
         ]);
     }

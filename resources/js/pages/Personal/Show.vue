@@ -33,7 +33,7 @@ const props = defineProps({
     weeklyHoursMinimum: { type: Number, default: 20 },
     shiftNoteHtml: { type: String, default: null },
     scheduleNoteHtml: { type: String, default: null },
-    // { name, email } of the employee's business line responsible, or null.
+    // { name } of the employee's business line responsible, or null.
     businessLineResponsible: { type: Object, default: null },
     availability: { type: Array, default: () => [] },
     competences: { type: Array, default: () => [] },

@@ -7,7 +7,7 @@ const __ = useI18n()
 
 defineProps({
     open: { type: Boolean, default: false },
-    // { name, email } of the business line responsible, or null when there is nobody to name.
+    // { name } of the business line responsible, or null when there is nobody to name.
     contact: { type: Object, default: null },
 })
 
@@ -44,8 +44,6 @@ defineEmits(['close'])
                         </p>
                         <p v-if="contact" class="text-(--color-text-primary)">
                             <span class="font-medium">{{ contact.name }}</span>
-                            <br>
-                            <a :href="`mailto:${contact.email}`" class="text-(--color-text-link) underline">{{ contact.email }}</a>
                         </p>
                     </div>
 

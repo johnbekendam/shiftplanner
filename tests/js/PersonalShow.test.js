@@ -240,7 +240,7 @@ describe("Personal/Show", () => {
     });
 
     it("clicking Withdraw opens a card that names the business line responsible, and deletes nothing", async () => {
-        const w = mountShow([], { businessLineResponsible: { name: "Rita Lead", email: "rita@example.com" } });
+        const w = mountShow([], { businessLineResponsible: { name: "Rita Lead" } });
         expect(w.find('[role="dialog"]').exists()).toBe(false);
 
         await findWithdrawButton(w).trigger("click");
@@ -248,7 +248,7 @@ describe("Personal/Show", () => {
         const dialog = w.get('[role="dialog"]');
         expect(dialog.text()).toContain("You cannot withdraw on this page. Contact your business line responsible.");
         expect(dialog.text()).toContain("Rita Lead");
-        expect(dialog.get('a[href="mailto:rita@example.com"]').text()).toBe("rita@example.com");
+        expect(dialog.find("a").exists()).toBe(false);
         expect(dialog.findAll("button").some((b) => b.text() === "Yes, withdraw")).toBe(false);
         expect(routerCalls).toEqual([]);
     });

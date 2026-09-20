@@ -197,7 +197,7 @@ class PersonalPageTest extends TestCase
 
         $this->get("/personal/{$token}")->assertInertia(fn ($page) => $page
             ->where('businessLineResponsible.name', 'Rita Lead')
-            ->where('businessLineResponsible.email', 'rita@example.com')
+            ->missing('businessLineResponsible.email')
             ->missing('businessLineResponsible.id')
         );
     }

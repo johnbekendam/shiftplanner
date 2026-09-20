@@ -8,10 +8,10 @@ An employee can delete their own record with the Withdraw button on the personal
 
 An employee can no longer withdraw on the personal page. The Withdraw button stays. It now opens a card that tells the employee to contact the business line responsible.
 
-- **Card content:** the name and email address of the business line responsible of the employee. The email address is a `mailto:` link.
+- **Card content:** the name of the business line responsible of the employee. The card does not show an email address.
 - **Fallback:** when there is no name to show, the card tells the employee to contact their planner. This happens when the employee has no business line, the business line has no responsible person, or that person is not active.
 - **Server:** remove the `DELETE /personal/{token}` route and `PersonalPageController::destroy`. A direct request gets a 405 response, and the employee record stays.
-- **Data:** `PersonalPageController::show` sends a new `businessLineResponsible` prop with `name` and `email`, or `null`.
+- **Data:** `PersonalPageController::show` sends a new `businessLineResponsible` prop with `name`, or `null`.
 
 ## Key Decisions
 
