@@ -16,6 +16,9 @@
         a { color: {{ $colors['text_link'] }}; text-decoration: underline; }
         strong { font-weight: 700; }
         em { font-style: italic; }
+        .email-content table { width: 100%; border-collapse: collapse; margin: 0 0 16px 0; font-family: sans-serif; font-size: 14px; line-height: 1.4; }
+        .email-content th { text-align: left; padding: 8px; font-weight: 500; color: {{ $colors['text_secondary'] }}; border-bottom: 1px solid {{ $colors['border'] }}; }
+        .email-content td { padding: 8px; color: {{ $colors['text_primary'] }}; border-bottom: 1px solid {{ $colors['border'] }}; }
         blockquote { margin: 0 0 16px 0; padding: 8px 16px; border-left: 4px solid {{ $colors['border'] }}; color: {{ $colors['text_secondary'] }}; font-style: italic; }
     </style>
 </head>
@@ -45,7 +48,7 @@
                     {{-- Body --}}
                     <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
                         <tr>
-                            <td style="padding:32px;font-family:sans-serif;font-size:16px;line-height:1.6;color:{{ $colors['text_primary'] }};">
+                            <td class="email-content" style="padding:32px;font-family:sans-serif;font-size:16px;line-height:1.6;color:{{ $colors['text_primary'] }};">
                                 @yield('content')
                             </td>
                         </tr>

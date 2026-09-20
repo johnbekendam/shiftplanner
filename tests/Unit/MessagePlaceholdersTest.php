@@ -89,7 +89,7 @@ class MessagePlaceholdersTest extends TestCase
         parent::tearDown();
     }
 
-    public function test_resolves_planning_to_a_list_of_upcoming_published_shifts(): void
+    public function test_resolves_planning_to_a_table_like_the_personal_page(): void
     {
         $employee = $this->plannedEmployee();
 
@@ -97,9 +97,23 @@ class MessagePlaceholdersTest extends TestCase
 
         $this->assertSame([], $result['unresolved']);
         $this->assertSame(
-            "Shifts:\n\n- Tuesday 22-09-2026 – Early 06:00–14:00 – Line 1\n- Wednesday 23-09-2026 – Early 06:00–14:00 – Line 1",
+            "Shifts:\n\n"
+            ."| Week | Day | Shift | Workcenter | Contact |\n"
+            ."| --- | --- | --- | --- | --- |\n"
+            ."| 39 | Tuesday | Early | Line 1 | - |\n"
+            .'| 39 | Wednesday | Early | Line 1 | - |',
             $result['body'],
         );
+    }
+
+    public function test_planning_table_shows_the_workcenter_contact_and_escapes_pipes(): void
+    {
+        $employee = $this->plannedEmployee();
+        Workcenter::query()->update(['name' => 'Line | 1', 'responsible' => 'Jane Doe']);
+
+        $result = app(MessagePlaceholders::class)->resolve('Plan', ':planning', $employee);
+
+        $this->assertStringContainsString('| 39 | Tuesday | Early | Line \\| 1 | Jane Doe |', $result['body']);
     }
 
     public function test_planning_is_unresolved_when_there_are_no_upcoming_published_shifts(): void
@@ -122,7 +136,7 @@ class MessagePlaceholdersTest extends TestCase
         $resolved = app(MessagePlaceholders::class)->resolve('Plan', ':planning', $user);
         $unresolved = app(MessagePlaceholders::class)->resolve('Plan', ':planning', $other);
 
-        $this->assertStringContainsString('Early 06:00–14:00', $resolved['body']);
+        $this->assertStringContainsString('| 39 | Tuesday | Early | Line 1 | - |', $resolved['body']);
         $this->assertSame([':planning'], $unresolved['unresolved']);
     }
 

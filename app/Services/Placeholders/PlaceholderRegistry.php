@@ -50,8 +50,9 @@ class PlaceholderRegistry
     }
 
     /**
-     * A Markdown list of the employee's upcoming published shifts, or null
-     * when there are none, so the recipient is reported as unresolved.
+     * A Markdown table of the employee's upcoming published shifts, with the
+     * same columns as the planning table on the personal page, or null when
+     * there are none, so the recipient is reported as unresolved.
      */
     private function planningList(Employee $employee): ?string
     {
@@ -61,16 +62,27 @@ class PlaceholderRegistry
             return null;
         }
 
-        return $assignments
-            ->map(fn (ShiftAssignment $a) => sprintf(
-                '- %s %s – %s %s–%s – %s',
+        $row = fn (array $cells) => '| '.implode(' | ', array_map(
+            fn (string $cell) => str_replace('|', '\\|', $cell),
+            $cells,
+        )).' |';
+
+        return collect([
+            $row([
+                __('planning.table.week'),
+                __('planning.table.day'),
+                __('planning.table.shift'),
+                __('planning.table.workcenter'),
+                __('planning.table.responsible'),
+            ]),
+            '| --- | --- | --- | --- | --- |',
+            ...$assignments->map(fn (ShiftAssignment $a) => $row([
+                (string) $a->date->isoWeek,
                 $a->date->format('l'),
-                $a->date->format('d-m-Y'),
                 $a->shift->name,
-                substr($a->shift->start_time, 0, 5),
-                substr($a->shift->end_time, 0, 5),
                 $a->workcenter->name,
-            ))
-            ->implode("\n");
+                $a->workcenter->responsible ?: '-',
+            ])),
+        ])->implode("\n");
     }
 }

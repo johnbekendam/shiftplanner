@@ -93,7 +93,7 @@ class PlanNotificationControllerTest extends TestCase
         $this->assertSame($admin->id, $message->user_id);
         $this->assertSame([$annShift->id], $message->assignment_ids);
         $this->assertStringContainsString('Hi Ann,', $message->body);
-        $this->assertStringContainsString('22-09-2026', $message->body);
+        $this->assertStringContainsString('| Tuesday |', $message->body);
         $this->assertSame(0, Message::where('recipient_email', $done->email)->count());
         Queue::assertPushed(SendMailboxMessage::class, 2);
     }

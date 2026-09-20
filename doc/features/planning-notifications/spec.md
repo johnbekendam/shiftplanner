@@ -24,7 +24,7 @@ A new nullable `assignment_ids` JSON column on `messages` stores the assignments
 
 A new composable `MessageType::Planning` with its own editable template. The seed template has a subject, a greeting with `:name`, the `:planning` placeholder, and a button to the personal page.
 
-A new `:planning` placeholder in `PlaceholderRegistry` resolves to a list of all upcoming published shifts of the employee. Each line has the day, the date (`dd-mm-yyyy`), the shift with its times, and the workcenter. The placeholder does not resolve for an employee with no upcoming published shifts. The existing unresolved-recipient handling then applies.
+A new `:planning` placeholder in `PlaceholderRegistry` resolves to a Markdown table of all upcoming published shifts of the employee. The table has the same columns as the planning table on the personal page: Week, Day, Shift, Workcenter, Contact. The email layout styles the table like the page. The placeholder does not resolve for an employee with no upcoming published shifts. The existing unresolved-recipient handling then applies.
 
 A Planning email lists all upcoming published shifts, not only the uninformed ones. It marks all of them as informed.
 
