@@ -329,6 +329,22 @@ describe("Scheduling", () => {
         expect(weekNumberCell(w, 21).className).not.toContain("bg-(--color-badge-warning-bg)");
     });
 
+    it("tells the workcenter card whether the autoplanner is allowed for the shown week", () => {
+        const open = mountPage({
+            publishedWorkcenterWeeks: [{ workcenter_id: 1, week_start: "2026-09-07", planner_open: true }],
+        });
+        const frozen = mountPage({
+            publishedWorkcenterWeeks: [{ workcenter_id: 1, week_start: "2026-09-07", planner_open: false }],
+        });
+        const otherWeek = mountPage({
+            publishedWorkcenterWeeks: [{ workcenter_id: 1, week_start: "2026-09-14", planner_open: true }],
+        });
+
+        expect(open.findComponent(WorkcenterScheduleCard).props("plannerOpen")).toBe(true);
+        expect(frozen.findComponent(WorkcenterScheduleCard).props("plannerOpen")).toBe(false);
+        expect(otherWeek.findComponent(WorkcenterScheduleCard).props("plannerOpen")).toBe(false);
+    });
+
     it("hides the Generate button when the planning period is not configured", () => {
         const w = mountPage({ planningPeriod: null });
         expect(w.find('[data-testid="generate-plan-button"]').exists()).toBe(false);
@@ -480,7 +496,9 @@ describe("Scheduling", () => {
             expect(routerReloadCalls).toHaveLength(0);
             await vi.advanceTimersByTimeAsync(3000);
             expect(routerReloadCalls).toHaveLength(1);
-            expect(routerReloadCalls[0][0]).toMatchObject({ only: ["generationStatus", "weekCells", "coverage"] });
+            expect(routerReloadCalls[0][0]).toMatchObject({
+                only: ["generationStatus", "weekCells", "coverage", "publishedWorkcenterWeeks", "uninformedCount"],
+            });
 
             await vi.advanceTimersByTimeAsync(3000);
             expect(routerReloadCalls).toHaveLength(2);

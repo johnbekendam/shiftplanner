@@ -436,6 +436,7 @@
     "scheduling.no_schedule": "There's no schedule yet. Add one on the Schedule page.",
     "scheduling.legend_staffed": "Fully staffed",
     "scheduling.legend_open_spots": "Open spots",
+    "scheduling.allow_planner": "Allow autoplanner",
     "scheduling.publish": "Publish",
     "scheduling.unpublish": "Unpublish",
     "scheduling.reset_spots": "Reset to the weekday default",

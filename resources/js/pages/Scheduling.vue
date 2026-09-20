@@ -25,7 +25,7 @@ const props = defineProps({
     date: { type: String, required: true }, // Y-m-d, the currently selected day
     weekStart: { type: String, required: true }, // Y-m-d, the Monday of the selected day's week
     weekCells: { type: Array, default: () => [] }, // { workcenter_id, shift_id, date, spots, overridden, assignments }
-    publishedWorkcenterWeeks: { type: Array, default: () => [] }, // { workcenter_id, week_start }, within the visible month
+    publishedWorkcenterWeeks: { type: Array, default: () => [] }, // { workcenter_id, week_start, planner_open }, within the visible month
     // Y-m-d, the Monday of the 2-week cycle containing weekStart, or null when no
     // planning period start is configured yet (there's no anchor to compute cycles from).
     cycleStart: { type: String, default: null },
@@ -114,7 +114,7 @@ function scheduleGenerationPoll() {
     stopGenerationPoll()
     pollTimer = setTimeout(() => {
         router.reload({
-            only: ['generationStatus', 'weekCells', 'coverage'],
+            only: ['generationStatus', 'weekCells', 'coverage', 'publishedWorkcenterWeeks', 'uninformedCount'],
             preserveScroll: true,
             preserveState: true,
             onFinish: () => {
@@ -175,6 +175,13 @@ const legenda = computed(() => ({
     success: __('scheduling.legend_staffed'),
     warning: __('scheduling.legend_open_spots'),
 }))
+
+// Whether the next Generate run may fill this published week's open spots.
+function isPlannerOpen(workcenterId, weekStart) {
+    return props.publishedWorkcenterWeeks.some(
+        (p) => p.workcenter_id === workcenterId && p.week_start === weekStart && p.planner_open,
+    )
+}
 
 function isWorkcenterWeekPublished(workcenterId, weekStart) {
     return props.publishedWorkcenterWeeks.some((p) => p.workcenter_id === workcenterId && p.week_start === weekStart)
@@ -417,6 +424,7 @@ const visibleWorkcenters = computed(() =>
                     :schedule="schedule"
                     :week-start="weekStart"
                     :published="isWorkcenterWeekPublished(workcenter.id, weekStart)"
+                    :planner-open="isPlannerOpen(workcenter.id, weekStart)"
                     :unfulfilled="generationRun?.status === 'done' ? generationRun.unfulfilled : []"
                 />
             </div>
