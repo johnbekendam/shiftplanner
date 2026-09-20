@@ -46,7 +46,7 @@ describe("AppLayout navigation", () => {
         expect(hrefs).toEqual(["/dashboard", "/employees", "/users"]);
     });
 
-    it("shows Backup, Mailbox, Reports, Schedule, Planning, Planning rules, Users and Settings to an admin, but not Theme Builder", () => {
+    it("shows Backup, Mailbox, Reports, Schedule, Planning, Users, Settings and Planning rules to an admin, but not Theme Builder", () => {
         state.user = { role: "admin" };
         const w = mount(AppLayout, { global: { stubs } });
         const hrefs = navHrefs(w);
@@ -56,11 +56,11 @@ describe("AppLayout navigation", () => {
             "/employees",
             "/schedule",
             "/planning",
-            "/planning-rules",
             "/mailbox",
             "/reports",
             "/users",
             "/settings",
+            "/planning-rules",
             "/employee-backup",
         ]);
         expect(navLabels(w)).toContain("Backup");
