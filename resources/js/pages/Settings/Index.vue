@@ -242,7 +242,9 @@ function workcenterOrderIds(rows, excludeIds) {
 }
 
 function workcenterFieldsChanged(orig, row) {
-    return orig.name !== row.name || isArchived(orig) !== isArchived(row)
+    return orig.name !== row.name
+        || (orig.responsible ?? '') !== (row.responsible ?? '')
+        || isArchived(orig) !== isArchived(row)
 }
 
 function isArchived(row) {
@@ -285,11 +287,13 @@ async function saveWorkcenters() {
         ...toDeleteIds.map((id) => deleteAsync(`/settings/workcenters/${id}`)),
         ...toEdit.map((r) => putAsync(`/settings/workcenters/${r.id}`, {
             name: r.name,
+            responsible: r.responsible || null,
             archived: isArchived(r),
         })),
         ...(reorderNeeded ? [putAsync('/settings/workcenters/reorder', { ids: newOrder })] : []),
         ...toAdd.map((r) => postAsync('/settings/workcenters', {
             name: r.name,
+            responsible: r.responsible || null,
             archived: isArchived(r),
         })),
     ])

@@ -10,7 +10,7 @@ import { useI18n } from '@/composables/useI18n'
 const __ = useI18n()
 
 const props = defineProps({
-    // Rows of { id, name, position, archived_at, shifts }. shifts is
+    // Rows of { id, name, responsible, position, archived_at, shifts }. shifts is
     // read-only here (from workcenter-shift-assignments) and only used
     // to gate delete vs archive.
     items: { type: Array, default: () => [] },
@@ -28,16 +28,17 @@ watch(rows, () => emit('update:items', rows.value), { deep: true })
 
 const { dragIndex, onDragStart, onDragOver, onDragEnd } = useDragReorder(rows)
 
-const draft = reactive({ name: '' })
+const draft = reactive({ name: '', responsible: '' })
 
 function add() {
     if ((draft.name ?? '').trim() === '') return
 
     rows.value = [
         ...rows.value,
-        { id: null, _key: nextLocalKey--, name: draft.name, archived_at: null, shifts: [] },
+        { id: null, _key: nextLocalKey--, name: draft.name, responsible: draft.responsible, archived_at: null, shifts: [] },
     ]
     draft.name = ''
+    draft.responsible = ''
 }
 
 function remove(item) {
@@ -60,6 +61,7 @@ function setArchived(item, archived) {
                 <tr class="border-b border-(--color-table-header-separator) text-left text-(--color-table-header-text)">
                     <th class="w-8 py-2" />
                     <th class="py-2 pr-3 font-medium">{{ __('workcenters.name') }}</th>
+                    <th class="py-2 pr-3 font-medium">{{ __('workcenters.responsible') }}</th>
                     <th class="w-24 py-2 pr-3 font-medium" />
                     <th class="w-14 py-2" />
                 </tr>
@@ -88,6 +90,13 @@ function setArchived(item, archived) {
                         />
                     </td>
                     <td class="py-2 pr-3 align-top">
+                        <TextInput
+                            v-model="item.responsible"
+                            class="w-full"
+                            :data-testid="`workcenter-responsible-${item.id ?? item._key}`"
+                        />
+                    </td>
+                    <td class="py-2 pr-3 align-top">
                         <CheckboxInput
                             v-if="item.shifts.length"
                             :model-value="isArchived(item)"
@@ -110,7 +119,7 @@ function setArchived(item, archived) {
                 </tr>
 
                 <tr v-if="!rows.length">
-                    <td colspan="4" class="py-6 text-center text-(--color-text-secondary)">
+                    <td colspan="5" class="py-6 text-center text-(--color-text-secondary)">
                         {{ __('workcenters.list_empty') }}
                     </td>
                 </tr>
@@ -122,6 +131,13 @@ function setArchived(item, archived) {
                             v-model="draft.name"
                             class="w-full"
                             :placeholder="__('workcenters.add_name_placeholder')"
+                        />
+                    </td>
+                    <td class="py-2 pr-3 align-top">
+                        <TextInput
+                            v-model="draft.responsible"
+                            class="w-full"
+                            :placeholder="__('workcenters.add_responsible_placeholder')"
                         />
                     </td>
                     <td />

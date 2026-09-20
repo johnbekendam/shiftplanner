@@ -3,6 +3,8 @@ import { mount } from "@vue/test-utils";
 
 const en = {
     "workcenters.name": "Name",
+    "workcenters.responsible": "Responsible",
+    "workcenters.add_responsible_placeholder": "Responsible person",
     "workcenters.add": "Add workcenter",
     "workcenters.add_name_placeholder": "New workcenter",
     "workcenters.drag_handle": "Drag to reorder",
@@ -30,6 +32,34 @@ describe("WorkcenterList", () => {
         const w = mountList();
         expect(w.findAll('[data-testid="workcenter-row"]')).toHaveLength(2);
         expect(w.text()).toContain("Name");
+        expect(w.text()).toContain("Responsible");
+    });
+
+    it("edits the responsible name locally and emits update:items", async () => {
+        const w = mountList({
+            items: [{ id: 1, name: "Line 1", responsible: "Jane Doe", position: 1, archived_at: null, shifts: [] }],
+        });
+        const input = w.findAllComponents(TextInput)[1];
+        expect(input.props("modelValue")).toBe("Jane Doe");
+
+        input.vm.$emit("update:modelValue", "John Smith");
+        await w.vm.$nextTick();
+
+        expect(w.emitted("update:items").at(-1)[0][0]).toMatchObject({ id: 1, responsible: "John Smith" });
+    });
+
+    it("adds a new row with a responsible name", async () => {
+        const w = mountList({ items: [] });
+        const [name, responsible] = w.get('[data-testid="workcenter-add-row"]').findAllComponents(TextInput);
+        name.vm.$emit("update:modelValue", "Line 3");
+        responsible.vm.$emit("update:modelValue", "Jane Doe");
+        await w.vm.$nextTick();
+
+        await w.get("form").trigger("submit");
+
+        expect(w.emitted("update:items").at(-1)[0]).toMatchObject([
+            { id: null, name: "Line 3", responsible: "Jane Doe" },
+        ]);
     });
 
     it("shows an empty state with no items", () => {
