@@ -41,4 +41,72 @@ class WorkcenterLiveTokenTest extends TestCase
 
         $this->assertSame('fixed-token', $workcenter->fresh()->live_token);
     }
+
+    // ── Regenerate ──────────────────────────────────────────────────────
+
+    public function test_guest_cannot_regenerate_a_live_token(): void
+    {
+        $workcenter = Workcenter::factory()->create();
+        $token = $workcenter->live_token;
+
+        $this->post("/settings/workcenters/{$workcenter->id}/live-token")->assertRedirect('/login');
+        $this->assertSame($token, $workcenter->fresh()->live_token);
+    }
+
+    public function test_manager_cannot_regenerate_a_live_token(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $workcenter = Workcenter::factory()->create();
+        $token = $workcenter->live_token;
+
+        $this->post("/settings/workcenters/{$workcenter->id}/live-token")->assertForbidden();
+        $this->assertSame($token, $workcenter->fresh()->live_token);
+    }
+
+    public function test_admin_regenerates_the_token_and_the_old_url_stops_working(): void
+    {
+        $this->actingAs(User::factory()->admin()->create());
+        $workcenter = Workcenter::factory()->create();
+        $old = $workcenter->live_token;
+
+        $this->post("/settings/workcenters/{$workcenter->id}/live-token")
+            ->assertRedirect()
+            ->assertSessionHas('success');
+
+        $new = $workcenter->fresh()->live_token;
+        $this->assertNotSame($old, $new);
+        $this->assertSame(40, strlen($new));
+        $this->get("/live/{$old}")->assertNotFound();
+        $this->get("/live/{$new}")->assertOk();
+    }
+
+    public function test_regenerating_leaves_other_workcenters_alone(): void
+    {
+        $this->actingAs(User::factory()->admin()->create());
+        [$first, $second] = Workcenter::factory()->count(2)->create();
+        $secondToken = $second->live_token;
+
+        $this->post("/settings/workcenters/{$first->id}/live-token");
+
+        $this->assertSame($secondToken, $second->fresh()->live_token);
+    }
+
+    public function test_regenerating_an_unknown_workcenter_returns_404(): void
+    {
+        $this->actingAs(User::factory()->admin()->create());
+
+        $this->post('/settings/workcenters/999/live-token')->assertNotFound();
+    }
+
+    // ── Settings payload ────────────────────────────────────────────────
+
+    public function test_settings_lists_the_live_url_of_each_workcenter(): void
+    {
+        $this->actingAs(User::factory()->admin()->create());
+        $workcenter = Workcenter::factory()->create();
+
+        $this->get('/settings')->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('workcenters.0.live_url', url("/live/{$workcenter->live_token}")));
+    }
 }

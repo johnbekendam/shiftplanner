@@ -39,6 +39,17 @@ class Workcenter extends Model
         });
     }
 
+    /** Replaces the live-screen token. The old URL stops working at once. */
+    public function regenerateLiveToken(): void
+    {
+        $this->update(['live_token' => Str::random(40)]);
+    }
+
+    public function liveUrl(): string
+    {
+        return url("/live/{$this->live_token}");
+    }
+
     public function shifts(): BelongsToMany
     {
         return $this->belongsToMany(Shift::class, 'workcenter_shift');

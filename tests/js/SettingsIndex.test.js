@@ -428,6 +428,29 @@ describe("Settings/Index", () => {
         expect(list.props("items")).toHaveLength(1);
     });
 
+    it("passes each workcenter's live URL to the list", () => {
+        const w = mountPage({
+            workcenters: [{ id: 3, name: "Line 1", position: 1, archived_at: null, shifts: [], live_url: "https://app.test/live/abc" }],
+        });
+
+        expect(w.findComponent(WorkcenterList).props("liveUrls")).toEqual({ 3: "https://app.test/live/abc" });
+    });
+
+    it("regenerates a live link with one POST and leaves the Workcenters tab clean", async () => {
+        const w = mountPage({
+            workcenters: [{ id: 3, name: "Line 1", position: 1, archived_at: null, shifts: [], live_url: "https://app.test/live/abc" }],
+        });
+
+        w.findComponent(WorkcenterList).vm.$emit("regenerate-live-link", 3);
+        await w.vm.$nextTick();
+
+        expect(routerCalls).toEqual([
+            ["post", "/settings/workcenters/3/live-token", {}, { preserveScroll: true, preserveState: true }],
+        ]);
+        const bar = w.get('[data-testid="panel-workcenters"]');
+        expect(bar.findAll("button").find((b) => b.text() === "Save").attributes("disabled")).toBeDefined();
+    });
+
     it("saves the read-only state of a competence", async () => {
         const w = mountPage({ competences: [{ id: 3, name: "Forklift", read_only: false }] });
         const panel = w.get('[data-testid="panel-competences"]');

@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed } from 'vue'
-import { Head } from '@inertiajs/vue3'
+import { Head, router } from '@inertiajs/vue3'
 import AppLayout from '@/layouts/AppLayout.vue'
 import Card from '@/components/ui/Card.vue'
 import CardSeparator from '@/components/ui/CardSeparator.vue'
@@ -310,6 +310,14 @@ async function saveWorkcenters() {
     return ok
 }
 
+// The URLs come straight from the page props, not from the edited rows, so a
+// regenerated link shows at once and the unsaved row edits stay as they are.
+const liveUrls = computed(() => Object.fromEntries(props.workcenters.map((w) => [w.id, w.live_url])))
+
+function regenerateLiveLink(id) {
+    router.post(`/settings/workcenters/${id}/live-token`, {}, { preserveScroll: true, preserveState: true })
+}
+
 function cancelWorkcenters() {
     currentWorkcenters.value = committedWorkcenters.value
     workcentersVersion.value++
@@ -491,7 +499,9 @@ useUnsavedChangesGuard(() => (
                 <WorkcenterList
                     :key="workcentersVersion"
                     :items="committedWorkcenters"
+                    :live-urls="liveUrls"
                     @update:items="onWorkcentersChange"
+                    @regenerate-live-link="regenerateLiveLink"
                 />
                 <TabSaveBar
                     :dirty="workcentersDirty"

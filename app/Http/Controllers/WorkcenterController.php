@@ -47,6 +47,13 @@ class WorkcenterController extends Controller
         return back()->with('success', __('workcenters.flash.deleted'));
     }
 
+    public function regenerateLiveToken(Workcenter $workcenter)
+    {
+        $workcenter->regenerateLiveToken();
+
+        return back()->with('success', __('workcenters.flash.live_link_regenerated'));
+    }
+
     /**
      * One request replaces a sequence of one-step moves: the client sends
      * the full desired order, and every row's position is set in one pass.

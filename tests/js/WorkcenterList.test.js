@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, afterEach } from "vitest";
 import { mount } from "@vue/test-utils";
 
 const en = {
@@ -11,6 +11,15 @@ const en = {
     "workcenters.archived": "Archived",
     "workcenters.delete": "Delete",
     "workcenters.list_empty": "No workcenters yet.",
+    "workcenters.live_screen": "Live screen",
+    "workcenters.live_open": "Open live screen",
+    "workcenters.live_copy": "Copy link",
+    "workcenters.live_copied": "Link copied",
+    "workcenters.live_regenerate": "Regenerate link",
+    "workcenters.live_regenerate_title": "Regenerate the live-screen link?",
+    "workcenters.live_regenerate_body": "The old link stops working at once.",
+    "workcenters.live_regenerate_confirm": "Regenerate",
+    "app.cancel": "Cancel",
 };
 
 vi.mock("@inertiajs/vue3", () => ({
@@ -148,5 +157,86 @@ describe("WorkcenterList", () => {
 
         const emitted = w.emitted("update:items");
         expect(emitted.at(-1)[0][0].archived_at).not.toBeNull();
+    });
+
+    describe("live screen link", () => {
+        const liveUrls = { 1: "https://app.test/live/aaa", 2: "https://app.test/live/bbb" };
+        const mountLive = (props = {}) => mount(WorkcenterList, {
+            props: { items, liveUrls, ...props },
+            global: { stubs: { teleport: true } },
+        });
+
+        afterEach(() => vi.unstubAllGlobals());
+
+        it("links each saved row to its own live screen in a new tab", () => {
+            const w = mountLive();
+            const link = w.get('[data-testid="workcenter-live-link-2"]');
+
+            expect(link.attributes("href")).toBe("https://app.test/live/bbb");
+            expect(link.attributes("target")).toBe("_blank");
+            expect(link.text()).toBe("Open live screen");
+        });
+
+        it("shows no live link on a row that is not saved yet", async () => {
+            const w = mountLive({ items: [] });
+            w.get('[data-testid="workcenter-add-row"]').findComponent(TextInput).vm.$emit("update:modelValue", "Line 3");
+            await w.get("form").trigger("submit");
+
+            const row = w.get('[data-testid="workcenter-row"]');
+            expect(row.find("a").exists()).toBe(false);
+            expect(row.find('[aria-label="Copy link"]').exists()).toBe(false);
+        });
+
+        it("shows no live link on an archived row, because the link no longer works", () => {
+            const w = mountLive({
+                items: [{ id: 1, name: "Line 1", position: 1, archived_at: "2026-09-01T00:00:00Z", shifts: [{ id: 9, name: "Early" }] }],
+            });
+
+            expect(w.find('[data-testid="workcenter-live-link-1"]').exists()).toBe(false);
+        });
+
+        it("copies the link and confirms it", async () => {
+            const writeText = vi.fn().mockResolvedValue();
+            vi.stubGlobal("navigator", { clipboard: { writeText } });
+            const w = mountLive();
+
+            await w.get('[data-testid="workcenter-live-copy-1"]').trigger("click");
+            await w.vm.$nextTick();
+
+            expect(writeText).toHaveBeenCalledWith("https://app.test/live/aaa");
+            expect(w.get('[data-testid="workcenter-live-copy-1"]').attributes("aria-label")).toBe("Link copied");
+        });
+
+        it("does not fail when the clipboard is not available", async () => {
+            vi.stubGlobal("navigator", {});
+            const w = mountLive();
+
+            await w.get('[data-testid="workcenter-live-copy-1"]').trigger("click");
+
+            expect(w.get('[data-testid="workcenter-live-copy-1"]').attributes("aria-label")).toBe("Copy link");
+        });
+
+        it("asks for confirmation before it regenerates, and emits only after confirm", async () => {
+            const w = mountLive();
+
+            await w.get('[data-testid="workcenter-live-regenerate-2"]').trigger("click");
+            expect(w.text()).toContain("Regenerate the live-screen link?");
+            expect(w.emitted("regenerate-live-link")).toBeUndefined();
+
+            await w.findComponent({ name: "ConfirmDialog" }).vm.$emit("confirm");
+
+            expect(w.emitted("regenerate-live-link")).toEqual([[2]]);
+            expect(w.text()).not.toContain("Regenerate the live-screen link?");
+        });
+
+        it("emits nothing when the confirmation is cancelled", async () => {
+            const w = mountLive();
+
+            await w.get('[data-testid="workcenter-live-regenerate-1"]').trigger("click");
+            await w.findComponent({ name: "ConfirmDialog" }).vm.$emit("cancel");
+
+            expect(w.emitted("regenerate-live-link")).toBeUndefined();
+            expect(w.text()).not.toContain("Regenerate the live-screen link?");
+        });
     });
 });

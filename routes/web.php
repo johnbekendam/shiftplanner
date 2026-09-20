@@ -97,6 +97,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/settings/workcenters', [WorkcenterController::class, 'store'])->name('settings.workcenters.store');
         Route::put('/settings/workcenters/reorder', [WorkcenterController::class, 'reorder'])->name('settings.workcenters.reorder');
         Route::put('/settings/workcenters/{workcenter}', [WorkcenterController::class, 'update'])->name('settings.workcenters.update');
+        Route::post('/settings/workcenters/{workcenter}/live-token', [WorkcenterController::class, 'regenerateLiveToken'])->name('settings.workcenters.live-token');
         Route::delete('/settings/workcenters/{workcenter}', [WorkcenterController::class, 'destroy'])->name('settings.workcenters.destroy');
 
         Route::get('/planning-rules', [PlanningRuleController::class, 'index'])->name('planning-rules.index');

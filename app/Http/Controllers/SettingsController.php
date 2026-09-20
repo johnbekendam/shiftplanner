@@ -80,12 +80,13 @@ class SettingsController extends Controller
             ->all();
     }
 
-    /** Each workcenter's attached-shift ids/names, read-only here — used only for the bin/archive gate. */
+    /** Each workcenter's attached-shift ids/names, read-only here — used only for the bin/archive gate — and its live-screen URL. */
     private function workcenters(): array
     {
         return Workcenter::all()
             ->map(fn (Workcenter $workcenter) => [
                 ...$workcenter->toPayload(),
+                'live_url' => $workcenter->liveUrl(),
                 'shifts' => $workcenter->shifts->map(fn (Shift $shift) => [
                     'id' => $shift->id,
                     'name' => $shift->name,
