@@ -303,7 +303,7 @@ function onWithdrawConfirm() {
 </script>
 
 <template>
-    <CenteredLayout align="top" width="lg">
+    <CenteredLayout align="top" width="xl">
         <Head :title="__('personal.title')" />
 
         <template #header>
