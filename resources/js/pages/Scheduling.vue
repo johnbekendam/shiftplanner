@@ -335,14 +335,14 @@ const visibleWorkcenters = computed(() =>
 
             <div class="mt-4 flex items-center gap-3">
                 <template v-if="planningPeriod">
-                    <ButtonPrimary
+                    <ButtonSecondary
                         type="button"
                         data-testid="generate-plan-button"
                         :disabled="isGenerationActive(generationStatus)"
                         @click="generateDialogOpen = true"
                     >
                         {{ generateLabel }}
-                    </ButtonPrimary>
+                    </ButtonSecondary>
                     <ButtonDanger
                         type="button"
                         data-testid="clear-plan-button"
@@ -352,7 +352,7 @@ const visibleWorkcenters = computed(() =>
                         {{ __('planning.clear') }}
                     </ButtonDanger>
                 </template>
-                <ButtonSecondary
+                <ButtonPrimary
                     type="button"
                     icon="envelope"
                     data-testid="send-plan-button"
@@ -360,7 +360,7 @@ const visibleWorkcenters = computed(() =>
                     @click="sendDialogOpen = true"
                 >
                     {{ __('planning.send') }}
-                </ButtonSecondary>
+                </ButtonPrimary>
                 <span
                     v-if="generationErrorMessage"
                     data-testid="generation-error"

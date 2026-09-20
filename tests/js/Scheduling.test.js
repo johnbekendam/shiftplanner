@@ -75,6 +75,8 @@ import Scheduling from "@/pages/Scheduling.vue";
 import WorkcenterScheduleCard from "@/components/scheduling/WorkcenterScheduleCard.vue";
 import GenerationChangeSummary from "@/components/scheduling/GenerationChangeSummary.vue";
 import ConfirmDialog from "@/components/ui/ConfirmDialog.vue";
+import ButtonPrimary from "@/components/ui/ButtonPrimary.vue";
+import ButtonSecondary from "@/components/ui/ButtonSecondary.vue";
 
 const stubs = { AppLayout: { template: "<div><slot /></div>" } };
 
@@ -397,6 +399,21 @@ describe("Scheduling", () => {
 
         expect(dialog.props("open")).toBe(false);
         expect(routerCalls).toHaveLength(0);
+    });
+
+    it("shows Generate as a normal (secondary) button and Send planning as the primary one", () => {
+        const w = mountPage({
+            planningPeriod: { start: "2026-09-07", end: "2026-10-18" },
+            uninformedCount: 2,
+        });
+
+        const isType = (testid, component) => w.findAllComponents(component)
+            .some((c) => c.attributes("data-testid") === testid);
+
+        expect(isType("generate-plan-button", ButtonSecondary)).toBe(true);
+        expect(isType("generate-plan-button", ButtonPrimary)).toBe(false);
+        expect(isType("send-plan-button", ButtonPrimary)).toBe(true);
+        expect(isType("send-plan-button", ButtonSecondary)).toBe(false);
     });
 
     it("disables Send planning when every employee has been informed", () => {
