@@ -1,6 +1,8 @@
 <script setup>
 import { computed } from 'vue'
+import ButtonSecondary from '@/components/ui/ButtonSecondary.vue'
 import { useI18n } from '@/composables/useI18n'
+import { buildShiftIcs, downloadIcs, shiftIcsFilename } from '@/utils/shiftIcs'
 
 const __ = useI18n()
 
@@ -8,7 +10,16 @@ const props = defineProps({
     // [{ date, workcenter_name, shift_name, responsible, ... }] — flat list of assignments, any order.
     assignments: { type: Array, default: () => [] },
     emptyText: { type: String, required: true },
+    // Adds a per-row button that downloads the shift as an .ics calendar event.
+    calendarExport: { type: Boolean, default: false },
 })
+
+function addToCalendar(assignment) {
+    downloadIcs(
+        shiftIcsFilename(assignment),
+        buildShiftIcs(assignment, { contactLabel: __('planning.calendar_contact') }),
+    )
+}
 
 function parseDate(dateStr) {
     const [y, m, d] = dateStr.split('-').map(Number)
@@ -34,6 +45,7 @@ const rows = computed(() => [...props.assignments]
         const date = parseDate(assignment.date)
 
         return {
+            assignment,
             week: isoWeek(date),
             day: date.toLocaleDateString('en-US', { weekday: 'long' }),
             date: formatDate(date),
@@ -55,6 +67,7 @@ const rows = computed(() => [...props.assignments]
                 <th class="px-2 py-2 font-medium">{{ __('planning.table.shift') }}</th>
                 <th class="px-2 py-2 font-medium">{{ __('planning.table.workcenter') }}</th>
                 <th class="px-2 py-2 font-medium">{{ __('planning.table.responsible') }}</th>
+                <th v-if="calendarExport" class="w-12 px-2 py-2" />
             </tr>
         </thead>
         <tbody class="divide-y divide-(--color-table-row-separator)">
@@ -65,6 +78,16 @@ const rows = computed(() => [...props.assignments]
                 <td class="px-2 py-2">{{ row.shift }}</td>
                 <td class="px-2 py-2">{{ row.workcenter }}</td>
                 <td class="px-2 py-2">{{ row.responsible }}</td>
+                <td v-if="calendarExport" class="px-2 py-1 text-right">
+                    <ButtonSecondary
+                        type="button"
+                        icon="calendar"
+                        class="px-2 py-1"
+                        :aria-label="__('planning.add_to_calendar')"
+                        :title="__('planning.add_to_calendar')"
+                        @click="addToCalendar(row.assignment)"
+                    />
+                </td>
             </tr>
         </tbody>
     </table>

@@ -11,6 +11,8 @@ const en = {
     "employees.field.business_line_none": "None",
     "employees.hours_option": ":count hours",
     "employees.hours_below_minimum": "I can only work less than :min hours",
+    "planning.add_to_calendar": "Add to calendar",
+    "planning.calendar_contact": "Contact",
     "personal.title": "Your working hours",
     "personal.action.save": "Save",
     "personal.action.saving": "Saving…",
@@ -66,6 +68,9 @@ const { routerCalls, failUrlsRef, router, useFormMock } = vi.hoisted(() => {
     const useFormMock = (...args) => useFormMock.impl(...args);
     return { routerCalls, failUrlsRef, router, useFormMock };
 });
+
+const { downloadIcs } = vi.hoisted(() => ({ downloadIcs: vi.fn() }));
+vi.mock("@/utils/shiftIcs", async (importOriginal) => ({ ...(await importOriginal()), downloadIcs }));
 
 vi.mock("@inertiajs/vue3", () => ({
     router,
@@ -430,7 +435,29 @@ describe("Personal/Show", () => {
         const w = mountShow([], { plannedShifts });
 
         const cells = w.get('[data-testid="panel-planning"]').findAll("tbody tr td").map((td) => td.text());
-        expect(cells).toEqual(["37", "08-09-2026", "Tuesday", "Early", "Line 1", "Jane Doe"]);
+        expect(cells).toEqual(["37", "08-09-2026", "Tuesday", "Early", "Line 1", "Jane Doe", ""]);
+    });
+
+    it("downloads an .ics file for a shift from the calendar button", async () => {
+        downloadIcs.mockClear();
+        const plannedShifts = [{
+            weekStart: "2026-09-07",
+            weekEnd: "2026-09-13",
+            assignments: [{
+                date: "2026-09-08", workcenter_name: "Line 1", responsible: "Jane Doe", shift_name: "Early",
+                start_time: "06:00:00", end_time: "14:00:00", published: true,
+            }],
+        }];
+        const w = mountShow([], { plannedShifts });
+
+        await w.get('[data-testid="panel-planning"] button[aria-label="Add to calendar"]').trigger("click");
+
+        expect(downloadIcs).toHaveBeenCalledTimes(1);
+        const [filename, content] = downloadIcs.mock.calls[0];
+        expect(filename).toBe("shift-08-09-2026.ics");
+        expect(content).toContain("DTSTART:20260908T060000");
+        expect(content).toContain("SUMMARY:Early – Line 1");
+        expect(content).toContain("DESCRIPTION:Contact: Jane Doe");
     });
 
     it("opens on the Planning tab when planned shifts exist", () => {

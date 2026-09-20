@@ -158,6 +158,7 @@ describe("Employees/Form", () => {
 
         const tables = w.get('[data-testid="panel-planning"]').findAll("table");
         expect(tables).toHaveLength(2);
+        expect(w.get('[data-testid="panel-planning"]').find("button").exists()).toBe(false);
 
         const published = tables[0].findAll("tbody tr");
         expect(published).toHaveLength(1);

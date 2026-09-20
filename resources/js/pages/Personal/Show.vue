@@ -425,7 +425,7 @@ function onWithdrawConfirm() {
         </div>
 
         <div v-show="tab === 'planning'" data-testid="panel-planning">
-            <PlanningTable :assignments="plannedAssignments" :empty-text="__('planning.empty')" />
+            <PlanningTable :assignments="plannedAssignments" :empty-text="__('planning.empty')" calendar-export />
         </div>
 
         <template v-if="editable">
