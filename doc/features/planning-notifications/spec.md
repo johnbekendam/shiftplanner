@@ -38,6 +38,10 @@ Each row has a checkbox, and a header checkbox selects all rows. An "Email selec
 
 A **Send planning** button on the planning page. It is active only when at least one employee has uninformed planning. A click opens a confirm dialog with the number of employees. On confirmation the server creates one Planning message per employee from the saved Planning template and queues all of them. The logged-in user is the sender. The flash message states how many emails are queued.
 
+Shifts already listed in a queued Planning email do not count for the button or for the send. This stops a second click from emailing the same employee twice while the queue is still working. The report still lists them until the email is really sent.
+
+The send fails with a message when nobody is left to email, or when the saved Planning template has no `:planning` placeholder.
+
 ## Key Decisions
 
 - **Flag per assignment.** A shift published or added later makes the employee uninformed again, and only that change is detected. A flag per employee would miss later weeks.
@@ -46,6 +50,7 @@ A **Send planning** button on the planning page. It is active only when at least
 - **Only published shifts count.** The employee cannot see draft shifts, so a draft is not planning to tell.
 - **Removed or unpublished shifts are ignored.** Only new shifts make an employee uninformed. The employee sees the current state in the next email or on the personal page.
 - **Existing published shifts start as uninformed.** No email about them was sent by this system.
+- **Queued shifts do not count for the button.** Sending is asynchronous, so the flag alone would allow a double send.
 - **Confirm before a direct send.** This follows the confirm dialogs of Generate and Clear planning.
 - **Reuse the placeholder registry and the compose flow.** No second sending path is added, except the direct send, which uses the same message creation and queue job.
 

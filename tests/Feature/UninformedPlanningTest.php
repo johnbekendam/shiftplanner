@@ -176,4 +176,36 @@ class UninformedPlanningTest extends TestCase
 
         $this->assertSame([$inLine->id], $rows->pluck('id')->all());
     }
+
+    // ── Queued emails ───────────────────────────────────────────────────
+
+    public function test_summary_can_leave_out_shifts_already_in_a_queued_planning_email(): void
+    {
+        $queued = Employee::factory()->create();
+        $open = Employee::factory()->create();
+        $partly = Employee::factory()->create();
+        $queuedShift = $this->assign($queued, '2026-09-22');
+        $this->assign($open, '2026-09-22');
+        $partlyQueued = $this->assign($partly, '2026-09-22');
+        $partlyNew = $this->assign($partly, '2026-09-23');
+        Message::factory()->outbox()->create(['type' => MessageType::Planning, 'assignment_ids' => [$queuedShift->id, $partlyQueued->id]]);
+
+        $rows = $this->service()->summary(excludeQueued: true);
+
+        $this->assertEqualsCanonicalizing([$open->id, $partly->id], $rows->pluck('id')->all());
+        $this->assertSame(1, $rows->firstWhere('id', $partly->id)['uninformed_count']);
+        $this->assertSame('2026-09-23', $rows->firstWhere('id', $partly->id)['first_date']);
+        // The report still lists everyone who has not been told.
+        $this->assertCount(3, $this->service()->summary());
+    }
+
+    public function test_only_outbox_planning_messages_count_as_queued(): void
+    {
+        $employee = Employee::factory()->create();
+        $assignment = $this->assign($employee, '2026-09-22');
+        Message::factory()->create(['type' => MessageType::Planning, 'status' => 'draft', 'assignment_ids' => [$assignment->id]]);
+        Message::factory()->outbox()->create(['type' => MessageType::Custom, 'assignment_ids' => [$assignment->id]]);
+
+        $this->assertCount(1, $this->service()->summary(excludeQueued: true));
+    }
 }

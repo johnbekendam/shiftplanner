@@ -12,6 +12,7 @@ use App\Models\Workcenter;
 use App\Models\WorkcenterShiftCapacity;
 use App\Models\WorkcenterShiftDateOverride;
 use App\Services\Planning\PlanningCycle;
+use App\Services\UninformedPlanning;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -20,6 +21,8 @@ use Inertia\Inertia;
 
 class SchedulingController extends Controller
 {
+    public function __construct(private UninformedPlanning $uninformedPlanning) {}
+
     public function index(Request $request)
     {
         $now = Carbon::now();
@@ -64,6 +67,8 @@ class SchedulingController extends Controller
             'generationRun' => $cycleStart ? $this->latestGenerationRun($cycleStart) : null,
             'planningPeriod' => $this->planningPeriod(),
             'generationStatus' => $this->generationStatus(),
+            // Employees with published shifts they were not told about and no queued email yet: enables Send planning.
+            'uninformedCount' => $this->uninformedPlanning->summary(excludeQueued: true)->count(),
         ]);
     }
 

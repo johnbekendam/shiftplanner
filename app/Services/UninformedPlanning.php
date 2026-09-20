@@ -2,7 +2,9 @@
 
 namespace App\Services;
 
+use App\Enums\MessageType;
 use App\Models\Employee;
+use App\Models\Message;
 use App\Models\PublishedWeek;
 use App\Models\ShiftAssignment;
 use Carbon\Carbon;
@@ -30,12 +32,17 @@ class UninformedPlanning
     /**
      * The employees with uninformed planning, ordered by name.
      *
+     * With `$excludeQueued`, shifts already listed in a queued (outbox) Planning
+     * email are left out. They are still uninformed until the email is sent, but
+     * sending again would email the employee twice.
+     *
      * @return Collection<int, array{id: int, name: string, business_line: ?string, uninformed_count: int, first_date: string}>
      */
-    public function summary(?int $businessLineId = null): Collection
+    public function summary(?int $businessLineId = null, bool $excludeQueued = false): Collection
     {
         $query = $this->upcoming()
             ->whereNull('informed_at')
+            ->when($excludeQueued, fn ($q) => $q->whereNotIn('id', $this->queuedAssignmentIds()))
             ->when($businessLineId !== null, fn ($q) => $q->whereHas(
                 'employee',
                 fn ($employee) => $employee->where('business_line_id', $businessLineId),
@@ -57,6 +64,20 @@ class UninformedPlanning
             })
             ->sortBy(fn (array $row) => mb_strtolower($row['name']))
             ->values();
+    }
+
+    /** @return array<int, int> */
+    private function queuedAssignmentIds(): array
+    {
+        return Message::query()
+            ->where('type', MessageType::Planning->value)
+            ->where('status', 'outbox')
+            ->whereNotNull('assignment_ids')
+            ->pluck('assignment_ids')
+            ->flatten()
+            ->unique()
+            ->values()
+            ->all();
     }
 
     private function upcoming()

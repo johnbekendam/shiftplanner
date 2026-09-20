@@ -6,6 +6,7 @@ import Card from '@/components/ui/Card.vue'
 import Calendar from '@/components/ui/Calendar.vue'
 import ButtonPrimary from '@/components/ui/ButtonPrimary.vue'
 import ButtonDanger from '@/components/ui/ButtonDanger.vue'
+import ButtonSecondary from '@/components/ui/ButtonSecondary.vue'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 import WorkcenterScheduleCard from '@/components/scheduling/WorkcenterScheduleCard.vue'
 import GenerationChangeSummary from '@/components/scheduling/GenerationChangeSummary.vue'
@@ -40,6 +41,9 @@ const props = defineProps({
     // or null when the period isn't configured — drives the Generate button, since one
     // click now generates every cycle in the period at once, not just the viewed one.
     generationStatus: { type: Object, default: null },
+    // Employees with published shifts they were not told about (and no queued email yet):
+    // Send planning is only enabled when this is above zero.
+    uninformedCount: { type: Number, default: 0 },
 })
 
 const GENERATION_POLL_MS = 3000
@@ -62,10 +66,16 @@ const periodRangeLabel = computed(() => {
 // once the manager confirms, then the dialog closes itself.
 const generateDialogOpen = ref(false)
 const clearDialogOpen = ref(false)
+const sendDialogOpen = ref(false)
 
 async function confirmGenerate() {
     generateDialogOpen.value = false
     await postAsync('/planning/generate').catch(() => {})
+}
+
+async function confirmSend() {
+    sendDialogOpen.value = false
+    await postAsync('/planning/send').catch(() => {})
 }
 
 async function confirmClear() {
@@ -316,23 +326,34 @@ const visibleWorkcenters = computed(() =>
                 </div>
             </div>
 
-            <div v-if="planningPeriod" class="mt-4 flex items-center gap-3">
-                <ButtonPrimary
+            <div class="mt-4 flex items-center gap-3">
+                <template v-if="planningPeriod">
+                    <ButtonPrimary
+                        type="button"
+                        data-testid="generate-plan-button"
+                        :disabled="isGenerationActive(generationStatus)"
+                        @click="generateDialogOpen = true"
+                    >
+                        {{ generateLabel }}
+                    </ButtonPrimary>
+                    <ButtonDanger
+                        type="button"
+                        data-testid="clear-plan-button"
+                        :disabled="isGenerationActive(generationStatus)"
+                        @click="clearDialogOpen = true"
+                    >
+                        {{ __('planning.clear') }}
+                    </ButtonDanger>
+                </template>
+                <ButtonSecondary
                     type="button"
-                    data-testid="generate-plan-button"
-                    :disabled="isGenerationActive(generationStatus)"
-                    @click="generateDialogOpen = true"
+                    icon="envelope"
+                    data-testid="send-plan-button"
+                    :disabled="uninformedCount === 0"
+                    @click="sendDialogOpen = true"
                 >
-                    {{ generateLabel }}
-                </ButtonPrimary>
-                <ButtonDanger
-                    type="button"
-                    data-testid="clear-plan-button"
-                    :disabled="isGenerationActive(generationStatus)"
-                    @click="clearDialogOpen = true"
-                >
-                    {{ __('planning.clear') }}
-                </ButtonDanger>
+                    {{ __('planning.send') }}
+                </ButtonSecondary>
                 <span
                     v-if="generationErrorMessage"
                     data-testid="generation-error"
@@ -353,6 +374,20 @@ const visibleWorkcenters = computed(() =>
                 <p>{{ __('planning.generate_dialog.body') }}</p>
                 <p class="mt-2 font-medium text-(--color-text-primary)">
                     {{ __('planning.generate_dialog.period', { range: periodRangeLabel }) }}
+                </p>
+            </ConfirmDialog>
+
+            <ConfirmDialog
+                :open="sendDialogOpen"
+                :title="__('planning.send_dialog.title')"
+                :confirm-label="__('planning.send')"
+                variant="primary"
+                @confirm="confirmSend"
+                @cancel="sendDialogOpen = false"
+            >
+                <p>{{ __('planning.send_dialog.body') }}</p>
+                <p class="mt-2 font-medium text-(--color-text-primary)">
+                    {{ __('planning.send_dialog.count', { count: uninformedCount }) }}
                 </p>
             </ConfirmDialog>
 

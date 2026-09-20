@@ -21,6 +21,10 @@ const en = {
     "planning.generate_dialog.period": "Period: :range",
     "planning.clear_dialog.title": "Clear Planning?",
     "planning.clear_dialog.body": "This deletes every assignment that is not fixed and not published, across the whole planning period. This cannot be undone.",
+    "planning.send": "Send planning",
+    "planning.send_dialog.title": "Send planning?",
+    "planning.send_dialog.body": "This emails every employee who has published shifts they were not told about yet.",
+    "planning.send_dialog.count": "Employees to email: :count",
     "app.cancel": "Cancel",
     "planning.generation_failed": "Generation failed: :error",
     "planning.generation_failed_more": " (+:count more)",
@@ -130,6 +134,10 @@ function generateDialog(w) {
 
 function clearDialog(w) {
     return w.findAllComponents(ConfirmDialog).find((d) => d.props("title") === "Clear Planning?");
+}
+
+function sendDialog(w) {
+    return w.findAllComponents(ConfirmDialog).find((d) => d.props("title") === "Send planning?");
 }
 
 beforeEach(() => {
@@ -377,6 +385,56 @@ describe("Scheduling", () => {
 
         expect(dialog.props("open")).toBe(false);
         expect(routerCalls).toHaveLength(0);
+    });
+
+    it("disables Send planning when every employee has been informed", () => {
+        const w = mountPage({ uninformedCount: 0 });
+
+        expect(w.get('[data-testid="send-plan-button"]').text()).toBe("Send planning");
+        expect(w.get('[data-testid="send-plan-button"]').element.disabled).toBe(true);
+    });
+
+    it("enables Send planning when there are uninformed employees, and asks to confirm before posting", async () => {
+        const w = mountPage({ uninformedCount: 3 });
+        const button = w.get('[data-testid="send-plan-button"]');
+        expect(button.element.disabled).toBe(false);
+        expect(sendDialog(w).props("open")).toBe(false);
+
+        await button.trigger("click");
+
+        expect(sendDialog(w).props("open")).toBe(true);
+        expect(sendDialog(w).props("variant")).toBe("primary");
+        expect(bodyWrapper().text()).toContain("Employees to email: 3");
+        expect(routerCalls).toHaveLength(0);
+    });
+
+    it("posts to /planning/send and closes the dialog on confirm", async () => {
+        const w = mountPage({ uninformedCount: 3 });
+        await w.get('[data-testid="send-plan-button"]').trigger("click");
+        const dialog = sendDialog(w);
+
+        await dialog.vm.$emit("confirm");
+
+        expect(routerCalls).toContainEqual(["post", "/planning/send", undefined]);
+        expect(dialog.props("open")).toBe(false);
+    });
+
+    it("does not post when the send dialog is cancelled", async () => {
+        const w = mountPage({ uninformedCount: 3 });
+        await w.get('[data-testid="send-plan-button"]').trigger("click");
+        const dialog = sendDialog(w);
+
+        await dialog.vm.$emit("cancel");
+
+        expect(dialog.props("open")).toBe(false);
+        expect(routerCalls).toHaveLength(0);
+    });
+
+    it("shows Send planning even when the planning period is not configured", () => {
+        const w = mountPage({ planningPeriod: null, uninformedCount: 1 });
+
+        expect(w.find('[data-testid="generate-plan-button"]').exists()).toBe(false);
+        expect(w.get('[data-testid="send-plan-button"]').element.disabled).toBe(false);
     });
 
     it("disables the button and shows a Generating label while any cycle in the period is active", () => {
