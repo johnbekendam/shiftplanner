@@ -57,6 +57,12 @@ trait BuildsPlanningScenarios
     protected function openCell(Workcenter $workcenter, Shift $shift, string $date, int $spots = 1): void
     {
         $workcenter->shifts()->attach($shift, []);
+        $this->openDay($workcenter, $shift, $date, $spots);
+    }
+
+    /** Opens $spots more spots on $date for a shift that is already attached to $workcenter. */
+    protected function openDay(Workcenter $workcenter, Shift $shift, string $date, int $spots = 1): void
+    {
         WorkcenterShiftDateOverride::query()->create([
             'workcenter_id' => $workcenter->id, 'shift_id' => $shift->id, 'date' => $date, 'spots' => $spots,
         ]);
