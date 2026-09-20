@@ -38,6 +38,9 @@ const props = defineProps({
     // workcenter/shift — filtered to this table's own cells below.
     // [{ workcenter_id, shift_id, date, reason }]
     unfulfilled: { type: Array, default: () => [] },
+    // Whether this workcenter's week is published. An assignee who is neither fixed nor
+    // published is still a draft, so the name shows in gray.
+    published: { type: Boolean, default: false },
 })
 
 function unfulfilledFor(cell) {
@@ -55,6 +58,11 @@ const rows = computed(() => Array.from({ length: maxSpots.value }, (_, i) => i))
 
 function sortedAssignments(cell) {
     return [...cell.assignments].sort((a, b) => (b.fixed - a.fixed) || a.employee_name.localeCompare(b.employee_name))
+}
+
+// Neither fixed nor published: still open to change by Generate.
+function isDraft(assignment) {
+    return !assignment.fixed && !props.published
 }
 
 function cellState(cell, row) {
@@ -282,13 +290,11 @@ onBeforeUnmount(() => {
                                 @click="(e) => toggleAssignmentMenu(cellState(cell, row).assignment, e)"
                             >
                                 <span
-                                    v-if="cellState(cell, row).assignment.fixed"
-                                    class="inline-flex min-w-0 items-center gap-1 text-(--color-btn-primary-bg)"
+                                    class="block min-w-0 truncate"
+                                    :class="isDraft(cellState(cell, row).assignment) ? 'text-(--color-text-muted)' : 'text-(--color-text-primary)'"
                                 >
-                                    <Icon name="map-pin" class="size-3 shrink-0" />
-                                    <span class="truncate">{{ cellState(cell, row).assignment.employee_name }}</span>
+                                    {{ cellState(cell, row).assignment.employee_name }}
                                 </span>
-                                <span v-else class="block min-w-0 truncate">{{ cellState(cell, row).assignment.employee_name }}</span>
                             </button>
                         </template>
                         <template v-else-if="cellState(cell, row).type === 'open'">

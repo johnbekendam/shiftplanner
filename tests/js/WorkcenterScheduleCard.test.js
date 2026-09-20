@@ -21,6 +21,7 @@ vi.mock("@/composables/useI18n", () => ({
 }));
 
 import WorkcenterScheduleCard from "@/components/scheduling/WorkcenterScheduleCard.vue";
+import ShiftWeekTable from "@/components/scheduling/ShiftWeekTable.vue";
 
 const cells = Array.from({ length: 7 }, (_, i) => ({
     date: `2026-09-${String(14 + i).padStart(2, "0")}`,
@@ -92,5 +93,10 @@ describe("WorkcenterScheduleCard", () => {
         await button.trigger("click");
 
         expect(routerCalls).toContainEqual(["delete", "/planning/weeks/2026-09-14/workcenters/1/publish"]);
+    });
+
+    it("tells each shift table whether the workcenter is published", () => {
+        expect(mountCard({ published: true }).findComponent(ShiftWeekTable).props("published")).toBe(true);
+        expect(mountCard({ published: false }).findComponent(ShiftWeekTable).props("published")).toBe(false);
     });
 });

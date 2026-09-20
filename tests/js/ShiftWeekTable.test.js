@@ -96,16 +96,38 @@ describe("ShiftWeekTable", () => {
         expect(w.get('[data-testid="cell-9-2026-09-17-0"]').find('[aria-label="Add employee"]').exists()).toBe(true);
     });
 
-    it("shows a frozen assignee's name with a pin icon, and a non-frozen one as plain text with no icon", () => {
-        const w = mountTable();
+    const nameClasses = (w, cell) => w.get(`[data-testid="${cell}"] button`).find("span").classes();
+
+    it("shows an unpublished, not fixed assignee in gray", () => {
+        const w = mountTable(undefined, { published: false });
 
         // Bram Bakker (Mon, row 0) is not fixed.
-        expect(w.get('[data-testid="cell-9-2026-09-14-0"]').find("svg").exists()).toBe(false);
+        expect(nameClasses(w, "cell-9-2026-09-14-0")).toContain("text-(--color-text-muted)");
+        expect(nameClasses(w, "cell-9-2026-09-14-0")).not.toContain("text-(--color-text-primary)");
+    });
+
+    it("shows a fixed assignee in the standard text color, even when unpublished", () => {
+        const w = mountTable(undefined, { published: false });
 
         // Anna Jansen (Tue, row 0) is fixed.
+        expect(nameClasses(w, "cell-9-2026-09-15-0")).toContain("text-(--color-text-primary)");
+        expect(nameClasses(w, "cell-9-2026-09-15-0")).not.toContain("text-(--color-text-muted)");
+    });
+
+    it("shows every assignee of a published workcenter in the standard text color", () => {
+        const w = mountTable(undefined, { published: true });
+
+        expect(nameClasses(w, "cell-9-2026-09-14-0")).toContain("text-(--color-text-primary)");
+        expect(nameClasses(w, "cell-9-2026-09-15-0")).toContain("text-(--color-text-primary)");
+    });
+
+    it("shows no pin icon for a fixed assignee, only the name", () => {
+        const w = mountTable();
+
         const cell = w.get('[data-testid="cell-9-2026-09-15-0"]');
         expect(cell.text()).toBe("Anna Jansen");
-        expect(cell.find("svg").exists()).toBe(true);
+        expect(cell.find("svg").exists()).toBe(false);
+        expect(w.get('[data-testid="cell-9-2026-09-14-0"]').find("svg").exists()).toBe(false);
     });
 
     it("picking a value from the menu fires a PUT and closes the menu; picking the current value fires nothing", async () => {

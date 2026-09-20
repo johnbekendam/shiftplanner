@@ -56,6 +56,7 @@ async function togglePublish() {
                         :shift-id="entry.shift.id"
                         :cells="entry.cells"
                         :unfulfilled="unfulfilled"
+                        :published="published"
                     />
                 </div>
             </template>
