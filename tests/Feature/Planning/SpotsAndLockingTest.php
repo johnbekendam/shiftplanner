@@ -4,10 +4,12 @@ namespace Tests\Feature\Planning;
 
 use App\Models\Employee;
 use App\Models\PlanGenerationRun;
+use App\Models\PlanningRule;
 use App\Models\PublishedWeek;
 use App\Models\Shift;
 use App\Models\ShiftAssignment;
 use App\Models\Workcenter;
+use App\Models\WorkcenterShiftCapacity;
 use App\Models\WorkcenterShiftDateOverride;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -279,5 +281,139 @@ class SpotsAndLockingTest extends TestCase
 
         $this->assertSame(0, ShiftAssignment::count());
         $this->assertSame([], $run->refresh()->unfulfilled);
+    }
+
+    // ── Spots ───────────────────────────────────────────────────────────
+
+    private function datesAssigned(): array
+    {
+        return ShiftAssignment::query()->orderBy('date')->get()->map(fn (ShiftAssignment $a) => $a->date->toDateString())->all();
+    }
+
+    public function test_the_weekday_default_capacity_opens_spots_on_every_matching_weekday_of_the_cycle(): void
+    {
+        $workcenter = Workcenter::factory()->create();
+        $shift = Shift::factory()->create(['start_time' => '06:00', 'end_time' => '14:00']);
+        $workcenter->shifts()->attach($shift);
+        WorkcenterShiftCapacity::query()->create(['workcenter_id' => $workcenter->id, 'shift_id' => $shift->id, 'weekday' => 2, 'spots' => 2]);
+        foreach (range(1, 4) as $i) {
+            $employee = $this->employee();
+            $this->makeAvailable($employee, $shift, '2026-09-07'); // Monday: no capacity
+            $this->makeAvailable($employee, $shift, '2026-09-08'); // Tuesday
+        }
+
+        $this->generator()->generate($this->makeRun());
+
+        $this->assertSame(['2026-09-08', '2026-09-08', '2026-09-15', '2026-09-15'], $this->datesAssigned());
+    }
+
+    public function test_a_date_override_replaces_the_weekday_default_and_zero_closes_the_day(): void
+    {
+        $workcenter = Workcenter::factory()->create();
+        $shift = Shift::factory()->create(['start_time' => '06:00', 'end_time' => '14:00']);
+        $workcenter->shifts()->attach($shift);
+        WorkcenterShiftCapacity::query()->create(['workcenter_id' => $workcenter->id, 'shift_id' => $shift->id, 'weekday' => 2, 'spots' => 2]);
+        $this->openDay($workcenter, $shift, '2026-09-08', 1);
+        $this->openDay($workcenter, $shift, '2026-09-15', 0);
+        foreach (range(1, 4) as $i) {
+            $this->eligibleEmployee($shift, '2026-09-08');
+        }
+
+        $this->generator()->generate($this->makeRun());
+
+        $this->assertSame(['2026-09-08'], $this->datesAssigned());
+    }
+
+    public function test_the_cycle_includes_its_first_and_last_day_and_nothing_beside_them(): void
+    {
+        // The cycle runs from Monday 2026-09-07 to Sunday 2026-09-20. A default
+        // capacity on Sundays and Mondays reaches 2026-09-06 and 2026-09-21 too,
+        // the days just outside it, so only the cycle bounds keep those closed.
+        $workcenter = Workcenter::factory()->create();
+        $shift = Shift::factory()->create(['start_time' => '06:00', 'end_time' => '14:00']);
+        $workcenter->shifts()->attach($shift);
+        foreach ([1, 7] as $weekday) {
+            WorkcenterShiftCapacity::query()->create(['workcenter_id' => $workcenter->id, 'shift_id' => $shift->id, 'weekday' => $weekday, 'spots' => 1]);
+        }
+        $employee = $this->employee();
+        $this->makeAvailable($employee, $shift, '2026-09-07'); // Monday
+        $this->makeAvailable($employee, $shift, '2026-09-20'); // Sunday
+
+        $run = $this->makeRun();
+        $this->generator()->generate($run);
+
+        $this->assertSame(['2026-09-07', '2026-09-13', '2026-09-14', '2026-09-20'], $this->datesAssigned());
+        $this->assertSame([], $run->refresh()->unfulfilled);
+    }
+
+    public function test_an_archived_workcenter_is_not_planned(): void
+    {
+        [$workcenter, $shift] = $this->workcenterWithOverride('2026-09-08');
+        $this->eligibleEmployee($shift, '2026-09-08');
+        $workcenter->update(['archived_at' => now()]);
+
+        $run = $this->makeRun();
+        $this->generator()->generate($run);
+
+        $this->assertSame(0, ShiftAssignment::count());
+        $this->assertSame([], $run->refresh()->unfulfilled);
+
+        $workcenter->update(['archived_at' => null]);
+        $this->generator()->generate($this->makeRun());
+
+        $this->assertSame(1, ShiftAssignment::count());
+    }
+
+    public function test_a_cell_with_more_spots_than_candidates_is_partly_filled_and_reported(): void
+    {
+        [, $shift] = $this->workcenterWithOverride('2026-09-08', spots: 2);
+        $this->eligibleEmployee($shift, '2026-09-08');
+
+        $run = $this->makeRun();
+        $this->generator()->generate($run);
+
+        $this->assertSame(1, ShiftAssignment::count());
+        $this->assertCount(1, $run->refresh()->unfulfilled);
+    }
+
+    /** A capped employee (cap 8h) who could take the open cell on 2026-09-08 if nothing else counted. */
+    private function cappedEmployeeWithOpenCell(): array
+    {
+        [$workcenter, $shift] = $this->workcenterWithOverride('2026-09-08'); // 8h
+        $employee = $this->employee(['weekly_hours' => 4]);
+        $this->makeAvailable($employee, $shift, '2026-09-08');
+        PlanningRule::create(['type' => 'max_hours_per_week', 'mode' => 'hard']);
+
+        return [$workcenter, $shift, $employee];
+    }
+
+    public function test_only_hours_inside_the_cycle_count_toward_the_hour_cap(): void
+    {
+        [$workcenter, $shift, $employee] = $this->cappedEmployeeWithOpenCell();
+        // The day before the cycle and the day after it, 8h each. Fixed, so a
+        // planner that counted them could not move them out of the way.
+        foreach (['2026-09-06', '2026-09-21'] as $date) {
+            ShiftAssignment::factory()->create([
+                'employee_id' => $employee->id, 'workcenter_id' => $workcenter->id, 'shift_id' => $shift->id,
+                'date' => $date, 'fixed' => true,
+            ]);
+        }
+
+        $this->generator()->generate($this->makeRun());
+
+        $this->assertDatabaseHas('shift_assignments', ['employee_id' => $employee->id, 'date' => '2026-09-08']);
+    }
+
+    public function test_hours_on_the_last_day_of_the_cycle_count_toward_the_hour_cap(): void
+    {
+        [$workcenter, $shift, $employee] = $this->cappedEmployeeWithOpenCell();
+        ShiftAssignment::factory()->create([
+            'employee_id' => $employee->id, 'workcenter_id' => $workcenter->id, 'shift_id' => $shift->id,
+            'date' => '2026-09-20', 'fixed' => true, // fixed, or the planner would move it to the open cell
+        ]);
+
+        $this->generator()->generate($this->makeRun());
+
+        $this->assertDatabaseMissing('shift_assignments', ['employee_id' => $employee->id, 'date' => '2026-09-08']);
     }
 }
