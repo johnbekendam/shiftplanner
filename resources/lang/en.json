@@ -515,6 +515,7 @@
     "planning.draft": "Draft",
     "planning.published_empty": "No published planning.",
     "planning.draft_empty": "No draft planning.",
+    "planning.shift_times": "Working times",
     "planning.add_to_calendar": "Add to calendar",
     "planning.calendar_contact": "Contact",
     "planning.table.week": "Week",

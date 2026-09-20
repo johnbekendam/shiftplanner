@@ -58,6 +58,15 @@ const form = useForm({
 
 const plannedAssignments = computed(() => props.plannedShifts.flatMap((week) => week.assignments))
 
+// The distinct shifts the employee is planned on, earliest start first.
+const plannedShiftTimes = computed(() => {
+    const byName = new Map()
+    for (const a of plannedAssignments.value) {
+        byName.set(a.shift_name, { name: a.shift_name, start: a.start_time.slice(0, 5), end: a.end_time.slice(0, 5) })
+    }
+    return [...byName.values()].sort((a, b) => a.start.localeCompare(b.start) || a.name.localeCompare(b.name))
+})
+
 const tab = ref(plannedAssignments.value.length ? 'planning' : 'information')
 const tabs = computed(() => [
     { value: 'information', label: __('availability.tab.information') },
@@ -426,6 +435,14 @@ function onWithdrawConfirm() {
 
         <div v-show="tab === 'planning'" data-testid="panel-planning">
             <PlanningTable :assignments="plannedAssignments" :empty-text="__('planning.empty')" calendar-export />
+            <section v-if="plannedShiftTimes.length" data-testid="planning-shift-times" class="mt-6">
+                <h3 class="mb-2 text-sm font-semibold text-(--color-text-primary)">{{ __('planning.shift_times') }}</h3>
+                <ul class="space-y-1 text-xs text-(--color-text-primary)">
+                    <li v-for="shift in plannedShiftTimes" :key="shift.name">
+                        {{ shift.name }} {{ shift.start }}–{{ shift.end }}
+                    </li>
+                </ul>
+            </section>
             <ShiftNote v-if="scheduleNoteHtml" :html="scheduleNoteHtml" class="mt-6" />
         </div>
 

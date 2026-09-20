@@ -11,6 +11,7 @@ const en = {
     "employees.field.business_line_none": "None",
     "employees.hours_option": ":count hours",
     "employees.hours_below_minimum": "I can only work less than :min hours",
+    "planning.shift_times": "Working times",
     "planning.add_to_calendar": "Add to calendar",
     "planning.calendar_contact": "Contact",
     "personal.title": "Your working hours",
@@ -480,6 +481,48 @@ describe("Personal/Show", () => {
 
         expect(hidden(w, '[data-testid="panel-planning"]')).toBe(true);
         expect(hidden(w, '[data-testid="panel-information"]')).toBe(false);
+    });
+
+    it("lists the working times of the planned shifts once each, ordered by start time", () => {
+        const assignment = (date, shift_name, start_time, end_time) => ({
+            date, workcenter_name: "Line 1", shift_name, start_time, end_time, published: true,
+        });
+        const plannedShifts = [{
+            weekStart: "2026-09-07",
+            weekEnd: "2026-09-13",
+            assignments: [
+                assignment("2026-09-08", "Late", "14:00:00", "22:00:00"),
+                assignment("2026-09-09", "Early", "06:00:00", "14:00:00"),
+                assignment("2026-09-10", "Late", "14:00:00", "22:00:00"),
+            ],
+        }];
+        const w = mountShow([], { plannedShifts });
+
+        const items = w.get('[data-testid="planning-shift-times"]').findAll("li").map((li) => li.text());
+        expect(items).toEqual(["Early 06:00–14:00", "Late 14:00–22:00"]);
+        expect(w.get('[data-testid="planning-shift-times"]').text()).toContain("Working times");
+    });
+
+    it("shows no working times when nothing is planned", () => {
+        const w = mountShow([], { plannedShifts: [] });
+
+        expect(w.find('[data-testid="planning-shift-times"]').exists()).toBe(false);
+    });
+
+    it("puts the working times above the schedule note", () => {
+        const plannedShifts = [{
+            weekStart: "2026-09-07",
+            weekEnd: "2026-09-13",
+            assignments: [{
+                date: "2026-09-08", workcenter_name: "Line 1", shift_name: "Early",
+                start_time: "06:00", end_time: "14:00", published: true,
+            }],
+        }];
+        const w = mountShow([], { plannedShifts, scheduleNoteHtml: "<p>Schedule remarks</p>" });
+
+        const html = w.get('[data-testid="panel-planning"]').html();
+        expect(html.indexOf("planning-shift-times")).toBeLessThan(html.indexOf("Schedule remarks"));
+        expect(html.indexOf("<table")).toBeLessThan(html.indexOf("planning-shift-times"));
     });
 
     it("shows the schedule note below the table on the Planning tab", () => {
