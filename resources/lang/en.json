@@ -518,6 +518,7 @@
     "planning.table.week": "Week",
     "planning.table.day": "Day",
     "planning.table.date": "Date",
+    "planning.table.shift": "Shift",
     "planning.table.workcenter": "Workcenter",
     "planning.table.responsible": "Contact",
     "planning.generate": "Generate Planning",

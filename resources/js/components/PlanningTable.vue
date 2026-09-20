@@ -5,7 +5,7 @@ import { useI18n } from '@/composables/useI18n'
 const __ = useI18n()
 
 const props = defineProps({
-    // [{ date, workcenter_name, responsible, ... }] — flat list of assignments, any order.
+    // [{ date, workcenter_name, shift_name, responsible, ... }] — flat list of assignments, any order.
     assignments: { type: Array, default: () => [] },
     emptyText: { type: String, required: true },
 })
@@ -37,6 +37,7 @@ const rows = computed(() => [...props.assignments]
             week: isoWeek(date),
             day: date.toLocaleDateString('en-US', { weekday: 'long' }),
             date: formatDate(date),
+            shift: assignment.shift_name,
             workcenter: assignment.workcenter_name,
             responsible: assignment.responsible || '-',
         }
@@ -51,6 +52,7 @@ const rows = computed(() => [...props.assignments]
                 <th class="px-2 py-2 font-medium">{{ __('planning.table.week') }}</th>
                 <th class="px-2 py-2 font-medium">{{ __('planning.table.day') }}</th>
                 <th class="px-2 py-2 font-medium">{{ __('planning.table.date') }}</th>
+                <th class="px-2 py-2 font-medium">{{ __('planning.table.shift') }}</th>
                 <th class="px-2 py-2 font-medium">{{ __('planning.table.workcenter') }}</th>
                 <th class="px-2 py-2 font-medium">{{ __('planning.table.responsible') }}</th>
             </tr>
@@ -60,6 +62,7 @@ const rows = computed(() => [...props.assignments]
                 <td class="px-2 py-2">{{ row.week }}</td>
                 <td class="px-2 py-2">{{ row.day }}</td>
                 <td class="px-2 py-2">{{ row.date }}</td>
+                <td class="px-2 py-2">{{ row.shift }}</td>
                 <td class="px-2 py-2">{{ row.workcenter }}</td>
                 <td class="px-2 py-2">{{ row.responsible }}</td>
             </tr>

@@ -11,8 +11,9 @@ On the employee edit page, show two tables on the Planning tab: one for publishe
 1. Week number (ISO week)
 2. Day of the week
 3. Date (`dd-mm-yyyy`)
-4. Workcenter
-5. Responsible person (a dash for now)
+4. Shift (name)
+5. Workcenter
+6. Contact person (see `doc/features/workcenter-responsible/`)
 
 Rows are sorted by date. An empty table shows a short "none" message.
 
@@ -25,5 +26,5 @@ Rows are sorted by date. An empty table shows a short "none" message.
 
 ## Non-goals
 
-- Do not show shift name or shift times in the new tables.
+- Do not show shift times in the tables.
 - Do not change the backend.

@@ -430,7 +430,7 @@ describe("Personal/Show", () => {
         const w = mountShow([], { plannedShifts });
 
         const cells = w.get('[data-testid="panel-planning"]').findAll("tbody tr td").map((td) => td.text());
-        expect(cells).toEqual(["37", "Tuesday", "08-09-2026", "Line 1", "Jane Doe"]);
+        expect(cells).toEqual(["37", "Tuesday", "08-09-2026", "Early", "Line 1", "Jane Doe"]);
     });
 
     it("renders the shift note on the Information tab when set", () => {
