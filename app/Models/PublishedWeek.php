@@ -38,9 +38,25 @@ class PublishedWeek extends Model
      */
     public static function lockedPairs(Carbon $start, Carbon $end, Collection $workcenterIds): Collection
     {
+        return static::pairs($start, $end, $workcenterIds);
+    }
+
+    /**
+     * The published pairs the autoplanner may not touch at all: published and
+     * not opened by `planner_open`. The generator leaves their open spots
+     * empty (features/autoplanner-published-weeks/).
+     */
+    public static function frozenPairs(Carbon $start, Carbon $end, Collection $workcenterIds): Collection
+    {
+        return static::pairs($start, $end, $workcenterIds, plannerOpen: false);
+    }
+
+    private static function pairs(Carbon $start, Carbon $end, Collection $workcenterIds, ?bool $plannerOpen = null): Collection
+    {
         return static::query()
             ->whereBetween('week_start', [$start->toDateString(), $end->toDateString()])
             ->whereIn('workcenter_id', $workcenterIds)
+            ->when($plannerOpen !== null, fn ($q) => $q->where('planner_open', $plannerOpen))
             ->get(['week_start', 'workcenter_id'])
             ->map(fn (self $p) => "{$p->week_start->toDateString()}:{$p->workcenter_id}")
             ->flip();

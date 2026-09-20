@@ -84,4 +84,20 @@ class PublishedWeekLockedPairsTest extends TestCase
         $this->assertTrue($pairs->has("2026-09-07:{$published->id}"));
         $this->assertFalse($pairs->has("2026-09-07:{$unpublished->id}"));
     }
+
+    public function test_locked_pairs_include_open_and_frozen_pairs_but_frozen_pairs_leave_out_open_ones(): void
+    {
+        $frozen = Workcenter::factory()->create();
+        $open = Workcenter::factory()->create();
+        PublishedWeek::query()->create(['week_start' => '2026-09-07', 'workcenter_id' => $frozen->id]);
+        PublishedWeek::query()->create(['week_start' => '2026-09-07', 'workcenter_id' => $open->id, 'planner_open' => true]);
+        $range = [Carbon::parse('2026-09-07'), Carbon::parse('2026-09-20'), collect([$frozen->id, $open->id])];
+
+        $locked = PublishedWeek::lockedPairs(...$range);
+        $frozenPairs = PublishedWeek::frozenPairs(...$range);
+
+        $this->assertTrue($locked->has("2026-09-07:{$frozen->id}") && $locked->has("2026-09-07:{$open->id}"));
+        $this->assertTrue($frozenPairs->has("2026-09-07:{$frozen->id}"));
+        $this->assertFalse($frozenPairs->has("2026-09-07:{$open->id}"));
+    }
 }

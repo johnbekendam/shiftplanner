@@ -233,6 +233,122 @@ class HeuristicPlanGeneratorTest extends TestCase
         $this->assertSame([], $run->refresh()->changes);
     }
 
+    // ── Published weeks: frozen unless planner_open ─────────────────────
+
+    public function test_the_open_spot_of_a_published_week_is_not_filled(): void
+    {
+        [$workcenter, $shift] = $this->workcenterWithOverride('2026-09-08', spots: 1);
+        $this->eligibleEmployee($shift, '2026-09-08');
+        PublishedWeek::query()->create(['week_start' => self::CYCLE_START, 'workcenter_id' => $workcenter->id]);
+
+        $run = $this->makeRun();
+        $this->generator()->generate($run);
+
+        $this->assertSame(0, ShiftAssignment::count());
+        $run->refresh();
+        $this->assertSame(PlanGenerationRun::STATUS_DONE, $run->status);
+        $this->assertSame([], $run->changes);
+    }
+
+    public function test_a_frozen_open_spot_is_not_reported_as_unfulfilled(): void
+    {
+        [$workcenter] = $this->workcenterWithOverride('2026-09-08', spots: 1); // nobody is eligible
+        PublishedWeek::query()->create(['week_start' => self::CYCLE_START, 'workcenter_id' => $workcenter->id]);
+
+        $run = $this->makeRun();
+        $this->generator()->generate($run);
+
+        $this->assertSame([], $run->refresh()->unfulfilled);
+    }
+
+    public function test_the_open_spot_of_a_published_week_is_filled_when_the_planner_is_allowed(): void
+    {
+        [$workcenter, $shift] = $this->workcenterWithOverride('2026-09-08', spots: 2);
+        $publishedEmployee = $this->eligibleEmployee($shift, '2026-09-08');
+        $existing = ShiftAssignment::factory()->create([
+            'employee_id' => $publishedEmployee->id, 'workcenter_id' => $workcenter->id, 'shift_id' => $shift->id,
+            'date' => '2026-09-08', 'fixed' => false,
+        ]);
+        $newEmployee = $this->eligibleEmployee($shift, '2026-09-08');
+        PublishedWeek::query()->create([
+            'week_start' => self::CYCLE_START, 'workcenter_id' => $workcenter->id, 'planner_open' => true,
+        ]);
+
+        $run = $this->makeRun();
+        $this->generator()->generate($run);
+
+        $this->assertDatabaseHas('shift_assignments', ['id' => $existing->id, 'employee_id' => $publishedEmployee->id]);
+        $this->assertDatabaseHas('shift_assignments', [
+            'employee_id' => $newEmployee->id, 'workcenter_id' => $workcenter->id, 'date' => '2026-09-08',
+        ]);
+        $this->assertSame(2, ShiftAssignment::count());
+        $changes = $run->refresh()->changes;
+        $this->assertCount(1, $changes);
+        $this->assertSame('added', $changes[0]['type']);
+    }
+
+    public function test_an_allowed_planner_never_moves_the_existing_assignments_of_a_published_week(): void
+    {
+        [$workcenter, $shift] = $this->workcenterWithOverride('2026-09-08', spots: 2);
+        $kept = [];
+        foreach (range(1, 2) as $i) {
+            $employee = $this->eligibleEmployee($shift, '2026-09-08');
+            $kept[] = ShiftAssignment::factory()->create([
+                'employee_id' => $employee->id, 'workcenter_id' => $workcenter->id, 'shift_id' => $shift->id,
+                'date' => '2026-09-08', 'fixed' => false,
+            ]);
+        }
+        foreach (range(1, 3) as $i) {
+            $this->eligibleEmployee($shift, '2026-09-08');
+        }
+        PublishedWeek::query()->create([
+            'week_start' => self::CYCLE_START, 'workcenter_id' => $workcenter->id, 'planner_open' => true,
+        ]);
+
+        $this->generator()->generate($this->makeRun());
+
+        foreach ($kept as $assignment) {
+            $this->assertDatabaseHas('shift_assignments', ['id' => $assignment->id, 'employee_id' => $assignment->employee_id]);
+        }
+        $this->assertSame(2, ShiftAssignment::count());
+    }
+
+    public function test_a_frozen_week_does_not_block_other_weeks_or_workcenters(): void
+    {
+        [$frozenWorkcenter, $shift] = $this->workcenterWithOverride('2026-09-08', spots: 1);
+        $otherWorkcenter = Workcenter::factory()->create();
+        $otherWorkcenter->shifts()->attach($shift);
+        WorkcenterShiftDateOverride::query()->create([
+            'workcenter_id' => $otherWorkcenter->id, 'shift_id' => $shift->id, 'date' => '2026-09-08', 'spots' => 1,
+        ]);
+        WorkcenterShiftDateOverride::query()->create([
+            'workcenter_id' => $frozenWorkcenter->id, 'shift_id' => $shift->id, 'date' => '2026-09-15', 'spots' => 1,
+        ]);
+        $this->eligibleEmployee($shift, '2026-09-08');
+        $this->eligibleEmployee($shift, '2026-09-15');
+        $this->eligibleEmployee($shift, '2026-09-08');
+        PublishedWeek::query()->create(['week_start' => self::CYCLE_START, 'workcenter_id' => $frozenWorkcenter->id]);
+
+        $this->generator()->generate($this->makeRun());
+
+        $this->assertDatabaseMissing('shift_assignments', ['workcenter_id' => $frozenWorkcenter->id, 'date' => '2026-09-08']);
+        $this->assertDatabaseHas('shift_assignments', ['workcenter_id' => $otherWorkcenter->id, 'date' => '2026-09-08']);
+        $this->assertDatabaseHas('shift_assignments', ['workcenter_id' => $frozenWorkcenter->id, 'date' => '2026-09-15']);
+    }
+
+    public function test_an_open_spot_in_an_allowed_week_with_no_candidate_is_reported_unfulfilled(): void
+    {
+        [$workcenter, $shift] = $this->workcenterWithOverride('2026-09-08', spots: 1);
+        PublishedWeek::query()->create([
+            'week_start' => self::CYCLE_START, 'workcenter_id' => $workcenter->id, 'planner_open' => true,
+        ]);
+
+        $run = $this->makeRun();
+        $this->generator()->generate($run);
+
+        $this->assertSame('no_eligible_employee', $run->refresh()->unfulfilled[0]['reason']);
+    }
+
     public function test_a_pre_existing_non_locked_assignment_is_left_alone_by_construction(): void
     {
         // Construction only fills currently-open cells; it never relocates anyone

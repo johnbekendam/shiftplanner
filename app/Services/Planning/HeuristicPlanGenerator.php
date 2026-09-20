@@ -129,7 +129,10 @@ class HeuristicPlanGenerator implements PlanGeneratorContract
             ->values()
             ->all();
 
-        $spots = $this->resolveSpots($attachments, $capacities, $overrides, $cycleStart, $cycleAssignments);
+        $spots = $this->withoutFrozenSpots(
+            $this->resolveSpots($attachments, $capacities, $overrides, $cycleStart, $cycleAssignments),
+            PublishedWeek::frozenPairs($cycleStart, $cycleEnd, $workcenterIds),
+        );
 
         $previousWeekStart = $cycleStart->copy()->subDays(7);
         $previousWeekEnd = $cycleStart->copy()->subDay();
@@ -191,6 +194,25 @@ class HeuristicPlanGenerator implements PlanGeneratorContract
             previousWeekAssignments: $previousWeekAssignments,
             rules: $rules,
         );
+    }
+
+    /**
+     * Drops the spots of published workcenter-weeks that the planner may not fill.
+     * Their assignments still count as locked; the spots simply are not planned,
+     * so neither construction nor hill-climbing can place anyone there and no
+     * unfulfilled spot is reported for them.
+     *
+     * @param  array<int, array{workcenter_id: int, shift_id: int, date: string, spots: int, locked: int}>  $spots
+     * @return array<int, array{workcenter_id: int, shift_id: int, date: string, spots: int, locked: int}>
+     */
+    private function withoutFrozenSpots(array $spots, Collection $frozenPairs): array
+    {
+        return array_values(array_filter(
+            $spots,
+            fn (array $spot) => ! $frozenPairs->has(
+                Carbon::parse($spot['date'])->startOfWeek(Carbon::MONDAY)->toDateString().":{$spot['workcenter_id']}"
+            ),
+        ));
     }
 
     /** @return array<int, array{workcenter_id: int, shift_id: int, date: string, spots: int, locked: int}> */
