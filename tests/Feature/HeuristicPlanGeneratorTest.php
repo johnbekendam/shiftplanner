@@ -336,6 +336,52 @@ class HeuristicPlanGeneratorTest extends TestCase
         $this->assertDatabaseHas('shift_assignments', ['workcenter_id' => $frozenWorkcenter->id, 'date' => '2026-09-15']);
     }
 
+    public function test_a_successful_run_freezes_the_open_weeks_of_its_cycle_again(): void
+    {
+        [$workcenter, $shift] = $this->workcenterWithOverride('2026-09-08', spots: 1);
+        $this->eligibleEmployee($shift, '2026-09-08');
+        $firstWeek = PublishedWeek::query()->create(['week_start' => '2026-09-07', 'workcenter_id' => $workcenter->id, 'planner_open' => true]);
+        $secondWeek = PublishedWeek::query()->create(['week_start' => '2026-09-14', 'workcenter_id' => $workcenter->id, 'planner_open' => true]);
+
+        $this->generator()->generate($this->makeRun());
+
+        $this->assertFalse($firstWeek->fresh()->planner_open);
+        $this->assertFalse($secondWeek->fresh()->planner_open);
+    }
+
+    public function test_the_open_flag_is_cleared_even_when_no_spot_could_be_filled(): void
+    {
+        [$workcenter] = $this->workcenterWithOverride('2026-09-08', spots: 1); // nobody is eligible
+        $week = PublishedWeek::query()->create(['week_start' => '2026-09-07', 'workcenter_id' => $workcenter->id, 'planner_open' => true]);
+
+        $this->generator()->generate($this->makeRun());
+
+        $this->assertFalse($week->fresh()->planner_open);
+    }
+
+    public function test_a_run_keeps_the_open_flag_of_a_week_in_another_cycle(): void
+    {
+        [$workcenter] = $this->workcenterWithOverride('2026-09-08', spots: 1);
+        $nextCycle = PublishedWeek::query()->create(['week_start' => '2026-09-21', 'workcenter_id' => $workcenter->id, 'planner_open' => true]);
+
+        $this->generator()->generate($this->makeRun());
+
+        $this->assertTrue($nextCycle->fresh()->planner_open);
+    }
+
+    public function test_a_run_leaves_frozen_weeks_frozen_and_runs_without_any_open_week(): void
+    {
+        [$workcenter, $shift] = $this->workcenterWithOverride('2026-09-08', spots: 1);
+        $this->eligibleEmployee($shift, '2026-09-08');
+        $frozen = PublishedWeek::query()->create(['week_start' => '2026-09-07', 'workcenter_id' => $workcenter->id]);
+
+        $run = $this->makeRun();
+        $this->generator()->generate($run);
+
+        $this->assertFalse($frozen->fresh()->planner_open);
+        $this->assertSame(PlanGenerationRun::STATUS_DONE, $run->fresh()->status);
+    }
+
     public function test_an_open_spot_in_an_allowed_week_with_no_candidate_is_reported_unfulfilled(): void
     {
         [$workcenter, $shift] = $this->workcenterWithOverride('2026-09-08', spots: 1);

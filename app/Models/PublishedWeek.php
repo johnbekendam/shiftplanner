@@ -51,6 +51,19 @@ class PublishedWeek extends Model
         return static::pairs($start, $end, $workcenterIds, plannerOpen: false);
     }
 
+    /**
+     * Freezes the planner-open pairs of the two-week cycle that starts at
+     * $cycleStart again. Called after a successful run consumed the permission.
+     */
+    public static function closePlannerFor(Carbon $cycleStart, Collection $workcenterIds): void
+    {
+        static::query()
+            ->whereBetween('week_start', [$cycleStart->toDateString(), $cycleStart->copy()->addWeek()->toDateString()])
+            ->whereIn('workcenter_id', $workcenterIds)
+            ->where('planner_open', true)
+            ->update(['planner_open' => false]);
+    }
+
     private static function pairs(Carbon $start, Carbon $end, Collection $workcenterIds, ?bool $plannerOpen = null): Collection
     {
         return static::query()

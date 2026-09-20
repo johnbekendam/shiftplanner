@@ -4,6 +4,8 @@ namespace Tests\Feature;
 
 use App\Jobs\GeneratePlan;
 use App\Models\PlanGenerationRun;
+use App\Models\PublishedWeek;
+use App\Models\Workcenter;
 use App\Services\Planning\PlanGeneratorContract;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use RuntimeException;
@@ -42,5 +44,30 @@ class GeneratePlanJobTest extends TestCase
         $run->refresh();
         $this->assertSame(PlanGenerationRun::STATUS_FAILED, $run->status);
         $this->assertSame('solver exploded', $run->error);
+    }
+
+    public function test_a_failed_run_keeps_the_open_flag_so_the_planner_can_try_again(): void
+    {
+        $workcenter = Workcenter::factory()->create();
+        $week = PublishedWeek::query()->create(['week_start' => '2026-09-07', 'workcenter_id' => $workcenter->id, 'planner_open' => true]);
+        $run = PlanGenerationRun::create(['cycle_start' => '2026-09-07', 'status' => PlanGenerationRun::STATUS_PENDING]);
+        $failing = new class implements PlanGeneratorContract
+        {
+            public function generate(PlanGenerationRun $run): void
+            {
+                throw new RuntimeException('solver exploded');
+            }
+        };
+        $job = new GeneratePlan($run->id);
+
+        try {
+            $job->handle($failing);
+            $this->fail('The job should rethrow the generator error.');
+        } catch (RuntimeException $e) {
+            $job->failed($e);
+        }
+
+        $this->assertSame(PlanGenerationRun::STATUS_FAILED, $run->fresh()->status);
+        $this->assertTrue($week->fresh()->planner_open);
     }
 }

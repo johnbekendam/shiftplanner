@@ -53,7 +53,7 @@ class HeuristicPlanGenerator implements PlanGeneratorContract
         $unfulfilled = $this->unfulfilled($problem, $assignments);
         $solution = new PlanSolution($assignments->movable(), $unfulfilled);
 
-        $this->apply($solution, $run, $cycleAssignments, $isLocked);
+        $this->apply($solution, $run, $cycleAssignments, $isLocked, $workcenterIds);
     }
 
     /**
@@ -256,9 +256,9 @@ class HeuristicPlanGenerator implements PlanGeneratorContract
         return $spots;
     }
 
-    private function apply(PlanSolution $solution, PlanGenerationRun $run, Collection $cycleAssignments, \Closure $isLocked): void
+    private function apply(PlanSolution $solution, PlanGenerationRun $run, Collection $cycleAssignments, \Closure $isLocked, Collection $workcenterIds): void
     {
-        DB::transaction(function () use ($solution, $run, $cycleAssignments, $isLocked) {
+        DB::transaction(function () use ($solution, $run, $cycleAssignments, $isLocked, $workcenterIds) {
             $key = fn (array $a) => "{$a['employee_id']}:{$a['workcenter_id']}:{$a['shift_id']}:{$a['date']}";
 
             $previous = $cycleAssignments->reject($isLocked);
@@ -305,6 +305,9 @@ class HeuristicPlanGenerator implements PlanGeneratorContract
                     'date' => $a['date'],
                 ])->all(),
             ];
+
+            // The permission from "Allow autoplanner" lasts for this one run.
+            PublishedWeek::closePlannerFor($run->cycle_start, $workcenterIds);
 
             $run->update([
                 'status' => PlanGenerationRun::STATUS_DONE,
