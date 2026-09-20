@@ -7,7 +7,12 @@ use App\Jobs\SendMailboxMessage;
 use App\Models\Employee;
 use App\Models\Message;
 use App\Models\MessageTemplate;
+use App\Models\PublishedWeek;
+use App\Models\Shift;
+use App\Models\ShiftAssignment;
 use App\Models\User;
+use App\Models\Workcenter;
+use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
@@ -145,7 +150,7 @@ class MailboxTest extends TestCase
         $this->get('/mailbox?tab=compose')->assertInertia(fn ($page) => $page
             ->component('Mailbox')
             ->where('compose.types.1.value', MessageType::Custom->value)
-            ->where('compose.placeholder_tokens', [':name', ':link'])
+            ->where('compose.placeholder_tokens', [':name', ':link', ':planning'])
             ->has('compose.users', 2) // the admin created by admin() plus Dana
         );
     }
@@ -559,5 +564,102 @@ class MailboxTest extends TestCase
 
         $this->assertSame(0, Message::forStatus('draft')->count());
         $this->assertDatabaseHas('messages', ['id' => $outbox->id]);
+    }
+
+    // ── Planning messages ───────────────────────────────────────────────
+
+    /** @return array{Employee, array<int, ShiftAssignment>} an employee with two upcoming published shifts and one past */
+    private function plannedEmployee(): array
+    {
+        Carbon::setTestNow('2026-09-20 10:00:00');
+        $employee = Employee::factory()->create(['first_name' => 'Alice', 'email' => 'alice@example.com']);
+        $workcenter = Workcenter::factory()->create(['name' => 'Line 1']);
+        $shift = Shift::factory()->create(['name' => 'Early', 'start_time' => '06:00', 'end_time' => '14:00']);
+        PublishedWeek::query()->create(['week_start' => '2026-09-21', 'workcenter_id' => $workcenter->id]);
+        PublishedWeek::query()->create(['week_start' => '2026-09-14', 'workcenter_id' => $workcenter->id]);
+
+        $make = fn (string $date, ?string $informedAt = null) => ShiftAssignment::factory()->create([
+            'employee_id' => $employee->id, 'workcenter_id' => $workcenter->id, 'shift_id' => $shift->id,
+            'date' => $date, 'informed_at' => $informedAt,
+        ]);
+
+        return [$employee, [$make('2026-09-22'), $make('2026-09-23', '2026-09-19 08:00:00'), $make('2026-09-15')]];
+    }
+
+    public function test_a_planning_message_lists_the_shifts_and_stores_their_ids(): void
+    {
+        Queue::fake();
+        $this->admin();
+        [$employee, [$new, $informed]] = $this->plannedEmployee();
+
+        $this->post('/mailbox/compose', [
+            'type' => MessageType::Planning->value,
+            'subject' => 'Your planning',
+            'body' => "Hi :name,\n\n:planning",
+            'employee_ids' => [$employee->id],
+            'send_mode' => 'draft',
+        ])->assertRedirect();
+
+        $message = Message::firstOrFail();
+        $this->assertSame(MessageType::Planning, $message->type);
+        $this->assertStringContainsString('Tuesday 22-09-2026 – Early 06:00–14:00 – Line 1', $message->body);
+        $this->assertStringNotContainsString('15-09-2026', $message->body);
+        $this->assertEqualsCanonicalizing([$new->id, $informed->id], $message->assignment_ids);
+        Carbon::setTestNow();
+    }
+
+    public function test_a_planning_message_without_the_planning_placeholder_stores_no_ids(): void
+    {
+        Queue::fake();
+        $this->admin();
+        [$employee] = $this->plannedEmployee();
+
+        $this->post('/mailbox/compose', [
+            'type' => MessageType::Planning->value,
+            'subject' => 'Hello',
+            'body' => 'Hi :name',
+            'employee_ids' => [$employee->id],
+            'send_mode' => 'draft',
+        ])->assertRedirect();
+
+        $this->assertNull(Message::firstOrFail()->assignment_ids);
+        Carbon::setTestNow();
+    }
+
+    public function test_only_planning_messages_store_assignment_ids(): void
+    {
+        Queue::fake();
+        $this->admin();
+        [$employee] = $this->plannedEmployee();
+
+        $this->post('/mailbox/compose', [
+            'type' => MessageType::Custom->value,
+            'subject' => 'Hello',
+            'body' => ':planning',
+            'employee_ids' => [$employee->id],
+            'send_mode' => 'draft',
+        ])->assertRedirect();
+
+        $this->assertNull(Message::firstOrFail()->assignment_ids);
+        Carbon::setTestNow();
+    }
+
+    public function test_an_employee_without_upcoming_published_shifts_is_reported_unresolved(): void
+    {
+        Queue::fake();
+        $this->admin();
+        Carbon::setTestNow('2026-09-20 10:00:00');
+        $employee = Employee::factory()->create();
+
+        $this->post('/mailbox/compose', [
+            'type' => MessageType::Planning->value,
+            'subject' => 'Your planning',
+            'body' => ':planning',
+            'employee_ids' => [$employee->id],
+            'send_mode' => 'draft',
+        ])->assertSessionHas('unresolved_recipients');
+
+        $this->assertSame(0, Message::count());
+        Carbon::setTestNow();
     }
 }

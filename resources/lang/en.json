@@ -160,6 +160,7 @@
     "mailbox.flash.deleted": "Message deleted.",
     "mailbox.flash.bulk_deleted": "Deleted :count message(s).",
     "mailbox.preview.sample_name": "Sam",
+    "mailbox.preview.sample_planning": "- Tuesday 08-09-2026 – Early 06:00–14:00 – Line 1\n- Wednesday 09-09-2026 – Late 14:00–22:00 – Line 2",
 
     "employees.title": "Employees",
     "employees.search_placeholder": "Search name or email",

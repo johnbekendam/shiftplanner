@@ -18,7 +18,7 @@ A new nullable `informed_at` column on `shift_assignments`. An assignment is **u
 
 The queue job sets `informed_at` after it sends a Planning email successfully. It sets it on exactly the assignments that email lists. A draft, a queued message, or a failed send marks nothing.
 
-A new nullable `assignment_ids` JSON column on `messages` stores the assignments a Planning message lists. The store step fills it when the message is created.
+A new nullable `assignment_ids` JSON column on `messages` stores the assignments a Planning message lists. Compose fills it when it creates the message, but only when the body contains `:planning`. A Planning message without the placeholder lists no shifts, so it marks none.
 
 ### Planning message type
 
