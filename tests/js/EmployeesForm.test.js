@@ -163,7 +163,6 @@ describe("Employees/Form", () => {
         const published = tables[0].findAll("tbody tr");
         expect(published).toHaveLength(1);
         expect(published[0].findAll("td").map((td) => td.text())).toEqual(["37", "08-09-2026", "Tuesday", "Early", "Line 1", "Jane Doe"]);
-        expect(published[0].attributes("title")).toBe("Tuesday 08-09-2026, 06:00–14:00");
 
         const draft = tables[1].findAll("tbody tr");
         expect(draft).toHaveLength(1);

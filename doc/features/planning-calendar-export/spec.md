@@ -6,7 +6,7 @@ An employee sees planned shifts on the personal page. The employee must copy eac
 
 ## Solution
 
-Add a calendar icon button to each row of the planning table on the personal page. The button downloads an `.ics` file with one event for that shift. The employee opens the file to add the event to any calendar app.
+Each row of the planning table opens a shift card when the user clicks it. The card shows the week, date, day, shift, working hours, workcenter, and contact. On the personal page, the card has an **Add to calendar** button. The button downloads an `.ics` file with one event for that shift. The employee opens the file to add the event to any calendar app.
 
 The event has these fields:
 
@@ -24,9 +24,10 @@ The file name is `shift-dd-mm-yyyy.ics`.
 - Build the file in the browser. The page already has all the data, so no new route is needed.
 - Use floating local times (no time zone in the file). The calendar shows the shift at the same clock time for the employee. The app has one site, and its server time zone is UTC, so a fixed zone would be wrong.
 - Shifts never cross midnight (start is before end), so each event is on one day.
-- Add the button to the personal page only. The employee edit page is for planners.
-- Add the button through a new last column. The column has no heading text, only an accessible label.
-- Use the existing `calendar` icon. Add the button label to `en.json`.
+- Show the button on the personal page only. The employee edit page is for planners.
+- Put the button in the shift card (`ShiftDetailsDialog`), not in the table. A table row has no icon or tooltip.
+- The rows are clickable on both pages. The employee edit page shows the same card without the button.
+- Use the existing `calendar` icon on the button.
 
 ## Non-goals
 

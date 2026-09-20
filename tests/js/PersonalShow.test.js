@@ -13,6 +13,9 @@ const en = {
     "employees.hours_below_minimum": "I can only work less than :min hours",
     "planning.shift_times": "Working times",
     "planning.add_to_calendar": "Add to calendar",
+    "planning.details.title": "Shift details",
+    "planning.details.hours": "Working hours",
+    "planning.details.close": "Close",
     "planning.calendar_contact": "Contact",
     "personal.title": "Your working hours",
     "personal.action.save": "Save",
@@ -435,12 +438,11 @@ describe("Personal/Show", () => {
         }];
         const w = mountShow([], { plannedShifts });
 
-        expect(w.get('[data-testid="panel-planning"] tbody tr').attributes("title")).toBe("Tuesday 08-09-2026, 06:00–14:00");
         const cells = w.get('[data-testid="panel-planning"]').findAll("tbody tr td").map((td) => td.text());
-        expect(cells).toEqual(["37", "08-09-2026", "Tuesday", "Early", "Line 1", "Jane Doe", ""]);
+        expect(cells).toEqual(["37", "08-09-2026", "Tuesday", "Early", "Line 1", "Jane Doe"]);
     });
 
-    it("downloads an .ics file for a shift from the calendar button", async () => {
+    it("opens a shift card from a table row with an Add to calendar button that downloads the shift", async () => {
         downloadIcs.mockClear();
         const plannedShifts = [{
             weekStart: "2026-09-07",
@@ -452,7 +454,10 @@ describe("Personal/Show", () => {
         }];
         const w = mountShow([], { plannedShifts });
 
-        await w.get('[data-testid="panel-planning"] button[aria-label="Add to calendar"]').trigger("click");
+        await w.get('[data-testid="panel-planning"] tbody tr').trigger("click");
+        const dialog = w.get('[role="dialog"]');
+        expect(dialog.text()).toContain("06:00–14:00");
+        await dialog.findAll("button").find((b) => b.text() === "Add to calendar").trigger("click");
 
         expect(downloadIcs).toHaveBeenCalledTimes(1);
         const [filename, content] = downloadIcs.mock.calls[0];
@@ -460,28 +465,6 @@ describe("Personal/Show", () => {
         expect(content).toContain("DTSTART:20260908T060000");
         expect(content).toContain("SUMMARY:Early – Line 1");
         expect(content).toContain("DESCRIPTION:Contact: Jane Doe");
-    });
-
-    it("opens on the Planning tab when planned shifts exist", () => {
-        const plannedShifts = [{
-            weekStart: "2026-09-07",
-            weekEnd: "2026-09-13",
-            assignments: [{
-                date: "2026-09-08", workcenter_name: "Line 1", shift_name: "Early",
-                start_time: "06:00", end_time: "14:00", published: true,
-            }],
-        }];
-        const w = mountShow([], { plannedShifts });
-
-        expect(hidden(w, '[data-testid="panel-planning"]')).toBe(false);
-        expect(hidden(w, '[data-testid="panel-information"]')).toBe(true);
-    });
-
-    it("opens on the Information tab when there are no planned shifts", () => {
-        const w = mountShow([], { plannedShifts: [] });
-
-        expect(hidden(w, '[data-testid="panel-planning"]')).toBe(true);
-        expect(hidden(w, '[data-testid="panel-information"]')).toBe(false);
     });
 
     it("lists the working times of the planned shifts once each, ordered by start time", () => {

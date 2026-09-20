@@ -1,6 +1,6 @@
 <script setup>
-import { computed } from 'vue'
-import ButtonSecondary from '@/components/ui/ButtonSecondary.vue'
+import { computed, ref } from 'vue'
+import ShiftDetailsDialog from '@/components/ShiftDetailsDialog.vue'
 import { useI18n } from '@/composables/useI18n'
 import { buildShiftIcs, downloadIcs, shiftIcsFilename } from '@/utils/shiftIcs'
 
@@ -10,9 +10,11 @@ const props = defineProps({
     // [{ date, workcenter_name, shift_name, responsible, ... }] — flat list of assignments, any order.
     assignments: { type: Array, default: () => [] },
     emptyText: { type: String, required: true },
-    // Adds a per-row button that downloads the shift as an .ics calendar event.
+    // Adds an Add to calendar button to the shift card, which downloads the shift as an .ics event.
     calendarExport: { type: Boolean, default: false },
 })
+
+const selected = ref(null)
 
 function addToCalendar(assignment) {
     downloadIcs(
@@ -68,28 +70,32 @@ const rows = computed(() => [...props.assignments]
                 <th class="px-2 py-2 font-medium">{{ __('planning.table.shift') }}</th>
                 <th class="px-2 py-2 font-medium">{{ __('planning.table.workcenter') }}</th>
                 <th class="px-2 py-2 font-medium">{{ __('planning.table.responsible') }}</th>
-                <th v-if="calendarExport" class="w-12 px-2 py-2" />
             </tr>
         </thead>
         <tbody class="divide-y divide-(--color-table-row-separator)">
-            <tr v-for="(row, i) in rows" :key="i" :title="`${row.day} ${row.date}, ${row.hours}`">
+            <tr
+                v-for="(row, i) in rows"
+                :key="i"
+                tabindex="0"
+                class="cursor-pointer hover:bg-(--color-table-row-hover-bg)"
+                @click="selected = row"
+                @keydown.enter="selected = row"
+            >
                 <td class="px-2 py-2">{{ row.week }}</td>
                 <td class="px-2 py-2">{{ row.date }}</td>
                 <td class="px-2 py-2">{{ row.day }}</td>
                 <td class="px-2 py-2">{{ row.shift }}</td>
                 <td class="px-2 py-2">{{ row.workcenter }}</td>
                 <td class="px-2 py-2">{{ row.responsible }}</td>
-                <td v-if="calendarExport" class="px-2 py-1 text-right">
-                    <ButtonSecondary
-                        type="button"
-                        icon="calendar"
-                        class="px-2 py-1"
-                        :aria-label="__('planning.add_to_calendar')"
-                        :title="__('planning.add_to_calendar')"
-                        @click="addToCalendar(row.assignment)"
-                    />
-                </td>
             </tr>
         </tbody>
     </table>
+
+    <ShiftDetailsDialog
+        :open="selected !== null"
+        :row="selected"
+        :calendar-export="calendarExport"
+        @close="selected = null"
+        @add-to-calendar="addToCalendar(selected.assignment)"
+    />
 </template>
