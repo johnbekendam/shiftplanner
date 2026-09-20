@@ -303,14 +303,16 @@ describe("Scheduling", () => {
         expect(routerCalls).toContainEqual(["post", "/planning/weeks/2026-09-07/workcenters/1/publish", undefined]);
     });
 
+    // The week number cell of the calendar row that holds the given day.
+    const weekNumberCell = (w, day) => w.findAll("button").find((b) => b.text() === String(day)).element
+        .closest('[data-testid^="calendar-week-"]')
+        .querySelector('[data-testid^="calendar-week-number-"]');
+
     it("marks a week's calendar row only once every relevant workcenter is published", () => {
         // Week 2026-09-07..13 has coverage from both workcenter 1 (Sep 10-11) and
         // workcenter 2 (Sep 12), so both must be published for the marker to show.
         const onlyOne = mountPage({ publishedWorkcenterWeeks: [{ workcenter_id: 1, week_start: "2026-09-07" }] });
-        const day10a = onlyOne.findAll("button").find((b) => b.text() === "10");
-        expect(day10a.element.closest('[data-testid^="calendar-week-"]').className).not.toContain(
-            "border-(--color-btn-danger-bg)",
-        );
+        expect(weekNumberCell(onlyOne, 10).className).not.toContain("bg-(--color-badge-warning-bg)");
 
         const both = mountPage({
             publishedWorkcenterWeeks: [
@@ -318,19 +320,13 @@ describe("Scheduling", () => {
                 { workcenter_id: 2, week_start: "2026-09-07" },
             ],
         });
-        const day10b = both.findAll("button").find((b) => b.text() === "10");
-        expect(day10b.element.closest('[data-testid^="calendar-week-"]').className).toContain(
-            "border-(--color-btn-danger-bg)",
-        );
+        expect(weekNumberCell(both, 10).className).toContain("bg-(--color-badge-warning-bg)");
     });
 
     it("does not mark a week with no relevant workcenter, even with an unrelated publish row", () => {
         const w = mountPage({ publishedWorkcenterWeeks: [{ workcenter_id: 1, week_start: "2026-09-21" }] });
-        const day21 = w.findAll("button").find((b) => b.text() === "21");
 
-        expect(day21.element.closest('[data-testid^="calendar-week-"]').className).not.toContain(
-            "border-(--color-btn-danger-bg)",
-        );
+        expect(weekNumberCell(w, 21).className).not.toContain("bg-(--color-badge-warning-bg)");
     });
 
     it("hides the Generate button when the planning period is not configured", () => {

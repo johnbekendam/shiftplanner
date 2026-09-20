@@ -39,18 +39,20 @@
                 </button>
             </div>
 
-            <!-- Day grid: one row per week, so a whole week can carry a left-border marker -->
+            <!-- Day grid: one row per week. The selected week gets one border around the
+                 week number and its days; a published week colors its week number. -->
             <div class="flex flex-col gap-y-1">
                 <div
                     v-for="(week, wi) in weeks"
                     :key="'week-' + wi"
                     :data-testid="'calendar-week-' + wi"
-                    class="grid items-center justify-items-center gap-x-0 border-l-4 pl-0.5"
-                    :class="[GRID_COLUMNS, isWeekMarked(week) ? weekMarkerBorderClass : 'border-transparent']"
+                    class="grid items-center justify-items-center gap-x-0 rounded-md border-2"
+                    :class="[GRID_COLUMNS, isWeekSelected(week) ? 'border-(--color-tab-active-border)' : 'border-transparent']"
                 >
                     <span
                         :data-testid="'calendar-week-number-' + wi"
-                        class="text-xs text-(--color-text-muted)"
+                        class="rounded px-1 text-xs"
+                        :class="isWeekMarked(week) ? weekMarkerNumberClass : 'text-(--color-text-muted)'"
                     >
                         {{ weekNumber(week) }}
                     </span>
@@ -58,7 +60,7 @@
                         <div v-if="cell.type === 'pad'"></div>
                         <button
                             v-else
-                            :class="dayClass(colorForDay(cell.day), isDaySelected(cell.day), isToday(cell.day), isDisabled(cell.day))"
+                            :class="dayClass(colorForDay(cell.day), false, isToday(cell.day), isDisabled(cell.day))"
                             :disabled="isDisabled(cell.day)"
                             @click="!isDisabled(cell.day) && enableDaySelection && selectDay(cell.day)"
                         >
@@ -110,15 +112,6 @@ const COLOR_CLASS = {
     warning: 'bg-(--color-badge-warning-bg) text-(--color-badge-warning-text)',
     standard: 'bg-(--color-badge-standard-bg) text-(--color-badge-standard-text)',
     muted: 'bg-(--color-badge-muted-bg) text-(--color-badge-muted-text)',
-}
-
-const BORDER_CLASS = {
-    success: 'border-(--color-badge-success-border)',
-    custom: 'border-(--color-badge-custom-border)',
-    error: 'border-(--color-badge-error-border)',
-    warning: 'border-(--color-btn-danger-bg)',
-    standard: 'border-(--color-badge-standard-border)',
-    muted: 'border-(--color-badge-muted-border)',
 }
 
 // A narrow week-number column, then the seven days.
@@ -205,7 +198,7 @@ const weeks = computed(() => {
     return rows
 })
 
-const weekMarkerBorderClass = computed(() => BORDER_CLASS[props.weekMarkerColor] ?? '')
+const weekMarkerNumberClass = computed(() => COLOR_CLASS[props.weekMarkerColor] ?? '')
 
 // ISO 8601 week number of a week row: the week containing its Thursday.
 function weekNumber(week) {
@@ -237,10 +230,11 @@ function dateString(date) {
     return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
 }
 
-function isDaySelected(day) {
-    return selectedWeekStart.value
-        ? dateString(weekStartForDay(day)) === selectedWeekStart.value
-        : selectedDay.value === day
+// A week is selected when a day was picked (a weekday header selects no week).
+function isWeekSelected(week) {
+    if (!selectedWeekStart.value) return false
+    const first = week.find((cell) => cell.type === 'day')
+    return dateString(weekStartForDay(first.day)) === selectedWeekStart.value
 }
 
 // Returns ISO weekday (Mon=0 … Sun=6) for a day in the given year/month (defaults to current props)

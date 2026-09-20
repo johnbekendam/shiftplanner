@@ -13,6 +13,8 @@ vi.mock("@inertiajs/vue3", () => ({
 
 import Calendar from "@/components/ui/Calendar.vue";
 
+const weekRow = (button) => button.element.closest('[data-testid^="calendar-week-"]');
+
 describe("Calendar", () => {
     it("renders the month title and a button per day of the month", () => {
         const w = mount(Calendar, { props: { year: 2026, month: 9 } });
@@ -36,7 +38,7 @@ describe("Calendar", () => {
 
         await day10.trigger("click");
 
-        expect(day10.classes().join(" ")).toContain("border-(--color-tab-active-border)");
+        expect(weekRow(day10).className).toContain("border-(--color-tab-active-border)");
         expect(w.emitted("change").at(-1)[0]).toMatchObject({ day: 10 });
     });
 
@@ -46,9 +48,31 @@ describe("Calendar", () => {
 
         await day10.trigger("click");
 
-        expect(w.findAll("button").filter((b) => /^(7|8|9|10|11|12|13)$/.test(b.text())).every((b) =>
-            b.classes().join(" ").includes("border-(--color-tab-active-border)"),
-        )).toBe(true);
+        const week = w.findAll("button").filter((b) => /^(7|8|9|10|11|12|13)$/.test(b.text()));
+        expect(week).toHaveLength(7);
+        expect(new Set(week.map((b) => weekRow(b))).size).toBe(1);
+        expect(weekRow(week[0]).className).toContain("border-(--color-tab-active-border)");
+    });
+
+    it("draws one border around the selected week and none around the other weeks", async () => {
+        const w = mount(Calendar, { props: { year: 2026, month: 9 } });
+        await w.findAll("button").find((b) => b.text() === "10").trigger("click");
+
+        const framed = w.findAll('[data-testid^="calendar-week-"]:not([data-testid^="calendar-week-number-"])')
+            .filter((row) => row.classes().join(" ").includes("border-(--color-tab-active-border)"));
+
+        expect(framed).toHaveLength(1);
+        expect(framed[0].text()).toContain("37"); // the week number is inside the frame
+    });
+
+    it("gives the days of the selected week no border of their own", async () => {
+        const w = mount(Calendar, { props: { year: 2026, month: 9 } });
+        await w.findAll("button").find((b) => b.text() === "10").trigger("click");
+
+        const days = w.findAll("button").filter((b) => /^\d+$/.test(b.text()));
+
+        expect(days.some((b) => b.classes().join(" ").includes("border-(--color-tab-active-border)"))).toBe(false);
+        expect(days.every((b) => b.classes().join(" ").includes("hover:border-(--color-tab-hover-border)"))).toBe(true);
     });
 
     it("does not select a day when enableDaySelection is false", async () => {
@@ -102,32 +126,40 @@ describe("Calendar", () => {
         expect(w.text()).toContain("Open");
     });
 
-    it("marks the row of a week with a marked day, using the default weekMarkerColor", () => {
+    const numberCell = (w, day) => {
+        const button = w.findAll("button").find((b) => b.text() === String(day));
+
+        return weekRow(button).querySelector('[data-testid^="calendar-week-number-"]');
+    };
+
+    it("colors the week number of a marked week, using the default weekMarkerColor", () => {
         // 2026-09-10 is a Thursday, in the Mon 7 - Sun 13 row.
         const w = mount(Calendar, { props: { year: 2026, month: 9, weekMarkerDays: { 10: true } } });
-        const day10 = w.findAll("button").find((b) => b.text() === "10");
-        const row = day10.element.closest('[data-testid^="calendar-week-"]');
 
-        expect(row).not.toBeNull();
-        expect(row.className).toContain("border-(--color-badge-custom-border)");
+        expect(numberCell(w, 10).className).toContain("bg-(--color-badge-custom-bg)");
+        expect(numberCell(w, 10).className).toContain("text-(--color-badge-custom-text)");
     });
 
-    it("does not mark a week with no marked days", () => {
+    it("does not color the week number of a week with no marked days", () => {
         const w = mount(Calendar, { props: { year: 2026, month: 9, weekMarkerDays: { 10: true } } });
-        const day20 = w.findAll("button").find((b) => b.text() === "20");
-        const row = day20.element.closest('[data-testid^="calendar-week-"]');
 
-        expect(row.className).not.toContain("border-(--color-badge-custom-border)");
+        expect(numberCell(w, 20).className).not.toContain("bg-(--color-badge-custom-bg)");
+        expect(numberCell(w, 20).className).toContain("text-(--color-text-muted)");
     });
 
     it("supports a custom weekMarkerColor", () => {
         const w = mount(Calendar, {
             props: { year: 2026, month: 9, weekMarkerDays: { 10: true }, weekMarkerColor: "warning" },
         });
-        const day10 = w.findAll("button").find((b) => b.text() === "10");
-        const row = day10.element.closest('[data-testid^="calendar-week-"]');
 
-        expect(row.className).toContain("border-(--color-btn-danger-bg)");
+        expect(numberCell(w, 10).className).toContain("bg-(--color-badge-warning-bg)");
+    });
+
+    it("no longer draws a bar on the left of a marked week row", () => {
+        const w = mount(Calendar, { props: { year: 2026, month: 9, weekMarkerDays: { 10: true } } });
+        const row = weekRow(w.findAll("button").find((b) => b.text() === "10"));
+
+        expect(row.className).not.toContain("border-l-4");
     });
 
     // ── Week numbers ────────────────────────────────────────────────────
