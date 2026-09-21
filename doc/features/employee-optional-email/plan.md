@@ -1,6 +1,6 @@
 # Employee Optional Email — Plan
 
-Status: done — 8/8
+Status: done — 9/9
 
 Each step is one slice. Write the test first, then the code, then commit.
 Add every new user-facing text to `resources/lang/en.json`.
@@ -42,3 +42,10 @@ Add every new user-facing text to `resources/lang/en.json`.
       `Personal/Show.vue` when the email is empty. Test: the page shows no
       email field for an employee with no email, and shows it for one with
       an email.
+- [x] 9. **Unique names without email.** In `EmployeeController`, reject a
+      create or edit that leaves an employee with no email and the same
+      first and last name (case-insensitive) as another employee with no
+      email. Put the error on the email field. Ignore the employee being
+      edited. Test: a duplicate on create, on edit, and on clearing an
+      email. Test that the same name is fine when either has an email, and
+      that an employee can save with their own name.

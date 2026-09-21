@@ -21,6 +21,7 @@ use App\Services\PlannedShifts;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 
 class EmployeeController extends Controller
@@ -290,6 +291,35 @@ class EmployeeController extends Controller
             ];
         }
 
-        return $request->validate($rules);
+        $data = $request->validate($rules);
+
+        $this->assertUniqueNameWithoutEmail($data, $employee);
+
+        return $data;
+    }
+
+    /**
+     * Without an email, the name is the only identity an employee has, so two
+     * employees without an email cannot share a first and last name
+     * (case-insensitive).
+     */
+    private function assertUniqueNameWithoutEmail(array $data, ?Employee $employee): void
+    {
+        $email = array_key_exists('email', $data) ? $data['email'] : $employee?->email;
+
+        if ($email !== null) {
+            return;
+        }
+
+        $taken = Employee::query()
+            ->whereNull('email')
+            ->whereRaw('lower(first_name) = ?', [mb_strtolower($data['first_name'])])
+            ->whereRaw('lower(last_name) = ?', [mb_strtolower($data['last_name'])])
+            ->when($employee !== null, fn ($query) => $query->whereKeyNot($employee->id))
+            ->exists();
+
+        if ($taken) {
+            throw ValidationException::withMessages(['email' => __('employees.error.duplicate_name_without_email')]);
+        }
     }
 }

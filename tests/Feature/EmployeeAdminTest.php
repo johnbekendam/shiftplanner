@@ -262,9 +262,9 @@ class EmployeeAdminTest extends TestCase
     {
         $user = User::factory()->create();
 
-        foreach (['', null] as $blank) {
+        foreach (['', null] as $index => $blank) {
             $this->actingAs($user)->post('/employees', [
-                'first_name' => 'No',
+                'first_name' => "No{$index}",
                 'last_name' => 'Mail',
                 'email' => $blank,
                 'weekly_hours' => 32,
@@ -313,6 +313,82 @@ class EmployeeAdminTest extends TestCase
             'email' => 'taken@example.com',
             'weekly_hours' => 24,
         ])->assertSessionHasErrors('email');
+    }
+
+    private function emaillessPayload(string $first, string $last, array $overrides = []): array
+    {
+        return $overrides + ['first_name' => $first, 'last_name' => $last, 'email' => null, 'weekly_hours' => 24];
+    }
+
+    public function test_create_rejects_a_duplicate_name_when_neither_has_an_email(): void
+    {
+        $user = User::factory()->create();
+        Employee::factory()->create(['first_name' => 'Jane', 'last_name' => 'Doe', 'email' => null]);
+
+        $this->actingAs($user)->post('/employees', $this->emaillessPayload(' jane', 'DOE '))
+            ->assertSessionHasErrors('email');
+
+        $this->assertSame(1, Employee::count());
+    }
+
+    public function test_the_same_name_is_allowed_when_one_of_them_has_an_email(): void
+    {
+        $user = User::factory()->create();
+        Employee::factory()->create(['first_name' => 'Jane', 'last_name' => 'Doe', 'email' => 'jane@example.com']);
+
+        $this->actingAs($user)->post('/employees', $this->emaillessPayload('Jane', 'Doe'))
+            ->assertSessionHasNoErrors();
+        $this->actingAs($user)->post('/employees', $this->emaillessPayload('Jane', 'Doe', ['email' => 'other@example.com']))
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame(3, Employee::count());
+    }
+
+    public function test_update_rejects_a_name_taken_by_another_employee_without_an_email(): void
+    {
+        $user = User::factory()->create();
+        Employee::factory()->create(['first_name' => 'Jane', 'last_name' => 'Doe', 'email' => null]);
+        $other = Employee::factory()->create(['first_name' => 'Kim', 'last_name' => 'Lee', 'email' => null]);
+
+        $this->actingAs($user)->put("/employees/{$other->id}", $this->emaillessPayload('Jane', 'Doe'))
+            ->assertSessionHasErrors('email');
+
+        $this->assertSame('Kim', $other->fresh()->first_name);
+    }
+
+    public function test_clearing_an_email_is_rejected_when_the_name_is_taken_by_an_emailless_employee(): void
+    {
+        $user = User::factory()->create();
+        Employee::factory()->create(['first_name' => 'Jane', 'last_name' => 'Doe', 'email' => null]);
+        $employee = Employee::factory()->create(['first_name' => 'Jane', 'last_name' => 'Doe', 'email' => 'jane@example.com']);
+
+        $this->actingAs($user)->put("/employees/{$employee->id}", $this->emaillessPayload('Jane', 'Doe'))
+            ->assertSessionHasErrors('email');
+
+        $this->assertSame('jane@example.com', $employee->fresh()->email);
+    }
+
+    public function test_an_employee_without_an_email_can_be_saved_with_their_own_name(): void
+    {
+        $user = User::factory()->create();
+        $employee = Employee::factory()->create(['first_name' => 'Jane', 'last_name' => 'Doe', 'email' => null]);
+
+        $this->actingAs($user)->put("/employees/{$employee->id}", $this->emaillessPayload('Jane', 'Doe', ['weekly_hours' => 32]))
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame(32, $employee->fresh()->weekly_hours);
+    }
+
+    public function test_an_update_without_an_email_field_keeps_the_stored_email_and_skips_the_name_check(): void
+    {
+        $user = User::factory()->create();
+        Employee::factory()->create(['first_name' => 'Jane', 'last_name' => 'Doe', 'email' => null]);
+        $employee = Employee::factory()->create(['first_name' => 'Jane', 'last_name' => 'Doe', 'email' => 'jane@example.com']);
+
+        $this->actingAs($user)->put("/employees/{$employee->id}", ['first_name' => 'Jane', 'last_name' => 'Doe', 'weekly_hours' => 30])
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame('jane@example.com', $employee->fresh()->email);
     }
 
     public function test_search_and_edit_work_for_an_employee_without_an_email(): void

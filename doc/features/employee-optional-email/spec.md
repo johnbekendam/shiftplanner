@@ -19,6 +19,11 @@ address or wait. Both options are wrong.
 - A filled email must still be valid and unique.
 - Email is optional on create and on edit. An admin can clear an existing
   email.
+- Two employees without an email cannot have the same first and last
+  name (case-insensitive). Create and edit reject the save with an error
+  on the email field. The message tells the admin to enter an email or
+  change the name. The check also applies when an admin clears an email.
+  The backup import already relies on this rule to match by name.
 
 ### Adding the email later
 
@@ -69,6 +74,9 @@ The read-only email field is hidden when the email is empty.
   record is a small cost. A wrong claim is a security fault.
 - **Exclude and mark.** One rule for all mail flows gives no failed
   sends. The marker tells the admin why an employee gets no mail.
+- **Unique names without email.** Name is the only identity such an
+  employee has. Two of them with the same name would be impossible to
+  tell apart, and the backup import could not match them.
 - **Match by name in the backup import.** A backup then keeps its data
   and a second import does not create duplicates.
 

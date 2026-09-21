@@ -244,6 +244,7 @@
     "employees.flash.deleted": "Deleted :count employee(s).",
     "employees.flash.deleted_one": "Employee deleted.",
     "employees.flash.link_queued": "Personal page link queued for sending.",
+    "employees.error.duplicate_name_without_email": "Another employee without an email address has this name. Enter an email address or change the name.",
     "employees.flash.link_no_email": "This employee has no email address. Add one first.",
 
     "personal.title": "Your working hours",
