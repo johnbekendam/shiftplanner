@@ -126,11 +126,11 @@ class ObjectiveTiersTest extends TestCase
         $this->hold($p, $first, $shift, self::THURSDAY, fixed: true);
         $this->hold($p, $first, $shift, self::TUESDAY);
 
-        // Control: without the rule nothing improves, so the spot stays open.
+        // Fresh generation starts without the movable Tuesday assignment, so it fills both spots.
         $run = $this->makeRun();
         $this->generator()->generate($run);
-        $this->assertFalse($this->holds($p, $second, self::TUESDAY));
-        $this->assertCount(1, $run->refresh()->unfulfilled);
+        $this->assertTrue($this->holds($p, $second, self::TUESDAY));
+        $this->assertSame([], $run->refresh()->unfulfilled);
 
         PlanningRule::create(['type' => 'equal_workload']);
         $run = $this->makeRun();

@@ -15,7 +15,7 @@ useBrandCss(props.brandCss)
 <template>
     <div class="min-h-dvh bg-(--color-page-bg) p-0 sm:p-6 lg:p-8">
         <div
-            class="mx-auto flex h-dvh sm:h-[calc(100dvh-3rem)] lg:h-[calc(100dvh-4rem)] max-w-7xl flex-col overflow-hidden sm:rounded-2xl sm:shadow-xl sm:ring-1 sm:ring-(--color-separator-horizontal)"
+            class="mx-auto flex h-dvh sm:h-[calc(100dvh-3rem)] lg:h-[calc(100dvh-4rem)] max-w-screen-2xl flex-col overflow-hidden sm:rounded-2xl sm:shadow-xl sm:ring-1 sm:ring-(--color-separator-horizontal)"
         >
 
             <!-- ── Top row: Logo area + TopBar ─────────────────────────────────── -->

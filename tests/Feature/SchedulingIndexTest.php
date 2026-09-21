@@ -245,6 +245,7 @@ class SchedulingIndexTest extends TestCase
             'shift_id' => $shift->id,
             'date' => $date->toDateString(),
             'fixed' => true,
+            'informed_at' => '2026-09-09 08:00:00',
         ]);
 
         $response = $this->get('/planning?year=2026&month=9&date=2026-09-10')->assertOk();
@@ -257,6 +258,7 @@ class SchedulingIndexTest extends TestCase
         $this->assertCount(1, $entry['assignments']);
         $this->assertSame('Anna Jansen', $entry['assignments'][0]['employee_name']);
         $this->assertTrue($entry['assignments'][0]['fixed']);
+        $this->assertTrue($entry['assignments'][0]['informed']);
     }
 
     public function test_week_cells_include_a_day_with_zero_spots_when_the_shift_is_attached(): void
@@ -534,27 +536,6 @@ class SchedulingIndexTest extends TestCase
             ->assertInertia(fn ($page) => $page
                 ->where('planningPeriod.start', '2026-09-07')
                 ->where('planningPeriod.end', '2026-10-18')
-            );
-    }
-
-    public function test_clear_range_is_null_until_the_period_is_configured(): void
-    {
-        $this->actingAsAdmin();
-
-        $this->get('/planning')->assertOk()->assertInertia(fn ($page) => $page->where('clearRange', null));
-    }
-
-    public function test_clear_range_is_the_span_of_the_cycles_that_clear_planning_covers(): void
-    {
-        $this->actingAsAdmin();
-        // The first cycle starts on the Monday of the week that holds the period start (2026-09-28);
-        // the last cycle (2026-12-21) runs in full, two weeks, even past the period end.
-        PlanningSettings::current()->update(['period_start' => '2026-10-01', 'period_end' => '2026-12-31']);
-
-        $this->get('/planning')->assertOk()
-            ->assertInertia(fn ($page) => $page
-                ->where('clearRange.start', '2026-09-28')
-                ->where('clearRange.end', '2027-01-03')
             );
     }
 

@@ -15,13 +15,9 @@ const en = {
     "planning.generate": "Generate Planning",
     "planning.generating": "Generating…",
     "planning.generate_again": "Generate again",
-    "planning.clear": "Clear Planning",
-    "planning.clear_outside_range": "Clear Planning only covers :range. Select a week in that range.",
     "planning.generate_dialog.title": "Generate Planning?",
     "planning.generate_dialog.body": "This creates or updates the draft schedule for every unpublished week in the planning period. Assignments may be moved or replaced, except any marked fixed or already published.",
     "planning.generate_dialog.period": "Period: :range",
-    "planning.clear_dialog.title": "Clear Planning?",
-    "planning.clear_dialog.body": "This deletes every assignment that is not fixed and not published, across the whole planning period. This cannot be undone.",
     "planning.send": "Send planning",
     "planning.send_dialog.title": "Send planning?",
     "planning.send_dialog.body": "This emails every employee who has published shifts they were not told about yet.",
@@ -129,14 +125,10 @@ function dayButton(w, day) {
     return w.findAll("button").find((b) => b.text() === String(day));
 }
 
-// Two ConfirmDialog instances render at once (Generate, Clear) — select by
-// title rather than relying on template order.
+// Multiple ConfirmDialog instances render at once — select by title rather
+// than relying on template order.
 function generateDialog(w) {
     return w.findAllComponents(ConfirmDialog).find((d) => d.props("title") === "Generate Planning?");
-}
-
-function clearDialog(w) {
-    return w.findAllComponents(ConfirmDialog).find((d) => d.props("title") === "Clear Planning?");
 }
 
 function sendDialog(w) {
@@ -559,95 +551,4 @@ describe("Scheduling", () => {
         }
     });
 
-    it("hides the Clear Planning button when the planning period is not configured", () => {
-        const w = mountPage({ planningPeriod: null });
-        expect(w.find('[data-testid="clear-plan-button"]').exists()).toBe(false);
-    });
-
-    it("shows a Clear Planning button that opens the confirm dialog instead of deleting directly", async () => {
-        const w = mountPage({
-            planningPeriod: { start: "2026-09-07", end: "2026-10-18" },
-            generationStatus: { active: false, failedCount: 0, firstError: null },
-        });
-        const button = w.get('[data-testid="clear-plan-button"]');
-        expect(button.text()).toBe("Clear Planning");
-        expect(clearDialog(w).props("open")).toBe(false);
-
-        await button.trigger("click");
-
-        expect(clearDialog(w).props("open")).toBe(true);
-        expect(routerCalls).toHaveLength(0);
-    });
-
-    it("shows what Clear does in the dialog as a danger action, then deletes and closes on confirm", async () => {
-        const w = mountPage({
-            planningPeriod: { start: "2026-09-07", end: "2026-10-18" },
-            generationStatus: { active: false, failedCount: 0, firstError: null },
-        });
-        await w.get('[data-testid="clear-plan-button"]').trigger("click");
-        const dialog = clearDialog(w);
-
-        expect(dialog.props("title")).toBe("Clear Planning?");
-        expect(bodyWrapper().text()).toContain("not fixed and not published");
-        expect(dialog.props("variant")).toBe("danger");
-
-        await dialog.vm.$emit("confirm");
-
-        expect(routerCalls).toContainEqual(["delete", "/planning/clear"]);
-        expect(dialog.props("open")).toBe(false);
-    });
-
-    it("closes the clear dialog without deleting on cancel", async () => {
-        const w = mountPage({
-            planningPeriod: { start: "2026-09-07", end: "2026-10-18" },
-            generationStatus: { active: false, failedCount: 0, firstError: null },
-        });
-        await w.get('[data-testid="clear-plan-button"]').trigger("click");
-        const dialog = clearDialog(w);
-
-        await dialog.vm.$emit("cancel");
-
-        expect(dialog.props("open")).toBe(false);
-        expect(routerCalls).toHaveLength(0);
-    });
-
-    const clearProps = (clearRange) => ({
-        planningPeriod: { start: "2026-10-01", end: "2026-12-31" },
-        generationStatus: { active: false, failedCount: 0, firstError: null },
-        clearRange,
-    });
-
-    it("disables Clear Planning when the shown week is before the range it covers, and says why", async () => {
-        // The shown week is 2026-09-07; Clear covers 2026-09-28 and later.
-        const w = mountPage(clearProps({ start: "2026-09-28", end: "2027-01-03" }));
-        const button = w.get('[data-testid="clear-plan-button"]');
-
-        expect(button.element.disabled).toBe(true);
-        expect(button.attributes("title")).toBe("Clear Planning only covers Sep 28 – Jan 3. Select a week in that range.");
-
-        await button.trigger("click");
-        expect(clearDialog(w).props("open")).toBe(false);
-    });
-
-    it("disables Clear Planning when the shown week is after the range it covers", () => {
-        const w = mountPage(clearProps({ start: "2026-08-03", end: "2026-08-30" }));
-
-        expect(w.get('[data-testid="clear-plan-button"]').element.disabled).toBe(true);
-    });
-
-    it("keeps Clear Planning enabled, without a tooltip, when the shown week is inside the range", () => {
-        const w = mountPage(clearProps({ start: "2026-09-07", end: "2026-09-20" }));
-        const button = w.get('[data-testid="clear-plan-button"]');
-
-        expect(button.element.disabled).toBe(false);
-        expect(button.attributes("title")).toBeUndefined();
-    });
-
-    it("disables the Clear Planning button while any cycle in the period is active", () => {
-        const w = mountPage({
-            planningPeriod: { start: "2026-09-07", end: "2026-10-18" },
-            generationStatus: { active: true, failedCount: 0, firstError: null },
-        });
-        expect(w.get('[data-testid="clear-plan-button"]').element.disabled).toBe(true);
-    });
 });

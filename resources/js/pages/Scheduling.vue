@@ -5,14 +5,13 @@ import AppLayout from '@/layouts/AppLayout.vue'
 import Card from '@/components/ui/Card.vue'
 import Calendar from '@/components/ui/Calendar.vue'
 import ButtonPrimary from '@/components/ui/ButtonPrimary.vue'
-import ButtonDanger from '@/components/ui/ButtonDanger.vue'
 import ButtonSecondary from '@/components/ui/ButtonSecondary.vue'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 import WorkcenterScheduleCard from '@/components/scheduling/WorkcenterScheduleCard.vue'
 import GenerationChangeSummary from '@/components/scheduling/GenerationChangeSummary.vue'
 import { CheckboxInput } from '@/components/ui/Input'
 import { useI18n } from '@/composables/useI18n'
-import { postAsync, deleteAsync } from '@/utils/inertiaAsync'
+import { postAsync } from '@/utils/inertiaAsync'
 
 const __ = useI18n()
 
@@ -37,8 +36,6 @@ const props = defineProps({
     generationRun: { type: Object, default: null },
     // { start, end } (Y-m-d) from Settings, or null until both are configured.
     planningPeriod: { type: Object, default: null },
-    // { start, end } (Y-m-d) of the cycles Clear Planning covers, or null until the period is configured.
-    clearRange: { type: Object, default: null },
     // { active, failedCount, firstError } across every cycle in the planning period,
     // or null when the period isn't configured — drives the Generate button, since one
     // click now generates every cycle in the period at once, not just the viewed one.
@@ -64,10 +61,9 @@ const periodRangeLabel = computed(() => {
     return `${formatCycleDate(props.planningPeriod.start)} – ${formatCycleDate(props.planningPeriod.end)}`
 })
 
-// Both actions open a ConfirmDialog first; the actual write only happens
-// once the manager confirms, then the dialog closes itself.
+// The action opens a ConfirmDialog first; the actual write only happens once
+// the manager confirms, then the dialog closes itself.
 const generateDialogOpen = ref(false)
-const clearDialogOpen = ref(false)
 const sendDialogOpen = ref(false)
 
 async function confirmGenerate() {
@@ -79,22 +75,6 @@ async function confirmSend() {
     sendDialogOpen.value = false
     await postAsync('/planning/send').catch(() => {})
 }
-
-async function confirmClear() {
-    clearDialogOpen.value = false
-    await deleteAsync('/planning/clear').catch(() => {})
-}
-
-// Clear Planning acts on its own range of cycles, whatever week is shown. When the shown
-// week is outside that range there is nothing on screen it could clear.
-const weekOutsideClearRange = computed(() =>
-    props.clearRange !== null
-        && (props.weekStart < props.clearRange.start || props.weekStart > props.clearRange.end),
-)
-
-const clearRangeLabel = computed(() => props.clearRange
-    ? `${formatCycleDate(props.clearRange.start)} – ${formatCycleDate(props.clearRange.end)}`
-    : '')
 
 const generateLabel = computed(() => {
     if (isGenerationActive(props.generationStatus)) return __('planning.generating')
@@ -356,15 +336,6 @@ const visibleWorkcenters = computed(() =>
                     >
                         {{ generateLabel }}
                     </ButtonSecondary>
-                    <ButtonDanger
-                        type="button"
-                        data-testid="clear-plan-button"
-                        :disabled="isGenerationActive(generationStatus) || weekOutsideClearRange"
-                        :title="weekOutsideClearRange ? __('planning.clear_outside_range', { range: clearRangeLabel }) : undefined"
-                        @click="clearDialogOpen = true"
-                    >
-                        {{ __('planning.clear') }}
-                    </ButtonDanger>
                 </template>
                 <ButtonPrimary
                     type="button"
@@ -410,17 +381,6 @@ const visibleWorkcenters = computed(() =>
                 <p class="mt-2 font-medium text-(--color-text-primary)">
                     {{ __('planning.send_dialog.count', { count: uninformedCount }) }}
                 </p>
-            </ConfirmDialog>
-
-            <ConfirmDialog
-                :open="clearDialogOpen"
-                :title="__('planning.clear_dialog.title')"
-                :confirm-label="__('planning.clear')"
-                variant="danger"
-                @confirm="confirmClear"
-                @cancel="clearDialogOpen = false"
-            >
-                {{ __('planning.clear_dialog.body') }}
             </ConfirmDialog>
 
             <GenerationChangeSummary

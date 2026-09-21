@@ -38,8 +38,7 @@ const props = defineProps({
     // workcenter/shift — filtered to this table's own cells below.
     // [{ workcenter_id, shift_id, date, reason }]
     unfulfilled: { type: Array, default: () => [] },
-    // Whether this workcenter's week is published. An assignee who is neither fixed nor
-    // published is still a draft, so the name shows in gray.
+    // Whether this workcenter's week is published.
     published: { type: Boolean, default: false },
 })
 
@@ -60,9 +59,20 @@ function sortedAssignments(cell) {
     return [...cell.assignments].sort((a, b) => (b.fixed - a.fixed) || a.employee_name.localeCompare(b.employee_name))
 }
 
-// Neither fixed nor published: still open to change by Generate.
-function isDraft(assignment) {
-    return !assignment.fixed && !props.published
+function assignmentStatus(assignment) {
+    if (assignment.informed) return 'bg-(--color-badge-success-bg) text-(--color-badge-success-text) border-(--color-badge-success-border)'
+    if (assignment.fixed) return 'bg-(--color-badge-standard-bg) text-(--color-badge-standard-text) border-(--color-badge-standard-border)'
+    return 'bg-(--color-badge-muted-bg) text-(--color-badge-muted-text) border-(--color-badge-muted-border)'
+}
+
+function assignmentState(assignment) {
+    if (assignment.informed) return 'informed'
+    if (assignment.fixed) return 'fixed'
+    return 'unfixed'
+}
+
+function assignmentTooltip(assignment) {
+    return __(`scheduling.assignment_tooltip.${assignmentState(assignment)}`, { name: assignment.employee_name })
 }
 
 function cellState(cell, row) {
@@ -285,15 +295,23 @@ onBeforeUnmount(() => {
                         <template v-if="cellState(cell, row).type === 'filled'">
                             <button
                                 type="button"
-                                class="inline-flex min-w-0 items-center"
-                                :title="cellState(cell, row).assignment.employee_name"
+                                class="group relative flex w-full min-w-0 items-center"
+                                :aria-describedby="`assignment-tooltip-${cellState(cell, row).assignment.id}`"
                                 @click="(e) => toggleAssignmentMenu(cellState(cell, row).assignment, e)"
                             >
                                 <span
-                                    class="block min-w-0 truncate"
-                                    :class="isDraft(cellState(cell, row).assignment) ? 'text-(--color-text-muted)' : 'text-(--color-text-primary)'"
+                                    data-testid="assignment-status-badge"
+                                    class="inline-flex w-full min-w-0 items-center justify-start truncate rounded-md border px-1.5 py-0.5 text-xs font-medium leading-none"
+                                    :class="assignmentStatus(cellState(cell, row).assignment)"
                                 >
                                     {{ cellState(cell, row).assignment.employee_name }}
+                                </span>
+                                <span
+                                    :id="`assignment-tooltip-${cellState(cell, row).assignment.id}`"
+                                    role="tooltip"
+                                    class="pointer-events-none absolute bottom-full left-0 z-50 mb-1 hidden max-w-[calc(100vw-2rem)] whitespace-normal rounded-md border border-(--color-dropdown-panel-border) bg-(--color-dropdown-panel-bg) px-2 py-1 text-xs text-(--color-dropdown-option-text) shadow-lg group-hover:block group-focus-visible:block"
+                                >
+                                    {{ assignmentTooltip(cellState(cell, row).assignment) }}
                                 </span>
                             </button>
                         </template>

@@ -270,6 +270,27 @@ class SpotsAndLockingTest extends TestCase
         $this->assertSame([], $run->refresh()->changes);
     }
 
+    public function test_generation_starts_without_a_movable_unpublished_assignment(): void
+    {
+        [$workcenter, $shift] = $this->workcenterWithOverride('2026-09-08', spots: 1);
+        $staleEmployee = $this->employee();
+        $staleAssignment = ShiftAssignment::factory()->create([
+            'employee_id' => $staleEmployee->id, 'workcenter_id' => $workcenter->id, 'shift_id' => $shift->id,
+            'date' => '2026-09-08', 'fixed' => false,
+        ]);
+        $freshEmployee = $this->eligibleEmployee($shift, '2026-09-08');
+
+        $run = $this->makeRun();
+        $this->generator()->generate($run);
+
+        $this->assertDatabaseMissing('shift_assignments', ['id' => $staleAssignment->id]);
+        $this->assertDatabaseHas('shift_assignments', [
+            'employee_id' => $freshEmployee->id, 'workcenter_id' => $workcenter->id, 'shift_id' => $shift->id,
+            'date' => '2026-09-08',
+        ]);
+        $this->assertSame(['removed', 'added'], collect($run->refresh()->changes)->pluck('type')->all());
+    }
+
     public function test_outside_the_cycle_dates_are_ignored(): void
     {
         // One day after the 14-day cycle ends.

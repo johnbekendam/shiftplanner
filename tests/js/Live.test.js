@@ -100,10 +100,10 @@ describe("Live", () => {
         expect(names.map((n) => n.text())).toEqual(["Ann Able", "Bob Baker"]);
     });
 
-    it("shows one open placeholder for each unfilled spot", () => {
+    it("hides open placeholders on the live workcenter page", () => {
         const w = mountLive();
 
-        expect(w.get('[data-testid="live-cell-1-2026-09-22"]').findAll('[data-testid="live-open"]')).toHaveLength(1);
+        expect(w.get('[data-testid="live-cell-1-2026-09-22"]').findAll('[data-testid="live-open"]')).toHaveLength(0);
         expect(w.get('[data-testid="live-cell-1-2026-09-21"]').findAll('[data-testid="live-open"]')).toHaveLength(0);
     });
 

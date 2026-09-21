@@ -75,7 +75,7 @@ class EqualWorkloadRuleTest extends TestCase
         $this->hold($a, self::WEDNESDAY);
 
         $this->generator()->generate($this->makeRun());
-        $this->assertSame(2, $this->holdings($a), 'control: without the rule nothing moves');
+        $this->assertSame(1, $this->holdings($a), 'fresh generation starts without movable assignments');
 
         PlanningRule::create(['type' => 'equal_workload']);
         $this->generator()->generate($this->makeRun());
@@ -98,7 +98,7 @@ class EqualWorkloadRuleTest extends TestCase
         $this->hold($b, self::WEDNESDAY);
 
         $this->generator()->generate($this->makeRun());
-        $this->assertSame(2, $this->holdings($b), 'control: without the rule nothing moves');
+        $this->assertSame(1, $this->holdings($b), 'fresh generation starts without movable assignments');
 
         PlanningRule::create(['type' => 'equal_workload']);
         $this->generator()->generate($this->makeRun());
@@ -138,7 +138,7 @@ class EqualWorkloadRuleTest extends TestCase
         $this->hold($a, self::WEDNESDAY);
 
         $this->generator()->generate($this->makeRun());
-        $this->assertSame(2, $this->holdings($a), 'control: without the rule nothing moves');
+        $this->assertSame(1, $this->holdings($a), 'fresh generation keeps only the fixed assignment as solver input');
 
         PlanningRule::create(['type' => 'equal_workload']);
         $this->generator()->generate($this->makeRun());
@@ -166,7 +166,7 @@ class EqualWorkloadRuleTest extends TestCase
         PublishedWeek::query()->create(['week_start' => self::MONDAY, 'workcenter_id' => $published->id]);
 
         $this->generator()->generate($this->makeRun());
-        $this->assertSame(2, $this->holdings($a), 'control: without the rule nothing moves');
+        $this->assertSame(1, $this->holdings($a), 'fresh generation keeps only the published assignment as solver input');
 
         PlanningRule::create(['type' => 'equal_workload']);
         $this->generator()->generate($this->makeRun());

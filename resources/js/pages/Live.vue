@@ -102,15 +102,7 @@ function updatedTime() {
                             >
                                 {{ name }}
                             </div>
-                            <div
-                                v-for="n in cell.open"
-                                :key="`open-${n}`"
-                                data-testid="live-open"
-                                class="mt-1 w-fit rounded-md border border-(--color-badge-warning-border) bg-(--color-badge-warning-bg) px-2 text-base text-(--color-badge-warning-text)"
-                            >
-                                {{ __('live.open') }}
-                            </div>
-                            <span v-if="!cell.names.length && !cell.open" class="text-(--color-text-muted)">—</span>
+                            <span v-if="!cell.names.length" class="text-(--color-text-muted)">—</span>
                         </td>
                     </tr>
                 </tbody>
