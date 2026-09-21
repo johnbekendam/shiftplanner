@@ -274,7 +274,7 @@ class EmployeeController extends Controller
         $rules = [
             'first_name' => ['required', 'string', 'max:255'],
             'last_name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', Rule::unique('employees', 'email')->ignore($employee?->id)],
+            'email' => ['nullable', 'email', 'max:255', Rule::unique('employees', 'email')->ignore($employee?->id)],
             'weekly_hours' => ['required', 'integer', 'min:0', 'max:48'],
             'business_line_id' => ['nullable', 'integer', 'exists:business_lines,id'],
         ];

@@ -258,6 +258,74 @@ class EmployeeAdminTest extends TestCase
         ])->assertSessionHasErrors('email');
     }
 
+    public function test_create_employee_without_an_email(): void
+    {
+        $user = User::factory()->create();
+
+        foreach (['', null] as $blank) {
+            $this->actingAs($user)->post('/employees', [
+                'first_name' => 'No',
+                'last_name' => 'Mail',
+                'email' => $blank,
+                'weekly_hours' => 32,
+            ])->assertSessionHasNoErrors();
+        }
+
+        $this->assertSame(2, Employee::whereNull('email')->count());
+    }
+
+    public function test_a_filled_email_must_still_be_valid(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)->post('/employees', [
+            'first_name' => 'Bad',
+            'last_name' => 'Mail',
+            'email' => 'not-an-email',
+            'weekly_hours' => 32,
+        ])->assertSessionHasErrors('email');
+    }
+
+    public function test_update_can_add_and_clear_an_email(): void
+    {
+        $user = User::factory()->create();
+        $employee = Employee::factory()->create(['email' => null]);
+        $payload = ['first_name' => 'A', 'last_name' => 'B', 'weekly_hours' => 24];
+
+        $this->actingAs($user)->put("/employees/{$employee->id}", $payload + ['email' => 'later@example.com'])
+            ->assertSessionHasNoErrors();
+        $this->assertSame('later@example.com', $employee->fresh()->email);
+
+        $this->actingAs($user)->put("/employees/{$employee->id}", $payload + ['email' => ''])
+            ->assertSessionHasNoErrors();
+        $this->assertNull($employee->fresh()->email);
+    }
+
+    public function test_an_email_added_later_must_be_unique(): void
+    {
+        $user = User::factory()->create();
+        Employee::factory()->create(['email' => 'taken@example.com']);
+        $employee = Employee::factory()->create(['email' => null]);
+
+        $this->actingAs($user)->put("/employees/{$employee->id}", [
+            'first_name' => 'A',
+            'last_name' => 'B',
+            'email' => 'taken@example.com',
+            'weekly_hours' => 24,
+        ])->assertSessionHasErrors('email');
+    }
+
+    public function test_search_and_edit_work_for_an_employee_without_an_email(): void
+    {
+        $user = User::factory()->create();
+        $employee = Employee::factory()->create(['first_name' => 'Nomail', 'email' => null]);
+
+        $this->actingAs($user)->get('/employees?search=Nomail')->assertOk()
+            ->assertInertia(fn ($page) => $page->has('employees.data', 1));
+        $this->actingAs($user)->get("/employees/{$employee->id}/edit")->assertOk()
+            ->assertInertia(fn ($page) => $page->where('employee.email', null));
+    }
+
     public function test_edit_and_update_employee(): void
     {
         $user = User::factory()->create();
