@@ -6,6 +6,7 @@ import Card from '@/components/ui/Card.vue'
 import CardSeparator from '@/components/ui/CardSeparator.vue'
 import Tabs from '@/components/ui/Tabs.vue'
 import ButtonPrimary from '@/components/ui/ButtonPrimary.vue'
+import NoEmailBadge from '@/components/NoEmailBadge.vue'
 import UninformedPlanningReport from '@/components/UninformedPlanningReport.vue'
 import { SelectInput, CheckboxInput } from '@/components/ui/Input'
 import { useI18n } from '@/composables/useI18n'
@@ -73,12 +74,15 @@ function openEmployeeCompetences(employee) {
 const selectedIds = ref([])
 watch(() => props.employees, () => { selectedIds.value = [] })
 
+// Employees without an email cannot receive the message, so they stay unselectable.
+const selectableEmployees = computed(() => props.employees.filter((e) => e.has_email !== false))
+
 const allSelected = computed(() =>
-    props.employees.length > 0 && selectedIds.value.length === props.employees.length,
+    selectableEmployees.value.length > 0 && selectedIds.value.length === selectableEmployees.value.length,
 )
 
 function toggleSelectAll(checked) {
-    selectedIds.value = checked ? props.employees.map((e) => e.id) : []
+    selectedIds.value = checked ? selectableEmployees.value.map((e) => e.id) : []
 }
 
 function emailSelected() {
@@ -218,10 +222,16 @@ function emailSelected() {
                                 <CheckboxInput
                                     v-model="selectedIds"
                                     :value="employee.id"
+                                    :disabled="employee.has_email === false"
                                     :aria-label="__('reports.missing_availability.select_employee', { name: employee.name })"
                                 />
                             </td>
-                            <td class="px-2 py-2 text-(--color-table-row-text)">{{ employee.name }}</td>
+                            <td class="px-2 py-2 text-(--color-table-row-text)">
+                                <div class="flex flex-wrap items-center gap-2">
+                                    <span>{{ employee.name }}</span>
+                                    <NoEmailBadge v-if="employee.has_email === false" />
+                                </div>
+                            </td>
                             <td class="px-2 py-2 text-(--color-table-row-text)">
                                 {{ employee.business_line ?? __('reports.missing_availability.no_business_line') }}
                             </td>

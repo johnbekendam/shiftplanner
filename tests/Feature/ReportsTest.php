@@ -51,6 +51,20 @@ class ReportsTest extends TestCase
         );
     }
 
+    public function test_missing_availability_rows_say_whether_the_employee_has_an_email(): void
+    {
+        $this->admin();
+        $with = Employee::factory()->create(['first_name' => 'Aaron', 'weekly_hours' => 32, 'email' => 'a@example.com']);
+        $without = Employee::factory()->create(['first_name' => 'Zoe', 'weekly_hours' => 32, 'email' => null]);
+
+        $this->get('/reports')->assertInertia(fn ($page) => $page
+            ->where('employees.0.id', $with->id)
+            ->where('employees.0.has_email', true)
+            ->where('employees.1.id', $without->id)
+            ->where('employees.1.has_email', false)
+        );
+    }
+
     public function test_without_a_shift_an_employee_with_a_row_for_any_shift_does_not_appear(): void
     {
         $this->admin();

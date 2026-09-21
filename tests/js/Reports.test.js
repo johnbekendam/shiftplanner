@@ -55,8 +55,8 @@ import Index from "@/pages/Reports/Index.vue";
 import { SelectInput, CheckboxInput } from "@/components/ui/Input";
 
 const employees = [
-    { id: 1, name: "Ann Ant", business_line: "PMP", weekly_hours: 24, confirmed: true },
-    { id: 2, name: "Bo Bee", business_line: null, weekly_hours: 40, confirmed: false },
+    { id: 1, name: "Ann Ant", has_email: true, business_line: "PMP", weekly_hours: 24, confirmed: true },
+    { id: 2, name: "Bo Bee", has_email: true, business_line: null, weekly_hours: 40, confirmed: false },
 ];
 
 const shifts = [{ id: 5, name: "Morning" }, { id: 6, name: "Evening" }];
@@ -124,6 +124,24 @@ describe("Reports/Index", () => {
         expect(w.text()).toContain("Ann Ant");
         expect(w.text()).toContain("Bo Bee");
         expect(w.text()).toContain("PMP");
+    });
+
+    it("marks an employee without an email and leaves the row out of the selection", async () => {
+        const rows = employees.map((row, index) => ({ ...row, has_email: index === 0 }));
+        const w = await openMissingAvailabilityTab({ employees: rows, filters: { shift: null, business_line: null, unconfirmed: false } });
+
+        const [first, second] = w.findAll("tbody tr");
+        expect(first.text()).not.toContain("No email");
+        expect(second.text()).toContain("No email");
+        expect(w.get('[aria-label="Select Bo Bee"]').attributes("disabled")).toBeDefined();
+
+        await w.get('[aria-label="Select all employees in this report"]').setValue(true);
+
+        expect(w.get('[aria-label="Select Ann Ant"]').element.checked).toBe(true);
+        expect(w.get('[aria-label="Select Bo Bee"]').element.checked).toBe(false);
+
+        await w.get('[aria-label="Email selected 1"]').trigger("click");
+        expect(router.visit).toHaveBeenCalledWith("/mailbox?tab=compose&type=custom&employee_ids[]=1");
     });
 
     it("shows the empty state when no employee is missing the shift", async () => {

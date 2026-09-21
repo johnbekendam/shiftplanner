@@ -1,6 +1,6 @@
 # Employee Optional Email — Plan
 
-Status: in progress — 4/8
+Status: in progress — 5/8
 
 Each step is one slice. Write the test first, then the code, then commit.
 Add every new user-facing text to `resources/lang/en.json`.
@@ -26,7 +26,7 @@ Add every new user-facing text to `resources/lang/en.json`.
       stays uninformed. Show the marker in `UninformedPlanningReport.vue`
       and skip these rows in "email selected". Test: the notifier and the
       report.
-- [ ] 5. **Missing availability report.** Show the marker and skip
+- [x] 5. **Missing availability report.** Show the marker and skip
       employees with no email in "email selected". Test: the report data
       and the frontend selection.
 - [ ] 6. **Employee backup import and export.** Export `email: null`.
