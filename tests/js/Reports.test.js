@@ -4,6 +4,7 @@ import { mount } from "@vue/test-utils";
 const en = {
     "reports.title": "Reports",
     "reports.tab.missing_availability": "Missing availability",
+    "reports.tab.competences": "Competences",
     "reports.missing_availability.shift_placeholder": "All shifts",
     "reports.missing_availability.business_line_placeholder": "All business lines",
     "reports.missing_availability.include_unconfirmed": "Include unconfirmed employees",
@@ -18,6 +19,14 @@ const en = {
     "reports.missing_availability.select_all": "Select all employees in this report",
     "reports.missing_availability.select_employee": "Select :name",
     "reports.missing_availability.email_selected": "Email selected",
+    "reports.competences.mode.missing": "Missing selected competence",
+    "reports.competences.mode.has": "Has selected competence",
+    "reports.competences.competence_placeholder": "Select competence",
+    "reports.competences.empty_selection": "Select a competence to show employees.",
+    "reports.competences.empty_results": "No employees match these competences.",
+    "reports.competences.column.name": "Name",
+    "reports.competences.column.competences": "Competences",
+    "reports.competences.none_configured": "No competences configured.",
     "reports.tab.uninformed_planning": "Uninformed planning",
     "reports.uninformed_planning.business_line_placeholder": "All business lines",
     "reports.uninformed_planning.empty": "Every employee with planning has been informed.",
@@ -51,6 +60,11 @@ const employees = [
 
 const shifts = [{ id: 5, name: "Morning" }, { id: 6, name: "Evening" }];
 const businessLines = [{ id: 1, abbreviation: "PMP" }];
+const competences = [{ id: 10, name: "Forklift" }, { id: 11, name: "First aid" }];
+const competenceReport = [
+    { id: 1, name: "Ann Ant", competence_names: ["First aid"] },
+    { id: 2, name: "Bo Bee", competence_names: ["Forklift", "First aid"] },
+];
 
 const mountIndex = (props = {}) =>
     mount(Index, {
@@ -58,8 +72,17 @@ const mountIndex = (props = {}) =>
             employees: [],
             shifts,
             businessLines,
+            competences,
+            competenceReport: [],
             uninformedPlanning: [],
-            filters: { shift: null, business_line: null, unconfirmed: true, planning_business_line: null },
+            filters: {
+                shift: null,
+                business_line: null,
+                unconfirmed: true,
+                planning_business_line: null,
+                competence_mode: "missing",
+                competence_id: null,
+            },
             ...props,
         },
         global: { stubs: { AppLayout: { template: "<div><slot /></div>" } } },
@@ -71,37 +94,45 @@ beforeEach(() => {
 });
 
 describe("Reports/Index", () => {
-    it("shows the tab and the shift picker", () => {
+    const openMissingAvailabilityTab = async (props = {}) => {
+        const w = mountIndex(props);
+        await w.findAll("button").find((button) => button.text() === "Missing availability").trigger("click");
+
+        return w;
+    };
+
+    it("orders the tabs and defaults to Competences", () => {
         const w = mountIndex();
+        const tabLabels = w.findAll("button").slice(0, 3).map((button) => button.text());
 
-        expect(w.text()).toContain("Missing availability");
-        expect(w.findComponent(SelectInput).exists()).toBe(true);
+        expect(tabLabels).toEqual(["Competences", "Uninformed planning", "Missing availability"]);
+        expect(w.text()).toContain("Select a competence to show employees.");
     });
 
-    it("renders one row per employee with no shift selected (All shifts)", () => {
-        const w = mountIndex({ employees, filters: { shift: null, business_line: null, unconfirmed: false } });
+    it("renders one row per employee with no shift selected (All shifts)", async () => {
+        const w = await openMissingAvailabilityTab({ employees, filters: { shift: null, business_line: null, unconfirmed: false } });
 
         expect(w.text()).toContain("Ann Ant");
         expect(w.text()).toContain("Bo Bee");
         expect(w.text()).toContain("PMP");
     });
 
-    it("renders one row per employee once a shift is selected", () => {
-        const w = mountIndex({ employees, filters: { shift: 5, business_line: null, unconfirmed: false } });
+    it("renders one row per employee once a shift is selected", async () => {
+        const w = await openMissingAvailabilityTab({ employees, filters: { shift: 5, business_line: null, unconfirmed: false } });
 
         expect(w.text()).toContain("Ann Ant");
         expect(w.text()).toContain("Bo Bee");
         expect(w.text()).toContain("PMP");
     });
 
-    it("shows the empty state when no employee is missing the shift", () => {
-        const w = mountIndex({ employees: [], filters: { shift: 5, business_line: null, unconfirmed: false } });
+    it("shows the empty state when no employee is missing the shift", async () => {
+        const w = await openMissingAvailabilityTab({ employees: [], filters: { shift: 5, business_line: null, unconfirmed: false } });
 
         expect(w.text()).toContain("Every matching employee has set availability for this shift.");
     });
 
     it("reloads with the shift query param when the shift changes", async () => {
-        const w = mountIndex();
+        const w = await openMissingAvailabilityTab();
 
         w.findComponent(SelectInput).vm.$emit("update:modelValue", 5);
         await w.vm.$nextTick();
@@ -110,7 +141,7 @@ describe("Reports/Index", () => {
     });
 
     it("reloads with the business_line query param when the filter changes", async () => {
-        const w = mountIndex({ employees, filters: { shift: 5, business_line: null, unconfirmed: false } });
+        const w = await openMissingAvailabilityTab({ employees, filters: { shift: 5, business_line: null, unconfirmed: false } });
 
         w.findAllComponents(SelectInput)[1].vm.$emit("update:modelValue", 1);
         await w.vm.$nextTick();
@@ -122,8 +153,8 @@ describe("Reports/Index", () => {
         );
     });
 
-    it("offers a way back to no shift selected once a shift is picked", () => {
-        const w = mountIndex({ employees, filters: { shift: 5, business_line: null, unconfirmed: false } });
+    it("offers a way back to no shift selected once a shift is picked", async () => {
+        const w = await openMissingAvailabilityTab({ employees, filters: { shift: 5, business_line: null, unconfirmed: false } });
 
         expect(w.findComponent(SelectInput).props("options")).toContainEqual(
             expect.objectContaining({ value: "" }),
@@ -131,7 +162,7 @@ describe("Reports/Index", () => {
     });
 
     it("clears the shift filter when the shift is reset to the blank option", async () => {
-        const w = mountIndex({ employees, filters: { shift: 5, business_line: null, unconfirmed: false } });
+        const w = await openMissingAvailabilityTab({ employees, filters: { shift: 5, business_line: null, unconfirmed: false } });
 
         w.findComponent(SelectInput).vm.$emit("update:modelValue", "");
         await w.vm.$nextTick();
@@ -143,8 +174,8 @@ describe("Reports/Index", () => {
         );
     });
 
-    it("offers a way back to no business-line filter once one is picked", () => {
-        const w = mountIndex({ employees, filters: { shift: 5, business_line: 1, unconfirmed: false } });
+    it("offers a way back to no business-line filter once one is picked", async () => {
+        const w = await openMissingAvailabilityTab({ employees, filters: { shift: 5, business_line: 1, unconfirmed: false } });
 
         expect(w.findAllComponents(SelectInput)[1].props("options")).toContainEqual(
             expect.objectContaining({ value: "" }),
@@ -152,7 +183,7 @@ describe("Reports/Index", () => {
     });
 
     it("clears the business_line filter when reset to the blank option", async () => {
-        const w = mountIndex({ employees, filters: { shift: 5, business_line: 1, unconfirmed: false } });
+        const w = await openMissingAvailabilityTab({ employees, filters: { shift: 5, business_line: 1, unconfirmed: false } });
 
         w.findAllComponents(SelectInput)[1].vm.$emit("update:modelValue", "");
         await w.vm.$nextTick();
@@ -164,14 +195,14 @@ describe("Reports/Index", () => {
         );
     });
 
-    it("checks the include-unconfirmed toggle by default", () => {
-        const w = mountIndex();
+    it("checks the include-unconfirmed toggle by default", async () => {
+        const w = await openMissingAvailabilityTab();
 
         expect(w.findComponent(CheckboxInput).props("modelValue")).toBe(true);
     });
 
     it("reloads with the unconfirmed query param when the toggle changes", async () => {
-        const w = mountIndex({ employees, filters: { shift: 5, business_line: null, unconfirmed: false } });
+        const w = await openMissingAvailabilityTab({ employees, filters: { shift: 5, business_line: null, unconfirmed: false } });
 
         w.findComponent(CheckboxInput).vm.$emit("update:modelValue", true);
         await w.vm.$nextTick();
@@ -184,7 +215,7 @@ describe("Reports/Index", () => {
     });
 
     it("sends an explicit unconfirmed=0 when the toggle is unchecked", async () => {
-        const w = mountIndex({ employees, filters: { shift: 5, business_line: null, unconfirmed: true } });
+        const w = await openMissingAvailabilityTab({ employees, filters: { shift: 5, business_line: null, unconfirmed: true } });
 
         w.findComponent(CheckboxInput).vm.$emit("update:modelValue", false);
         await w.vm.$nextTick();
@@ -196,15 +227,15 @@ describe("Reports/Index", () => {
         );
     });
 
-    it("disables the email button until a row is selected", () => {
-        const w = mountIndex({ employees, filters: { shift: 5, business_line: null, unconfirmed: false } });
+    it("disables the email button until a row is selected", async () => {
+        const w = await openMissingAvailabilityTab({ employees, filters: { shift: 5, business_line: null, unconfirmed: false } });
         const button = w.get('[aria-label="Email selected 0"]');
 
         expect(button.attributes("disabled")).toBeDefined();
     });
 
     it("enables the email button and shows the count once rows are checked", async () => {
-        const w = mountIndex({ employees, filters: { shift: 5, business_line: null, unconfirmed: false } });
+        const w = await openMissingAvailabilityTab({ employees, filters: { shift: 5, business_line: null, unconfirmed: false } });
 
         await w.get('[aria-label="Select Ann Ant"]').setValue(true);
 
@@ -214,7 +245,7 @@ describe("Reports/Index", () => {
     });
 
     it("select all checks every row and select all again unchecks them", async () => {
-        const w = mountIndex({ employees, filters: { shift: 5, business_line: null, unconfirmed: false } });
+        const w = await openMissingAvailabilityTab({ employees, filters: { shift: 5, business_line: null, unconfirmed: false } });
 
         await w.get('[aria-label="Select all employees in this report"]').setValue(true);
 
@@ -227,7 +258,7 @@ describe("Reports/Index", () => {
     });
 
     it("navigates to compose with the selected employee ids on email", async () => {
-        const w = mountIndex({ employees, filters: { shift: 5, business_line: null, unconfirmed: false } });
+        const w = await openMissingAvailabilityTab({ employees, filters: { shift: 5, business_line: null, unconfirmed: false } });
 
         await w.get('[aria-label="Select Ann Ant"]').setValue(true);
         await w.get('[aria-label="Select Bo Bee"]').setValue(true);
@@ -236,6 +267,68 @@ describe("Reports/Index", () => {
         expect(router.visit).toHaveBeenCalledWith(
             "/mailbox?tab=compose&type=custom&employee_ids[]=1&employee_ids[]=2",
         );
+    });
+
+    // ── Competence report tab ──────────────────────────────────────────
+
+    const openCompetenceTab = async (props = {}) => {
+        const w = mountIndex(props);
+        await w.findAll("button").find((button) => button.text() === "Competences").trigger("click");
+
+        return w;
+    };
+
+    it("has a Competences tab with an empty prompt before competences are selected", async () => {
+        const w = await openCompetenceTab();
+
+        expect(w.text()).toContain("Competences");
+        expect(w.text()).toContain("Select a competence to show employees.");
+        expect(w.findAllComponents(SelectInput)).toHaveLength(2);
+        expect(w.findAllComponents(SelectInput)[1].props("options")).toContainEqual(
+            expect.objectContaining({ value: "", label: "Select competence" }),
+        );
+    });
+
+    it("reloads when the competence mode changes", async () => {
+        const w = await openCompetenceTab({
+            filters: { shift: 5, business_line: null, unconfirmed: false, planning_business_line: null, competence_mode: "missing", competence_id: 10 },
+        });
+
+        w.findComponent(SelectInput).vm.$emit("update:modelValue", "has");
+        await w.vm.$nextTick();
+
+        expect(router.get).toHaveBeenCalledWith(
+            "/reports",
+            expect.objectContaining({ competence_mode: "has", competence: 10 }),
+            expect.anything(),
+        );
+    });
+
+    it("reloads when the selected competence changes", async () => {
+        const w = await openCompetenceTab();
+
+        w.findAllComponents(SelectInput)[1].vm.$emit("update:modelValue", 11);
+        await w.vm.$nextTick();
+
+        expect(router.get).toHaveBeenCalledWith(
+            "/reports",
+            expect.objectContaining({ competence_mode: "missing", competence: 11 }),
+            expect.anything(),
+        );
+    });
+
+    it("lists competence report rows and opens the employee competences tab", async () => {
+        const w = await openCompetenceTab({
+            competenceReport,
+            filters: { shift: null, business_line: null, unconfirmed: true, planning_business_line: null, competence_mode: "missing", competence_id: 10 },
+        });
+
+        expect(w.text()).toContain("Ann Ant");
+        expect(w.text()).toContain("First aid");
+
+        await w.find("tbody tr").trigger("click");
+
+        expect(router.visit).toHaveBeenCalledWith("/employees/1/edit?tab=competences");
     });
 
     // ── Uninformed planning tab ─────────────────────────────────────────

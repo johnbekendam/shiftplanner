@@ -69,7 +69,9 @@ const plannedAssignments = computed(() => props.plannedShifts.flatMap((week) => 
 const publishedAssignments = computed(() => plannedAssignments.value.filter((a) => a.published))
 const draftAssignments = computed(() => plannedAssignments.value.filter((a) => !a.published))
 
-const tab = ref('settings')
+const employeeTabs = ['settings', 'details', 'availability', 'competences', 'workcenters', 'planning']
+const requestedTab = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('tab') : null
+const tab = ref(isEdit.value && employeeTabs.includes(requestedTab) ? requestedTab : 'settings')
 const tabs = computed(() => [
     { value: 'settings', label: __('availability.tab.settings'), hasError: registry.hasError('personal') },
     { value: 'details', label: __('availability.tab.details'), hasError: registry.hasError('personal') },

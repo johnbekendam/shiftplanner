@@ -17,19 +17,24 @@ const props = defineProps({
     shifts: { type: Array, default: () => [] }, // { id, name, start_time, end_time }
     businessLines: { type: Array, default: () => [] }, // { id, abbreviation }
     uninformedPlanning: { type: Array, default: () => [] }, // { id, name, business_line, uninformed_count, first_date }
-    filters: { type: Object, required: true }, // { shift, business_line, unconfirmed, planning_business_line }
+    competences: { type: Array, default: () => [] }, // { id, name, read_only }
+    competenceReport: { type: Array, default: () => [] }, // { id, name, competence_names }
+    filters: { type: Object, required: true }, // { shift, business_line, unconfirmed, planning_business_line, competence_mode, competence_id }
 })
 
 const tabs = [
-    { value: 'missing-availability', label: __('reports.tab.missing_availability') },
+    { value: 'competences', label: __('reports.tab.competences') },
     { value: 'uninformed-planning', label: __('reports.tab.uninformed_planning') },
+    { value: 'missing-availability', label: __('reports.tab.missing_availability') },
 ]
-const tab = ref('missing-availability')
+const tab = ref('competences')
 
 const shift = ref(props.filters.shift ?? '')
 const businessLine = ref(props.filters.business_line ?? '')
 const includeUnconfirmed = ref(props.filters.unconfirmed)
 const planningBusinessLine = ref(props.filters.planning_business_line ?? '')
+const competenceMode = ref(props.filters.competence_mode ?? 'missing')
+const competenceId = ref(props.filters.competence_id ?? '')
 
 const shiftOptions = computed(() => [
     { value: '', label: __('reports.missing_availability.shift_placeholder') },
@@ -39,6 +44,14 @@ const businessLineOptions = computed(() => [
     { value: '', label: __('reports.missing_availability.business_line_placeholder') },
     ...props.businessLines.map((l) => ({ value: l.id, label: l.abbreviation })),
 ])
+const competenceModeOptions = computed(() => [
+    { value: 'missing', label: __('reports.competences.mode.missing') },
+    { value: 'has', label: __('reports.competences.mode.has') },
+])
+const competenceOptions = computed(() => [
+    { value: '', label: __('reports.competences.competence_placeholder') },
+    ...props.competences.map((competence) => ({ value: competence.id, label: competence.name })),
+])
 
 function reload() {
     router.get('/reports', {
@@ -46,10 +59,16 @@ function reload() {
         business_line: businessLine.value || undefined,
         unconfirmed: includeUnconfirmed.value ? 1 : 0,
         planning_business_line: planningBusinessLine.value || undefined,
+        competence_mode: competenceMode.value,
+        competence: competenceId.value || undefined,
     }, { preserveState: true })
 }
 
-watch([shift, businessLine, includeUnconfirmed, planningBusinessLine], reload)
+watch([shift, businessLine, includeUnconfirmed, planningBusinessLine, competenceMode, competenceId], reload)
+
+function openEmployeeCompetences(employee) {
+    router.visit(`/employees/${employee.id}/edit?tab=competences`)
+}
 
 const selectedIds = ref([])
 watch(() => props.employees, () => { selectedIds.value = [] })
@@ -82,6 +101,58 @@ function emailSelected() {
                 :rows="uninformedPlanning"
                 :business-lines="businessLines"
             />
+
+            <div v-else-if="tab === 'competences'" class="p-6 space-y-5">
+                <div class="flex flex-wrap items-center gap-3">
+                    <SelectInput
+                        v-model="competenceMode"
+                        :options="competenceModeOptions"
+                        class="w-64"
+                    />
+
+                    <span class="text-sm text-(--color-text-secondary)">:</span>
+
+                    <SelectInput
+                        v-model="competenceId"
+                        :options="competenceOptions"
+                        class="w-72"
+                    />
+                </div>
+
+                <CardSeparator />
+
+                <p v-if="!competenceId" class="text-sm text-(--color-text-secondary)">
+                    {{ __('reports.competences.empty_selection') }}
+                </p>
+
+                <table v-else-if="competenceReport.length > 0" class="w-full text-sm">
+                    <thead>
+                        <tr class="border-b border-(--color-table-header-separator) text-left text-(--color-table-header-text)">
+                            <th class="px-2 py-2 font-medium">{{ __('reports.competences.column.name') }}</th>
+                            <th class="px-2 py-2 font-medium">{{ __('reports.competences.column.competences') }}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr
+                            v-for="employee in competenceReport"
+                            :key="employee.id"
+                            class="cursor-pointer border-b border-(--color-table-row-separator) hover:bg-(--color-table-row-hover-bg)"
+                            tabindex="0"
+                            @click="openEmployeeCompetences(employee)"
+                            @keydown.enter="openEmployeeCompetences(employee)"
+                        >
+                            <td class="px-2 py-2 text-(--color-table-row-text)">{{ employee.name }}</td>
+                            <td class="px-2 py-2 text-(--color-table-row-text)">
+                                {{ employee.competence_names.join(', ') }}
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <p v-else class="text-sm text-(--color-text-secondary)">
+                    {{ __('reports.competences.empty_results') }}
+                </p>
+            </div>
 
             <div v-else class="p-6 space-y-5">
                 <div class="flex flex-wrap items-center gap-4">

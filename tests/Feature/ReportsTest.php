@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\BusinessLine;
+use App\Models\Competence;
 use App\Models\Employee;
 use App\Models\PublishedWeek;
 use App\Models\RecurringAvailability;
@@ -142,6 +143,86 @@ class ReportsTest extends TestCase
             ->where('employees.0.id', $employeeA->id)
             ->has('employees', 1)
         );
+    }
+
+    // ── Competence report ──────────────────────────────────────────────
+
+    public function test_competence_report_defaults_to_missing_mode_with_no_rows_without_selection(): void
+    {
+        $this->admin();
+        $competence = Competence::factory()->create(['name' => 'Forklift', 'position' => 1]);
+        Employee::factory()->create();
+
+        $this->get('/reports')->assertInertia(fn ($page) => $page
+            ->where('competences.0.id', $competence->id)
+            ->where('competences.0.name', 'Forklift')
+            ->where('filters.competence_mode', 'missing')
+            ->where('filters.competence_id', null)
+            ->where('competenceReport', [])
+        );
+    }
+
+    public function test_missing_competence_report_lists_employees_missing_the_selected_competence(): void
+    {
+        $this->admin();
+        $forklift = Competence::factory()->create(['name' => 'Forklift', 'position' => 1]);
+        $firstAid = Competence::factory()->create(['name' => 'First aid', 'position' => 2]);
+        $ann = Employee::factory()->create(['first_name' => 'Ann', 'last_name' => 'Ant']);
+        $bo = Employee::factory()->create(['first_name' => 'Bo', 'last_name' => 'Bee']);
+        $cy = Employee::factory()->create(['first_name' => 'Cy', 'last_name' => 'Cat']);
+        $ann->competences()->attach($forklift);
+        $bo->competences()->attach([$forklift->id, $firstAid->id]);
+
+        $this->get("/reports?competence_mode=missing&competence={$firstAid->id}")
+            ->assertInertia(fn ($page) => $page
+                ->has('competenceReport', 2)
+                ->where('competenceReport.0.id', $ann->id)
+                ->where('competenceReport.0.name', 'Ann Ant')
+                ->where('competenceReport.0.competence_names', ['First aid'])
+                ->where('competenceReport.1.id', $cy->id)
+                ->where('competenceReport.1.name', 'Cy Cat')
+                ->where('competenceReport.1.competence_names', ['First aid'])
+                ->where('filters.competence_id', $firstAid->id)
+            );
+    }
+
+    public function test_has_competence_report_lists_only_employees_with_the_selected_competence(): void
+    {
+        $this->admin();
+        $forklift = Competence::factory()->create(['name' => 'Forklift', 'position' => 1]);
+        $firstAid = Competence::factory()->create(['name' => 'First aid', 'position' => 2]);
+        $ann = Employee::factory()->create(['first_name' => 'Ann', 'last_name' => 'Ant']);
+        $bo = Employee::factory()->create(['first_name' => 'Bo', 'last_name' => 'Bee']);
+        $ann->competences()->attach($forklift);
+        $bo->competences()->attach([$forklift->id, $firstAid->id]);
+
+        $this->get("/reports?competence_mode=has&competence={$firstAid->id}")
+            ->assertInertia(fn ($page) => $page
+                ->has('competenceReport', 1)
+                ->where('competenceReport.0.id', $bo->id)
+                ->where('competenceReport.0.name', 'Bo Bee')
+            ->where('competenceReport.0.competence_names', ['First aid'])
+                ->where('filters.competence_mode', 'has')
+            );
+    }
+
+    public function test_competence_report_accepts_nested_competence_query_values(): void
+    {
+        $this->admin();
+        $forklift = Competence::factory()->create(['name' => 'Forklift', 'position' => 1]);
+        $firstAid = Competence::factory()->create(['name' => 'First aid', 'position' => 2]);
+        $ann = Employee::factory()->create(['first_name' => 'Ann', 'last_name' => 'Ant']);
+        $bo = Employee::factory()->create(['first_name' => 'Bo', 'last_name' => 'Bee']);
+        $ann->competences()->attach($forklift);
+        $bo->competences()->attach([$forklift->id, $firstAid->id]);
+
+        $this->get("/reports?competence_mode=has&competences[0][0]={$forklift->id}&competences[1][0]={$firstAid->id}")
+            ->assertInertia(fn ($page) => $page
+            ->has('competenceReport', 2)
+            ->where('competenceReport.0.id', $ann->id)
+            ->where('competenceReport.1.id', $bo->id)
+            ->where('filters.competence_id', $forklift->id)
+            );
     }
 
     // ── Uninformed planning ─────────────────────────────────────────────
