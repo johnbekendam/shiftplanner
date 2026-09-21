@@ -30,8 +30,9 @@ class HeuristicPlanGenerator implements PlanGeneratorContract
             ->get();
 
         $isLocked = $this->lockPredicate($cycleStart, $workcenterIds);
+        $lockedAssignments = $cycleAssignments->filter($isLocked)->values();
 
-        $problem = $this->buildProblem($cycleStart, $cycleEnd, $workcenterIds, $cycleAssignments, $isLocked);
+        $problem = $this->buildProblem($cycleStart, $cycleEnd, $workcenterIds, $lockedAssignments, $isLocked);
         $eligibility = new PlanEligibility($problem);
         $softRules = new PlanSoftRules($problem->rules);
         $scorer = new PlanScorer($problem, $softRules);
@@ -43,8 +44,8 @@ class HeuristicPlanGenerator implements PlanGeneratorContract
         // assignment — including one already here before this run started — but
         // never a fixed or published one.
         $assignments = new PlanAssignmentSet($problem->shifts);
-        foreach ($cycleAssignments as $a) {
-            $assignments->add($a->employee_id, $a->workcenter_id, $a->shift_id, $a->date->toDateString(), $isLocked($a));
+        foreach ($lockedAssignments as $a) {
+            $assignments->add($a->employee_id, $a->workcenter_id, $a->shift_id, $a->date->toDateString(), locked: true);
         }
 
         (new GreedyConstructor($problem, $eligibility))->construct($assignments);

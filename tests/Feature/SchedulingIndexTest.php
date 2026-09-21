@@ -537,27 +537,6 @@ class SchedulingIndexTest extends TestCase
             );
     }
 
-    public function test_clear_range_is_null_until_the_period_is_configured(): void
-    {
-        $this->actingAsAdmin();
-
-        $this->get('/planning')->assertOk()->assertInertia(fn ($page) => $page->where('clearRange', null));
-    }
-
-    public function test_clear_range_is_the_span_of_the_cycles_that_clear_planning_covers(): void
-    {
-        $this->actingAsAdmin();
-        // The first cycle starts on the Monday of the week that holds the period start (2026-09-28);
-        // the last cycle (2026-12-21) runs in full, two weeks, even past the period end.
-        PlanningSettings::current()->update(['period_start' => '2026-10-01', 'period_end' => '2026-12-31']);
-
-        $this->get('/planning')->assertOk()
-            ->assertInertia(fn ($page) => $page
-                ->where('clearRange.start', '2026-09-28')
-                ->where('clearRange.end', '2027-01-03')
-            );
-    }
-
     public function test_generation_status_is_null_when_the_period_is_not_configured(): void
     {
         $this->actingAsAdmin();

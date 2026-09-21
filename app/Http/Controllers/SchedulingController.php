@@ -66,29 +66,10 @@ class SchedulingController extends Controller
             'cycleStart' => $cycleStart?->toDateString(),
             'generationRun' => $cycleStart ? $this->latestGenerationRun($cycleStart) : null,
             'planningPeriod' => $this->planningPeriod(),
-            'clearRange' => $this->clearRange(),
             'generationStatus' => $this->generationStatus(),
             // Employees with published shifts they were not told about and no queued email yet: enables Send planning.
             'uninformedCount' => $this->uninformedPlanning->summary(excludeQueued: true)->count(),
         ]);
-    }
-
-    /**
-     * { start, end } of the cycles Clear Planning covers (the same range PlanClearController
-     * deletes in), or null until the period is configured. Lets the page disable Clear for
-     * a week it cannot touch.
-     */
-    private function clearRange(): ?array
-    {
-        $cycles = PlanningCycle::allWithinPeriod();
-        if ($cycles === []) {
-            return null;
-        }
-
-        return [
-            'start' => $cycles[0]->toDateString(),
-            'end' => end($cycles)->copy()->addDays(13)->toDateString(),
-        ];
     }
 
     /** { start, end } from Settings, or null until both are configured. */
