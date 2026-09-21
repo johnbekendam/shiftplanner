@@ -1,6 +1,6 @@
 # Employee Optional Email — Plan
 
-Status: in progress — 5/8
+Status: in progress — 6/8
 
 Each step is one slice. Write the test first, then the code, then commit.
 Add every new user-facing text to `resources/lang/en.json`.
@@ -29,8 +29,9 @@ Add every new user-facing text to `resources/lang/en.json`.
 - [x] 5. **Missing availability report.** Show the marker and skip
       employees with no email in "email selected". Test: the report data
       and the frontend selection.
-- [ ] 6. **Employee backup import and export.** Export `email: null`.
-      Accept a null email on import. Match an existing employee that has
+- [x] 6. **Employee backup import and export.** The export route uses the
+      full backup (step 7), so it needs no change here. Accept a null email
+      on import. Match an existing employee that has
       no email by first and last name (case-insensitive), or create one.
       Reject two records with the same name and no email. Test: a
       round-trip, a repeated import that creates no duplicate, and the

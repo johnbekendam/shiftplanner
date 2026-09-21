@@ -217,6 +217,92 @@ class EmployeeBackupTest extends TestCase
         $this->assertSame(['New skill'], $employee->competences()->pluck('name')->all());
     }
 
+    /** One employee-archive record with no email address. */
+    private function emaillessRecord(string $first = 'Jane', string $last = 'Doe', array $overrides = []): array
+    {
+        return $overrides + [
+            'first_name' => $first, 'last_name' => $last, 'email' => null,
+            'weekly_hours' => 32, 'weekly_hours_minimum' => null, 'confirmed' => true,
+            'business_line' => null, 'competences' => [],
+            'recurring_availability' => [], 'holidays' => [], 'availability_questions' => [],
+        ];
+    }
+
+    public function test_import_creates_an_employee_without_an_email(): void
+    {
+        $this->actingAs($this->admin())->post('/employee-backup/import', [
+            'file' => $this->archive([$this->emaillessRecord()]),
+        ])->assertOk()->assertJson(['created' => 1, 'updated' => 0]);
+
+        $employee = Employee::sole();
+        $this->assertNull($employee->email);
+        $this->assertSame('Jane Doe', $employee->name);
+    }
+
+    public function test_import_treats_a_blank_email_like_no_email(): void
+    {
+        $this->actingAs($this->admin())->post('/employee-backup/import', [
+            'file' => $this->archive([$this->emaillessRecord(overrides: ['email' => ''])]),
+        ])->assertOk()->assertJson(['created' => 1]);
+
+        $this->assertNull(Employee::sole()->email);
+    }
+
+    public function test_import_matches_an_employee_without_an_email_by_name(): void
+    {
+        $existing = Employee::factory()->create(['first_name' => 'Jane', 'last_name' => 'Doe', 'email' => null, 'weekly_hours' => 20]);
+
+        $this->actingAs($this->admin())->post('/employee-backup/import', [
+            'file' => $this->archive([$this->emaillessRecord('JANE', 'doe')]),
+        ])->assertOk()->assertJson(['created' => 0, 'updated' => 1]);
+
+        $this->assertDatabaseCount('employees', 1);
+        $this->assertSame(32, $existing->fresh()->weekly_hours);
+    }
+
+    public function test_importing_the_same_archive_twice_creates_no_duplicate(): void
+    {
+        $file = fn () => $this->archive([$this->emaillessRecord()]);
+
+        $this->actingAs($this->admin())->post('/employee-backup/import', ['file' => $file()])
+            ->assertJson(['created' => 1]);
+        $this->actingAs($this->admin())->post('/employee-backup/import', ['file' => $file()])
+            ->assertJson(['created' => 0, 'updated' => 1]);
+
+        $this->assertDatabaseCount('employees', 1);
+    }
+
+    public function test_a_name_match_ignores_employees_that_have_an_email(): void
+    {
+        $withEmail = Employee::factory()->create(['first_name' => 'Jane', 'last_name' => 'Doe', 'email' => 'jane@example.com', 'weekly_hours' => 20]);
+
+        $this->actingAs($this->admin())->post('/employee-backup/import', [
+            'file' => $this->archive([$this->emaillessRecord()]),
+        ])->assertOk()->assertJson(['created' => 1, 'updated' => 0]);
+
+        $this->assertDatabaseCount('employees', 2);
+        $this->assertSame(20, $withEmail->fresh()->weekly_hours);
+    }
+
+    public function test_import_rejects_two_records_with_the_same_name_and_no_email(): void
+    {
+        $response = $this->actingAs($this->admin())->post('/employee-backup/import', [
+            'file' => $this->archive([$this->emaillessRecord('Jane', 'Doe'), $this->emaillessRecord('jane', 'DOE')]),
+        ])->assertStatus(422);
+
+        $this->assertSame(__('backup.error.duplicate_name', ['record' => 2]), $response->json('errors.0'));
+        $this->assertDatabaseCount('employees', 0);
+    }
+
+    public function test_import_still_rejects_an_invalid_email(): void
+    {
+        $this->actingAs($this->admin())->post('/employee-backup/import', [
+            'file' => $this->archive([$this->emaillessRecord(overrides: ['email' => 'not-an-email'])]),
+        ])->assertStatus(422);
+
+        $this->assertDatabaseCount('employees', 0);
+    }
+
     public function test_an_invalid_archive_makes_no_changes(): void
     {
         $response = $this->actingAs($this->admin())->post('/employee-backup/import', [

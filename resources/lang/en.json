@@ -645,6 +645,7 @@
     "backup.error.schema": "The file is not a supported application backup.",
     "backup.error.employee": "Record :record has invalid fields: :fields.",
     "backup.error.duplicate_email": "Record :record has a duplicate email address.",
+    "backup.error.duplicate_name": "Record :record has no email address and the same name as an earlier record.",
     "backup.error.business_line": "Record :record: business line \":abbreviation\" does not exist.",
     "backup.error.competence": "Record :record: competence \":name\" does not exist.",
     "backup.error.shift": "Record :record: shift \":shift\" does not exist.",
