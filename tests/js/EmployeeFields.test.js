@@ -6,6 +6,7 @@ const en = {
     "employees.field.first_name": "First name",
     "employees.field.last_name": "Last name",
     "employees.field.email": "Email",
+    "employees.field.email_placeholder": "Leave empty when no email address available",
     "employees.field.business_line": "Business line",
     "employees.field.business_line_none": "None",
 };
@@ -85,6 +86,15 @@ describe("EmployeeFields", () => {
             expect(w.findAllComponents(LabeledInput).map((l) => l.props("label"))).toEqual(["First name", "Last name", "Business line"]);
             expect(w.findAll("input")).toHaveLength(2);
         }
+    });
+
+    it("shows a placeholder in the email input only", () => {
+        const w = mount(EmployeeFields, { props: { form: makeForm({ email: "" }) } });
+        const [first, last, email] = w.findAll("input");
+
+        expect(email.attributes("placeholder")).toBe("Leave empty when no email address available");
+        expect(first.attributes("placeholder")).toBe("");
+        expect(last.attributes("placeholder")).toBe("");
     });
 
     it("keeps the email field editable when it is empty", () => {

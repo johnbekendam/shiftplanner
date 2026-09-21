@@ -30,6 +30,9 @@ address or wait. Both options are wrong.
 The admin edits the employee and enters the address. No other path
 exists.
 
+The email input on the employee form shows the placeholder "Leave empty
+when no email address available".
+
 Self-signup does not change. It matches employees by email only. When a
 person without a stored email signs up, the app creates a second
 employee. The admin then deletes or completes one of the two records.

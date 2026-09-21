@@ -42,7 +42,13 @@ const businessLineOptions = computed(() => [
         </div>
 
         <LabeledInput v-if="!readonlyIdentity || form.email" :label="__('employees.field.email')" :error="form.errors.email">
-            <EmailInput v-model="form.email" :disabled="readonlyIdentity" :live="live" class="w-full" />
+            <EmailInput
+                v-model="form.email"
+                :disabled="readonlyIdentity"
+                :live="live"
+                :placeholder="__('employees.field.email_placeholder')"
+                class="w-full"
+            />
         </LabeledInput>
 
         <LabeledInput
