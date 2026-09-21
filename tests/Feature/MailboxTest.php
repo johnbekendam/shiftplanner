@@ -142,6 +142,55 @@ class MailboxTest extends TestCase
             );
     }
 
+    public function test_compose_tab_leaves_out_employees_without_an_email(): void
+    {
+        $this->admin();
+        Employee::factory()->create(['first_name' => 'Alice', 'email' => 'alice@example.com']);
+        Employee::factory()->create(['first_name' => 'Bob', 'email' => null]);
+
+        $this->get('/mailbox?tab=compose')->assertInertia(fn ($page) => $page
+            ->has('compose.employees', 1)
+            ->where('compose.employees.0.name', fn ($name) => str_starts_with($name, 'Alice'))
+        );
+    }
+
+    public function test_compose_tab_does_not_preselect_an_employee_without_an_email(): void
+    {
+        $this->admin();
+        $withEmail = Employee::factory()->create();
+        $without = Employee::factory()->create(['email' => null]);
+
+        $this->get("/mailbox?tab=compose&employee={$without->id}")->assertInertia(fn ($page) => $page
+            ->where('compose.preselected_employee_id', null)
+            ->where('compose.preselected_employee_ids', [])
+        );
+
+        $this->get("/mailbox?tab=compose&employee_ids[]={$withEmail->id}&employee_ids[]={$without->id}")
+            ->assertInertia(fn ($page) => $page
+                ->where('compose.preselected_employee_ids', [$withEmail->id])
+            );
+    }
+
+    public function test_compose_skips_an_employee_without_an_email_on_the_server(): void
+    {
+        Queue::fake();
+        $this->admin();
+        $withEmail = Employee::factory()->create();
+        $without = Employee::factory()->create(['email' => null]);
+
+        $this->post('/mailbox/compose', [
+            'type' => MessageType::Custom->value,
+            'subject' => 'S',
+            'body' => 'B',
+            'employee_ids' => [$withEmail->id, $without->id],
+            'send_mode' => 'queue',
+        ])->assertRedirect()->assertSessionHas('success');
+
+        $this->assertSame(1, Message::count());
+        $this->assertSame($withEmail->email, Message::sole()->recipient_email);
+        Queue::assertPushed(SendMailboxMessage::class, 1);
+    }
+
     public function test_compose_tab_lists_users_and_placeholder_tokens(): void
     {
         $this->admin();

@@ -1,6 +1,6 @@
 # Employee Optional Email — Plan
 
-Status: in progress — 2/8
+Status: in progress — 3/8
 
 Each step is one slice. Write the test first, then the code, then commit.
 Add every new user-facing text to `resources/lang/en.json`.
@@ -18,7 +18,7 @@ Add every new user-facing text to `resources/lang/en.json`.
       link" with a tooltip. Make `EmployeeController::sendLink` refuse an
       employee with no email. Test: the list props, the disabled action,
       and the refusal. Test that "copy personal-page link" still works.
-- [ ] 3. **Mailbox recipient picker.** Leave employees with no email out
+- [x] 3. **Mailbox recipient picker.** Leave employees with no email out
       of the employee list in `MailboxController`, and out of the
       preselected recipient. Test: the picker data and the Compose page.
 - [ ] 4. **Planning email and Uninformed planning report.** Make

@@ -87,6 +87,7 @@ class MailboxController extends Controller
             'type' => $type->value,
             'template' => MessageTemplate::forType($type)->only('subject', 'body'),
             'employees' => Employee::query()
+                ->whereNotNull('email')
                 ->orderBy('first_name')
                 ->orderBy('last_name')
                 ->get(['id', 'first_name', 'last_name', 'email'])
@@ -105,20 +106,28 @@ class MailboxController extends Controller
                     'email' => $user->email,
                 ])
                 ->all(),
-            'preselected_employee_id' => $request->integer('employee') ?: null,
+            'preselected_employee_id' => $this->preselectedEmployeeIds($request, single: true)[0] ?? null,
             'preselected_employee_ids' => $this->preselectedEmployeeIds($request),
             'unresolved_recipients' => session('unresolved_recipients'),
             'placeholder_tokens' => $this->placeholders->tokens(),
         ];
     }
 
-    /** The `employee` and `employee_ids[]` query params, merged and deduplicated. */
-    private function preselectedEmployeeIds(Request $request): array
+    /**
+     * The `employee` and `employee_ids[]` query params, merged, deduplicated and
+     * limited to employees with an email address. With `$single`, only the
+     * `employee` param counts.
+     */
+    private function preselectedEmployeeIds(Request $request, bool $single = false): array
     {
-        $single = $request->integer('employee') ?: null;
-        $plural = array_map('intval', (array) $request->query('employee_ids', []));
+        $singleId = $request->integer('employee') ?: null;
+        $pluralIds = $single ? [] : array_map('intval', (array) $request->query('employee_ids', []));
+        $ids = array_values(array_unique(array_filter([$singleId, ...$pluralIds])));
 
-        return array_values(array_unique(array_filter([$single, ...$plural])));
+        return Employee::whereIn('id', $ids)->whereNotNull('email')->pluck('id')
+            ->sortBy(fn (int $id) => array_search($id, $ids, true))
+            ->values()
+            ->all();
     }
 
     /**
@@ -130,7 +139,7 @@ class MailboxController extends Controller
      */
     private function resolveRecipients(array $employeeIds, array $userIds): Collection
     {
-        $employees = Employee::whereIn('id', $employeeIds)->get();
+        $employees = Employee::whereIn('id', $employeeIds)->whereNotNull('email')->get();
         $seenEmails = $employees->map(fn (Employee $employee) => Str::lower($employee->email))->all();
 
         $users = User::whereIn('id', $userIds)->get()
