@@ -78,14 +78,15 @@ class EmployeeBackupController extends Controller
             $updated = 0;
 
             foreach ($archive['employees'] as $record) {
-                $employee = Employee::firstWhere('email', $record['email']);
+                $email = $this->emailOf($record);
+                $employee = $this->existingEmployee($record, $email);
                 $isNew = $employee === null;
                 $employee ??= new Employee;
 
                 $employee->fill([
                     'first_name' => $record['first_name'],
                     'last_name' => $record['last_name'],
-                    'email' => $record['email'],
+                    'email' => $email,
                     'weekly_hours' => $record['weekly_hours'],
                     'weekly_hours_minimum' => $record['weekly_hours_minimum'],
                     'confirmed' => $record['confirmed'],
@@ -170,13 +171,14 @@ class EmployeeBackupController extends Controller
 
         $errors = [];
         $seenEmails = [];
+        $seenNames = [];
 
         foreach ($archive['employees'] as $index => $employee) {
             $line = $index + 1;
             $validator = Validator::make($employee, [
                 'first_name' => ['required', 'string', 'max:255'],
                 'last_name' => ['required', 'string', 'max:255'],
-                'email' => ['required', 'email', 'max:255'],
+                'email' => ['nullable', 'email', 'max:255'],
                 'weekly_hours' => ['required', 'integer', 'min:0', 'max:48'],
                 'weekly_hours_minimum' => ['nullable', 'integer', 'min:0'],
                 'confirmed' => ['required', 'boolean'],
@@ -210,11 +212,20 @@ class EmployeeBackupController extends Controller
                 continue;
             }
 
-            $email = mb_strtolower($employee['email']);
-            if (isset($seenEmails[$email])) {
-                $errors[] = __('backup.error.duplicate_email', ['record' => $line]);
+            $email = $this->emailOf($employee);
+            if ($email === null) {
+                $name = mb_strtolower($employee['first_name'].'|'.$employee['last_name']);
+                if (isset($seenNames[$name])) {
+                    $errors[] = __('backup.error.duplicate_name', ['record' => $line]);
+                }
+                $seenNames[$name] = true;
+            } else {
+                $email = mb_strtolower($email);
+                if (isset($seenEmails[$email])) {
+                    $errors[] = __('backup.error.duplicate_email', ['record' => $line]);
+                }
+                $seenEmails[$email] = true;
             }
-            $seenEmails[$email] = true;
 
             if ($employee['business_line'] !== null && $this->businessLineId($employee['business_line']) === null) {
                 $errors[] = __('backup.error.business_line', [
@@ -243,6 +254,33 @@ class EmployeeBackupController extends Controller
         }
 
         return $errors;
+    }
+
+    /** The record's email, or null when it is missing or blank. */
+    private function emailOf(array $record): ?string
+    {
+        $email = trim((string) ($record['email'] ?? ''));
+
+        return $email === '' ? null : $email;
+    }
+
+    /**
+     * The employee an archive record updates: the one with the same email, or,
+     * for a record with no email, the first employee without an email that has
+     * the same first and last name (case-insensitive).
+     */
+    private function existingEmployee(array $record, ?string $email): ?Employee
+    {
+        if ($email !== null) {
+            return Employee::firstWhere('email', $email);
+        }
+
+        return Employee::query()
+            ->whereNull('email')
+            ->whereRaw('lower(first_name) = ?', [mb_strtolower($record['first_name'])])
+            ->whereRaw('lower(last_name) = ?', [mb_strtolower($record['last_name'])])
+            ->orderBy('id')
+            ->first();
     }
 
     private function businessLineId(?array $businessLine): ?int

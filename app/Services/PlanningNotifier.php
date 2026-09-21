@@ -32,7 +32,7 @@ class PlanningNotifier
      */
     public function queueForUninformed(User $sender): int
     {
-        $rows = $this->planning->summary(excludeQueued: true);
+        $rows = $this->planning->summary(excludeQueued: true, reachableOnly: true);
 
         if ($rows->isEmpty()) {
             throw ValidationException::withMessages(['planning' => __('planning.error.nothing_to_send')]);

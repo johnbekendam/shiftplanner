@@ -72,6 +72,18 @@ class SelfSignupTest extends TestCase
         Queue::assertPushed(SendMailboxMessage::class, 1);
     }
 
+    public function test_a_signup_does_not_match_an_employee_without_an_email(): void
+    {
+        Queue::fake();
+        $existing = Employee::factory()->create(['first_name' => 'Nina', 'last_name' => 'Park', 'email' => null]);
+
+        $this->service()->register('Nina', 'Park', 'nina@example.com');
+
+        $this->assertNull($existing->fresh()->email);
+        $this->assertSame(2, Employee::count());
+        $this->assertSame(1, Employee::where('email', 'nina@example.com')->count());
+    }
+
     public function test_a_known_email_creates_no_employee_and_queues_one_message(): void
     {
         Queue::fake();

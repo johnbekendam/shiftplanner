@@ -2,6 +2,7 @@
 import { ref, computed, watch } from 'vue'
 import { router } from '@inertiajs/vue3'
 import CardSeparator from '@/components/ui/CardSeparator.vue'
+import NoEmailBadge from '@/components/NoEmailBadge.vue'
 import ButtonPrimary from '@/components/ui/ButtonPrimary.vue'
 import { SelectInput, CheckboxInput } from '@/components/ui/Input'
 import { useI18n } from '@/composables/useI18n'
@@ -24,12 +25,15 @@ const businessLineOptions = computed(() => [
 const selectedIds = ref([])
 watch(() => props.rows, () => { selectedIds.value = [] })
 
+// Employees without an email cannot receive the message, so they stay unselectable.
+const selectableRows = computed(() => props.rows.filter((row) => row.has_email !== false))
+
 const allSelected = computed(() =>
-    props.rows.length > 0 && selectedIds.value.length === props.rows.length,
+    selectableRows.value.length > 0 && selectedIds.value.length === selectableRows.value.length,
 )
 
 function toggleSelectAll(checked) {
-    selectedIds.value = checked ? props.rows.map((e) => e.id) : []
+    selectedIds.value = checked ? selectableRows.value.map((e) => e.id) : []
 }
 
 function emailSelected() {
@@ -92,10 +96,16 @@ function emailSelected() {
                         <CheckboxInput
                             v-model="selectedIds"
                             :value="row.id"
+                            :disabled="row.has_email === false"
                             :aria-label="__('reports.uninformed_planning.select_employee', { name: row.name })"
                         />
                     </td>
-                    <td class="px-2 py-2 text-(--color-table-row-text)">{{ row.name }}</td>
+                    <td class="px-2 py-2 text-(--color-table-row-text)">
+                        <div class="flex flex-wrap items-center gap-2">
+                            <span>{{ row.name }}</span>
+                            <NoEmailBadge v-if="row.has_email === false" />
+                        </div>
+                    </td>
                     <td class="px-2 py-2 text-(--color-table-row-text)">
                         {{ row.business_line ?? __('reports.uninformed_planning.no_business_line') }}
                     </td>

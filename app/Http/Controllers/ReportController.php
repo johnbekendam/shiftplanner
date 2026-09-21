@@ -73,6 +73,7 @@ class ReportController extends Controller
             ->map(fn (Employee $employee) => [
                 'id' => $employee->id,
                 'name' => $employee->name,
+                'has_email' => $employee->email !== null,
                 'business_line' => $employee->businessLine?->abbreviation,
                 'weekly_hours' => $employee->weekly_hours,
                 'confirmed' => $employee->confirmed,

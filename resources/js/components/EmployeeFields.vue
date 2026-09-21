@@ -11,6 +11,7 @@ const props = defineProps({
     // business_line_id fields.
     form: { type: Object, required: true },
     // When true, name and email render read-only (used by the personal page).
+    // A read-only email field is hidden while the employee has no email.
     readonlyIdentity: { type: Boolean, default: false },
     // When true, the business-line select is disabled too (personal page
     // under the employee change lock).
@@ -40,8 +41,14 @@ const businessLineOptions = computed(() => [
             </LabeledInput>
         </div>
 
-        <LabeledInput :label="__('employees.field.email')" :error="form.errors.email">
-            <EmailInput v-model="form.email" :disabled="readonlyIdentity" :live="live" class="w-full" />
+        <LabeledInput v-if="!readonlyIdentity || form.email" :label="__('employees.field.email')" :error="form.errors.email">
+            <EmailInput
+                v-model="form.email"
+                :disabled="readonlyIdentity"
+                :live="live"
+                :placeholder="__('employees.field.email_placeholder')"
+                class="w-full"
+            />
         </LabeledInput>
 
         <LabeledInput

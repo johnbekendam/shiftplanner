@@ -67,8 +67,8 @@ class SchedulingController extends Controller
             'generationRun' => $cycleStart ? $this->latestGenerationRun($cycleStart) : null,
             'planningPeriod' => $this->planningPeriod(),
             'generationStatus' => $this->generationStatus(),
-            // Employees with published shifts they were not told about and no queued email yet: enables Send planning.
-            'uninformedCount' => $this->uninformedPlanning->summary(excludeQueued: true)->count(),
+            // Employees with an email address and published shifts they were not told about and no queued email yet: enables Send planning.
+            'uninformedCount' => $this->uninformedPlanning->summary(excludeQueued: true, reachableOnly: true)->count(),
         ]);
     }
 

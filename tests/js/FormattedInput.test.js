@@ -47,4 +47,16 @@ describe("FormattedInput live mode — backspace/delete", () => {
 
         expect(w.emitted("update:modelValue")).toBeFalsy();
     });
+
+    it("EmailInput shows a placeholder on the input element", () => {
+        const w = mount(EmailInput, { props: { modelValue: "" }, attrs: { placeholder: "name@example.com" } });
+
+        expect(w.find("input").attributes("placeholder")).toBe("name@example.com");
+    });
+
+    it("EmailInput has no placeholder unless one is given", () => {
+        const w = mount(EmailInput, { props: { modelValue: "" } });
+
+        expect(w.find("input").attributes("placeholder")).toBe("");
+    });
 });

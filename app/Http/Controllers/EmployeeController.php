@@ -21,6 +21,7 @@ use App\Services\PlannedShifts;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 
 class EmployeeController extends Controller
@@ -93,6 +94,7 @@ class EmployeeController extends Controller
         $employees = $employees->through(fn (Employee $employee) => [
             'id' => $employee->id,
             'name' => $employee->name,
+            'has_email' => $employee->email !== null,
             'business_line' => $employee->businessLine?->abbreviation,
             'weekly_hours' => $employee->weekly_hours,
             'confirmed' => $employee->confirmed,
@@ -139,7 +141,7 @@ class EmployeeController extends Controller
         return Inertia::render('Employees/Form', [
             'employee' => [
                 ...$employee->only(['id', 'first_name', 'last_name', 'email', 'weekly_hours', 'weekly_hours_minimum', 'business_line_id']),
-                'link_sent' => Message::query()
+                'link_sent' => $employee->email !== null && Message::query()
                     ->where('type', MessageType::PersonalPageLink)
                     ->where('status', 'sent')
                     ->where('recipient_email', $employee->email)
@@ -245,6 +247,10 @@ class EmployeeController extends Controller
      */
     public function sendLink(Request $request, Employee $employee, PersonalLinkMessage $placeholders, MessageComposer $composer)
     {
+        if ($employee->email === null) {
+            return back()->with('error', __('employees.flash.link_no_email'));
+        }
+
         $template = MessageTemplate::forType(MessageType::PersonalPageLink);
         $map = $placeholders->forEmployee($employee);
         $subject = $placeholders->apply($template->subject, $map);
@@ -274,7 +280,7 @@ class EmployeeController extends Controller
         $rules = [
             'first_name' => ['required', 'string', 'max:255'],
             'last_name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', Rule::unique('employees', 'email')->ignore($employee?->id)],
+            'email' => ['nullable', 'email', 'max:255', Rule::unique('employees', 'email')->ignore($employee?->id)],
             'weekly_hours' => ['required', 'integer', 'min:0', 'max:48'],
             'business_line_id' => ['nullable', 'integer', 'exists:business_lines,id'],
         ];
@@ -285,6 +291,35 @@ class EmployeeController extends Controller
             ];
         }
 
-        return $request->validate($rules);
+        $data = $request->validate($rules);
+
+        $this->assertUniqueNameWithoutEmail($data, $employee);
+
+        return $data;
+    }
+
+    /**
+     * Without an email, the name is the only identity an employee has, so two
+     * employees without an email cannot share a first and last name
+     * (case-insensitive).
+     */
+    private function assertUniqueNameWithoutEmail(array $data, ?Employee $employee): void
+    {
+        $email = array_key_exists('email', $data) ? $data['email'] : $employee?->email;
+
+        if ($email !== null) {
+            return;
+        }
+
+        $taken = Employee::query()
+            ->whereNull('email')
+            ->whereRaw('lower(first_name) = ?', [mb_strtolower($data['first_name'])])
+            ->whereRaw('lower(last_name) = ?', [mb_strtolower($data['last_name'])])
+            ->when($employee !== null, fn ($query) => $query->whereKeyNot($employee->id))
+            ->exists();
+
+        if ($taken) {
+            throw ValidationException::withMessages(['email' => __('employees.error.duplicate_name_without_email')]);
+        }
     }
 }

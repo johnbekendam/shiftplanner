@@ -51,6 +51,20 @@ class ReportsTest extends TestCase
         );
     }
 
+    public function test_missing_availability_rows_say_whether_the_employee_has_an_email(): void
+    {
+        $this->admin();
+        $with = Employee::factory()->create(['first_name' => 'Aaron', 'weekly_hours' => 32, 'email' => 'a@example.com']);
+        $without = Employee::factory()->create(['first_name' => 'Zoe', 'weekly_hours' => 32, 'email' => null]);
+
+        $this->get('/reports')->assertInertia(fn ($page) => $page
+            ->where('employees.0.id', $with->id)
+            ->where('employees.0.has_email', true)
+            ->where('employees.1.id', $without->id)
+            ->where('employees.1.has_email', false)
+        );
+    }
+
     public function test_without_a_shift_an_employee_with_a_row_for_any_shift_does_not_appear(): void
     {
         $this->admin();
@@ -238,6 +252,19 @@ class ReportsTest extends TestCase
             'employee_id' => $employee->id, 'workcenter_id' => $workcenter->id,
             'date' => $date, 'informed_at' => $informedAt,
         ]);
+    }
+
+    public function test_the_uninformed_report_still_lists_employees_without_an_email(): void
+    {
+        $this->admin();
+        $nomail = Employee::factory()->create(['email' => null]);
+        $this->plan($nomail, '2026-09-22');
+
+        $this->get('/reports')->assertInertia(fn ($page) => $page
+            ->has('uninformedPlanning', 1)
+            ->where('uninformedPlanning.0.id', $nomail->id)
+            ->where('uninformedPlanning.0.has_email', false)
+        );
     }
 
     public function test_the_report_lists_employees_with_uninformed_published_planning(): void

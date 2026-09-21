@@ -419,7 +419,7 @@ function bulkDelete() {
                                 <ButtonSecondary
                                     type="button"
                                     :icon="linkSentId === employee.id ? 'check-circle' : 'envelope'"
-                                    :disabled="sendingLinkId === employee.id"
+                                    :disabled="employee.has_email === false || sendingLinkId === employee.id"
                                     @click="sendLink(employee)"
                                 >
                                     {{
