@@ -36,13 +36,21 @@ class UninformedPlanning
      * email are left out. They are still uninformed until the email is sent, but
      * sending again would email the employee twice.
      *
-     * @return Collection<int, array{id: int, name: string, business_line: ?string, uninformed_count: int, first_date: string}>
+     * With `$reachableOnly`, employees without an email address are left out.
+     * Nobody can email them, so the Planning email skips them. The report keeps
+     * them and marks them with `has_email`.
+     *
+     * @return Collection<int, array{id: int, name: string, has_email: bool, business_line: ?string, uninformed_count: int, first_date: string}>
      */
-    public function summary(?int $businessLineId = null, bool $excludeQueued = false): Collection
+    public function summary(?int $businessLineId = null, bool $excludeQueued = false, bool $reachableOnly = false): Collection
     {
         $query = $this->upcoming()
             ->whereNull('informed_at')
             ->when($excludeQueued, fn ($q) => $q->whereNotIn('id', $this->queuedAssignmentIds()))
+            ->when($reachableOnly, fn ($q) => $q->whereHas(
+                'employee',
+                fn ($employee) => $employee->whereNotNull('email'),
+            ))
             ->when($businessLineId !== null, fn ($q) => $q->whereHas(
                 'employee',
                 fn ($employee) => $employee->where('business_line_id', $businessLineId),
@@ -57,6 +65,7 @@ class UninformedPlanning
                 return [
                     'id' => $employee->id,
                     'name' => $employee->name,
+                    'has_email' => $employee->email !== null,
                     'business_line' => $employee->businessLine?->abbreviation,
                     'uninformed_count' => $assignments->count(),
                     'first_date' => $assignments->first()->date->toDateString(),

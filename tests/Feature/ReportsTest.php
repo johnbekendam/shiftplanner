@@ -240,6 +240,19 @@ class ReportsTest extends TestCase
         ]);
     }
 
+    public function test_the_uninformed_report_still_lists_employees_without_an_email(): void
+    {
+        $this->admin();
+        $nomail = Employee::factory()->create(['email' => null]);
+        $this->plan($nomail, '2026-09-22');
+
+        $this->get('/reports')->assertInertia(fn ($page) => $page
+            ->has('uninformedPlanning', 1)
+            ->where('uninformedPlanning.0.id', $nomail->id)
+            ->where('uninformedPlanning.0.has_email', false)
+        );
+    }
+
     public function test_the_report_lists_employees_with_uninformed_published_planning(): void
     {
         Carbon::setTestNow('2026-09-20 10:00:00');

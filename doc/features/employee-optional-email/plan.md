@@ -1,6 +1,6 @@
 # Employee Optional Email — Plan
 
-Status: in progress — 3/8
+Status: in progress — 4/8
 
 Each step is one slice. Write the test first, then the code, then commit.
 Add every new user-facing text to `resources/lang/en.json`.
@@ -21,7 +21,7 @@ Add every new user-facing text to `resources/lang/en.json`.
 - [x] 3. **Mailbox recipient picker.** Leave employees with no email out
       of the employee list in `MailboxController`, and out of the
       preselected recipient. Test: the picker data and the Compose page.
-- [ ] 4. **Planning email and Uninformed planning report.** Make
+- [x] 4. **Planning email and Uninformed planning report.** Make
       `PlanningNotifier` skip employees with no email. Their planning
       stays uninformed. Show the marker in `UninformedPlanningReport.vue`
       and skip these rows in "email selected". Test: the notifier and the

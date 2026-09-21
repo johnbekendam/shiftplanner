@@ -98,6 +98,35 @@ class PlanNotificationControllerTest extends TestCase
         Queue::assertPushed(SendMailboxMessage::class, 2);
     }
 
+    public function test_it_skips_employees_without_an_email(): void
+    {
+        Queue::fake();
+        $this->actingAsAdmin();
+        $ann = Employee::factory()->create(['email' => 'ann@example.com']);
+        $nomail = Employee::factory()->create(['email' => null]);
+        $this->plan($ann, '2026-09-22');
+        $nomailShift = $this->plan($nomail, '2026-09-22');
+
+        $this->post('/planning/send')->assertRedirect()->assertSessionHas('success');
+
+        $this->assertSame(1, Message::count());
+        $this->assertSame('ann@example.com', Message::sole()->recipient_email);
+        Queue::assertPushed(SendMailboxMessage::class, 1);
+        $this->assertNull($nomailShift->fresh()->informed_at);
+    }
+
+    public function test_it_refuses_when_only_employees_without_an_email_are_uninformed(): void
+    {
+        Queue::fake();
+        $this->actingAsAdmin();
+        $this->plan(Employee::factory()->create(['email' => null]), '2026-09-22');
+
+        $this->post('/planning/send')->assertSessionHasErrors('planning');
+
+        $this->assertSame(0, Message::count());
+        Queue::assertNothingPushed();
+    }
+
     public function test_it_uses_the_saved_planning_template(): void
     {
         Queue::fake();
@@ -188,5 +217,14 @@ class PlanNotificationControllerTest extends TestCase
         $this->plan(Employee::factory()->create(), '2026-09-22', '2026-09-19 08:00:00');
 
         $this->get('/planning')->assertInertia(fn ($page) => $page->where('uninformedCount', 2));
+    }
+
+    public function test_the_planning_page_count_leaves_out_employees_without_an_email(): void
+    {
+        $this->actingAsAdmin();
+        $this->plan(Employee::factory()->create(['email' => 'a@example.com']), '2026-09-22');
+        $this->plan(Employee::factory()->create(['email' => null]), '2026-09-22');
+
+        $this->get('/planning')->assertInertia(fn ($page) => $page->where('uninformedCount', 1));
     }
 }

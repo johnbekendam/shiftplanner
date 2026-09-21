@@ -38,6 +38,7 @@ const en = {
     "reports.uninformed_planning.select_all": "Select all employees with uninformed planning",
     "reports.uninformed_planning.select_employee": "Select :name",
     "reports.uninformed_planning.email_selected": "Email planning to selected",
+    "employees.no_email": "No email",
 };
 
 const { router } = vi.hoisted(() => ({
@@ -334,8 +335,8 @@ describe("Reports/Index", () => {
     // ── Uninformed planning tab ─────────────────────────────────────────
 
     const uninformedPlanning = [
-        { id: 1, name: "Ann Ant", business_line: "PMP", uninformed_count: 2, first_date: "2026-09-22" },
-        { id: 2, name: "Bo Bee", business_line: null, uninformed_count: 1, first_date: "2026-09-24" },
+        { id: 1, name: "Ann Ant", has_email: true, business_line: "PMP", uninformed_count: 2, first_date: "2026-09-22" },
+        { id: 2, name: "Bo Bee", has_email: true, business_line: null, uninformed_count: 1, first_date: "2026-09-24" },
     ];
 
     const openPlanningTab = async (props = {}) => {
@@ -402,6 +403,24 @@ describe("Reports/Index", () => {
 
         expect(w.get('[aria-label="Select Ann Ant"]').element.checked).toBe(true);
         expect(w.get('[aria-label="Select Bo Bee"]').element.checked).toBe(true);
+    });
+
+    it("marks an employee without an email and leaves the row out of the selection", async () => {
+        const rows = uninformedPlanning.map((row, index) => ({ ...row, has_email: index === 0 }));
+        const w = await openPlanningTab({ uninformedPlanning: rows });
+
+        const [first, second] = w.findAll("tbody tr");
+        expect(first.text()).not.toContain("No email");
+        expect(second.text()).toContain("No email");
+        expect(w.get('[aria-label="Select Bo Bee"]').attributes("disabled")).toBeDefined();
+
+        await w.get('[aria-label="Select all employees with uninformed planning"]').setValue(true);
+
+        expect(w.get('[aria-label="Select Ann Ant"]').element.checked).toBe(true);
+        expect(w.get('[aria-label="Select Bo Bee"]').element.checked).toBe(false);
+
+        await w.get('[aria-label="Email planning to selected 1"]').trigger("click");
+        expect(router.visit).toHaveBeenCalledWith("/mailbox?tab=compose&type=planning&employee_ids[]=1");
     });
 
     it("opens Compose with the Planning type and the selected employees", async () => {

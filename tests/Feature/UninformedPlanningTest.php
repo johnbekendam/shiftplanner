@@ -165,6 +165,30 @@ class UninformedPlanningTest extends TestCase
         $this->assertSame('PMP', $rows[1]['business_line']);
     }
 
+    public function test_summary_rows_say_whether_the_employee_has_an_email(): void
+    {
+        $with = Employee::factory()->create(['email' => 'a@example.com']);
+        $without = Employee::factory()->create(['email' => null]);
+        $this->assign($with, '2026-09-22');
+        $this->assign($without, '2026-09-22');
+
+        $rows = $this->service()->summary();
+
+        $this->assertTrue($rows->firstWhere('id', $with->id)['has_email']);
+        $this->assertFalse($rows->firstWhere('id', $without->id)['has_email']);
+    }
+
+    public function test_summary_can_leave_out_employees_without_an_email(): void
+    {
+        $with = Employee::factory()->create(['email' => 'a@example.com']);
+        $without = Employee::factory()->create(['email' => null]);
+        $this->assign($with, '2026-09-22');
+        $this->assign($without, '2026-09-22');
+
+        $this->assertSame([$with->id], $this->service()->summary(reachableOnly: true)->pluck('id')->all());
+        $this->assertCount(2, $this->service()->summary());
+    }
+
     public function test_summary_can_filter_by_business_line(): void
     {
         $line = BusinessLine::factory()->create();
