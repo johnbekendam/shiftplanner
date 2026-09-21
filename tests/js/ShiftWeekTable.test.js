@@ -12,6 +12,9 @@ const en = {
     "scheduling.open_spot": "Add employee",
     "scheduling.unfulfilled_reason.no_eligible_employee": "No eligible employee found.",
     "scheduling.unfulfilled_reason.hard_cap_reached": "Every eligible employee was blocked by a hard cap.",
+    "scheduling.assignment_tooltip.unfixed": "Bram Bakker (unfixed)",
+    "scheduling.assignment_tooltip.fixed": "Anna Jansen (fixed)",
+    "scheduling.assignment_tooltip.informed": "Bram Bakker (informed)",
 };
 
 const { routerCalls, failUrlsRef, router } = vi.hoisted(() => {
@@ -35,7 +38,10 @@ const axiosGet = vi.hoisted(() => vi.fn());
 vi.mock("axios", () => ({ default: { get: axiosGet } }));
 
 vi.mock("@/composables/useI18n", () => ({
-    useI18n: () => (key) => en[key] ?? key,
+    useI18n: () => (key, values = {}) => Object.entries(values).reduce(
+        (text, [name, value]) => text.replace(`:${name}`, value),
+        en[key] ?? key,
+    ),
 }));
 
 import { SearchInput } from "@/components/ui/Input";
@@ -89,9 +95,9 @@ describe("ShiftWeekTable", () => {
     it("renders filled cells with the employee name, open cells as an add-employee icon, and cells beyond that day's spot count as a dash", () => {
         const w = mountTable();
 
-        expect(w.get('[data-testid="cell-9-2026-09-14-0"]').text()).toBe("Bram Bakker");
+        expect(w.get('[data-testid="cell-9-2026-09-14-0"] [data-testid="assignment-status-badge"]').text()).toBe("Bram Bakker");
         expect(w.get('[data-testid="cell-9-2026-09-14-1"]').find('[aria-label="Add employee"]').exists()).toBe(true);
-        expect(w.get('[data-testid="cell-9-2026-09-15-0"]').text()).toBe("Anna Jansen");
+        expect(w.get('[data-testid="cell-9-2026-09-15-0"] [data-testid="assignment-status-badge"]').text()).toBe("Anna Jansen");
         expect(w.get('[data-testid="cell-9-2026-09-15-1"]').text()).toBe("—");
         expect(w.get('[data-testid="cell-9-2026-09-16-0"]').text()).toBe("—");
         expect(w.get('[data-testid="cell-9-2026-09-17-0"]').find('[aria-label="Add employee"]').exists()).toBe(true);
@@ -99,45 +105,63 @@ describe("ShiftWeekTable", () => {
 
     const nameClasses = (w, cell) => w.get(`[data-testid="${cell}"] button`).find("span").classes();
 
-    it("shows an unpublished, not fixed assignee in gray", () => {
+    it("shows an unfixed assignee in a muted badge", () => {
         const w = mountTable(undefined, { published: false });
 
         // Bram Bakker (Mon, row 0) is not fixed.
-        expect(nameClasses(w, "cell-9-2026-09-14-0")).toContain("text-(--color-text-muted)");
-        expect(nameClasses(w, "cell-9-2026-09-14-0")).not.toContain("text-(--color-text-primary)");
+        const badge = w.get('[data-testid="cell-9-2026-09-14-0"] [data-testid="assignment-status-badge"]');
+        expect(badge.text()).toBe("Bram Bakker");
+        expect(badge.classes()).toContain("text-(--color-badge-muted-text)");
     });
 
-    it("shows a fixed assignee in the standard text color, even when unpublished", () => {
+    it("shows a fixed assignee with an info badge", () => {
         const w = mountTable(undefined, { published: false });
 
         // Anna Jansen (Tue, row 0) is fixed.
-        expect(nameClasses(w, "cell-9-2026-09-15-0")).toContain("text-(--color-text-primary)");
-        expect(nameClasses(w, "cell-9-2026-09-15-0")).not.toContain("text-(--color-text-muted)");
+        const badge = w.get('[data-testid="cell-9-2026-09-15-0"] [data-testid="assignment-status-badge"]');
+        expect(badge.text()).toBe("Anna Jansen");
+        expect(badge.classes()).toContain("text-(--color-badge-standard-text)");
     });
 
-    it("shows an informed assignee in the success text color", () => {
+    it("shows an informed assignee with a success badge", () => {
         const cells = baseCells.map((cell) => ({
             ...cell,
             assignments: cell.assignments.map((assignment) => ({ ...assignment, informed: assignment.id === 1 })),
         }));
         const w = mountTable(cells, { published: true });
 
-        expect(nameClasses(w, "cell-9-2026-09-14-0")).toContain("text-(--color-badge-success-text)");
-        expect(nameClasses(w, "cell-9-2026-09-14-0")).not.toContain("text-(--color-text-primary)");
+        const cell = w.get('[data-testid="cell-9-2026-09-14-0"]');
+        const badge = cell.get('[data-testid="assignment-status-badge"]');
+        expect(badge.text()).toBe("Bram Bakker");
+        expect(badge.classes()).toContain("text-(--color-badge-success-text)");
     });
 
-    it("shows an unfixed assignee in the muted text color even when published", () => {
+    it("shows full-width badges for unfixed and fixed assignees when published", () => {
         const w = mountTable(undefined, { published: true });
 
-        expect(nameClasses(w, "cell-9-2026-09-14-0")).toContain("text-(--color-text-muted)");
-        expect(nameClasses(w, "cell-9-2026-09-15-0")).toContain("text-(--color-text-primary)");
+        expect(w.get('[data-testid="cell-9-2026-09-14-0"] [data-testid="assignment-status-badge"]').classes()).toContain("w-full");
+        expect(w.get('[data-testid="cell-9-2026-09-15-0"] [data-testid="assignment-status-badge"]').classes()).toContain("w-full");
+    });
+
+    it("shows the full employee name and state in the hover tooltip", () => {
+        const w = mountTable();
+
+        expect(w.get('[data-testid="cell-9-2026-09-14-0"] [role="tooltip"]').text()).toBe("Bram Bakker (unfixed)");
+        expect(w.get('[data-testid="cell-9-2026-09-15-0"] [role="tooltip"]').text()).toBe("Anna Jansen (fixed)");
+
+        const informedCells = baseCells.map((cell) => ({
+            ...cell,
+            assignments: cell.assignments.map((assignment) => ({ ...assignment, informed: assignment.id === 1 })),
+        }));
+        const informed = mountTable(informedCells);
+        expect(informed.get('[data-testid="cell-9-2026-09-14-0"] [role="tooltip"]').text()).toBe("Bram Bakker (informed)");
     });
 
     it("shows no pin icon for a fixed assignee, only the name", () => {
         const w = mountTable();
 
         const cell = w.get('[data-testid="cell-9-2026-09-15-0"]');
-        expect(cell.text()).toBe("Anna Jansen");
+        expect(cell.get('[data-testid="assignment-status-badge"]').text()).toBe("Anna Jansen");
         expect(cell.find("svg").exists()).toBe(false);
         expect(w.get('[data-testid="cell-9-2026-09-14-0"]').find("svg").exists()).toBe(false);
     });
