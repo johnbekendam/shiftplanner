@@ -285,17 +285,20 @@ describe("Employees/Index", () => {
         );
     });
 
-    it("shows the No email badge instead of Send link for an employee without an email", () => {
+    it("disables Send link for an employee without an email and shows no badge", async () => {
         const rows = employees.data.map((row, index) => ({ ...row, has_email: index === 0 }));
         const w = mountIndex({ employees: { ...employees, data: rows } });
         const [first, second] = w.findAll("tbody tr");
 
-        expect(first.find("td:last-child button").text()).toBe("Send link");
-        expect(first.text()).not.toContain("No email");
+        expect(first.find("td:last-child button").attributes("disabled")).toBeUndefined();
 
-        expect(second.find("td:last-child").text()).toBe("No email");
-        expect(second.find("td:last-child button").exists()).toBe(false);
-        expect(second.find("td:first-child + td").text()).not.toContain("No email");
+        const button = second.find("td:last-child button");
+        expect(button.text()).toBe("Send link");
+        expect(button.attributes("disabled")).toBeDefined();
+        expect(w.text()).not.toContain("No email");
+
+        await button.trigger("click");
+        expect(router.post).not.toHaveBeenCalled();
     });
 
     it("shows in-button feedback while sending and briefly after success", async () => {

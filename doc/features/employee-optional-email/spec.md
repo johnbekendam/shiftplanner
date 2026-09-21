@@ -34,8 +34,8 @@ employee. The admin then deletes or completes one of the two records.
 An employee without an email is not a mail recipient.
 
 - The Mailbox recipient picker does not list the employee.
-- On the Employees page, the "no email" marker replaces the "send link"
-  button in the last column.
+- On the Employees page, the "send link" button is disabled. The page
+  has no "no email" marker.
 - "Send planning" skips the employee. Their planning stays uninformed
   until an email is added.
 - "Email selected" in the Missing availability report and in the

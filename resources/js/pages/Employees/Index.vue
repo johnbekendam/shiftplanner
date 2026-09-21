@@ -7,7 +7,6 @@ import ButtonDanger from '@/components/ui/ButtonDanger.vue'
 import ButtonPrimary from '@/components/ui/ButtonPrimary.vue'
 import ButtonSecondary from '@/components/ui/ButtonSecondary.vue'
 import Icon from '@/components/ui/Icon.vue'
-import NoEmailBadge from '@/components/NoEmailBadge.vue'
 import { CheckboxInput, SearchInput } from '@/components/ui/Input'
 import { useI18n } from '@/composables/useI18n'
 import { useAuth } from '@/composables/useAuth'
@@ -417,12 +416,10 @@ function bulkDelete() {
                                 />
                             </td>
                             <td class="px-2 py-2 text-right" @click.stop>
-                                <NoEmailBadge v-if="employee.has_email === false" />
                                 <ButtonSecondary
-                                    v-else
                                     type="button"
                                     :icon="linkSentId === employee.id ? 'check-circle' : 'envelope'"
-                                    :disabled="sendingLinkId === employee.id"
+                                    :disabled="employee.has_email === false || sendingLinkId === employee.id"
                                     @click="sendLink(employee)"
                                 >
                                     {{
