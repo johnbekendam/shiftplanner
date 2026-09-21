@@ -1,6 +1,6 @@
 # Employee Optional Email — Plan
 
-Status: in progress — 7/8
+Status: done — 8/8
 
 Each step is one slice. Write the test first, then the code, then commit.
 Add every new user-facing text to `resources/lang/en.json`.
@@ -39,7 +39,7 @@ Add every new user-facing text to `resources/lang/en.json`.
 - [x] 7. **Full application backup.** Test that `ApplicationBackup` exports
       and restores a null email without change. The test passed with no
       code change.
-- [ ] 8. **Personal page.** Hide the read-only email field in
+- [x] 8. **Personal page.** Hide the read-only email field in
       `Personal/Show.vue` when the email is empty. Test: the page shows no
       email field for an employee with no email, and shows it for one with
       an email.

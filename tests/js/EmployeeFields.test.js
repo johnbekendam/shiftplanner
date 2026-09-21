@@ -76,6 +76,24 @@ describe("EmployeeFields", () => {
         expect(inputs.every((i) => i.attributes("disabled") !== undefined)).toBe(true);
     });
 
+    it("hides the read-only email field when there is no email", () => {
+        for (const email of [null, ""]) {
+            const w = mount(EmployeeFields, {
+                props: { form: makeForm({ email }), readonlyIdentity: true, businessLines: [{ id: 5, abbreviation: "PMP" }] },
+            });
+
+            expect(w.findAllComponents(LabeledInput).map((l) => l.props("label"))).toEqual(["First name", "Last name", "Business line"]);
+            expect(w.findAll("input")).toHaveLength(2);
+        }
+    });
+
+    it("keeps the email field editable when it is empty", () => {
+        const w = mount(EmployeeFields, { props: { form: makeForm({ email: null }) } });
+
+        expect(w.findAllComponents(LabeledInput).map((l) => l.props("label"))).toContain("Email");
+        expect(w.findAll("input")).toHaveLength(3);
+    });
+
     it("keeps the business line editable under readonlyIdentity", () => {
         const w = mount(EmployeeFields, {
             props: {

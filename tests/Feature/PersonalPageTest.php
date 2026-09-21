@@ -50,6 +50,17 @@ class PersonalPageTest extends TestCase
             );
     }
 
+    public function test_personal_page_opens_for_an_employee_without_an_email(): void
+    {
+        [$employee, $token] = $this->linkedEmployee(['email' => null]);
+
+        $this->get("/personal/{$token}")->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Personal/Show')
+                ->where('employee.email', null)
+            );
+    }
+
     public function test_employee_can_set_their_business_line(): void
     {
         $line = BusinessLine::factory()->create();
