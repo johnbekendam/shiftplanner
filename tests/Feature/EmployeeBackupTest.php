@@ -323,6 +323,29 @@ class EmployeeBackupTest extends TestCase
         $this->assertDatabaseCount('business_lines', 0);
     }
 
+    public function test_the_application_archive_exports_and_restores_a_null_email(): void
+    {
+        $admin = $this->admin();
+        $nomail = Employee::factory()->create(['first_name' => 'Jane', 'last_name' => 'Doe', 'email' => null]);
+        $withEmail = Employee::factory()->create(['email' => 'kim@example.com']);
+
+        $export = $this->actingAs($admin)->get('/employee-backup/export');
+        $archive = json_decode($export->getContent(), true, 512, JSON_THROW_ON_ERROR);
+
+        $exported = collect($archive['data']['employees'])->keyBy('id');
+        $this->assertNull($exported[$nomail->id]['email']);
+        $this->assertSame('kim@example.com', $exported[$withEmail->id]['email']);
+
+        DB::table('employees')->delete();
+
+        $this->actingAs($admin)->post('/employee-backup/import', [
+            'file' => UploadedFile::fake()->createWithContent('backup.json', $export->getContent()),
+        ])->assertOk()->assertJsonPath('imported', 2);
+
+        $this->assertNull($nomail->fresh()->email);
+        $this->assertSame('kim@example.com', $withEmail->fresh()->email);
+    }
+
     public function test_an_admin_can_export_and_restore_the_complete_application_archive(): void
     {
         $businessLine = BusinessLine::factory()->create(['abbreviation' => 'OPS']);
