@@ -485,6 +485,43 @@ class EmployeeAdminTest extends TestCase
         Queue::assertPushed(SendMailboxMessage::class, 1);
     }
 
+    public function test_index_flags_whether_an_employee_has_an_email(): void
+    {
+        $user = User::factory()->create();
+        Employee::factory()->create(['first_name' => 'Aaron', 'email' => 'aaron@example.com']);
+        Employee::factory()->create(['first_name' => 'Zoe', 'email' => null]);
+
+        $this->actingAs($user)->get('/employees')->assertInertia(fn ($page) => $page
+            ->where('employees.data.0.has_email', true)
+            ->where('employees.data.1.has_email', false)
+        );
+    }
+
+    public function test_sending_a_link_to_an_employee_without_an_email_is_refused(): void
+    {
+        Queue::fake();
+        $user = User::factory()->admin()->create();
+        $employee = Employee::factory()->create(['email' => null]);
+
+        $this->actingAs($user)
+            ->post("/employees/{$employee->id}/send-link")
+            ->assertRedirect()
+            ->assertSessionHas('error');
+
+        $this->assertSame(0, Message::count());
+        Queue::assertNothingPushed();
+    }
+
+    public function test_the_personal_page_link_is_still_available_without_an_email(): void
+    {
+        $user = User::factory()->create();
+        $employee = Employee::factory()->create(['email' => null]);
+
+        $this->actingAs($user)->getJson("/employees/{$employee->id}/personal-page")
+            ->assertOk()
+            ->assertJsonStructure(['url']);
+    }
+
     public function test_a_manager_can_also_send_a_link(): void
     {
         Queue::fake();

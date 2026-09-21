@@ -1,6 +1,6 @@
 # Employee Optional Email — Plan
 
-Status: in progress — 1/8
+Status: in progress — 2/8
 
 Each step is one slice. Write the test first, then the code, then commit.
 Add every new user-facing text to `resources/lang/en.json`.
@@ -13,7 +13,7 @@ Add every new user-facing text to `resources/lang/en.json`.
       with no email, clear an existing email, and reject a duplicate or
       invalid email. Add a regression test that self-signup with a new
       email creates a second employee.
-- [ ] 2. **Employees list marker and "send link" guard.** Show a "no
+- [x] 2. **Employees list marker and "send link" guard.** Show a "no
       email" marker in the list instead of an empty cell. Disable "send
       link" with a tooltip. Make `EmployeeController::sendLink` refuse an
       employee with no email. Test: the list props, the disabled action,

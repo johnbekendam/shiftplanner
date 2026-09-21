@@ -193,6 +193,8 @@
     "employees.confirmed.yes": "Confirmed",
     "employees.confirmed.no": "Unconfirmed",
     "employees.no_business_line": "—",
+    "employees.no_email": "No email",
+    "employees.no_email_hint": "Add an email address to send messages to this employee.",
     "employees.business_lines.label": "Business lines",
     "employees.business_lines.no_line": "No business line",
     "employees.business_lines.select_all": "Select all",
@@ -243,6 +245,7 @@
     "employees.flash.deleted": "Deleted :count employee(s).",
     "employees.flash.deleted_one": "Employee deleted.",
     "employees.flash.link_queued": "Personal page link queued for sending.",
+    "employees.flash.link_no_email": "This employee has no email address. Add one first.",
 
     "personal.title": "Your working hours",
     "personal.action.save": "Save",

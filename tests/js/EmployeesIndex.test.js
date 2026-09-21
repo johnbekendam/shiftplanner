@@ -14,6 +14,8 @@ const en = {
     "employees.confirmed.yes": "Confirmed",
     "employees.confirmed.no": "Unconfirmed",
     "employees.no_business_line": "—",
+    "employees.no_email": "No email",
+    "employees.no_email_hint": "Add an email address to send messages to this employee.",
     "employees.business_lines.label": "Business lines",
     "employees.business_lines.no_line": "No business line",
     "employees.business_lines.aria_group": "Filter by business line",
@@ -51,6 +53,7 @@ const employees = {
         {
             id: 1,
             name: "Ann Ant",
+            has_email: true,
             business_line: "PMP",
             weekly_hours: 24,
             confirmed: true,
@@ -62,6 +65,7 @@ const employees = {
         {
             id: 2,
             name: "Bo Bee",
+            has_email: true,
             business_line: null,
             weekly_hours: 40,
             confirmed: false,
@@ -280,6 +284,24 @@ describe("Employees/Index", () => {
             {},
             expect.objectContaining({ preserveScroll: true }),
         );
+    });
+
+    it("marks an employee without an email and disables Send link for that row only", async () => {
+        const rows = employees.data.map((row, index) => ({ ...row, has_email: index === 0 }));
+        const w = mountIndex({ employees: { ...employees, data: rows } });
+        const [first, second] = w.findAll("tbody tr");
+
+        expect(first.text()).not.toContain("No email");
+        expect(second.text()).toContain("No email");
+
+        const button = second.find("td:last-child button");
+        expect(button.attributes("disabled")).toBeDefined();
+        expect(second.find("td:last-child span[title]").attributes("title"))
+            .toBe("Add an email address to send messages to this employee.");
+        expect(first.find("td:last-child button").attributes("disabled")).toBeUndefined();
+
+        await button.trigger("click");
+        expect(router.post).not.toHaveBeenCalled();
     });
 
     it("shows in-button feedback while sending and briefly after success", async () => {

@@ -93,6 +93,7 @@ class EmployeeController extends Controller
         $employees = $employees->through(fn (Employee $employee) => [
             'id' => $employee->id,
             'name' => $employee->name,
+            'has_email' => $employee->email !== null,
             'business_line' => $employee->businessLine?->abbreviation,
             'weekly_hours' => $employee->weekly_hours,
             'confirmed' => $employee->confirmed,
@@ -139,7 +140,7 @@ class EmployeeController extends Controller
         return Inertia::render('Employees/Form', [
             'employee' => [
                 ...$employee->only(['id', 'first_name', 'last_name', 'email', 'weekly_hours', 'weekly_hours_minimum', 'business_line_id']),
-                'link_sent' => Message::query()
+                'link_sent' => $employee->email !== null && Message::query()
                     ->where('type', MessageType::PersonalPageLink)
                     ->where('status', 'sent')
                     ->where('recipient_email', $employee->email)
@@ -245,6 +246,10 @@ class EmployeeController extends Controller
      */
     public function sendLink(Request $request, Employee $employee, PersonalLinkMessage $placeholders, MessageComposer $composer)
     {
+        if ($employee->email === null) {
+            return back()->with('error', __('employees.flash.link_no_email'));
+        }
+
         $template = MessageTemplate::forType(MessageType::PersonalPageLink);
         $map = $placeholders->forEmployee($employee);
         $subject = $placeholders->apply($template->subject, $map);

@@ -7,6 +7,7 @@ import ButtonDanger from '@/components/ui/ButtonDanger.vue'
 import ButtonPrimary from '@/components/ui/ButtonPrimary.vue'
 import ButtonSecondary from '@/components/ui/ButtonSecondary.vue'
 import Icon from '@/components/ui/Icon.vue'
+import NoEmailBadge from '@/components/NoEmailBadge.vue'
 import { CheckboxInput, SearchInput } from '@/components/ui/Input'
 import { useI18n } from '@/composables/useI18n'
 import { useAuth } from '@/composables/useAuth'
@@ -390,7 +391,12 @@ function bulkDelete() {
                                     :aria-label="__('employees.selection.select_employee', { name: employee.name })"
                                 />
                             </td>
-                            <td class="px-2 py-2 text-(--color-table-row-text)">{{ employee.name }}</td>
+                            <td class="px-2 py-2 text-(--color-table-row-text)">
+                                <div class="flex flex-wrap items-center gap-2">
+                                    <span>{{ employee.name }}</span>
+                                    <NoEmailBadge v-if="employee.has_email === false" />
+                                </div>
+                            </td>
                             <td class="px-2 py-2 text-(--color-table-row-text)">
                                 {{ employee.business_line ?? __('employees.no_business_line') }}
                             </td>
@@ -416,20 +422,25 @@ function bulkDelete() {
                                 />
                             </td>
                             <td class="px-2 py-2 text-right" @click.stop>
-                                <ButtonSecondary
-                                    type="button"
-                                    :icon="linkSentId === employee.id ? 'check-circle' : 'envelope'"
-                                    :disabled="sendingLinkId === employee.id"
-                                    @click="sendLink(employee)"
+                                <span
+                                    class="inline-flex"
+                                    :title="employee.has_email === false ? __('employees.no_email_hint') : undefined"
                                 >
-                                    {{
-                                        sendingLinkId === employee.id
-                                            ? __('employees.action.sending_link')
-                                            : linkSentId === employee.id
-                                              ? __('employees.action.link_sent')
-                                              : __('employees.action.send_link')
-                                    }}
-                                </ButtonSecondary>
+                                    <ButtonSecondary
+                                        type="button"
+                                        :icon="linkSentId === employee.id ? 'check-circle' : 'envelope'"
+                                        :disabled="employee.has_email === false || sendingLinkId === employee.id"
+                                        @click="sendLink(employee)"
+                                    >
+                                        {{
+                                            sendingLinkId === employee.id
+                                                ? __('employees.action.sending_link')
+                                                : linkSentId === employee.id
+                                                  ? __('employees.action.link_sent')
+                                                  : __('employees.action.send_link')
+                                        }}
+                                    </ButtonSecondary>
+                                </span>
                             </td>
                         </tr>
                         <tr v-if="!employees.data.length">
