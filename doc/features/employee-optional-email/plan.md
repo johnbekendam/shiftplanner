@@ -14,10 +14,10 @@ Add every new user-facing text to `resources/lang/en.json`.
       invalid email. Add a regression test that self-signup with a new
       email creates a second employee.
 - [x] 2. **Employees list marker and "send link" guard.** Show a "no
-      email" marker in the list instead of an empty cell. Disable "send
-      link" with a tooltip. Make `EmployeeController::sendLink` refuse an
-      employee with no email. Test: the list props, the disabled action,
-      and the refusal. Test that "copy personal-page link" still works.
+      email" marker in the last column of the list, in place of the "send
+      link" button. Make `EmployeeController::sendLink` refuse an
+      employee with no email. Test: the list props, the marker
+      instead of the button, and the refusal. Test that "copy personal-page link" still works.
 - [x] 3. **Mailbox recipient picker.** Leave employees with no email out
       of the employee list in `MailboxController`, and out of the
       preselected recipient. Test: the picker data and the Compose page.

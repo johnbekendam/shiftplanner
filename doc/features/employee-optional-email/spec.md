@@ -34,14 +34,14 @@ employee. The admin then deletes or completes one of the two records.
 An employee without an email is not a mail recipient.
 
 - The Mailbox recipient picker does not list the employee.
-- The "send link" action on the Employees page is disabled and shows a
-  tooltip that gives the reason.
+- On the Employees page, the "no email" marker replaces the "send link"
+  button in the last column.
 - "Send planning" skips the employee. Their planning stays uninformed
   until an email is added.
 - "Email selected" in the Missing availability report and in the
   Uninformed planning report skips the employee.
-- The Employees list and both reports show the employee with a "no
-  email" marker, so the admin can see who is not reachable.
+- Both reports show the employee with a "no email" marker next to the
+  name, so the admin can see who is not reachable.
 - The "copy personal-page link" action stays available. The link token
   does not depend on email.
 
