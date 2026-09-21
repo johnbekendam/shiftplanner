@@ -51,6 +51,7 @@ class ShiftAssignment extends Model
             'employee_id' => $this->employee_id,
             'employee_name' => $this->employee->name,
             'fixed' => $this->fixed,
+            'informed' => $this->informed_at !== null,
         ];
     }
 }

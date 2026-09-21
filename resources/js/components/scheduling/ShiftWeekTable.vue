@@ -38,8 +38,7 @@ const props = defineProps({
     // workcenter/shift — filtered to this table's own cells below.
     // [{ workcenter_id, shift_id, date, reason }]
     unfulfilled: { type: Array, default: () => [] },
-    // Whether this workcenter's week is published. An assignee who is neither fixed nor
-    // published is still a draft, so the name shows in gray.
+    // Whether this workcenter's week is published.
     published: { type: Boolean, default: false },
 })
 
@@ -60,9 +59,10 @@ function sortedAssignments(cell) {
     return [...cell.assignments].sort((a, b) => (b.fixed - a.fixed) || a.employee_name.localeCompare(b.employee_name))
 }
 
-// Neither fixed nor published: still open to change by Generate.
-function isDraft(assignment) {
-    return !assignment.fixed && !props.published
+function assignmentTextClass(assignment) {
+    if (assignment.informed) return 'text-(--color-badge-success-text)'
+    if (!assignment.fixed) return 'text-(--color-text-muted)'
+    return 'text-(--color-text-primary)'
 }
 
 function cellState(cell, row) {
@@ -291,7 +291,7 @@ onBeforeUnmount(() => {
                             >
                                 <span
                                     class="block min-w-0 truncate"
-                                    :class="isDraft(cellState(cell, row).assignment) ? 'text-(--color-text-muted)' : 'text-(--color-text-primary)'"
+                                    :class="assignmentTextClass(cellState(cell, row).assignment)"
                                 >
                                     {{ cellState(cell, row).assignment.employee_name }}
                                 </span>

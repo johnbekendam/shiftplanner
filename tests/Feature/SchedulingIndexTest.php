@@ -245,6 +245,7 @@ class SchedulingIndexTest extends TestCase
             'shift_id' => $shift->id,
             'date' => $date->toDateString(),
             'fixed' => true,
+            'informed_at' => '2026-09-09 08:00:00',
         ]);
 
         $response = $this->get('/planning?year=2026&month=9&date=2026-09-10')->assertOk();
@@ -257,6 +258,7 @@ class SchedulingIndexTest extends TestCase
         $this->assertCount(1, $entry['assignments']);
         $this->assertSame('Anna Jansen', $entry['assignments'][0]['employee_name']);
         $this->assertTrue($entry['assignments'][0]['fixed']);
+        $this->assertTrue($entry['assignments'][0]['informed']);
     }
 
     public function test_week_cells_include_a_day_with_zero_spots_when_the_shift_is_attached(): void

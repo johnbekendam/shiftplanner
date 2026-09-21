@@ -43,8 +43,8 @@ class SendMailboxMessage implements ShouldQueue
 
     /**
      * A Planning message lists shift assignments (features/planning-notifications/).
-     * Once it is really sent, those assignments count as informed. An earlier
-     * informed time stays as it is.
+    * Once it is really sent, those assignments count as informed and fixed.
+    * An earlier informed time stays as it is.
      */
     private function markListedAssignmentsInformed(DateTimeInterface $sentAt): void
     {
@@ -53,6 +53,10 @@ class SendMailboxMessage implements ShouldQueue
         if (empty($ids)) {
             return;
         }
+
+        ShiftAssignment::query()
+            ->whereIn('id', $ids)
+            ->update(['fixed' => true]);
 
         ShiftAssignment::query()
             ->whereIn('id', $ids)

@@ -40,6 +40,7 @@ class SendMailboxMessageTest extends TestCase
 
         $this->assertNotNull($listed->fresh()->informed_at);
         $this->assertEquals($message->fresh()->sent_at, $listed->fresh()->informed_at);
+        $this->assertTrue($listed->fresh()->fixed);
         $this->assertNull($other->fresh()->informed_at);
     }
 
@@ -80,5 +81,6 @@ class SendMailboxMessageTest extends TestCase
         (new SendMailboxMessage($message->id, $message->recipient_email, new ComposedMessage('Hello', '<p>Body</p>')))->handle();
 
         $this->assertSame('2026-09-01 08:00:00', $assignment->fresh()->informed_at->format('Y-m-d H:i:s'));
+        $this->assertTrue($assignment->fresh()->fixed);
     }
 }

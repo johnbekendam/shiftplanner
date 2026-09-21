@@ -28,7 +28,7 @@ The assignment payload includes the informed state. The planning table uses the 
 
 ## Non-goals
 
-- Do not change manual fixed or un fixed actions.
+- Do not change manual fixed or unfixed actions.
 - Do not change which assignments the Planning email lists.
 - Do not add a new Theme Builder color setting.
 - Do not change employee-facing planning pages or email content.

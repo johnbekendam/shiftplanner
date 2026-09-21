@@ -45,8 +45,8 @@ import ShiftWeekTable from "@/components/scheduling/ShiftWeekTable.vue";
 // Tue: 1 spot, 1 assigned & fixed (row beyond spots is a dash). Wed: 0 spots.
 // Thu: 2 spots, overridden, none assigned (both rows open). Fri-Sun: 0 spots.
 const baseCells = [
-    { date: "2026-09-14", spots: 2, overridden: false, assignments: [{ id: 1, employee_id: 5, employee_name: "Bram Bakker", fixed: false }] },
-    { date: "2026-09-15", spots: 1, overridden: false, assignments: [{ id: 2, employee_id: 6, employee_name: "Anna Jansen", fixed: true }] },
+    { date: "2026-09-14", spots: 2, overridden: false, assignments: [{ id: 1, employee_id: 5, employee_name: "Bram Bakker", fixed: false, informed: false }] },
+    { date: "2026-09-15", spots: 1, overridden: false, assignments: [{ id: 2, employee_id: 6, employee_name: "Anna Jansen", fixed: true, informed: false }] },
     { date: "2026-09-16", spots: 0, overridden: false, assignments: [] },
     { date: "2026-09-17", spots: 2, overridden: true, assignments: [] },
     { date: "2026-09-18", spots: 0, overridden: false, assignments: [] },
@@ -115,10 +115,21 @@ describe("ShiftWeekTable", () => {
         expect(nameClasses(w, "cell-9-2026-09-15-0")).not.toContain("text-(--color-text-muted)");
     });
 
-    it("shows every assignee of a published workcenter in the standard text color", () => {
+    it("shows an informed assignee in the success text color", () => {
+        const cells = baseCells.map((cell) => ({
+            ...cell,
+            assignments: cell.assignments.map((assignment) => ({ ...assignment, informed: assignment.id === 1 })),
+        }));
+        const w = mountTable(cells, { published: true });
+
+        expect(nameClasses(w, "cell-9-2026-09-14-0")).toContain("text-(--color-badge-success-text)");
+        expect(nameClasses(w, "cell-9-2026-09-14-0")).not.toContain("text-(--color-text-primary)");
+    });
+
+    it("shows an unfixed assignee in the muted text color even when published", () => {
         const w = mountTable(undefined, { published: true });
 
-        expect(nameClasses(w, "cell-9-2026-09-14-0")).toContain("text-(--color-text-primary)");
+        expect(nameClasses(w, "cell-9-2026-09-14-0")).toContain("text-(--color-text-muted)");
         expect(nameClasses(w, "cell-9-2026-09-15-0")).toContain("text-(--color-text-primary)");
     });
 
