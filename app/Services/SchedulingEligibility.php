@@ -121,14 +121,6 @@ class SchedulingEligibility
 
     private function shiftDurationHours(Shift $shift): float
     {
-        [$startHour, $startMinute] = array_map('intval', explode(':', $shift->start_time));
-        [$endHour, $endMinute] = array_map('intval', explode(':', $shift->end_time));
-        $minutes = ($endHour * 60 + $endMinute) - ($startHour * 60 + $startMinute);
-
-        if ($minutes <= 0) {
-            $minutes += 24 * 60;
-        }
-
-        return $minutes / 60;
+        return $shift->durationHours();
     }
 }

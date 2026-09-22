@@ -50,6 +50,26 @@ class Shift extends Model
         );
     }
 
+    /** Hours between start and end time, wrapping past midnight for an overnight shift. */
+    public function durationHours(): float
+    {
+        return self::durationHoursBetween($this->start_time, $this->end_time);
+    }
+
+    /** Same calculation as {@see durationHours()}, for callers holding raw `H:i` strings instead of a model. */
+    public static function durationHoursBetween(string $startTime, string $endTime): float
+    {
+        [$startHour, $startMinute] = array_map('intval', explode(':', $startTime));
+        [$endHour, $endMinute] = array_map('intval', explode(':', $endTime));
+        $minutes = ($endHour * 60 + $endMinute) - ($startHour * 60 + $startMinute);
+
+        if ($minutes <= 0) {
+            $minutes += 24 * 60;
+        }
+
+        return $minutes / 60;
+    }
+
     public function recurringAvailabilities(): HasMany
     {
         return $this->hasMany(RecurringAvailability::class);
