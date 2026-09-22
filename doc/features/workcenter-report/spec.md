@@ -23,6 +23,12 @@ The tab has a mode selector with two modes:
   Workcenters tab). Before a workcenter is picked, the tab shows an
   empty prompt and no rows.
 
+Both tables also show Business line, Weekly hours, and Confirmed for
+each employee, matching the missing-availability report's column
+values and wording: the business line's abbreviation (or an em dash
+with none set), the raw `weekly_hours` number, and Confirmed/Unconfirmed
+text.
+
 Clicking a row in either mode navigates to
 `/employees/{id}/edit?tab=workcenters`, matching the Competences tab's
 click-through to the employee edit page.
@@ -54,9 +60,11 @@ original spec deferred this relation until something needed it.
   differs from the employee Workcenters tab, which does show an
   employee's stale row against an archived workcenter — that tab is
   about clearing stale data, this report is about coverage.
-- **No business-line or confirmed-status filters.** Matches the
-  competence report's first-version scope. Keeps this small; either
-  filter can be added later if a manager asks for it.
+- **No business-line or confirmed-status filters, but both are shown as
+  columns.** A manager asked for this context on every row after the
+  first version shipped. This is a display addition, not a filter —
+  the "keep this small" scope decision above was about filters, not
+  columns.
 - **Row click navigates to the employee's Workcenters tab.** Same
   pattern as the competence report's click-through, giving a direct path
   to fix the gap.

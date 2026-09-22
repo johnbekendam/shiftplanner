@@ -36,6 +36,12 @@ const en = {
     "reports.workcenter.empty_results": "No employees are assigned to this workcenter.",
     "reports.workcenter.column.name": "Name",
     "reports.workcenter.column.mode": "Requirement",
+    "reports.workcenter.column.business_line": "Business line",
+    "reports.workcenter.column.weekly_hours": "Weekly hours",
+    "reports.workcenter.column.confirmed": "Confirmed",
+    "reports.workcenter.no_business_line": "—",
+    "reports.workcenter.confirmed.yes": "Confirmed",
+    "reports.workcenter.confirmed.no": "Unconfirmed",
     "workcenters.mode.hard": "Requirement",
     "workcenters.mode.soft": "Preference",
     "reports.tab.uninformed_planning": "Uninformed planning",
@@ -79,12 +85,12 @@ const competenceReport = [
 ];
 const workcenters = [{ id: 20, name: "Assembly A" }, { id: 21, name: "Paint Booth" }];
 const unassignedWorkcenterReport = [
-    { id: 1, name: "Ann Ant" },
-    { id: 2, name: "Bo Bee" },
+    { id: 1, name: "Ann Ant", business_line: "PMP", weekly_hours: 24, confirmed: true },
+    { id: 2, name: "Bo Bee", business_line: null, weekly_hours: 40, confirmed: false },
 ];
 const workcenterReport = [
-    { id: 1, name: "Ann Ant", mode: "hard" },
-    { id: 2, name: "Bo Bee", mode: "soft" },
+    { id: 1, name: "Ann Ant", mode: "hard", business_line: "PMP", weekly_hours: 24, confirmed: true },
+    { id: 2, name: "Bo Bee", mode: "soft", business_line: null, weekly_hours: 40, confirmed: false },
 ];
 
 const mountIndex = (props = {}) =>
@@ -391,6 +397,14 @@ describe("Reports/Index", () => {
         expect(w.text()).toContain("Ann Ant");
         expect(w.text()).toContain("Bo Bee");
         expect(w.findAllComponents(SelectInput)).toHaveLength(1);
+
+        const rows = w.findAll("tbody tr");
+        expect(rows[0].text()).toContain("PMP");
+        expect(rows[0].text()).toContain("24");
+        expect(rows[0].text()).toContain("Confirmed");
+        expect(rows[1].text()).toContain("—");
+        expect(rows[1].text()).toContain("40");
+        expect(rows[1].text()).toContain("Unconfirmed");
     });
 
     it("shows the empty state when every employee is assigned", async () => {
@@ -453,6 +467,14 @@ describe("Reports/Index", () => {
         expect(w.text()).toContain("Requirement");
         expect(w.text()).toContain("Bo Bee");
         expect(w.text()).toContain("Preference");
+
+        const rows = w.findAll("tbody tr");
+        expect(rows[0].text()).toContain("PMP");
+        expect(rows[0].text()).toContain("24");
+        expect(rows[0].text()).toContain("Confirmed");
+        expect(rows[1].text()).toContain("—");
+        expect(rows[1].text()).toContain("40");
+        expect(rows[1].text()).toContain("Unconfirmed");
 
         await w.find("tbody tr").trigger("click");
 

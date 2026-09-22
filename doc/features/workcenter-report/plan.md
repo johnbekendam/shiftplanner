@@ -1,4 +1,4 @@
-Status: done — 3/3
+Status: done — 4/4
 
 - [x] 1. `Workcenter::employees()` relation and controller data
       Add `Workcenter::employees(): BelongsToMany` with
@@ -67,3 +67,17 @@ Status: done — 3/3
       feature introduced. No new behavior in this step.
 
       Ran clean after step 2: 909 PHP tests, 762 JS tests, no failures.
+
+- [x] 4. Business line, weekly hours, and confirmed-status columns
+      Add `business_line`, `weekly_hours`, `confirmed` to both
+      `unassignedWorkcenterReport()` and `workcenterReport()` in
+      `ReportController`, matching `missingAvailability()`'s field
+      shape and values. Add the matching columns to both tables in
+      `Reports/Index.vue`, and `reports.workcenter.column.business_line`
+      / `.weekly_hours` / `.confirmed`, `.no_business_line`, and
+      `.confirmed.yes`/`.no` language keys.
+
+      `tests/Feature/ReportsTest.php` and `tests/js/Reports.test.js`
+      cover the new fields on both tables, including the no-business-line
+      and unconfirmed cases. Full suite ran clean: 917 PHP tests, 763 JS
+      tests.

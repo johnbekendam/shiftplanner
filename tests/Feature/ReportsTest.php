@@ -244,7 +244,11 @@ class ReportsTest extends TestCase
     public function test_unassigned_workcenter_report_defaults_to_unassigned_mode(): void
     {
         $this->admin();
-        $unassigned = Employee::factory()->create(['first_name' => 'Ann', 'last_name' => 'Ant']);
+        $line = BusinessLine::factory()->create(['abbreviation' => 'PMP']);
+        $unassigned = Employee::factory()->create([
+            'first_name' => 'Ann', 'last_name' => 'Ant',
+            'weekly_hours' => 32, 'confirmed' => true, 'business_line_id' => $line->id,
+        ]);
         $assigned = Employee::factory()->create(['first_name' => 'Bo', 'last_name' => 'Bee']);
         $workcenter = Workcenter::factory()->create();
         $assigned->workcenters()->attach($workcenter, ['mode' => 'hard']);
@@ -255,6 +259,19 @@ class ReportsTest extends TestCase
             ->has('unassignedWorkcenterReport', 1)
             ->where('unassignedWorkcenterReport.0.id', $unassigned->id)
             ->where('unassignedWorkcenterReport.0.name', 'Ann Ant')
+            ->where('unassignedWorkcenterReport.0.business_line', 'PMP')
+            ->where('unassignedWorkcenterReport.0.weekly_hours', 32)
+            ->where('unassignedWorkcenterReport.0.confirmed', true)
+        );
+    }
+
+    public function test_unassigned_workcenter_report_shows_no_business_line_as_null(): void
+    {
+        $this->admin();
+        Employee::factory()->create(['business_line_id' => null]);
+
+        $this->get('/reports')->assertInertia(fn ($page) => $page
+            ->where('unassignedWorkcenterReport.0.business_line', null)
         );
     }
 
@@ -284,10 +301,14 @@ class ReportsTest extends TestCase
     public function test_for_workcenter_mode_lists_employees_assigned_to_the_picked_workcenter(): void
     {
         $this->admin();
+        $line = BusinessLine::factory()->create(['abbreviation' => 'PMP']);
         $workcenterA = Workcenter::factory()->create();
         $workcenterB = Workcenter::factory()->create();
-        $ann = Employee::factory()->create(['first_name' => 'Ann', 'last_name' => 'Ant']);
-        $bo = Employee::factory()->create(['first_name' => 'Bo', 'last_name' => 'Bee']);
+        $ann = Employee::factory()->create([
+            'first_name' => 'Ann', 'last_name' => 'Ant',
+            'weekly_hours' => 32, 'confirmed' => true, 'business_line_id' => $line->id,
+        ]);
+        $bo = Employee::factory()->create(['first_name' => 'Bo', 'last_name' => 'Bee', 'weekly_hours' => 16, 'confirmed' => false]);
         $cy = Employee::factory()->create(['first_name' => 'Cy', 'last_name' => 'Cat']);
         $ann->workcenters()->attach($workcenterA, ['mode' => 'hard']);
         $bo->workcenters()->attach($workcenterA, ['mode' => 'soft']);
@@ -299,9 +320,15 @@ class ReportsTest extends TestCase
                 ->where('workcenterReport.0.id', $ann->id)
                 ->where('workcenterReport.0.name', 'Ann Ant')
                 ->where('workcenterReport.0.mode', 'hard')
+                ->where('workcenterReport.0.business_line', 'PMP')
+                ->where('workcenterReport.0.weekly_hours', 32)
+                ->where('workcenterReport.0.confirmed', true)
                 ->where('workcenterReport.1.id', $bo->id)
                 ->where('workcenterReport.1.name', 'Bo Bee')
                 ->where('workcenterReport.1.mode', 'soft')
+                ->where('workcenterReport.1.business_line', null)
+                ->where('workcenterReport.1.weekly_hours', 16)
+                ->where('workcenterReport.1.confirmed', false)
                 ->where('filters.workcenter_id', $workcenterA->id)
             );
     }

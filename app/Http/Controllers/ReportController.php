@@ -140,12 +140,16 @@ class ReportController extends Controller
     {
         return Employee::query()
             ->whereDoesntHave('workcenters')
+            ->with('businessLine')
             ->orderBy('first_name')
             ->orderBy('last_name')
             ->get()
             ->map(fn (Employee $employee) => [
                 'id' => $employee->id,
                 'name' => $employee->name,
+                'business_line' => $employee->businessLine?->abbreviation,
+                'weekly_hours' => $employee->weekly_hours,
+                'confirmed' => $employee->confirmed,
             ])
             ->all();
     }
@@ -157,6 +161,7 @@ class ReportController extends Controller
         }
 
         return $selectedWorkcenter->employees()
+            ->with('businessLine')
             ->orderBy('first_name')
             ->orderBy('last_name')
             ->get()
@@ -164,6 +169,9 @@ class ReportController extends Controller
                 'id' => $employee->id,
                 'name' => $employee->name,
                 'mode' => $employee->pivot->mode,
+                'business_line' => $employee->businessLine?->abbreviation,
+                'weekly_hours' => $employee->weekly_hours,
+                'confirmed' => $employee->confirmed,
             ])
             ->all();
     }

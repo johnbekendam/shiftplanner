@@ -20,8 +20,8 @@ const props = defineProps({
     uninformedPlanning: { type: Array, default: () => [] }, // { id, name, business_line, uninformed_count, first_date }
     competences: { type: Array, default: () => [] }, // { id, name, read_only }
     competenceReport: { type: Array, default: () => [] }, // { id, name, competence_names }
-    unassignedWorkcenterReport: { type: Array, default: () => [] }, // { id, name }
-    workcenterReport: { type: Array, default: () => [] }, // { id, name, mode }
+    unassignedWorkcenterReport: { type: Array, default: () => [] }, // { id, name, business_line, weekly_hours, confirmed }
+    workcenterReport: { type: Array, default: () => [] }, // { id, name, mode, business_line, weekly_hours, confirmed }
     workcenters: { type: Array, default: () => [] }, // { id, name }
     filters: { type: Object, required: true }, // { shift, business_line, unconfirmed, planning_business_line, competence_mode, competence_id, workcenter_mode, workcenter_id }
 })
@@ -210,6 +210,9 @@ function emailSelected() {
                     <thead>
                         <tr class="border-b border-(--color-table-header-separator) text-left text-(--color-table-header-text)">
                             <th class="px-2 py-2 font-medium">{{ __('reports.workcenter.column.name') }}</th>
+                            <th class="px-2 py-2 font-medium">{{ __('reports.workcenter.column.business_line') }}</th>
+                            <th class="px-2 py-2 font-medium">{{ __('reports.workcenter.column.weekly_hours') }}</th>
+                            <th class="px-2 py-2 font-medium">{{ __('reports.workcenter.column.confirmed') }}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -222,6 +225,15 @@ function emailSelected() {
                             @keydown.enter="openEmployeeWorkcenters(employee)"
                         >
                             <td class="px-2 py-2 text-(--color-table-row-text)">{{ employee.name }}</td>
+                            <td class="px-2 py-2 text-(--color-table-row-text)">
+                                {{ employee.business_line ?? __('reports.workcenter.no_business_line') }}
+                            </td>
+                            <td class="px-2 py-2 text-(--color-table-row-text)">{{ employee.weekly_hours }}</td>
+                            <td class="px-2 py-2 text-(--color-table-row-text)">
+                                {{ employee.confirmed
+                                    ? __('reports.workcenter.confirmed.yes')
+                                    : __('reports.workcenter.confirmed.no') }}
+                            </td>
                         </tr>
                     </tbody>
                 </table>
@@ -235,6 +247,9 @@ function emailSelected() {
                         <tr class="border-b border-(--color-table-header-separator) text-left text-(--color-table-header-text)">
                             <th class="px-2 py-2 font-medium">{{ __('reports.workcenter.column.name') }}</th>
                             <th class="px-2 py-2 font-medium">{{ __('reports.workcenter.column.mode') }}</th>
+                            <th class="px-2 py-2 font-medium">{{ __('reports.workcenter.column.business_line') }}</th>
+                            <th class="px-2 py-2 font-medium">{{ __('reports.workcenter.column.weekly_hours') }}</th>
+                            <th class="px-2 py-2 font-medium">{{ __('reports.workcenter.column.confirmed') }}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -249,6 +264,15 @@ function emailSelected() {
                             <td class="px-2 py-2 text-(--color-table-row-text)">{{ employee.name }}</td>
                             <td class="px-2 py-2 text-(--color-table-row-text)">
                                 {{ __(`workcenters.mode.${employee.mode}`) }}
+                            </td>
+                            <td class="px-2 py-2 text-(--color-table-row-text)">
+                                {{ employee.business_line ?? __('reports.workcenter.no_business_line') }}
+                            </td>
+                            <td class="px-2 py-2 text-(--color-table-row-text)">{{ employee.weekly_hours }}</td>
+                            <td class="px-2 py-2 text-(--color-table-row-text)">
+                                {{ employee.confirmed
+                                    ? __('reports.workcenter.confirmed.yes')
+                                    : __('reports.workcenter.confirmed.no') }}
                             </td>
                         </tr>
                     </tbody>
