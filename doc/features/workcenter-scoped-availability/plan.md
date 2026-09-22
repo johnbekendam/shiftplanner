@@ -1,4 +1,4 @@
-Status: in progress — 2/3
+Status: complete — 3/3
 
 - [x] 1. Add `Employee::effectiveShifts(): Collection` — no hard
   `employee_workcenter` row returns `Shift::where('visible_by_default', true)`;
@@ -18,7 +18,7 @@ Status: in progress — 2/3
   visible-by-default one it does not run); an employee with no hard row
   keeps today's default-visible set.
 
-- [ ] 3. Replace `SetsRecurringAvailability::setCell()`'s
+- [x] 3. Replace `SetsRecurringAvailability::setCell()`'s
   `! $shift->visible_by_default` guard with
   `! $employee->effectiveShifts()->contains($shift)`. Feature tests: a
   write for a shift outside the employee's effective set is rejected

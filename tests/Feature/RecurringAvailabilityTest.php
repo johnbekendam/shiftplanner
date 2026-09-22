@@ -77,6 +77,51 @@ class RecurringAvailabilityTest extends TestCase
         $this->assertSame(0, RecurringAvailability::count());
     }
 
+    public function test_a_shift_outside_the_hard_workcenter_rejects_writes(): void
+    {
+        $user = User::factory()->create();
+        $employee = Employee::factory()->create();
+        $token = $this->token($employee);
+        $workcenter = Workcenter::factory()->create();
+        $otherWorkcenter = Workcenter::factory()->create();
+        $run = Shift::factory()->create();
+        $notRun = Shift::factory()->create(['start_time' => '14:00', 'end_time' => '22:00']);
+        $workcenter->shifts()->attach($run);
+        $otherWorkcenter->shifts()->attach($notRun);
+        $employee->workcenters()->attach($workcenter, ['mode' => 'hard']);
+
+        $this->actingAs($user)
+            ->put("/employees/{$employee->id}/availability/3/{$notRun->id}", ['level' => 'unavailable'])
+            ->assertSessionHasErrors('shift');
+
+        $this->put("/personal/{$token}/availability/3/{$notRun->id}", ['level' => 'unavailable'])
+            ->assertSessionHasErrors('shift');
+
+        $this->assertSame(0, RecurringAvailability::count());
+    }
+
+    public function test_a_hidden_by_default_shift_the_hard_workcenter_runs_accepts_writes(): void
+    {
+        $user = User::factory()->create();
+        $employee = Employee::factory()->create();
+        $workcenter = Workcenter::factory()->create();
+        $shift = $this->shift();
+        $shift->update(['visible_by_default' => false]);
+        $workcenter->shifts()->attach($shift);
+        $employee->workcenters()->attach($workcenter, ['mode' => 'hard']);
+
+        $this->actingAs($user)
+            ->put("/employees/{$employee->id}/availability/3/{$shift->id}", ['level' => 'unavailable'])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('recurring_availabilities', [
+            'employee_id' => $employee->id,
+            'weekday' => 3,
+            'shift_id' => $shift->id,
+            'level' => 'unavailable',
+        ]);
+    }
+
     public function test_hiding_a_shift_keeps_existing_availability_dormant(): void
     {
         $employee = Employee::factory()->create();
