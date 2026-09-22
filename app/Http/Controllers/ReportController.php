@@ -5,11 +5,18 @@ namespace App\Http\Controllers;
 use App\Models\BusinessLine;
 use App\Models\Competence;
 use App\Models\Employee;
+use App\Models\PublishedWeek;
 use App\Models\Shift;
+use App\Models\ShiftAssignment;
 use App\Models\Workcenter;
 use App\Services\UninformedPlanning;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Pagination\Paginator;
+use Illuminate\Support\Collection;
 use Inertia\Inertia;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ReportController extends Controller
 {
@@ -17,6 +24,9 @@ class ReportController extends Controller
     private const WORKCENTER_SORT_KEYS = ['name', 'business_line', 'weekly_hours'];
 
     private const FOR_WORKCENTER_SORT_KEYS = [...self::WORKCENTER_SORT_KEYS, 'mode'];
+
+    /** Sortable Planned-hours-report columns. */
+    private const PLANNED_HOURS_SORT_KEYS = ['workcenter', 'date', 'hours'];
 
     public function __construct(private UninformedPlanning $planning) {}
 
@@ -40,6 +50,10 @@ class ReportController extends Controller
         $workcenterSort = $request->input('workcenter_sort');
         $workcenterSort = in_array($workcenterSort, $workcenterSortKeys, true) ? $workcenterSort : 'name';
         $workcenterDirection = $request->input('workcenter_direction') === 'desc' ? 'desc' : 'asc';
+        [$plannedHoursFrom, $plannedHoursTo] = $this->plannedHoursRange($request);
+        $plannedHoursSort = $request->input('planned_hours_sort');
+        $plannedHoursSort = in_array($plannedHoursSort, self::PLANNED_HOURS_SORT_KEYS, true) ? $plannedHoursSort : 'date';
+        $plannedHoursDirection = $request->input('planned_hours_direction') === 'desc' ? 'desc' : 'asc';
 
         return Inertia::render('Reports/Index', [
             'employees' => $this->missingAvailability($shiftId, $businessLineId, $includeUnconfirmed),
@@ -47,6 +61,7 @@ class ReportController extends Controller
             'competenceReport' => $this->competenceReport($competenceMode, $selectedCompetence),
             'unassignedWorkcenterReport' => $this->unassignedWorkcenterReport($workcenterSort, $workcenterDirection),
             'workcenterReport' => $this->workcenterReport($selectedWorkcenter, $workcenterSort, $workcenterDirection),
+            'plannedHoursReport' => $this->plannedHoursReport($plannedHoursFrom, $plannedHoursTo, $plannedHoursSort, $plannedHoursDirection),
             'shifts' => Shift::all()->map->toPayload()->all(),
             'businessLines' => BusinessLine::all()->map->toPayload()->all(),
             'competences' => Competence::all()->map->toPayload()->all(),
@@ -64,8 +79,41 @@ class ReportController extends Controller
                 'workcenter_id' => $selectedWorkcenter?->id,
                 'workcenter_sort' => $workcenterSort,
                 'workcenter_direction' => $workcenterDirection,
+                'planned_hours_from' => $plannedHoursFrom->toDateString(),
+                'planned_hours_to' => $plannedHoursTo->toDateString(),
+                'planned_hours_sort' => $plannedHoursSort,
+                'planned_hours_direction' => $plannedHoursDirection,
             ],
         ]);
+    }
+
+    /** Streams the planned-hours report as a CSV, covering the full result set (no pagination). */
+    public function exportPlannedHours(Request $request): StreamedResponse
+    {
+        [$from, $to] = $this->plannedHoursRange($request);
+        $rows = $this->sortPlannedHours($this->plannedHoursRows($from, $to), 'date', 'asc');
+
+        return response()->streamDownload(function () use ($rows) {
+            $handle = fopen('php://output', 'w');
+            fputcsv($handle, ['Workcenter', 'Date', 'Hours'], escape: '\\');
+            foreach ($rows as $row) {
+                fputcsv($handle, [$row['workcenter'], $row['date'], $row['hours']], escape: '\\');
+            }
+            fclose($handle);
+        }, 'planned-hours.csv', ['Content-Type' => 'text/csv']);
+    }
+
+    /** The planned-hours date range from the request, defaulting to the current week (Monday to Sunday). */
+    private function plannedHoursRange(Request $request): array
+    {
+        $from = $request->filled('planned_hours_from')
+            ? Carbon::parse($request->string('planned_hours_from')->toString())->startOfDay()
+            : now()->startOfWeek(Carbon::MONDAY);
+        $to = $request->filled('planned_hours_to')
+            ? Carbon::parse($request->string('planned_hours_to')->toString())->startOfDay()
+            : now()->endOfWeek(Carbon::SUNDAY);
+
+        return [$from, $to];
     }
 
     private function legacyCompetenceId(Request $request): ?int
@@ -204,5 +252,78 @@ class ReportController extends Controller
         if ($sort !== 'name') {
             $query->orderBy('employees.first_name')->orderBy('employees.last_name');
         }
+    }
+
+    /** Published planned hours per active workcenter per day within the range. 15 per page, sortable. */
+    private function plannedHoursReport(Carbon $from, Carbon $to, string $sort, string $direction): LengthAwarePaginator
+    {
+        $rows = $this->sortPlannedHours($this->plannedHoursRows($from, $to), $sort, $direction);
+        $page = Paginator::resolveCurrentPage('planned_hours_page');
+        $perPage = 15;
+
+        return (new LengthAwarePaginator(
+            $rows->forPage($page, $perPage)->values(),
+            $rows->count(),
+            $perPage,
+            $page,
+            ['path' => Paginator::resolveCurrentPath(), 'pageName' => 'planned_hours_page'],
+        ))->withQueryString();
+    }
+
+    /**
+     * One `{ workcenter, date, hours }` row per active workcenter and day with published
+     * planned hours in the range. Every employee's assignments count, confirmed or not.
+     * Draft (unpublished) assignments and zero-hour combinations are left out.
+     *
+     * @return Collection<int, array{workcenter: string, date: string, hours: float}>
+     */
+    private function plannedHoursRows(Carbon $from, Carbon $to): Collection
+    {
+        $activeWorkcenterIds = Workcenter::query()->whereNull('archived_at')->pluck('id');
+
+        $assignments = ShiftAssignment::query()
+            ->whereIn('workcenter_id', $activeWorkcenterIds)
+            ->whereBetween('date', [$from->toDateString(), $to->toDateString()])
+            ->with(['workcenter:id,name', 'shift:id,start_time,end_time'])
+            ->get();
+
+        $weekKey = fn (ShiftAssignment $a) => $a->date->copy()->startOfWeek(Carbon::MONDAY)->toDateString();
+
+        $publishedPairs = PublishedWeek::lockedPairs(
+            $from->copy()->startOfWeek(Carbon::MONDAY),
+            $to->copy()->endOfWeek(Carbon::SUNDAY),
+            $activeWorkcenterIds,
+        );
+
+        return $assignments
+            ->filter(fn (ShiftAssignment $a) => $publishedPairs->has("{$weekKey($a)}:{$a->workcenter_id}"))
+            ->groupBy(fn (ShiftAssignment $a) => "{$a->workcenter_id}:{$a->date->toDateString()}")
+            ->map(fn (Collection $group) => [
+                'workcenter' => $group->first()->workcenter->name,
+                'date' => $group->first()->date->toDateString(),
+                'hours' => round($group->sum(fn (ShiftAssignment $a) => $a->shift->durationHours()), 2),
+            ])
+            ->values();
+    }
+
+    /** Sorts computed planned-hours rows by Workcenter/Date/Hours, with a stable date-then-workcenter tiebreaker. */
+    private function sortPlannedHours(Collection $rows, string $sort, string $direction): Collection
+    {
+        return $rows->sort(function (array $a, array $b) use ($sort, $direction) {
+            $primary = match ($sort) {
+                'workcenter' => $a['workcenter'] <=> $b['workcenter'],
+                'hours' => $a['hours'] <=> $b['hours'],
+                default => $a['date'] <=> $b['date'],
+            };
+            $primary = $direction === 'desc' ? -$primary : $primary;
+
+            if ($primary !== 0) {
+                return $primary;
+            }
+
+            return $sort === 'workcenter'
+                ? $a['date'] <=> $b['date']
+                : $a['workcenter'] <=> $b['workcenter'];
+        })->values();
     }
 }

@@ -1,4 +1,4 @@
-Status: in progress — 1/5
+Status: in progress — 2/5
 
 - [x] 1. `Shift::durationHours()` and retrofit the two duplicates
       Add `Shift::durationHours(): float` to `app/Models/Shift.php`,
@@ -19,7 +19,7 @@ Status: in progress — 1/5
       Run the full PHP suite to confirm the retrofit changes no existing
       behavior.
 
-- [ ] 2. Backend: `plannedHoursReport()` data and route
+- [x] 2. Backend: `plannedHoursReport()` data and route
       Add a `PublishedWeek::pairsForWorkcenter(int $workcenterId): array`
       helper (or reuse `pairs()` filtered by workcenter if that already
       fits) to check which weeks a workcenter has published in a date
