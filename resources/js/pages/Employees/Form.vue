@@ -324,7 +324,16 @@ if (isEdit.value) {
                         savedWorkcenterRows.value = savedWorkcenterRows.value.filter((r) => r.workcenter_id !== id)
                     })),
             ])
-            return results.every((r) => r.status === 'fulfilled')
+
+            const ok = results.every((r) => r.status === 'fulfilled')
+            if (ok) {
+                // A workcenter change can add or remove shifts from the employee's
+                // effective set — re-seed the grid from the redirect's fresh props.
+                committedAvailability.value = props.availability
+                availability.value = props.availability
+                availabilityVersion.value++
+            }
+            return ok
         },
     })
 }

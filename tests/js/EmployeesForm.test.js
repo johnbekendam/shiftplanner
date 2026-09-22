@@ -655,6 +655,43 @@ describe("Employees/Form", () => {
         expect(routerCalls).toContainEqual(["delete", "/employees/3/workcenters/1"]);
     });
 
+    it("re-seeds the availability grid after a workcenter save brings a newly-visible shift", async () => {
+        const originalPut = router.put;
+        router.put = async (url, data, opts) => {
+            await w.setProps({
+                shifts: [
+                    { id: 1, name: "Early", start_time: "06:00", end_time: "14:00" },
+                    { id: 2, name: "Night", start_time: "22:00", end_time: "06:00" },
+                ],
+                availability: [],
+            });
+            opts.onSuccess();
+        };
+
+        const w = mount(Form, {
+            props: {
+                employee: { id: 3, first_name: "A", last_name: "B", email: "a@b.c", weekly_hours: 24 },
+                holidays: [],
+                shifts: [{ id: 1, name: "Early", start_time: "06:00", end_time: "14:00" }],
+                availability: [],
+                workcenters: [{ id: 1, name: "Line 1", archived: false }],
+                employeeWorkcenterAssignments: [],
+            },
+            global: { stubs },
+        });
+
+        w.findComponent(WorkcenterChecklist).vm.$emit("update:selectedRows", [{ workcenter_id: 1, mode: "hard" }]);
+        await w.vm.$nextTick();
+
+        await findSaveButton(w).trigger("click");
+        await flushPromises();
+        router.put = originalPut;
+
+        const cell = w.find('[data-testid="cell-1-2"]');
+        expect(cell.exists()).toBe(true);
+        expect(cell.classes()).toContain("bg-(--color-badge-standard-bg)");
+    });
+
     it("re-puts a workcenter row whose mode changed", async () => {
         const w = mount(Form, {
             props: {
