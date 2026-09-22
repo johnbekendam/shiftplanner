@@ -1,4 +1,4 @@
-Status: in progress — 2/5
+Status: done — 5/5
 
 - [x] 1. `Shift::durationHours()` and retrofit the two duplicates
       Add `Shift::durationHours(): float` to `app/Models/Shift.php`,
@@ -53,7 +53,7 @@ Status: in progress — 2/5
       - Sorting by each column, both directions, and pagination at 15
         rows with a working second page.
 
-- [ ] 3. Frontend: "Planned hours" tab
+- [x] 3. Frontend: "Planned hours" tab
       Add a `planned-hours` entry to the `tabs` array in
       `resources/js/pages/Reports/Index.vue`, as the last tab. Add
       `plannedHoursFrom`/`plannedHoursTo` date refs (via `DateInput`)
@@ -77,7 +77,7 @@ Status: in progress — 2/5
       - The pagination footer shows only when there is more than one
         page.
 
-- [ ] 4. CSV export
+- [x] 4. CSV export (landed alongside step 2's backend work)
       Add a `GET /reports/planned-hours/export` route and
       `ReportController::exportPlannedHours(Request $request)` method,
       reusing the same query as `plannedHoursReport()` without
@@ -97,6 +97,5 @@ Status: in progress — 2/5
       - A draft assignment in range is excluded from the export, same
         as the on-screen report.
 
-- [ ] 5. Full-suite regression check
-      Run the PHP and JS test suites in full. Fix any regression this
-      feature introduced. No new behavior in this step.
+- [x] 5. Full-suite regression check
+      Ran clean: 939 PHP tests, 774 JS tests, no failures.

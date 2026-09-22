@@ -9,7 +9,8 @@ import ButtonPrimary from '@/components/ui/ButtonPrimary.vue'
 import Icon from '@/components/ui/Icon.vue'
 import NoEmailBadge from '@/components/NoEmailBadge.vue'
 import UninformedPlanningReport from '@/components/UninformedPlanningReport.vue'
-import { SelectInput, CheckboxInput } from '@/components/ui/Input'
+import { SelectInput, CheckboxInput, DateInput } from '@/components/ui/Input'
+import LabeledInput from '@/components/LabeledInput.vue'
 import { useI18n } from '@/composables/useI18n'
 
 const __ = useI18n()
@@ -25,9 +26,12 @@ const props = defineProps({
     unassignedWorkcenterReport: { type: Object, required: true },
     // Paginated: { data: [{ id, name, mode, business_line, weekly_hours }], links, from, to, total, last_page }
     workcenterReport: { type: Object, required: true },
+    // Paginated: { data: [{ workcenter, date, hours }], links, from, to, total, last_page }
+    plannedHoursReport: { type: Object, required: true },
     workcenters: { type: Array, default: () => [] }, // { id, name }
     // { shift, business_line, unconfirmed, planning_business_line, competence_mode, competence_id,
-    //   workcenter_mode, workcenter_id, workcenter_sort, workcenter_direction }
+    //   workcenter_mode, workcenter_id, workcenter_sort, workcenter_direction,
+    //   planned_hours_from, planned_hours_to, planned_hours_sort, planned_hours_direction }
     filters: { type: Object, required: true },
 })
 
@@ -42,12 +46,18 @@ const workcenterForColumns = [
     { key: 'business_line', label: 'reports.workcenter.column.business_line' },
     { key: 'weekly_hours', label: 'reports.workcenter.column.weekly_hours' },
 ]
+const plannedHoursColumns = [
+    { key: 'workcenter', label: 'reports.planned_hours.column.workcenter' },
+    { key: 'date', label: 'reports.planned_hours.column.date' },
+    { key: 'hours', label: 'reports.planned_hours.column.hours' },
+]
 
 const tabs = [
     { value: 'competences', label: __('reports.tab.competences') },
     { value: 'workcenter', label: __('reports.tab.workcenter') },
     { value: 'uninformed-planning', label: __('reports.tab.uninformed_planning') },
     { value: 'missing-availability', label: __('reports.tab.missing_availability') },
+    { value: 'planned-hours', label: __('reports.tab.planned_hours') },
 ]
 const tab = ref('competences')
 
@@ -61,6 +71,10 @@ const workcenterMode = ref(props.filters.workcenter_mode ?? 'unassigned')
 const workcenterId = ref(props.filters.workcenter_id ?? '')
 const workcenterSort = ref(props.filters.workcenter_sort ?? 'name')
 const workcenterDirection = ref(props.filters.workcenter_direction ?? 'asc')
+const plannedHoursFrom = ref(props.filters.planned_hours_from)
+const plannedHoursTo = ref(props.filters.planned_hours_to)
+const plannedHoursSort = ref(props.filters.planned_hours_sort ?? 'date')
+const plannedHoursDirection = ref(props.filters.planned_hours_direction ?? 'asc')
 
 const shiftOptions = computed(() => [
     { value: '', label: __('reports.missing_availability.shift_placeholder') },
@@ -99,6 +113,10 @@ function reload() {
         workcenter: workcenterId.value || undefined,
         workcenter_sort: workcenterSort.value,
         workcenter_direction: workcenterDirection.value,
+        planned_hours_from: plannedHoursFrom.value,
+        planned_hours_to: plannedHoursTo.value,
+        planned_hours_sort: plannedHoursSort.value,
+        planned_hours_direction: plannedHoursDirection.value,
     }, { preserveState: true })
 }
 
@@ -106,6 +124,7 @@ watch(
     [
         shift, businessLine, includeUnconfirmed, planningBusinessLine, competenceMode, competenceId,
         workcenterMode, workcenterId, workcenterSort, workcenterDirection,
+        plannedHoursFrom, plannedHoursTo, plannedHoursSort, plannedHoursDirection,
     ],
     reload,
 )
@@ -115,22 +134,42 @@ function sortWorkcenterBy(key) {
     workcenterSort.value = key
 }
 
+function sortPlannedHoursBy(key) {
+    plannedHoursDirection.value = plannedHoursSort.value === key && plannedHoursDirection.value === 'asc' ? 'desc' : 'asc'
+    plannedHoursSort.value = key
+}
+
+const plannedHoursExportUrl = computed(() => {
+    const params = new URLSearchParams({
+        planned_hours_from: plannedHoursFrom.value,
+        planned_hours_to: plannedHoursTo.value,
+    })
+    return `/reports/planned-hours/export?${params.toString()}`
+})
+
 // Whichever of the two workcenter-report tables is currently shown.
 const activeWorkcenterReport = computed(() =>
     workcenterMode.value === 'for_workcenter' ? props.workcenterReport : props.unassignedWorkcenterReport,
 )
 
-const workcenterPaginationRange = computed(() => {
-    const report = activeWorkcenterReport.value
+// The paginated report backing the currently active tab, if any.
+const activePaginatedReport = computed(() => {
+    if (tab.value === 'workcenter') return activeWorkcenterReport.value
+    if (tab.value === 'planned-hours') return props.plannedHoursReport
+    return null
+})
+
+const paginationRange = computed(() => {
+    const report = activePaginatedReport.value
     return __('reports.workcenter.pagination.range', {
-        from: report.from ?? 0,
-        to: report.to ?? 0,
-        total: report.total ?? 0,
+        from: report?.from ?? 0,
+        to: report?.to ?? 0,
+        total: report?.total ?? 0,
     })
 })
 
-const workcenterPaginationLinks = computed(() => {
-    const links = activeWorkcenterReport.value.links ?? []
+const paginationLinks = computed(() => {
+    const links = activePaginatedReport.value?.links ?? []
     const lastIndex = links.length - 1
 
     return links.map((link, index) => ({
@@ -147,7 +186,7 @@ const workcenterPaginationLinks = computed(() => {
     }))
 })
 
-function workcenterPaginationLinkClass(link) {
+function paginationLinkClass(link) {
     const classes = [
         'inline-flex min-w-9 items-center justify-center px-3 py-1.5 text-sm outline outline-1 -outline-offset-1',
     ]
@@ -166,7 +205,7 @@ function workcenterPaginationLinkClass(link) {
     return classes
 }
 
-function goToWorkcenterPage(url) {
+function goToPage(url) {
     if (!url) return
     router.get(url, {}, { preserveState: true })
 }
@@ -377,7 +416,7 @@ function emailSelected() {
                 </p>
             </div>
 
-            <div v-else class="p-6 space-y-5">
+            <div v-else-if="tab === 'missing-availability'" class="p-6 space-y-5">
                 <div class="flex flex-wrap items-center gap-4">
                     <SelectInput
                         v-model="shift"
@@ -469,19 +508,77 @@ function emailSelected() {
                 </p>
             </div>
 
-            <template v-if="tab === 'workcenter' && activeWorkcenterReport.last_page > 1" #footer>
-                <div data-testid="workcenter-pagination" class="flex items-center justify-between gap-3 px-6 py-3 text-sm">
-                    <span class="text-(--color-pagination-muted-text)">{{ workcenterPaginationRange }}</span>
+            <div v-else class="p-6 space-y-5">
+                <div class="flex flex-wrap items-end gap-3">
+                    <LabeledInput :label="__('reports.planned_hours.from')">
+                        <DateInput v-model="plannedHoursFrom" class="w-40" />
+                    </LabeledInput>
+
+                    <LabeledInput :label="__('reports.planned_hours.to')">
+                        <DateInput v-model="plannedHoursTo" class="w-40" />
+                    </LabeledInput>
+
+                    <a
+                        :href="plannedHoursExportUrl"
+                        class="inline-flex w-min items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border border-1 px-4 py-2 border-[var(--color-btn-primary-border)] bg-[var(--color-btn-primary-bg)] text-[var(--color-btn-primary-text)] hover:border-[var(--color-btn-primary-hover-border)] hover:bg-[var(--color-btn-primary-hover-bg)] hover:text-[var(--color-btn-primary-hover-text)]"
+                    >
+                        <Icon name="download" class="size-4 shrink-0" />
+                        {{ __('reports.planned_hours.export') }}
+                    </a>
+                </div>
+
+                <CardSeparator />
+
+                <p v-if="plannedHoursReport.total === 0" class="text-sm text-(--color-text-secondary)">
+                    {{ __('reports.planned_hours.empty') }}
+                </p>
+
+                <table v-else class="w-full text-sm">
+                    <thead>
+                        <tr class="border-b border-(--color-table-header-separator) text-left text-(--color-table-header-text)">
+                            <th v-for="column in plannedHoursColumns" :key="column.key" class="px-2 py-2">
+                                <button
+                                    type="button"
+                                    class="flex items-center gap-1 font-medium hover:text-(--color-text-primary)"
+                                    @click="sortPlannedHoursBy(column.key)"
+                                >
+                                    {{ __(column.label) }}
+                                    <Icon
+                                        v-if="plannedHoursSort === column.key"
+                                        :name="plannedHoursDirection === 'asc' ? 'chevron-up' : 'chevron-down'"
+                                        class="size-3.5"
+                                    />
+                                </button>
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr
+                            v-for="row in plannedHoursReport.data"
+                            :key="`${row.workcenter}-${row.date}`"
+                            class="border-b border-(--color-table-row-separator)"
+                        >
+                            <td class="px-2 py-2 text-(--color-table-row-text)">{{ row.workcenter }}</td>
+                            <td class="px-2 py-2 text-(--color-table-row-text)">{{ row.date }}</td>
+                            <td class="px-2 py-2 text-(--color-table-row-text)">{{ row.hours }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <template v-if="activePaginatedReport && activePaginatedReport.last_page > 1" #footer>
+                <div data-testid="report-pagination" class="flex items-center justify-between gap-3 px-6 py-3 text-sm">
+                    <span class="text-(--color-pagination-muted-text)">{{ paginationRange }}</span>
                     <div class="isolate inline-flex -space-x-px rounded-md">
                         <button
-                            v-for="link in workcenterPaginationLinks"
+                            v-for="link in paginationLinks"
                             :key="link.key"
                             type="button"
                             :aria-label="link.ariaLabel"
                             :aria-current="link.active ? 'page' : undefined"
                             :disabled="link.disabled"
-                            :class="workcenterPaginationLinkClass(link)"
-                            @click="goToWorkcenterPage(link.url)"
+                            :class="paginationLinkClass(link)"
+                            @click="goToPage(link.url)"
                         >
                             {{ link.label }}
                         </button>
