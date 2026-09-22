@@ -239,6 +239,85 @@ class ReportsTest extends TestCase
             );
     }
 
+    // ── Workcenter report ───────────────────────────────────────────────
+
+    public function test_unassigned_workcenter_report_defaults_to_unassigned_mode(): void
+    {
+        $this->admin();
+        $unassigned = Employee::factory()->create(['first_name' => 'Ann', 'last_name' => 'Ant']);
+        $assigned = Employee::factory()->create(['first_name' => 'Bo', 'last_name' => 'Bee']);
+        $workcenter = Workcenter::factory()->create();
+        $assigned->workcenters()->attach($workcenter, ['mode' => 'hard']);
+
+        $this->get('/reports')->assertInertia(fn ($page) => $page
+            ->where('filters.workcenter_mode', 'unassigned')
+            ->where('filters.workcenter_id', null)
+            ->has('unassignedWorkcenterReport', 1)
+            ->where('unassignedWorkcenterReport.0.id', $unassigned->id)
+            ->where('unassignedWorkcenterReport.0.name', 'Ann Ant')
+        );
+    }
+
+    public function test_unassigned_workcenter_report_excludes_an_employee_with_a_soft_row(): void
+    {
+        $this->admin();
+        $employee = Employee::factory()->create();
+        $workcenter = Workcenter::factory()->create();
+        $employee->workcenters()->attach($workcenter, ['mode' => 'soft']);
+
+        $this->get('/reports')->assertInertia(fn ($page) => $page
+            ->where('unassignedWorkcenterReport', [])
+        );
+    }
+
+    public function test_for_workcenter_mode_with_no_workcenter_picked_returns_no_rows(): void
+    {
+        $this->admin();
+        Employee::factory()->create();
+
+        $this->get('/reports?workcenter_mode=for_workcenter')->assertInertia(fn ($page) => $page
+            ->where('filters.workcenter_mode', 'for_workcenter')
+            ->where('workcenterReport', [])
+        );
+    }
+
+    public function test_for_workcenter_mode_lists_employees_assigned_to_the_picked_workcenter(): void
+    {
+        $this->admin();
+        $workcenterA = Workcenter::factory()->create();
+        $workcenterB = Workcenter::factory()->create();
+        $ann = Employee::factory()->create(['first_name' => 'Ann', 'last_name' => 'Ant']);
+        $bo = Employee::factory()->create(['first_name' => 'Bo', 'last_name' => 'Bee']);
+        $cy = Employee::factory()->create(['first_name' => 'Cy', 'last_name' => 'Cat']);
+        $ann->workcenters()->attach($workcenterA, ['mode' => 'hard']);
+        $bo->workcenters()->attach($workcenterA, ['mode' => 'soft']);
+        $cy->workcenters()->attach($workcenterB, ['mode' => 'hard']);
+
+        $this->get("/reports?workcenter_mode=for_workcenter&workcenter={$workcenterA->id}")
+            ->assertInertia(fn ($page) => $page
+                ->has('workcenterReport', 2)
+                ->where('workcenterReport.0.id', $ann->id)
+                ->where('workcenterReport.0.name', 'Ann Ant')
+                ->where('workcenterReport.0.mode', 'hard')
+                ->where('workcenterReport.1.id', $bo->id)
+                ->where('workcenterReport.1.name', 'Bo Bee')
+                ->where('workcenterReport.1.mode', 'soft')
+                ->where('filters.workcenter_id', $workcenterA->id)
+            );
+    }
+
+    public function test_the_workcenters_prop_excludes_archived_workcenters(): void
+    {
+        $this->admin();
+        $active = Workcenter::factory()->create(['name' => 'Assembly A']);
+        Workcenter::factory()->create(['name' => 'Retired', 'archived_at' => now()]);
+
+        $this->get('/reports')->assertInertia(fn ($page) => $page
+            ->has('workcenters', 1)
+            ->where('workcenters.0.id', $active->id)
+        );
+    }
+
     // ── Uninformed planning ─────────────────────────────────────────────
 
     private function plan(Employee $employee, string $date, ?string $informedAt = null): void

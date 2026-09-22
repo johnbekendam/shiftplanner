@@ -6,6 +6,7 @@ use App\Models\BusinessLine;
 use App\Models\Competence;
 use App\Models\Employee;
 use App\Models\Shift;
+use App\Models\Workcenter;
 use App\Services\UninformedPlanning;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -25,14 +26,24 @@ class ReportController extends Controller
         $selectedCompetence = $competenceId
             ? Competence::query()->whereKey($competenceId)->first(['id', 'name'])
             : null;
+        $workcenterMode = $request->string('workcenter_mode')->toString() === 'for_workcenter' ? 'for_workcenter' : 'unassigned';
+        $workcenterId = $request->integer('workcenter') ?: null;
+        $selectedWorkcenter = $workcenterId
+            ? Workcenter::query()->whereKey($workcenterId)->first(['id', 'name'])
+            : null;
 
         return Inertia::render('Reports/Index', [
             'employees' => $this->missingAvailability($shiftId, $businessLineId, $includeUnconfirmed),
             'uninformedPlanning' => $this->planning->summary($planningBusinessLineId)->all(),
             'competenceReport' => $this->competenceReport($competenceMode, $selectedCompetence),
+            'unassignedWorkcenterReport' => $this->unassignedWorkcenterReport(),
+            'workcenterReport' => $this->workcenterReport($selectedWorkcenter),
             'shifts' => Shift::all()->map->toPayload()->all(),
             'businessLines' => BusinessLine::all()->map->toPayload()->all(),
             'competences' => Competence::all()->map->toPayload()->all(),
+            'workcenters' => Workcenter::query()->whereNull('archived_at')->get(['id', 'name'])
+                ->map(fn (Workcenter $workcenter) => ['id' => $workcenter->id, 'name' => $workcenter->name])
+                ->all(),
             'filters' => [
                 'shift' => $shiftId,
                 'business_line' => $businessLineId,
@@ -40,6 +51,8 @@ class ReportController extends Controller
                 'planning_business_line' => $planningBusinessLineId,
                 'competence_mode' => $competenceMode,
                 'competence_id' => $selectedCompetence?->id,
+                'workcenter_mode' => $workcenterMode,
+                'workcenter_id' => $selectedWorkcenter?->id,
             ],
         ]);
     }
@@ -119,6 +132,39 @@ class ReportController extends Controller
             })
             ->filter()
             ->values()
+            ->all();
+    }
+
+    /** Employees with no employee_workcenter row at all, hard or soft. */
+    private function unassignedWorkcenterReport(): array
+    {
+        return Employee::query()
+            ->whereDoesntHave('workcenters')
+            ->orderBy('first_name')
+            ->orderBy('last_name')
+            ->get()
+            ->map(fn (Employee $employee) => [
+                'id' => $employee->id,
+                'name' => $employee->name,
+            ])
+            ->all();
+    }
+
+    private function workcenterReport(?Workcenter $selectedWorkcenter): array
+    {
+        if ($selectedWorkcenter === null) {
+            return [];
+        }
+
+        return $selectedWorkcenter->employees()
+            ->orderBy('first_name')
+            ->orderBy('last_name')
+            ->get()
+            ->map(fn (Employee $employee) => [
+                'id' => $employee->id,
+                'name' => $employee->name,
+                'mode' => $employee->pivot->mode,
+            ])
             ->all();
     }
 }
