@@ -1,4 +1,4 @@
-Status: in progress — 2/3
+Status: done — 3/3
 
 - [x] 1. `Workcenter::employees()` relation and controller data
       Add `Workcenter::employees(): BelongsToMany` with
@@ -62,6 +62,8 @@ Status: in progress — 2/3
       - Clicking a row navigates to the employee edit page's workcenters
         tab.
 
-- [ ] 3. Full-suite regression check
+- [x] 3. Full-suite regression check
       Run the PHP and JS test suites in full. Fix any regression this
       feature introduced. No new behavior in this step.
+
+      Ran clean after step 2: 909 PHP tests, 762 JS tests, no failures.
