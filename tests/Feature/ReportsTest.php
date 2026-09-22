@@ -263,7 +263,6 @@ class ReportsTest extends TestCase
             ->where('unassignedWorkcenterReport.data.0.name', 'Ann Ant')
             ->where('unassignedWorkcenterReport.data.0.business_line', 'PMP')
             ->where('unassignedWorkcenterReport.data.0.weekly_hours', 32)
-            ->where('unassignedWorkcenterReport.data.0.confirmed', true)
             ->where('unassignedWorkcenterReport.total', 1)
         );
     }
@@ -271,7 +270,7 @@ class ReportsTest extends TestCase
     public function test_unassigned_workcenter_report_shows_no_business_line_as_null(): void
     {
         $this->admin();
-        Employee::factory()->create(['business_line_id' => null]);
+        Employee::factory()->create(['business_line_id' => null, 'confirmed' => true]);
 
         $this->get('/reports')->assertInertia(fn ($page) => $page
             ->where('unassignedWorkcenterReport.data.0.business_line', null)
@@ -281,9 +280,20 @@ class ReportsTest extends TestCase
     public function test_unassigned_workcenter_report_excludes_an_employee_with_a_soft_row(): void
     {
         $this->admin();
-        $employee = Employee::factory()->create();
+        $employee = Employee::factory()->create(['confirmed' => true]);
         $workcenter = Workcenter::factory()->create();
         $employee->workcenters()->attach($workcenter, ['mode' => 'soft']);
+
+        $this->get('/reports')->assertInertia(fn ($page) => $page
+            ->where('unassignedWorkcenterReport.data', [])
+            ->where('unassignedWorkcenterReport.total', 0)
+        );
+    }
+
+    public function test_unassigned_workcenter_report_excludes_unconfirmed_employees(): void
+    {
+        $this->admin();
+        Employee::factory()->create(['confirmed' => false]);
 
         $this->get('/reports')->assertInertia(fn ($page) => $page
             ->where('unassignedWorkcenterReport.data', [])
@@ -294,7 +304,9 @@ class ReportsTest extends TestCase
     public function test_unassigned_workcenter_report_paginates_at_fifteen_per_page(): void
     {
         $this->admin();
-        Employee::factory()->count(16)->sequence(fn ($sequence) => ['first_name' => sprintf('E%02d', $sequence->index)])->create();
+        Employee::factory()->count(16)
+            ->sequence(fn ($sequence) => ['first_name' => sprintf('E%02d', $sequence->index)])
+            ->create(['confirmed' => true]);
 
         $this->get('/reports')->assertInertia(fn ($page) => $page
             ->has('unassignedWorkcenterReport.data', 15)
@@ -310,8 +322,8 @@ class ReportsTest extends TestCase
     public function test_unassigned_workcenter_report_sorts_by_weekly_hours_descending(): void
     {
         $this->admin();
-        Employee::factory()->create(['first_name' => 'Low', 'last_name' => 'One', 'weekly_hours' => 8]);
-        Employee::factory()->create(['first_name' => 'High', 'last_name' => 'One', 'weekly_hours' => 40]);
+        Employee::factory()->create(['first_name' => 'Low', 'last_name' => 'One', 'weekly_hours' => 8, 'confirmed' => true]);
+        Employee::factory()->create(['first_name' => 'High', 'last_name' => 'One', 'weekly_hours' => 40, 'confirmed' => true]);
 
         $this->get('/reports?workcenter_sort=weekly_hours&workcenter_direction=desc')
             ->assertInertia(fn ($page) => $page
@@ -354,8 +366,8 @@ class ReportsTest extends TestCase
             'first_name' => 'Ann', 'last_name' => 'Ant',
             'weekly_hours' => 32, 'confirmed' => true, 'business_line_id' => $line->id,
         ]);
-        $bo = Employee::factory()->create(['first_name' => 'Bo', 'last_name' => 'Bee', 'weekly_hours' => 16, 'confirmed' => false]);
-        $cy = Employee::factory()->create(['first_name' => 'Cy', 'last_name' => 'Cat']);
+        $bo = Employee::factory()->create(['first_name' => 'Bo', 'last_name' => 'Bee', 'weekly_hours' => 16, 'confirmed' => true]);
+        $cy = Employee::factory()->create(['first_name' => 'Cy', 'last_name' => 'Cat', 'confirmed' => true]);
         $ann->workcenters()->attach($workcenterA, ['mode' => 'hard']);
         $bo->workcenters()->attach($workcenterA, ['mode' => 'soft']);
         $cy->workcenters()->attach($workcenterB, ['mode' => 'hard']);
@@ -368,15 +380,27 @@ class ReportsTest extends TestCase
                 ->where('workcenterReport.data.0.mode', 'hard')
                 ->where('workcenterReport.data.0.business_line', 'PMP')
                 ->where('workcenterReport.data.0.weekly_hours', 32)
-                ->where('workcenterReport.data.0.confirmed', true)
                 ->where('workcenterReport.data.1.id', $bo->id)
                 ->where('workcenterReport.data.1.name', 'Bo Bee')
                 ->where('workcenterReport.data.1.mode', 'soft')
                 ->where('workcenterReport.data.1.business_line', null)
                 ->where('workcenterReport.data.1.weekly_hours', 16)
-                ->where('workcenterReport.data.1.confirmed', false)
                 ->where('workcenterReport.total', 2)
                 ->where('filters.workcenter_id', $workcenterA->id)
+            );
+    }
+
+    public function test_for_workcenter_mode_excludes_unconfirmed_employees(): void
+    {
+        $this->admin();
+        $workcenter = Workcenter::factory()->create();
+        $employee = Employee::factory()->create(['confirmed' => false]);
+        $employee->workcenters()->attach($workcenter, ['mode' => 'hard']);
+
+        $this->get("/reports?workcenter_mode=for_workcenter&workcenter={$workcenter->id}")
+            ->assertInertia(fn ($page) => $page
+                ->where('workcenterReport.data', [])
+                ->where('workcenterReport.total', 0)
             );
     }
 
@@ -384,8 +408,8 @@ class ReportsTest extends TestCase
     {
         $this->admin();
         $workcenter = Workcenter::factory()->create();
-        $hard = Employee::factory()->create(['first_name' => 'Ann', 'last_name' => 'Ant']);
-        $soft = Employee::factory()->create(['first_name' => 'Bo', 'last_name' => 'Bee']);
+        $hard = Employee::factory()->create(['first_name' => 'Ann', 'last_name' => 'Ant', 'confirmed' => true]);
+        $soft = Employee::factory()->create(['first_name' => 'Bo', 'last_name' => 'Bee', 'confirmed' => true]);
         $hard->workcenters()->attach($workcenter, ['mode' => 'hard']);
         $soft->workcenters()->attach($workcenter, ['mode' => 'soft']);
 
@@ -403,7 +427,7 @@ class ReportsTest extends TestCase
         $workcenter = Workcenter::factory()->create();
         Employee::factory()->count(16)
             ->sequence(fn ($sequence) => ['first_name' => sprintf('E%02d', $sequence->index)])
-            ->create()
+            ->create(['confirmed' => true])
             ->each(fn (Employee $employee) => $employee->workcenters()->attach($workcenter, ['mode' => 'hard']));
 
         $this->get("/reports?workcenter_mode=for_workcenter&workcenter={$workcenter->id}")

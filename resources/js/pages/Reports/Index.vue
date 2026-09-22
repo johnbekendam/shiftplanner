@@ -21,9 +21,9 @@ const props = defineProps({
     uninformedPlanning: { type: Array, default: () => [] }, // { id, name, business_line, uninformed_count, first_date }
     competences: { type: Array, default: () => [] }, // { id, name, read_only }
     competenceReport: { type: Array, default: () => [] }, // { id, name, competence_names }
-    // Paginated: { data: [{ id, name, business_line, weekly_hours, confirmed }], links, from, to, total, last_page }
+    // Paginated: { data: [{ id, name, business_line, weekly_hours }], links, from, to, total, last_page }
     unassignedWorkcenterReport: { type: Object, required: true },
-    // Paginated: { data: [{ id, name, mode, business_line, weekly_hours, confirmed }], links, from, to, total, last_page }
+    // Paginated: { data: [{ id, name, mode, business_line, weekly_hours }], links, from, to, total, last_page }
     workcenterReport: { type: Object, required: true },
     workcenters: { type: Array, default: () => [] }, // { id, name }
     // { shift, business_line, unconfirmed, planning_business_line, competence_mode, competence_id,
@@ -35,14 +35,12 @@ const workcenterUnassignedColumns = [
     { key: 'name', label: 'reports.workcenter.column.name' },
     { key: 'business_line', label: 'reports.workcenter.column.business_line' },
     { key: 'weekly_hours', label: 'reports.workcenter.column.weekly_hours' },
-    { key: 'confirmed', label: 'reports.workcenter.column.confirmed' },
 ]
 const workcenterForColumns = [
     { key: 'name', label: 'reports.workcenter.column.name' },
     { key: 'mode', label: 'reports.workcenter.column.mode' },
     { key: 'business_line', label: 'reports.workcenter.column.business_line' },
     { key: 'weekly_hours', label: 'reports.workcenter.column.weekly_hours' },
-    { key: 'confirmed', label: 'reports.workcenter.column.confirmed' },
 ]
 
 const tabs = [
@@ -326,11 +324,6 @@ function emailSelected() {
                                 {{ employee.business_line ?? __('reports.workcenter.no_business_line') }}
                             </td>
                             <td class="px-2 py-2 text-(--color-table-row-text)">{{ employee.weekly_hours }}</td>
-                            <td class="px-2 py-2 text-(--color-table-row-text)">
-                                {{ employee.confirmed
-                                    ? __('reports.workcenter.confirmed.yes')
-                                    : __('reports.workcenter.confirmed.no') }}
-                            </td>
                         </tr>
                     </tbody>
                 </table>
@@ -375,11 +368,6 @@ function emailSelected() {
                                 {{ employee.business_line ?? __('reports.workcenter.no_business_line') }}
                             </td>
                             <td class="px-2 py-2 text-(--color-table-row-text)">{{ employee.weekly_hours }}</td>
-                            <td class="px-2 py-2 text-(--color-table-row-text)">
-                                {{ employee.confirmed
-                                    ? __('reports.workcenter.confirmed.yes')
-                                    : __('reports.workcenter.confirmed.no') }}
-                            </td>
                         </tr>
                     </tbody>
                 </table>

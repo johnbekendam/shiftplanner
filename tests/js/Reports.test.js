@@ -38,10 +38,7 @@ const en = {
     "reports.workcenter.column.mode": "Requirement",
     "reports.workcenter.column.business_line": "Business line",
     "reports.workcenter.column.weekly_hours": "Weekly hours",
-    "reports.workcenter.column.confirmed": "Confirmed",
     "reports.workcenter.no_business_line": "—",
-    "reports.workcenter.confirmed.yes": "Confirmed",
-    "reports.workcenter.confirmed.no": "Unconfirmed",
     "reports.workcenter.pagination.range": ":from-:to of :total",
     "reports.workcenter.pagination.prev": "Previous",
     "reports.workcenter.pagination.next": "Next",
@@ -101,12 +98,12 @@ const paginate = (data, overrides = {}) => ({
 });
 
 const unassignedWorkcenterReport = paginate([
-    { id: 1, name: "Ann Ant", business_line: "PMP", weekly_hours: 24, confirmed: true },
-    { id: 2, name: "Bo Bee", business_line: null, weekly_hours: 40, confirmed: false },
+    { id: 1, name: "Ann Ant", business_line: "PMP", weekly_hours: 24 },
+    { id: 2, name: "Bo Bee", business_line: null, weekly_hours: 40 },
 ]);
 const workcenterReport = paginate([
-    { id: 1, name: "Ann Ant", mode: "hard", business_line: "PMP", weekly_hours: 24, confirmed: true },
-    { id: 2, name: "Bo Bee", mode: "soft", business_line: null, weekly_hours: 40, confirmed: false },
+    { id: 1, name: "Ann Ant", mode: "hard", business_line: "PMP", weekly_hours: 24 },
+    { id: 2, name: "Bo Bee", mode: "soft", business_line: null, weekly_hours: 40 },
 ]);
 
 const mountIndex = (props = {}) =>
@@ -419,10 +416,8 @@ describe("Reports/Index", () => {
         const rows = w.findAll("tbody tr");
         expect(rows[0].text()).toContain("PMP");
         expect(rows[0].text()).toContain("24");
-        expect(rows[0].text()).toContain("Confirmed");
         expect(rows[1].text()).toContain("—");
         expect(rows[1].text()).toContain("40");
-        expect(rows[1].text()).toContain("Unconfirmed");
     });
 
     it("shows the empty state when every employee is assigned", async () => {
@@ -489,10 +484,8 @@ describe("Reports/Index", () => {
         const rows = w.findAll("tbody tr");
         expect(rows[0].text()).toContain("PMP");
         expect(rows[0].text()).toContain("24");
-        expect(rows[0].text()).toContain("Confirmed");
         expect(rows[1].text()).toContain("—");
         expect(rows[1].text()).toContain("40");
-        expect(rows[1].text()).toContain("Unconfirmed");
 
         await w.find("tbody tr").trigger("click");
 
@@ -543,7 +536,7 @@ describe("Reports/Index", () => {
     it("shows the pagination footer when the report has more than one page", async () => {
         const w = await openWorkcenterTab({
             unassignedWorkcenterReport: paginate(
-                [{ id: 1, name: "Ann Ant", business_line: "PMP", weekly_hours: 24, confirmed: true }],
+                [{ id: 1, name: "Ann Ant", business_line: "PMP", weekly_hours: 24 }],
                 {
                     from: 1, to: 15, total: 16, last_page: 2,
                     links: [

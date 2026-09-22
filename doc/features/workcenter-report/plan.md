@@ -1,4 +1,4 @@
-Status: done — 5/5
+Status: done — 6/6
 
 - [x] 1. `Workcenter::employees()` relation and controller data
       Add `Workcenter::employees(): BelongsToMany` with
@@ -113,3 +113,22 @@ Status: done — 5/5
       flipping direction, and the pagination footer showing only when
       there's more than one page. Full suite ran clean: 922 PHP tests,
       767 JS tests.
+
+- [x] 6. Remove the Confirmed column, always filter to confirmed employees
+      `ReportController`: both `unassignedWorkcenterReport()` and
+      `workcenterReport()` add `->where('confirmed', true)` and drop
+      `confirmed` from the mapped payload. Drop `confirmed` from
+      `WORKCENTER_SORT_KEYS` and its `applyWorkcenterSort()` match arm.
+
+      `Reports/Index.vue`: drop the Confirmed column from both
+      `workcenterUnassignedColumns` and `workcenterForColumns`, and the
+      matching `<td>` in both tables. Remove the now-unused
+      `reports.workcenter.column.confirmed` and `.confirmed.yes`/`.no`
+      language keys.
+
+      `tests/Feature/ReportsTest.php` and `tests/js/Reports.test.js`
+      updated: existing fixtures need `confirmed => true` to keep
+      appearing in results (factory default is `false`), Confirmed-column
+      assertions removed, and a new test per table confirms an
+      unconfirmed employee never appears. Full suite ran clean: 924 PHP
+      tests, 767 JS tests.

@@ -14,7 +14,7 @@ use Inertia\Inertia;
 class ReportController extends Controller
 {
     /** Sortable Workcenter-report columns. `mode` only applies to the For-workcenter table. */
-    private const WORKCENTER_SORT_KEYS = ['name', 'business_line', 'weekly_hours', 'confirmed'];
+    private const WORKCENTER_SORT_KEYS = ['name', 'business_line', 'weekly_hours'];
 
     private const FOR_WORKCENTER_SORT_KEYS = [...self::WORKCENTER_SORT_KEYS, 'mode'];
 
@@ -146,10 +146,11 @@ class ReportController extends Controller
             ->all();
     }
 
-    /** Employees with no employee_workcenter row at all, hard or soft. 15 per page, sortable. */
+    /** Confirmed employees with no employee_workcenter row at all, hard or soft. 15 per page, sortable. */
     private function unassignedWorkcenterReport(string $sort, string $direction)
     {
         $query = Employee::query()
+            ->where('confirmed', true)
             ->whereDoesntHave('workcenters')
             ->with('businessLine');
 
@@ -162,18 +163,17 @@ class ReportController extends Controller
                 'name' => $employee->name,
                 'business_line' => $employee->businessLine?->abbreviation,
                 'weekly_hours' => $employee->weekly_hours,
-                'confirmed' => $employee->confirmed,
             ]);
     }
 
-    /** Employees holding a hard or soft row for the picked workcenter. 15 per page, sortable. */
+    /** Confirmed employees holding a hard or soft row for the picked workcenter. 15 per page, sortable. */
     private function workcenterReport(?Workcenter $selectedWorkcenter, string $sort, string $direction)
     {
         if ($selectedWorkcenter === null) {
             return ['data' => [], 'links' => [], 'from' => null, 'to' => null, 'total' => 0, 'last_page' => 1];
         }
 
-        $query = $selectedWorkcenter->employees()->with('businessLine');
+        $query = $selectedWorkcenter->employees()->where('confirmed', true)->with('businessLine');
 
         $this->applyWorkcenterSort($query, in_array($sort, self::FOR_WORKCENTER_SORT_KEYS, true) ? $sort : 'name', $direction);
 
@@ -185,11 +185,10 @@ class ReportController extends Controller
                 'mode' => $employee->pivot->mode,
                 'business_line' => $employee->businessLine?->abbreviation,
                 'weekly_hours' => $employee->weekly_hours,
-                'confirmed' => $employee->confirmed,
             ]);
     }
 
-    /** Shared Name/Business line/Weekly hours/Confirmed(/Mode) sort for both workcenter-report tables. */
+    /** Shared Name/Business line/Weekly hours(/Mode) sort for both workcenter-report tables. */
     private function applyWorkcenterSort($query, string $sort, string $direction): void
     {
         match ($sort) {
@@ -198,7 +197,6 @@ class ReportController extends Controller
                 $direction,
             ),
             'weekly_hours' => $query->orderBy('employees.weekly_hours', $direction),
-            'confirmed' => $query->orderBy('employees.confirmed', $direction),
             'mode' => $query->orderBy('employee_workcenter.mode', $direction),
             default => $query->orderBy('employees.first_name', $direction)->orderBy('employees.last_name', $direction),
         };
