@@ -1,4 +1,4 @@
-Status: in progress — 1/3
+Status: in progress — 2/3
 
 - [x] 1. Add `Employee::effectiveShifts(): Collection` — no hard
   `employee_workcenter` row returns `Shift::where('visible_by_default', true)`;
@@ -9,7 +9,7 @@ Status: in progress — 1/3
   not-visible-by-default shift the workcenter runs), and two hard rows
   (union, no duplicates).
 
-- [ ] 2. Replace the inline `Shift::all()->where('visible_by_default', true)`
+- [x] 2. Replace the inline `Shift::all()->where('visible_by_default', true)`
   pattern in `EmployeeController::edit` and `PersonalPageController::show`
   with `$employee->effectiveShifts()`, for both the `shifts` and
   `availability` payload keys. Feature tests on both routes: an employee

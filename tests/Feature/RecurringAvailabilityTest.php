@@ -6,6 +6,7 @@ use App\Models\Employee;
 use App\Models\RecurringAvailability;
 use App\Models\Shift;
 use App\Models\User;
+use App\Models\Workcenter;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -279,6 +280,40 @@ class RecurringAvailabilityTest extends TestCase
                 ->where('availability.0.weekday', 1)
                 ->where('availability.0.shift_id', $shift->id)
                 ->where('availability.0.level', 'not_preferred')
+            );
+    }
+
+    public function test_manager_and_personal_payloads_scope_shifts_to_a_hard_workcenter(): void
+    {
+        $user = User::factory()->create();
+        $employee = Employee::factory()->create();
+        $token = $this->token($employee);
+        $workcenter = Workcenter::factory()->create();
+        $otherWorkcenter = Workcenter::factory()->create();
+
+        $run = Shift::factory()->create(['name' => 'Run', 'start_time' => '06:00', 'end_time' => '14:00', 'visible_by_default' => false]);
+        $notRun = Shift::factory()->create(['name' => 'NotRun', 'start_time' => '14:00', 'end_time' => '22:00', 'visible_by_default' => true]);
+        $workcenter->shifts()->attach($run);
+        $otherWorkcenter->shifts()->attach($notRun);
+        $employee->workcenters()->attach($workcenter, ['mode' => 'hard']);
+
+        $employee->recurringAvailabilities()->create(['weekday' => 1, 'shift_id' => $run->id, 'level' => 'unavailable']);
+        $employee->recurringAvailabilities()->create(['weekday' => 1, 'shift_id' => $notRun->id, 'level' => 'unavailable']);
+
+        $this->actingAs($user)->get("/employees/{$employee->id}/edit")
+            ->assertInertia(fn ($page) => $page
+                ->has('shifts', 1)
+                ->where('shifts.0.id', $run->id)
+                ->has('availability', 1)
+                ->where('availability.0.shift_id', $run->id)
+            );
+
+        $this->get("/personal/{$token}")
+            ->assertInertia(fn ($page) => $page
+                ->has('shifts', 1)
+                ->where('shifts.0.id', $run->id)
+                ->has('availability', 1)
+                ->where('availability.0.shift_id', $run->id)
             );
     }
 
