@@ -66,6 +66,13 @@ class ShiftAssignmentController extends Controller
             throw ValidationException::withMessages(['employee_id' => __('scheduling.error.overlap')]);
         }
 
+        $capViolation = $this->eligibility->hardCapViolation($employee, $shift, $date);
+        if ($capViolation !== null) {
+            throw ValidationException::withMessages([
+                'employee_id' => __("scheduling.error.{$capViolation}"),
+            ]);
+        }
+
         ShiftAssignment::create([
             'employee_id' => $employee->id,
             'workcenter_id' => $workcenter->id,

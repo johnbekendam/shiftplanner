@@ -4,6 +4,8 @@ namespace Tests\Feature;
 
 use App\Models\Employee;
 use App\Models\EmployeeHoliday;
+use App\Models\PlanningRule;
+use App\Models\PlanningSettings;
 use App\Models\RecurringAvailability;
 use App\Models\Shift;
 use App\Models\ShiftAssignment;
@@ -295,6 +297,55 @@ class ShiftAssignmentTest extends TestCase
 
         $this->post('/planning/assignments', $this->validPayload($employee, $workcenterB, $shiftB))
             ->assertSessionHasErrors('employee_id');
+        $this->assertSame(1, ShiftAssignment::count());
+    }
+
+    public function test_store_rejects_an_employee_at_the_hard_daily_shift_cap(): void
+    {
+        $this->actingAsAdmin();
+        $employee = Employee::factory()->create(['confirmed' => true]);
+        $workcenter = Workcenter::factory()->create();
+        $otherWorkcenter = Workcenter::factory()->create();
+        $existingShift = Shift::factory()->create(['start_time' => '06:00', 'end_time' => '14:00']);
+        $targetShift = Shift::factory()->create(['start_time' => '14:00', 'end_time' => '22:00']);
+        $this->setCapacity($workcenter, $targetShift, $this->aTuesday(), 5);
+        RecurringAvailability::factory()->create([
+            'employee_id' => $employee->id, 'weekday' => 2, 'shift_id' => $targetShift->id, 'level' => 'available',
+        ]);
+        ShiftAssignment::factory()->create([
+            'employee_id' => $employee->id, 'workcenter_id' => $otherWorkcenter->id,
+            'shift_id' => $existingShift->id, 'date' => $this->aTuesday(),
+        ]);
+        PlanningRule::create(['type' => 'max_shifts_per_day', 'mode' => 'hard', 'config' => ['value' => 1]]);
+
+        $this->post('/planning/assignments', $this->validPayload($employee, $workcenter, $targetShift))
+            ->assertSessionHasErrors('employee_id');
+
+        $this->assertSame(1, ShiftAssignment::count());
+    }
+
+    public function test_store_rejects_an_employee_over_the_hard_hours_cap_for_the_planning_cycle(): void
+    {
+        $this->actingAsAdmin();
+        PlanningSettings::current()->update(['period_start' => '2026-09-14']);
+        $employee = Employee::factory()->create(['confirmed' => true, 'weekly_hours' => 4]);
+        $workcenter = Workcenter::factory()->create();
+        $existingWorkcenter = Workcenter::factory()->create();
+        $existingShift = Shift::factory()->create(['start_time' => '06:00', 'end_time' => '14:00']);
+        $targetShift = Shift::factory()->create(['start_time' => '14:00', 'end_time' => '22:00']);
+        $this->setCapacity($workcenter, $targetShift, $this->aTuesday(), 5);
+        RecurringAvailability::factory()->create([
+            'employee_id' => $employee->id, 'weekday' => 2, 'shift_id' => $targetShift->id, 'level' => 'available',
+        ]);
+        ShiftAssignment::factory()->create([
+            'employee_id' => $employee->id, 'workcenter_id' => $existingWorkcenter->id,
+            'shift_id' => $existingShift->id, 'date' => '2026-09-14',
+        ]);
+        PlanningRule::create(['type' => 'max_hours_per_week', 'mode' => 'hard']);
+
+        $this->post('/planning/assignments', $this->validPayload($employee, $workcenter, $targetShift))
+            ->assertSessionHasErrors('employee_id');
+
         $this->assertSame(1, ShiftAssignment::count());
     }
 

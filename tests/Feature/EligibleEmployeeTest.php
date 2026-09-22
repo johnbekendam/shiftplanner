@@ -4,6 +4,8 @@ namespace Tests\Feature;
 
 use App\Models\Employee;
 use App\Models\EmployeeHoliday;
+use App\Models\PlanningRule;
+use App\Models\PlanningSettings;
 use App\Models\RecurringAvailability;
 use App\Models\Shift;
 use App\Models\ShiftAssignment;
@@ -265,6 +267,50 @@ class EligibleEmployeeTest extends TestCase
         $employee = Employee::factory()->create(['confirmed' => false]);
 
         $ids = collect($this->get($this->url($workcenter, $shift))->json())->pluck('id');
+
+        $this->assertNotContains($employee->id, $ids);
+    }
+
+    public function test_excludes_an_employee_at_the_hard_daily_shift_cap(): void
+    {
+        $this->actingAsAdmin();
+        $workcenter = Workcenter::factory()->create();
+        $otherWorkcenter = Workcenter::factory()->create();
+        $existingShift = Shift::factory()->create(['start_time' => '06:00', 'end_time' => '14:00']);
+        $targetShift = Shift::factory()->create(['start_time' => '14:00', 'end_time' => '22:00']);
+        $employee = Employee::factory()->create(['confirmed' => true]);
+        RecurringAvailability::factory()->create([
+            'employee_id' => $employee->id, 'weekday' => 2, 'shift_id' => $targetShift->id, 'level' => 'available',
+        ]);
+        ShiftAssignment::factory()->create([
+            'employee_id' => $employee->id, 'workcenter_id' => $otherWorkcenter->id,
+            'shift_id' => $existingShift->id, 'date' => $this->aTuesday(),
+        ]);
+        PlanningRule::create(['type' => 'max_shifts_per_day', 'mode' => 'hard', 'config' => ['value' => 1]]);
+
+        $ids = collect($this->get($this->url($workcenter, $targetShift))->json())->pluck('id');
+
+        $this->assertNotContains($employee->id, $ids);
+    }
+
+    public function test_excludes_an_employee_over_the_hard_hours_cap_for_the_planning_cycle(): void
+    {
+        $this->actingAsAdmin();
+        PlanningSettings::current()->update(['period_start' => '2026-09-14']);
+        $workcenter = Workcenter::factory()->create();
+        $existingShift = Shift::factory()->create(['start_time' => '06:00', 'end_time' => '14:00']);
+        $targetShift = Shift::factory()->create(['start_time' => '14:00', 'end_time' => '22:00']);
+        $employee = Employee::factory()->create(['confirmed' => true, 'weekly_hours' => 4]);
+        RecurringAvailability::factory()->create([
+            'employee_id' => $employee->id, 'weekday' => 2, 'shift_id' => $targetShift->id, 'level' => 'available',
+        ]);
+        ShiftAssignment::factory()->create([
+            'employee_id' => $employee->id, 'workcenter_id' => Workcenter::factory()->create()->id,
+            'shift_id' => $existingShift->id, 'date' => '2026-09-14',
+        ]);
+        PlanningRule::create(['type' => 'max_hours_per_week', 'mode' => 'hard']);
+
+        $ids = collect($this->get($this->url($workcenter, $targetShift))->json())->pluck('id');
 
         $this->assertNotContains($employee->id, $ids);
     }

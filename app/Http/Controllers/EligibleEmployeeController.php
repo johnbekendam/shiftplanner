@@ -43,7 +43,8 @@ class EligibleEmployeeController extends Controller
                 || $this->eligibility->isOnHoliday($employee, $date)
                 || $this->eligibility->isUnavailable($employee, $weekday, $shift)
                 || $this->eligibility->hasOverlap($employee, $date, $shift)
-                || $this->eligibility->isWorkcenterIneligible($employee, $workcenter))
+                || $this->eligibility->isWorkcenterIneligible($employee, $workcenter)
+                || $this->eligibility->hardCapViolation($employee, $shift, $date) !== null)
             ->map(fn (Employee $employee) => [
                 'id' => $employee->id,
                 'name' => $employee->name,

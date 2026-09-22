@@ -485,6 +485,8 @@
     "scheduling.error.unconfirmed": "This employee is not confirmed yet.",
     "scheduling.error.overlap": "This employee is already assigned to an overlapping shift that day.",
     "scheduling.error.workcenter_ineligible": "This employee is not assigned to this workcenter.",
+    "scheduling.error.max_shifts_per_day": "This employee would exceed the maximum shifts allowed that day.",
+    "scheduling.error.max_hours_per_week": "This employee would exceed the maximum hours allowed in the planning cycle.",
     "scheduling.error.spots_below_assigned": "People are already assigned — remove someone first.",
     "scheduling.flash.assigned": "Employee assigned.",
     "scheduling.flash.updated": "Assignment updated.",
