@@ -128,6 +128,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/planning/send', [PlanNotificationController::class, 'store'])->name('planning.send');
 
         Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
+        Route::get('/reports/planned-hours/export', [ReportController::class, 'exportPlannedHours'])->name('reports.planned-hours.export');
 
         Route::get('/mailbox', [MailboxController::class, 'index'])->name('mailbox.index');
         Route::post('/mailbox/compose', [MailboxController::class, 'store'])->name('mailbox.compose');

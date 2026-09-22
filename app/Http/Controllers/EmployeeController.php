@@ -131,8 +131,7 @@ class EmployeeController extends Controller
 
     public function edit(Employee $employee)
     {
-        $shifts = Shift::all();
-        $visibleShifts = $shifts->where('visible_by_default', true);
+        $visibleShifts = $employee->effectiveShifts();
         $heldWorkcenterIds = $employee->workcenters()->pluck('workcenters.id');
         $workcenters = Workcenter::query()
             ->where(fn ($q) => $q->whereNull('archived_at')->orWhereIn('id', $heldWorkcenterIds))

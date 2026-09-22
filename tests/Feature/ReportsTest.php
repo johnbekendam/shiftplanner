@@ -239,6 +239,217 @@ class ReportsTest extends TestCase
             );
     }
 
+    // ── Workcenter report ───────────────────────────────────────────────
+
+    public function test_unassigned_workcenter_report_defaults_to_unassigned_mode(): void
+    {
+        $this->admin();
+        $line = BusinessLine::factory()->create(['abbreviation' => 'PMP']);
+        $unassigned = Employee::factory()->create([
+            'first_name' => 'Ann', 'last_name' => 'Ant',
+            'weekly_hours' => 32, 'confirmed' => true, 'business_line_id' => $line->id,
+        ]);
+        $assigned = Employee::factory()->create(['first_name' => 'Bo', 'last_name' => 'Bee']);
+        $workcenter = Workcenter::factory()->create();
+        $assigned->workcenters()->attach($workcenter, ['mode' => 'hard']);
+
+        $this->get('/reports')->assertInertia(fn ($page) => $page
+            ->where('filters.workcenter_mode', 'unassigned')
+            ->where('filters.workcenter_id', null)
+            ->where('filters.workcenter_sort', 'name')
+            ->where('filters.workcenter_direction', 'asc')
+            ->has('unassignedWorkcenterReport.data', 1)
+            ->where('unassignedWorkcenterReport.data.0.id', $unassigned->id)
+            ->where('unassignedWorkcenterReport.data.0.name', 'Ann Ant')
+            ->where('unassignedWorkcenterReport.data.0.business_line', 'PMP')
+            ->where('unassignedWorkcenterReport.data.0.weekly_hours', 32)
+            ->where('unassignedWorkcenterReport.total', 1)
+        );
+    }
+
+    public function test_unassigned_workcenter_report_shows_no_business_line_as_null(): void
+    {
+        $this->admin();
+        Employee::factory()->create(['business_line_id' => null, 'confirmed' => true]);
+
+        $this->get('/reports')->assertInertia(fn ($page) => $page
+            ->where('unassignedWorkcenterReport.data.0.business_line', null)
+        );
+    }
+
+    public function test_unassigned_workcenter_report_excludes_an_employee_with_a_soft_row(): void
+    {
+        $this->admin();
+        $employee = Employee::factory()->create(['confirmed' => true]);
+        $workcenter = Workcenter::factory()->create();
+        $employee->workcenters()->attach($workcenter, ['mode' => 'soft']);
+
+        $this->get('/reports')->assertInertia(fn ($page) => $page
+            ->where('unassignedWorkcenterReport.data', [])
+            ->where('unassignedWorkcenterReport.total', 0)
+        );
+    }
+
+    public function test_unassigned_workcenter_report_excludes_unconfirmed_employees(): void
+    {
+        $this->admin();
+        Employee::factory()->create(['confirmed' => false]);
+
+        $this->get('/reports')->assertInertia(fn ($page) => $page
+            ->where('unassignedWorkcenterReport.data', [])
+            ->where('unassignedWorkcenterReport.total', 0)
+        );
+    }
+
+    public function test_unassigned_workcenter_report_paginates_at_fifteen_per_page(): void
+    {
+        $this->admin();
+        Employee::factory()->count(16)
+            ->sequence(fn ($sequence) => ['first_name' => sprintf('E%02d', $sequence->index)])
+            ->create(['confirmed' => true]);
+
+        $this->get('/reports')->assertInertia(fn ($page) => $page
+            ->has('unassignedWorkcenterReport.data', 15)
+            ->where('unassignedWorkcenterReport.total', 16)
+            ->where('unassignedWorkcenterReport.last_page', 2)
+        );
+
+        $this->get('/reports?workcenter_page=2')->assertInertia(fn ($page) => $page
+            ->has('unassignedWorkcenterReport.data', 1)
+        );
+    }
+
+    public function test_unassigned_workcenter_report_sorts_by_weekly_hours_descending(): void
+    {
+        $this->admin();
+        Employee::factory()->create(['first_name' => 'Low', 'last_name' => 'One', 'weekly_hours' => 8, 'confirmed' => true]);
+        Employee::factory()->create(['first_name' => 'High', 'last_name' => 'One', 'weekly_hours' => 40, 'confirmed' => true]);
+
+        $this->get('/reports?workcenter_sort=weekly_hours&workcenter_direction=desc')
+            ->assertInertia(fn ($page) => $page
+                ->where('filters.workcenter_sort', 'weekly_hours')
+                ->where('filters.workcenter_direction', 'desc')
+                ->where('unassignedWorkcenterReport.data.0.name', 'High One')
+                ->where('unassignedWorkcenterReport.data.1.name', 'Low One')
+            );
+    }
+
+    public function test_an_unknown_workcenter_sort_falls_back_to_name(): void
+    {
+        $this->admin();
+        Employee::factory()->create();
+
+        $this->get('/reports?workcenter_sort=nonsense')->assertInertia(fn ($page) => $page
+            ->where('filters.workcenter_sort', 'name')
+        );
+    }
+
+    public function test_for_workcenter_mode_with_no_workcenter_picked_returns_no_rows(): void
+    {
+        $this->admin();
+        Employee::factory()->create();
+
+        $this->get('/reports?workcenter_mode=for_workcenter')->assertInertia(fn ($page) => $page
+            ->where('filters.workcenter_mode', 'for_workcenter')
+            ->where('workcenterReport.data', [])
+            ->where('workcenterReport.total', 0)
+        );
+    }
+
+    public function test_for_workcenter_mode_lists_employees_assigned_to_the_picked_workcenter(): void
+    {
+        $this->admin();
+        $line = BusinessLine::factory()->create(['abbreviation' => 'PMP']);
+        $workcenterA = Workcenter::factory()->create();
+        $workcenterB = Workcenter::factory()->create();
+        $ann = Employee::factory()->create([
+            'first_name' => 'Ann', 'last_name' => 'Ant',
+            'weekly_hours' => 32, 'confirmed' => true, 'business_line_id' => $line->id,
+        ]);
+        $bo = Employee::factory()->create(['first_name' => 'Bo', 'last_name' => 'Bee', 'weekly_hours' => 16, 'confirmed' => true]);
+        $cy = Employee::factory()->create(['first_name' => 'Cy', 'last_name' => 'Cat', 'confirmed' => true]);
+        $ann->workcenters()->attach($workcenterA, ['mode' => 'hard']);
+        $bo->workcenters()->attach($workcenterA, ['mode' => 'soft']);
+        $cy->workcenters()->attach($workcenterB, ['mode' => 'hard']);
+
+        $this->get("/reports?workcenter_mode=for_workcenter&workcenter={$workcenterA->id}")
+            ->assertInertia(fn ($page) => $page
+                ->has('workcenterReport.data', 2)
+                ->where('workcenterReport.data.0.id', $ann->id)
+                ->where('workcenterReport.data.0.name', 'Ann Ant')
+                ->where('workcenterReport.data.0.mode', 'hard')
+                ->where('workcenterReport.data.0.business_line', 'PMP')
+                ->where('workcenterReport.data.0.weekly_hours', 32)
+                ->where('workcenterReport.data.1.id', $bo->id)
+                ->where('workcenterReport.data.1.name', 'Bo Bee')
+                ->where('workcenterReport.data.1.mode', 'soft')
+                ->where('workcenterReport.data.1.business_line', null)
+                ->where('workcenterReport.data.1.weekly_hours', 16)
+                ->where('workcenterReport.total', 2)
+                ->where('filters.workcenter_id', $workcenterA->id)
+            );
+    }
+
+    public function test_for_workcenter_mode_excludes_unconfirmed_employees(): void
+    {
+        $this->admin();
+        $workcenter = Workcenter::factory()->create();
+        $employee = Employee::factory()->create(['confirmed' => false]);
+        $employee->workcenters()->attach($workcenter, ['mode' => 'hard']);
+
+        $this->get("/reports?workcenter_mode=for_workcenter&workcenter={$workcenter->id}")
+            ->assertInertia(fn ($page) => $page
+                ->where('workcenterReport.data', [])
+                ->where('workcenterReport.total', 0)
+            );
+    }
+
+    public function test_for_workcenter_mode_sorts_by_mode_descending(): void
+    {
+        $this->admin();
+        $workcenter = Workcenter::factory()->create();
+        $hard = Employee::factory()->create(['first_name' => 'Ann', 'last_name' => 'Ant', 'confirmed' => true]);
+        $soft = Employee::factory()->create(['first_name' => 'Bo', 'last_name' => 'Bee', 'confirmed' => true]);
+        $hard->workcenters()->attach($workcenter, ['mode' => 'hard']);
+        $soft->workcenters()->attach($workcenter, ['mode' => 'soft']);
+
+        $this->get("/reports?workcenter_mode=for_workcenter&workcenter={$workcenter->id}&workcenter_sort=mode&workcenter_direction=desc")
+            ->assertInertia(fn ($page) => $page
+                ->where('filters.workcenter_sort', 'mode')
+                ->where('workcenterReport.data.0.mode', 'soft')
+                ->where('workcenterReport.data.1.mode', 'hard')
+            );
+    }
+
+    public function test_for_workcenter_mode_paginates_at_fifteen_per_page(): void
+    {
+        $this->admin();
+        $workcenter = Workcenter::factory()->create();
+        Employee::factory()->count(16)
+            ->sequence(fn ($sequence) => ['first_name' => sprintf('E%02d', $sequence->index)])
+            ->create(['confirmed' => true])
+            ->each(fn (Employee $employee) => $employee->workcenters()->attach($workcenter, ['mode' => 'hard']));
+
+        $this->get("/reports?workcenter_mode=for_workcenter&workcenter={$workcenter->id}")
+            ->assertInertia(fn ($page) => $page
+                ->has('workcenterReport.data', 15)
+                ->where('workcenterReport.total', 16)
+                ->where('workcenterReport.last_page', 2)
+            );
+    }
+
+    public function test_the_workcenters_prop_excludes_archived_workcenters(): void
+    {
+        $this->admin();
+        $active = Workcenter::factory()->create(['name' => 'Assembly A']);
+        Workcenter::factory()->create(['name' => 'Retired', 'archived_at' => now()]);
+
+        $this->get('/reports')->assertInertia(fn ($page) => $page
+            ->has('workcenters', 1)
+            ->where('workcenters.0.id', $active->id)
+        );
+    }
+
     // ── Uninformed planning ─────────────────────────────────────────────
 
     private function plan(Employee $employee, string $date, ?string $informedAt = null): void
@@ -313,5 +524,203 @@ class ReportsTest extends TestCase
         $this->get('/reports')->assertInertia(fn ($page) => $page
             ->where('filters.planning_business_line', null)
             ->where('uninformedPlanning', []));
+    }
+
+    // ── Planned hours report ────────────────────────────────────────────
+
+    private function publishedAssignment(Workcenter $workcenter, string $date, string $startTime = '08:00', string $endTime = '16:00', ?Employee $employee = null): ShiftAssignment
+    {
+        PublishedWeek::query()->firstOrCreate([
+            'week_start' => Carbon::parse($date)->startOfWeek(Carbon::MONDAY)->toDateString(),
+            'workcenter_id' => $workcenter->id,
+        ]);
+        $shift = Shift::factory()->create(['start_time' => $startTime, 'end_time' => $endTime]);
+
+        return ShiftAssignment::factory()->create([
+            'employee_id' => ($employee ?? Employee::factory()->create())->id,
+            'workcenter_id' => $workcenter->id,
+            'shift_id' => $shift->id,
+            'date' => $date,
+        ]);
+    }
+
+    public function test_a_published_assignment_appears_with_its_workcenter_date_and_hours(): void
+    {
+        Carbon::setTestNow('2026-09-22 10:00:00');
+        $this->admin();
+        $workcenter = Workcenter::factory()->create(['name' => 'Assembly A']);
+        $this->publishedAssignment($workcenter, '2026-09-22', '08:00', '16:00');
+
+        $this->get('/reports')->assertInertia(fn ($page) => $page
+            ->has('plannedHoursReport.data', 1)
+            ->where('plannedHoursReport.data.0.workcenter', 'Assembly A')
+            ->where('plannedHoursReport.data.0.date', '2026-09-22')
+            ->where('plannedHoursReport.data.0.hours', 8)
+        );
+        Carbon::setTestNow();
+    }
+
+    public function test_a_draft_assignment_is_excluded(): void
+    {
+        Carbon::setTestNow('2026-09-22 10:00:00');
+        $this->admin();
+        $workcenter = Workcenter::factory()->create();
+        ShiftAssignment::factory()->create([
+            'workcenter_id' => $workcenter->id,
+            'shift_id' => Shift::factory()->create(['start_time' => '08:00', 'end_time' => '16:00'])->id,
+            'date' => '2026-09-22',
+        ]);
+
+        $this->get('/reports')->assertInertia(fn ($page) => $page
+            ->where('plannedHoursReport.data', [])
+            ->where('plannedHoursReport.total', 0)
+        );
+        Carbon::setTestNow();
+    }
+
+    public function test_an_unconfirmed_employees_assignment_is_included(): void
+    {
+        Carbon::setTestNow('2026-09-22 10:00:00');
+        $this->admin();
+        $workcenter = Workcenter::factory()->create();
+        $employee = Employee::factory()->create(['confirmed' => false]);
+        $this->publishedAssignment($workcenter, '2026-09-22', employee: $employee);
+
+        $this->get('/reports')->assertInertia(fn ($page) => $page
+            ->has('plannedHoursReport.data', 1)
+        );
+        Carbon::setTestNow();
+    }
+
+    public function test_a_workcenter_with_no_assignments_produces_no_row(): void
+    {
+        $this->admin();
+        Workcenter::factory()->create();
+
+        $this->get('/reports')->assertInertia(fn ($page) => $page
+            ->where('plannedHoursReport.data', [])
+            ->where('plannedHoursReport.total', 0)
+        );
+    }
+
+    public function test_default_range_covers_the_current_week(): void
+    {
+        Carbon::setTestNow('2026-09-24 10:00:00');
+        $this->admin();
+        $workcenter = Workcenter::factory()->create();
+        $this->publishedAssignment($workcenter, '2026-09-21');
+
+        $this->get('/reports')->assertInertia(fn ($page) => $page
+            ->where('filters.planned_hours_from', '2026-09-21')
+            ->where('filters.planned_hours_to', '2026-09-27')
+            ->has('plannedHoursReport.data', 1)
+        );
+        Carbon::setTestNow();
+    }
+
+    public function test_an_assignment_outside_the_picked_range_is_excluded(): void
+    {
+        $this->admin();
+        $workcenter = Workcenter::factory()->create();
+        $this->publishedAssignment($workcenter, '2026-09-22');
+
+        $this->get('/reports?planned_hours_from=2026-10-01&planned_hours_to=2026-10-07')
+            ->assertInertia(fn ($page) => $page
+                ->where('plannedHoursReport.data', [])
+            );
+    }
+
+    public function test_two_assignments_on_the_same_workcenter_and_day_sum_their_hours(): void
+    {
+        $this->admin();
+        $workcenter = Workcenter::factory()->create();
+        $this->publishedAssignment($workcenter, '2026-09-22', '08:00', '12:00');
+        $this->publishedAssignment($workcenter, '2026-09-22', '12:00', '16:00');
+
+        $this->get('/reports?planned_hours_from=2026-09-21&planned_hours_to=2026-09-27')
+            ->assertInertia(fn ($page) => $page
+                ->has('plannedHoursReport.data', 1)
+                ->where('plannedHoursReport.data.0.hours', 8)
+            );
+    }
+
+    public function test_planned_hours_sorts_by_hours_descending(): void
+    {
+        $this->admin();
+        $low = Workcenter::factory()->create(['name' => 'Low']);
+        $high = Workcenter::factory()->create(['name' => 'High']);
+        $this->publishedAssignment($low, '2026-09-22', '08:00', '12:00');
+        $this->publishedAssignment($high, '2026-09-22', '08:00', '20:00');
+
+        $this->get('/reports?planned_hours_from=2026-09-21&planned_hours_to=2026-09-27&planned_hours_sort=hours&planned_hours_direction=desc')
+            ->assertInertia(fn ($page) => $page
+                ->where('filters.planned_hours_sort', 'hours')
+                ->where('plannedHoursReport.data.0.workcenter', 'High')
+                ->where('plannedHoursReport.data.1.workcenter', 'Low')
+            );
+    }
+
+    public function test_an_unknown_planned_hours_sort_falls_back_to_date(): void
+    {
+        $this->admin();
+
+        $this->get('/reports?planned_hours_sort=nonsense')->assertInertia(fn ($page) => $page
+            ->where('filters.planned_hours_sort', 'date')
+        );
+    }
+
+    public function test_planned_hours_paginates_at_fifteen_per_page(): void
+    {
+        $this->admin();
+        $from = '2026-09-01';
+        $to = '2026-09-30';
+
+        collect(range(1, 16))->each(function (int $i) use ($from) {
+            $workcenter = Workcenter::factory()->create(['name' => sprintf('WC%02d', $i)]);
+            $this->publishedAssignment($workcenter, $from);
+        });
+
+        $this->get("/reports?planned_hours_from={$from}&planned_hours_to={$to}")
+            ->assertInertia(fn ($page) => $page
+                ->has('plannedHoursReport.data', 15)
+                ->where('plannedHoursReport.total', 16)
+                ->where('plannedHoursReport.last_page', 2)
+            );
+
+        $this->get("/reports?planned_hours_from={$from}&planned_hours_to={$to}&planned_hours_page=2")
+            ->assertInertia(fn ($page) => $page
+                ->has('plannedHoursReport.data', 1)
+            );
+    }
+
+    public function test_planned_hours_export_returns_a_csv_of_the_full_result_set(): void
+    {
+        $this->admin();
+        $workcenter = Workcenter::factory()->create(['name' => 'Assembly A']);
+        $this->publishedAssignment($workcenter, '2026-09-22', '08:00', '16:00');
+
+        $response = $this->get('/reports/planned-hours/export?planned_hours_from=2026-09-21&planned_hours_to=2026-09-27');
+
+        $response->assertOk();
+        $response->assertHeader('Content-Type', 'text/csv; charset=UTF-8');
+        $this->assertSame(
+            "Workcenter,Date,Hours\n\"Assembly A\",2026-09-22,8\n",
+            $response->streamedContent(),
+        );
+    }
+
+    public function test_planned_hours_export_excludes_a_draft_assignment(): void
+    {
+        $this->admin();
+        $workcenter = Workcenter::factory()->create();
+        ShiftAssignment::factory()->create([
+            'workcenter_id' => $workcenter->id,
+            'shift_id' => Shift::factory()->create(['start_time' => '08:00', 'end_time' => '16:00'])->id,
+            'date' => '2026-09-22',
+        ]);
+
+        $response = $this->get('/reports/planned-hours/export?planned_hours_from=2026-09-21&planned_hours_to=2026-09-27');
+
+        $this->assertSame("Workcenter,Date,Hours\n", $response->streamedContent());
     }
 }

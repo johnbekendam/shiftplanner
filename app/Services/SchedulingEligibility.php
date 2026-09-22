@@ -3,10 +3,12 @@
 namespace App\Services;
 
 use App\Models\Employee;
+use App\Models\PlanningRule;
 use App\Models\RecurringAvailability;
 use App\Models\Shift;
 use App\Models\ShiftAssignment;
 use App\Models\Workcenter;
+use App\Services\Planning\PlanningCycle;
 use Carbon\Carbon;
 
 /**
@@ -79,5 +81,46 @@ class SchedulingEligibility
                 ->where('start_time', '<', $end)
                 ->where('end_time', '>', $start))
             ->exists();
+    }
+
+    /** Return the first hard planning cap exceeded by a proposed assignment, or null. */
+    public function hardCapViolation(Employee $employee, Shift $shift, Carbon $date): ?string
+    {
+        $rules = PlanningRule::query()
+            ->whereIn('type', ['max_shifts_per_day', 'max_hours_per_week'])
+            ->where('mode', 'hard')
+            ->get()
+            ->keyBy('type');
+
+        $dailyRule = $rules->get('max_shifts_per_day');
+        if ($dailyRule !== null && ShiftAssignment::query()
+            ->where('employee_id', $employee->id)
+            ->whereDate('date', $date)
+            ->count() + 1 > (int) ($dailyRule->config['value'] ?? 0)) {
+            return 'max_shifts_per_day';
+        }
+
+        $hoursRule = $rules->get('max_hours_per_week');
+        $cycleStart = PlanningCycle::containing($date);
+        if ($hoursRule !== null && $cycleStart !== null) {
+            $cycleEnd = $cycleStart->copy()->addDays(13);
+            $hours = ShiftAssignment::query()
+                ->where('employee_id', $employee->id)
+                ->whereBetween('date', [$cycleStart->toDateString(), $cycleEnd->toDateString()])
+                ->with('shift')
+                ->get()
+                ->sum(fn (ShiftAssignment $assignment): float => $this->shiftDurationHours($assignment->shift));
+
+            if ($hours + $this->shiftDurationHours($shift) > $employee->weekly_hours * 2) {
+                return 'max_hours_per_week';
+            }
+        }
+
+        return null;
+    }
+
+    private function shiftDurationHours(Shift $shift): float
+    {
+        return $shift->durationHours();
     }
 }

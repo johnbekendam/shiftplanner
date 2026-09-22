@@ -6,6 +6,7 @@ use App\Models\Employee;
 use App\Models\RecurringAvailability;
 use App\Models\Shift;
 use App\Models\User;
+use App\Models\Workcenter;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -74,6 +75,51 @@ class RecurringAvailabilityTest extends TestCase
             ->assertSessionHasErrors('shift');
 
         $this->assertSame(0, RecurringAvailability::count());
+    }
+
+    public function test_a_shift_outside_the_hard_workcenter_rejects_writes(): void
+    {
+        $user = User::factory()->create();
+        $employee = Employee::factory()->create();
+        $token = $this->token($employee);
+        $workcenter = Workcenter::factory()->create();
+        $otherWorkcenter = Workcenter::factory()->create();
+        $run = Shift::factory()->create();
+        $notRun = Shift::factory()->create(['start_time' => '14:00', 'end_time' => '22:00']);
+        $workcenter->shifts()->attach($run);
+        $otherWorkcenter->shifts()->attach($notRun);
+        $employee->workcenters()->attach($workcenter, ['mode' => 'hard']);
+
+        $this->actingAs($user)
+            ->put("/employees/{$employee->id}/availability/3/{$notRun->id}", ['level' => 'unavailable'])
+            ->assertSessionHasErrors('shift');
+
+        $this->put("/personal/{$token}/availability/3/{$notRun->id}", ['level' => 'unavailable'])
+            ->assertSessionHasErrors('shift');
+
+        $this->assertSame(0, RecurringAvailability::count());
+    }
+
+    public function test_a_hidden_by_default_shift_the_hard_workcenter_runs_accepts_writes(): void
+    {
+        $user = User::factory()->create();
+        $employee = Employee::factory()->create();
+        $workcenter = Workcenter::factory()->create();
+        $shift = $this->shift();
+        $shift->update(['visible_by_default' => false]);
+        $workcenter->shifts()->attach($shift);
+        $employee->workcenters()->attach($workcenter, ['mode' => 'hard']);
+
+        $this->actingAs($user)
+            ->put("/employees/{$employee->id}/availability/3/{$shift->id}", ['level' => 'unavailable'])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('recurring_availabilities', [
+            'employee_id' => $employee->id,
+            'weekday' => 3,
+            'shift_id' => $shift->id,
+            'level' => 'unavailable',
+        ]);
     }
 
     public function test_hiding_a_shift_keeps_existing_availability_dormant(): void
@@ -279,6 +325,40 @@ class RecurringAvailabilityTest extends TestCase
                 ->where('availability.0.weekday', 1)
                 ->where('availability.0.shift_id', $shift->id)
                 ->where('availability.0.level', 'not_preferred')
+            );
+    }
+
+    public function test_manager_and_personal_payloads_scope_shifts_to_a_hard_workcenter(): void
+    {
+        $user = User::factory()->create();
+        $employee = Employee::factory()->create();
+        $token = $this->token($employee);
+        $workcenter = Workcenter::factory()->create();
+        $otherWorkcenter = Workcenter::factory()->create();
+
+        $run = Shift::factory()->create(['name' => 'Run', 'start_time' => '06:00', 'end_time' => '14:00', 'visible_by_default' => false]);
+        $notRun = Shift::factory()->create(['name' => 'NotRun', 'start_time' => '14:00', 'end_time' => '22:00', 'visible_by_default' => true]);
+        $workcenter->shifts()->attach($run);
+        $otherWorkcenter->shifts()->attach($notRun);
+        $employee->workcenters()->attach($workcenter, ['mode' => 'hard']);
+
+        $employee->recurringAvailabilities()->create(['weekday' => 1, 'shift_id' => $run->id, 'level' => 'unavailable']);
+        $employee->recurringAvailabilities()->create(['weekday' => 1, 'shift_id' => $notRun->id, 'level' => 'unavailable']);
+
+        $this->actingAs($user)->get("/employees/{$employee->id}/edit")
+            ->assertInertia(fn ($page) => $page
+                ->has('shifts', 1)
+                ->where('shifts.0.id', $run->id)
+                ->has('availability', 1)
+                ->where('availability.0.shift_id', $run->id)
+            );
+
+        $this->get("/personal/{$token}")
+            ->assertInertia(fn ($page) => $page
+                ->has('shifts', 1)
+                ->where('shifts.0.id', $run->id)
+                ->has('availability', 1)
+                ->where('availability.0.shift_id', $run->id)
             );
     }
 

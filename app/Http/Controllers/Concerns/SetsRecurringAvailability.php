@@ -18,7 +18,7 @@ trait SetsRecurringAvailability
             'level' => ['required', Rule::in(['not_set', 'available', ...RecurringAvailability::LEVELS])],
         ])['level'];
 
-        if (! $shift->visible_by_default) {
+        if (! $employee->effectiveShifts()->contains($shift)) {
             throw ValidationException::withMessages(['shift' => __('availability.error.shift_hidden')]);
         }
 

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -96,6 +97,24 @@ class Employee extends Model
     public function workcenters(): BelongsToMany
     {
         return $this->belongsToMany(Workcenter::class)->withPivot('mode');
+    }
+
+    /**
+     * The shifts this employee can see and set availability for.
+     *
+     * With no hard workcenter row: every shift visible by default. With one
+     * or more hard rows: the union of shifts those workcenters run,
+     * regardless of visible_by_default.
+     */
+    public function effectiveShifts(): Collection
+    {
+        $hardWorkcenterIds = $this->workcenters()->wherePivot('mode', 'hard')->pluck('workcenters.id');
+
+        if ($hardWorkcenterIds->isEmpty()) {
+            return Shift::where('visible_by_default', true)->get();
+        }
+
+        return Shift::whereHas('workcenters', fn ($q) => $q->whereIn('workcenters.id', $hardWorkcenterIds))->get();
     }
 
     /** Availability questions the employee answered with yes. */

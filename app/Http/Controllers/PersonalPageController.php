@@ -7,7 +7,6 @@ use App\Models\BusinessLine;
 use App\Models\Competence;
 use App\Models\Employee;
 use App\Models\PlanningSettings;
-use App\Models\Shift;
 use App\Services\EmployeePersonalLinkService;
 use App\Services\PlannedShifts;
 use Illuminate\Http\Request;
@@ -38,8 +37,7 @@ class PersonalPageController extends Controller
 
         $responsible = $employee->businessLine?->responsibleUser;
 
-        $shifts = Shift::all();
-        $visibleShifts = $shifts->where('visible_by_default', true);
+        $visibleShifts = $employee->effectiveShifts();
 
         return Inertia::render('Personal/Show', [
             'token' => $token,

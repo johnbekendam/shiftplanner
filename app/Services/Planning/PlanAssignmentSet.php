@@ -2,6 +2,8 @@
 
 namespace App\Services\Planning;
 
+use App\Models\Shift;
+
 /**
  * Mutable working state for one planner run: every assignment currently
  * "in effect" for the cycle, seeded from the locked assignments and then
@@ -166,14 +168,7 @@ final class PlanAssignmentSet
             return 0.0;
         }
 
-        [$sh, $sm] = array_map('intval', explode(':', $shift['start_time']));
-        [$eh, $em] = array_map('intval', explode(':', $shift['end_time']));
-        $minutes = ($eh * 60 + $em) - ($sh * 60 + $sm);
-        if ($minutes <= 0) {
-            $minutes += 24 * 60; // overnight shift
-        }
-
-        return $minutes / 60;
+        return Shift::durationHoursBetween($shift['start_time'], $shift['end_time']);
     }
 
     /** @return array<int, array{employee_id: int, workcenter_id: int, shift_id: int, date: string, locked: bool}> */
