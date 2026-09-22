@@ -256,12 +256,15 @@ class ReportsTest extends TestCase
         $this->get('/reports')->assertInertia(fn ($page) => $page
             ->where('filters.workcenter_mode', 'unassigned')
             ->where('filters.workcenter_id', null)
-            ->has('unassignedWorkcenterReport', 1)
-            ->where('unassignedWorkcenterReport.0.id', $unassigned->id)
-            ->where('unassignedWorkcenterReport.0.name', 'Ann Ant')
-            ->where('unassignedWorkcenterReport.0.business_line', 'PMP')
-            ->where('unassignedWorkcenterReport.0.weekly_hours', 32)
-            ->where('unassignedWorkcenterReport.0.confirmed', true)
+            ->where('filters.workcenter_sort', 'name')
+            ->where('filters.workcenter_direction', 'asc')
+            ->has('unassignedWorkcenterReport.data', 1)
+            ->where('unassignedWorkcenterReport.data.0.id', $unassigned->id)
+            ->where('unassignedWorkcenterReport.data.0.name', 'Ann Ant')
+            ->where('unassignedWorkcenterReport.data.0.business_line', 'PMP')
+            ->where('unassignedWorkcenterReport.data.0.weekly_hours', 32)
+            ->where('unassignedWorkcenterReport.data.0.confirmed', true)
+            ->where('unassignedWorkcenterReport.total', 1)
         );
     }
 
@@ -271,7 +274,7 @@ class ReportsTest extends TestCase
         Employee::factory()->create(['business_line_id' => null]);
 
         $this->get('/reports')->assertInertia(fn ($page) => $page
-            ->where('unassignedWorkcenterReport.0.business_line', null)
+            ->where('unassignedWorkcenterReport.data.0.business_line', null)
         );
     }
 
@@ -283,7 +286,49 @@ class ReportsTest extends TestCase
         $employee->workcenters()->attach($workcenter, ['mode' => 'soft']);
 
         $this->get('/reports')->assertInertia(fn ($page) => $page
-            ->where('unassignedWorkcenterReport', [])
+            ->where('unassignedWorkcenterReport.data', [])
+            ->where('unassignedWorkcenterReport.total', 0)
+        );
+    }
+
+    public function test_unassigned_workcenter_report_paginates_at_fifteen_per_page(): void
+    {
+        $this->admin();
+        Employee::factory()->count(16)->sequence(fn ($sequence) => ['first_name' => sprintf('E%02d', $sequence->index)])->create();
+
+        $this->get('/reports')->assertInertia(fn ($page) => $page
+            ->has('unassignedWorkcenterReport.data', 15)
+            ->where('unassignedWorkcenterReport.total', 16)
+            ->where('unassignedWorkcenterReport.last_page', 2)
+        );
+
+        $this->get('/reports?workcenter_page=2')->assertInertia(fn ($page) => $page
+            ->has('unassignedWorkcenterReport.data', 1)
+        );
+    }
+
+    public function test_unassigned_workcenter_report_sorts_by_weekly_hours_descending(): void
+    {
+        $this->admin();
+        Employee::factory()->create(['first_name' => 'Low', 'last_name' => 'One', 'weekly_hours' => 8]);
+        Employee::factory()->create(['first_name' => 'High', 'last_name' => 'One', 'weekly_hours' => 40]);
+
+        $this->get('/reports?workcenter_sort=weekly_hours&workcenter_direction=desc')
+            ->assertInertia(fn ($page) => $page
+                ->where('filters.workcenter_sort', 'weekly_hours')
+                ->where('filters.workcenter_direction', 'desc')
+                ->where('unassignedWorkcenterReport.data.0.name', 'High One')
+                ->where('unassignedWorkcenterReport.data.1.name', 'Low One')
+            );
+    }
+
+    public function test_an_unknown_workcenter_sort_falls_back_to_name(): void
+    {
+        $this->admin();
+        Employee::factory()->create();
+
+        $this->get('/reports?workcenter_sort=nonsense')->assertInertia(fn ($page) => $page
+            ->where('filters.workcenter_sort', 'name')
         );
     }
 
@@ -294,7 +339,8 @@ class ReportsTest extends TestCase
 
         $this->get('/reports?workcenter_mode=for_workcenter')->assertInertia(fn ($page) => $page
             ->where('filters.workcenter_mode', 'for_workcenter')
-            ->where('workcenterReport', [])
+            ->where('workcenterReport.data', [])
+            ->where('workcenterReport.total', 0)
         );
     }
 
@@ -316,20 +362,55 @@ class ReportsTest extends TestCase
 
         $this->get("/reports?workcenter_mode=for_workcenter&workcenter={$workcenterA->id}")
             ->assertInertia(fn ($page) => $page
-                ->has('workcenterReport', 2)
-                ->where('workcenterReport.0.id', $ann->id)
-                ->where('workcenterReport.0.name', 'Ann Ant')
-                ->where('workcenterReport.0.mode', 'hard')
-                ->where('workcenterReport.0.business_line', 'PMP')
-                ->where('workcenterReport.0.weekly_hours', 32)
-                ->where('workcenterReport.0.confirmed', true)
-                ->where('workcenterReport.1.id', $bo->id)
-                ->where('workcenterReport.1.name', 'Bo Bee')
-                ->where('workcenterReport.1.mode', 'soft')
-                ->where('workcenterReport.1.business_line', null)
-                ->where('workcenterReport.1.weekly_hours', 16)
-                ->where('workcenterReport.1.confirmed', false)
+                ->has('workcenterReport.data', 2)
+                ->where('workcenterReport.data.0.id', $ann->id)
+                ->where('workcenterReport.data.0.name', 'Ann Ant')
+                ->where('workcenterReport.data.0.mode', 'hard')
+                ->where('workcenterReport.data.0.business_line', 'PMP')
+                ->where('workcenterReport.data.0.weekly_hours', 32)
+                ->where('workcenterReport.data.0.confirmed', true)
+                ->where('workcenterReport.data.1.id', $bo->id)
+                ->where('workcenterReport.data.1.name', 'Bo Bee')
+                ->where('workcenterReport.data.1.mode', 'soft')
+                ->where('workcenterReport.data.1.business_line', null)
+                ->where('workcenterReport.data.1.weekly_hours', 16)
+                ->where('workcenterReport.data.1.confirmed', false)
+                ->where('workcenterReport.total', 2)
                 ->where('filters.workcenter_id', $workcenterA->id)
+            );
+    }
+
+    public function test_for_workcenter_mode_sorts_by_mode_descending(): void
+    {
+        $this->admin();
+        $workcenter = Workcenter::factory()->create();
+        $hard = Employee::factory()->create(['first_name' => 'Ann', 'last_name' => 'Ant']);
+        $soft = Employee::factory()->create(['first_name' => 'Bo', 'last_name' => 'Bee']);
+        $hard->workcenters()->attach($workcenter, ['mode' => 'hard']);
+        $soft->workcenters()->attach($workcenter, ['mode' => 'soft']);
+
+        $this->get("/reports?workcenter_mode=for_workcenter&workcenter={$workcenter->id}&workcenter_sort=mode&workcenter_direction=desc")
+            ->assertInertia(fn ($page) => $page
+                ->where('filters.workcenter_sort', 'mode')
+                ->where('workcenterReport.data.0.mode', 'soft')
+                ->where('workcenterReport.data.1.mode', 'hard')
+            );
+    }
+
+    public function test_for_workcenter_mode_paginates_at_fifteen_per_page(): void
+    {
+        $this->admin();
+        $workcenter = Workcenter::factory()->create();
+        Employee::factory()->count(16)
+            ->sequence(fn ($sequence) => ['first_name' => sprintf('E%02d', $sequence->index)])
+            ->create()
+            ->each(fn (Employee $employee) => $employee->workcenters()->attach($workcenter, ['mode' => 'hard']));
+
+        $this->get("/reports?workcenter_mode=for_workcenter&workcenter={$workcenter->id}")
+            ->assertInertia(fn ($page) => $page
+                ->has('workcenterReport.data', 15)
+                ->where('workcenterReport.total', 16)
+                ->where('workcenterReport.last_page', 2)
             );
     }
 

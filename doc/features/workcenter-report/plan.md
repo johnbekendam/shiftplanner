@@ -1,4 +1,4 @@
-Status: done — 4/4
+Status: done — 5/5
 
 - [x] 1. `Workcenter::employees()` relation and controller data
       Add `Workcenter::employees(): BelongsToMany` with
@@ -81,3 +81,35 @@ Status: done — 4/4
       cover the new fields on both tables, including the no-business-line
       and unconfirmed cases. Full suite ran clean: 917 PHP tests, 763 JS
       tests.
+
+- [x] 5. Pagination and sortable columns on both tables
+      `ReportController`: both `unassignedWorkcenterReport()` and
+      `workcenterReport()` now return a 15-per-page `LengthAwarePaginator`
+      (custom page name `workcenter_page`, since both tables share one
+      query-param set — only one is ever visible at a time) instead of a
+      plain array. New `applyWorkcenterSort()` helper handles
+      Name/Business line/Weekly hours/Confirmed (plus Mode on the
+      For-workcenter table) via a validated `workcenter_sort` +
+      `workcenter_direction` pair, falling back to Name on an invalid or
+      not-applicable key. Business line sorts through a correlated
+      subquery (`BusinessLine::select('abbreviation')->whereColumn(...)`)
+      to avoid colliding with the pivot's auto-selected columns on the
+      For-workcenter table's `belongsToMany` query.
+
+      `Reports/Index.vue`: `workcenterSort`/`workcenterDirection` refs
+      seeded from `filters`, included in the existing `reload()` watcher
+      (so changing sort or mode drops any `page` param and naturally
+      resets to page 1). Column headers on both tables become sort
+      buttons with a chevron icon, reusing the Employees page's icon/
+      button styling. A compact pagination footer (item range, page
+      links) matching the Employees page's paginator, shown only on the
+      `workcenter` tab and only when the active table's `last_page > 1`.
+
+      `tests/Feature/ReportsTest.php` and `tests/js/Reports.test.js`
+      cover: 15-per-page pagination and the second page on both tables,
+      sorting by `weekly_hours` descending and by `mode` descending, an
+      unknown sort key falling back to `name`, clicking a column header
+      reloading with the new sort, clicking the same header again
+      flipping direction, and the pagination footer showing only when
+      there's more than one page. Full suite ran clean: 922 PHP tests,
+      767 JS tests.

@@ -29,6 +29,14 @@ values and wording: the business line's abbreviation (or an em dash
 with none set), the raw `weekly_hours` number, and Confirmed/Unconfirmed
 text.
 
+Both tables paginate at 15 rows, matching the Employees page's page
+size, with the same compact footer paginator (item range plus
+previous/page-numbers/next). Every column, including Requirement/
+Preference and Confirmed, is sortable: clicking a header sorts by
+that column ascending, clicking it again flips to descending. Picking
+a page keeps the current sort and filters. Switching mode, picking a
+workcenter, or sorting resets to page 1.
+
 Clicking a row in either mode navigates to
 `/employees/{id}/edit?tab=workcenters`, matching the Competences tab's
 click-through to the employee edit page.
@@ -65,6 +73,16 @@ original spec deferred this relation until something needed it.
   first version shipped. This is a display addition, not a filter —
   the "keep this small" scope decision above was about filters, not
   columns.
+- **Pagination and sorting share one query-param set across both
+  tables.** Only one table is ever visible at a time (the mode
+  selector), so `workcenter_sort`/`workcenter_direction`/
+  `workcenter_page` apply to whichever is active rather than doubling
+  the params. An invalid or not-applicable sort key (`mode` on the
+  Unassigned table) falls back to Name.
+- **Every column is sortable, including Confirmed and Requirement/
+  Preference.** Unlike the Employees page, which leaves its
+  checkbox-shaped Confirmed column non-sortable, this report's manager
+  explicitly asked for every column to sort.
 - **Row click navigates to the employee's Workcenters tab.** Same
   pattern as the competence report's click-through, giving a direct path
   to fix the gap.

@@ -13,6 +13,11 @@ use Inertia\Inertia;
 
 class ReportController extends Controller
 {
+    /** Sortable Workcenter-report columns. `mode` only applies to the For-workcenter table. */
+    private const WORKCENTER_SORT_KEYS = ['name', 'business_line', 'weekly_hours', 'confirmed'];
+
+    private const FOR_WORKCENTER_SORT_KEYS = [...self::WORKCENTER_SORT_KEYS, 'mode'];
+
     public function __construct(private UninformedPlanning $planning) {}
 
     public function index(Request $request)
@@ -31,13 +36,17 @@ class ReportController extends Controller
         $selectedWorkcenter = $workcenterId
             ? Workcenter::query()->whereKey($workcenterId)->first(['id', 'name'])
             : null;
+        $workcenterSortKeys = $workcenterMode === 'for_workcenter' ? self::FOR_WORKCENTER_SORT_KEYS : self::WORKCENTER_SORT_KEYS;
+        $workcenterSort = $request->input('workcenter_sort');
+        $workcenterSort = in_array($workcenterSort, $workcenterSortKeys, true) ? $workcenterSort : 'name';
+        $workcenterDirection = $request->input('workcenter_direction') === 'desc' ? 'desc' : 'asc';
 
         return Inertia::render('Reports/Index', [
             'employees' => $this->missingAvailability($shiftId, $businessLineId, $includeUnconfirmed),
             'uninformedPlanning' => $this->planning->summary($planningBusinessLineId)->all(),
             'competenceReport' => $this->competenceReport($competenceMode, $selectedCompetence),
-            'unassignedWorkcenterReport' => $this->unassignedWorkcenterReport(),
-            'workcenterReport' => $this->workcenterReport($selectedWorkcenter),
+            'unassignedWorkcenterReport' => $this->unassignedWorkcenterReport($workcenterSort, $workcenterDirection),
+            'workcenterReport' => $this->workcenterReport($selectedWorkcenter, $workcenterSort, $workcenterDirection),
             'shifts' => Shift::all()->map->toPayload()->all(),
             'businessLines' => BusinessLine::all()->map->toPayload()->all(),
             'competences' => Competence::all()->map->toPayload()->all(),
@@ -53,6 +62,8 @@ class ReportController extends Controller
                 'competence_id' => $selectedCompetence?->id,
                 'workcenter_mode' => $workcenterMode,
                 'workcenter_id' => $selectedWorkcenter?->id,
+                'workcenter_sort' => $workcenterSort,
+                'workcenter_direction' => $workcenterDirection,
             ],
         ]);
     }
@@ -135,44 +146,65 @@ class ReportController extends Controller
             ->all();
     }
 
-    /** Employees with no employee_workcenter row at all, hard or soft. */
-    private function unassignedWorkcenterReport(): array
+    /** Employees with no employee_workcenter row at all, hard or soft. 15 per page, sortable. */
+    private function unassignedWorkcenterReport(string $sort, string $direction)
     {
-        return Employee::query()
+        $query = Employee::query()
             ->whereDoesntHave('workcenters')
-            ->with('businessLine')
-            ->orderBy('first_name')
-            ->orderBy('last_name')
-            ->get()
-            ->map(fn (Employee $employee) => [
+            ->with('businessLine');
+
+        $this->applyWorkcenterSort($query, in_array($sort, self::WORKCENTER_SORT_KEYS, true) ? $sort : 'name', $direction);
+
+        return $query->paginate(15, ['*'], 'workcenter_page')
+            ->withQueryString()
+            ->through(fn (Employee $employee) => [
                 'id' => $employee->id,
                 'name' => $employee->name,
                 'business_line' => $employee->businessLine?->abbreviation,
                 'weekly_hours' => $employee->weekly_hours,
                 'confirmed' => $employee->confirmed,
-            ])
-            ->all();
+            ]);
     }
 
-    private function workcenterReport(?Workcenter $selectedWorkcenter): array
+    /** Employees holding a hard or soft row for the picked workcenter. 15 per page, sortable. */
+    private function workcenterReport(?Workcenter $selectedWorkcenter, string $sort, string $direction)
     {
         if ($selectedWorkcenter === null) {
-            return [];
+            return ['data' => [], 'links' => [], 'from' => null, 'to' => null, 'total' => 0, 'last_page' => 1];
         }
 
-        return $selectedWorkcenter->employees()
-            ->with('businessLine')
-            ->orderBy('first_name')
-            ->orderBy('last_name')
-            ->get()
-            ->map(fn (Employee $employee) => [
+        $query = $selectedWorkcenter->employees()->with('businessLine');
+
+        $this->applyWorkcenterSort($query, in_array($sort, self::FOR_WORKCENTER_SORT_KEYS, true) ? $sort : 'name', $direction);
+
+        return $query->paginate(15, ['*'], 'workcenter_page')
+            ->withQueryString()
+            ->through(fn (Employee $employee) => [
                 'id' => $employee->id,
                 'name' => $employee->name,
                 'mode' => $employee->pivot->mode,
                 'business_line' => $employee->businessLine?->abbreviation,
                 'weekly_hours' => $employee->weekly_hours,
                 'confirmed' => $employee->confirmed,
-            ])
-            ->all();
+            ]);
+    }
+
+    /** Shared Name/Business line/Weekly hours/Confirmed(/Mode) sort for both workcenter-report tables. */
+    private function applyWorkcenterSort($query, string $sort, string $direction): void
+    {
+        match ($sort) {
+            'business_line' => $query->orderBy(
+                BusinessLine::select('abbreviation')->whereColumn('business_lines.id', 'employees.business_line_id'),
+                $direction,
+            ),
+            'weekly_hours' => $query->orderBy('employees.weekly_hours', $direction),
+            'confirmed' => $query->orderBy('employees.confirmed', $direction),
+            'mode' => $query->orderBy('employee_workcenter.mode', $direction),
+            default => $query->orderBy('employees.first_name', $direction)->orderBy('employees.last_name', $direction),
+        };
+
+        if ($sort !== 'name') {
+            $query->orderBy('employees.first_name')->orderBy('employees.last_name');
+        }
     }
 }

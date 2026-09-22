@@ -6,6 +6,7 @@ import Card from '@/components/ui/Card.vue'
 import CardSeparator from '@/components/ui/CardSeparator.vue'
 import Tabs from '@/components/ui/Tabs.vue'
 import ButtonPrimary from '@/components/ui/ButtonPrimary.vue'
+import Icon from '@/components/ui/Icon.vue'
 import NoEmailBadge from '@/components/NoEmailBadge.vue'
 import UninformedPlanningReport from '@/components/UninformedPlanningReport.vue'
 import { SelectInput, CheckboxInput } from '@/components/ui/Input'
@@ -20,11 +21,29 @@ const props = defineProps({
     uninformedPlanning: { type: Array, default: () => [] }, // { id, name, business_line, uninformed_count, first_date }
     competences: { type: Array, default: () => [] }, // { id, name, read_only }
     competenceReport: { type: Array, default: () => [] }, // { id, name, competence_names }
-    unassignedWorkcenterReport: { type: Array, default: () => [] }, // { id, name, business_line, weekly_hours, confirmed }
-    workcenterReport: { type: Array, default: () => [] }, // { id, name, mode, business_line, weekly_hours, confirmed }
+    // Paginated: { data: [{ id, name, business_line, weekly_hours, confirmed }], links, from, to, total, last_page }
+    unassignedWorkcenterReport: { type: Object, required: true },
+    // Paginated: { data: [{ id, name, mode, business_line, weekly_hours, confirmed }], links, from, to, total, last_page }
+    workcenterReport: { type: Object, required: true },
     workcenters: { type: Array, default: () => [] }, // { id, name }
-    filters: { type: Object, required: true }, // { shift, business_line, unconfirmed, planning_business_line, competence_mode, competence_id, workcenter_mode, workcenter_id }
+    // { shift, business_line, unconfirmed, planning_business_line, competence_mode, competence_id,
+    //   workcenter_mode, workcenter_id, workcenter_sort, workcenter_direction }
+    filters: { type: Object, required: true },
 })
+
+const workcenterUnassignedColumns = [
+    { key: 'name', label: 'reports.workcenter.column.name' },
+    { key: 'business_line', label: 'reports.workcenter.column.business_line' },
+    { key: 'weekly_hours', label: 'reports.workcenter.column.weekly_hours' },
+    { key: 'confirmed', label: 'reports.workcenter.column.confirmed' },
+]
+const workcenterForColumns = [
+    { key: 'name', label: 'reports.workcenter.column.name' },
+    { key: 'mode', label: 'reports.workcenter.column.mode' },
+    { key: 'business_line', label: 'reports.workcenter.column.business_line' },
+    { key: 'weekly_hours', label: 'reports.workcenter.column.weekly_hours' },
+    { key: 'confirmed', label: 'reports.workcenter.column.confirmed' },
+]
 
 const tabs = [
     { value: 'competences', label: __('reports.tab.competences') },
@@ -42,6 +61,8 @@ const competenceMode = ref(props.filters.competence_mode ?? 'missing')
 const competenceId = ref(props.filters.competence_id ?? '')
 const workcenterMode = ref(props.filters.workcenter_mode ?? 'unassigned')
 const workcenterId = ref(props.filters.workcenter_id ?? '')
+const workcenterSort = ref(props.filters.workcenter_sort ?? 'name')
+const workcenterDirection = ref(props.filters.workcenter_direction ?? 'asc')
 
 const shiftOptions = computed(() => [
     { value: '', label: __('reports.missing_availability.shift_placeholder') },
@@ -78,13 +99,79 @@ function reload() {
         competence: competenceId.value || undefined,
         workcenter_mode: workcenterMode.value,
         workcenter: workcenterId.value || undefined,
+        workcenter_sort: workcenterSort.value,
+        workcenter_direction: workcenterDirection.value,
     }, { preserveState: true })
 }
 
 watch(
-    [shift, businessLine, includeUnconfirmed, planningBusinessLine, competenceMode, competenceId, workcenterMode, workcenterId],
+    [
+        shift, businessLine, includeUnconfirmed, planningBusinessLine, competenceMode, competenceId,
+        workcenterMode, workcenterId, workcenterSort, workcenterDirection,
+    ],
     reload,
 )
+
+function sortWorkcenterBy(key) {
+    workcenterDirection.value = workcenterSort.value === key && workcenterDirection.value === 'asc' ? 'desc' : 'asc'
+    workcenterSort.value = key
+}
+
+// Whichever of the two workcenter-report tables is currently shown.
+const activeWorkcenterReport = computed(() =>
+    workcenterMode.value === 'for_workcenter' ? props.workcenterReport : props.unassignedWorkcenterReport,
+)
+
+const workcenterPaginationRange = computed(() => {
+    const report = activeWorkcenterReport.value
+    return __('reports.workcenter.pagination.range', {
+        from: report.from ?? 0,
+        to: report.to ?? 0,
+        total: report.total ?? 0,
+    })
+})
+
+const workcenterPaginationLinks = computed(() => {
+    const links = activeWorkcenterReport.value.links ?? []
+    const lastIndex = links.length - 1
+
+    return links.map((link, index) => ({
+        ...link,
+        key: `${index}-${link.label}-${link.url ?? 'disabled'}`,
+        label: index === 0 ? '‹' : index === lastIndex ? '›' : link.label,
+        ariaLabel: index === 0
+            ? __('reports.workcenter.pagination.prev')
+            : index === lastIndex
+                ? __('reports.workcenter.pagination.next')
+                : __('reports.workcenter.pagination.page_label', { page: link.label }),
+        disabled: !link.url || link.active,
+        edge: index === 0 ? 'first' : index === lastIndex ? 'last' : null,
+    }))
+})
+
+function workcenterPaginationLinkClass(link) {
+    const classes = [
+        'inline-flex min-w-9 items-center justify-center px-3 py-1.5 text-sm outline outline-1 -outline-offset-1',
+    ]
+
+    if (link.edge === 'first') classes.push('rounded-l-md')
+    if (link.edge === 'last') classes.push('rounded-r-md')
+
+    if (link.active) {
+        classes.push('bg-[var(--color-pagination-active-bg)] text-[var(--color-pagination-active-text)] outline-[var(--color-pagination-active-border)] font-semibold')
+    } else if (link.disabled) {
+        classes.push('cursor-not-allowed bg-[var(--color-pagination-bg)] text-[var(--color-pagination-muted-text)] outline-[var(--color-pagination-border)]')
+    } else {
+        classes.push('bg-[var(--color-pagination-bg)] text-[var(--color-pagination-text)] outline-[var(--color-pagination-border)] hover:bg-[var(--color-pagination-hover-bg)] hover:text-[var(--color-pagination-hover-text)] hover:outline-[var(--color-pagination-hover-border)]')
+    }
+
+    return classes
+}
+
+function goToWorkcenterPage(url) {
+    if (!url) return
+    router.get(url, {}, { preserveState: true })
+}
 
 function openEmployeeCompetences(employee) {
     router.visit(`/employees/${employee.id}/edit?tab=competences`)
@@ -202,22 +289,32 @@ function emailSelected() {
 
                 <CardSeparator />
 
-                <p v-if="workcenterMode === 'unassigned' && unassignedWorkcenterReport.length === 0" class="text-sm text-(--color-text-secondary)">
+                <p v-if="workcenterMode === 'unassigned' && unassignedWorkcenterReport.total === 0" class="text-sm text-(--color-text-secondary)">
                     {{ __('reports.workcenter.empty_unassigned') }}
                 </p>
 
                 <table v-else-if="workcenterMode === 'unassigned'" class="w-full text-sm">
                     <thead>
                         <tr class="border-b border-(--color-table-header-separator) text-left text-(--color-table-header-text)">
-                            <th class="px-2 py-2 font-medium">{{ __('reports.workcenter.column.name') }}</th>
-                            <th class="px-2 py-2 font-medium">{{ __('reports.workcenter.column.business_line') }}</th>
-                            <th class="px-2 py-2 font-medium">{{ __('reports.workcenter.column.weekly_hours') }}</th>
-                            <th class="px-2 py-2 font-medium">{{ __('reports.workcenter.column.confirmed') }}</th>
+                            <th v-for="column in workcenterUnassignedColumns" :key="column.key" class="px-2 py-2">
+                                <button
+                                    type="button"
+                                    class="flex items-center gap-1 font-medium hover:text-(--color-text-primary)"
+                                    @click="sortWorkcenterBy(column.key)"
+                                >
+                                    {{ __(column.label) }}
+                                    <Icon
+                                        v-if="workcenterSort === column.key"
+                                        :name="workcenterDirection === 'asc' ? 'chevron-up' : 'chevron-down'"
+                                        class="size-3.5"
+                                    />
+                                </button>
+                            </th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr
-                            v-for="employee in unassignedWorkcenterReport"
+                            v-for="employee in unassignedWorkcenterReport.data"
                             :key="employee.id"
                             class="cursor-pointer border-b border-(--color-table-row-separator) hover:bg-(--color-table-row-hover-bg)"
                             tabindex="0"
@@ -242,19 +339,28 @@ function emailSelected() {
                     {{ __('reports.workcenter.empty_selection') }}
                 </p>
 
-                <table v-else-if="workcenterReport.length > 0" class="w-full text-sm">
+                <table v-else-if="workcenterReport.total > 0" class="w-full text-sm">
                     <thead>
                         <tr class="border-b border-(--color-table-header-separator) text-left text-(--color-table-header-text)">
-                            <th class="px-2 py-2 font-medium">{{ __('reports.workcenter.column.name') }}</th>
-                            <th class="px-2 py-2 font-medium">{{ __('reports.workcenter.column.mode') }}</th>
-                            <th class="px-2 py-2 font-medium">{{ __('reports.workcenter.column.business_line') }}</th>
-                            <th class="px-2 py-2 font-medium">{{ __('reports.workcenter.column.weekly_hours') }}</th>
-                            <th class="px-2 py-2 font-medium">{{ __('reports.workcenter.column.confirmed') }}</th>
+                            <th v-for="column in workcenterForColumns" :key="column.key" class="px-2 py-2">
+                                <button
+                                    type="button"
+                                    class="flex items-center gap-1 font-medium hover:text-(--color-text-primary)"
+                                    @click="sortWorkcenterBy(column.key)"
+                                >
+                                    {{ __(column.label) }}
+                                    <Icon
+                                        v-if="workcenterSort === column.key"
+                                        :name="workcenterDirection === 'asc' ? 'chevron-up' : 'chevron-down'"
+                                        class="size-3.5"
+                                    />
+                                </button>
+                            </th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr
-                            v-for="employee in workcenterReport"
+                            v-for="employee in workcenterReport.data"
                             :key="employee.id"
                             class="cursor-pointer border-b border-(--color-table-row-separator) hover:bg-(--color-table-row-hover-bg)"
                             tabindex="0"
@@ -374,6 +480,26 @@ function emailSelected() {
                     {{ __('reports.missing_availability.empty') }}
                 </p>
             </div>
+
+            <template v-if="tab === 'workcenter' && activeWorkcenterReport.last_page > 1" #footer>
+                <div data-testid="workcenter-pagination" class="flex items-center justify-between gap-3 px-6 py-3 text-sm">
+                    <span class="text-(--color-pagination-muted-text)">{{ workcenterPaginationRange }}</span>
+                    <div class="isolate inline-flex -space-x-px rounded-md">
+                        <button
+                            v-for="link in workcenterPaginationLinks"
+                            :key="link.key"
+                            type="button"
+                            :aria-label="link.ariaLabel"
+                            :aria-current="link.active ? 'page' : undefined"
+                            :disabled="link.disabled"
+                            :class="workcenterPaginationLinkClass(link)"
+                            @click="goToWorkcenterPage(link.url)"
+                        >
+                            {{ link.label }}
+                        </button>
+                    </div>
+                </div>
+            </template>
         </Card>
     </AppLayout>
 </template>

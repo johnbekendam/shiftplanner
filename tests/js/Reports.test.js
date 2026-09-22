@@ -42,6 +42,10 @@ const en = {
     "reports.workcenter.no_business_line": "—",
     "reports.workcenter.confirmed.yes": "Confirmed",
     "reports.workcenter.confirmed.no": "Unconfirmed",
+    "reports.workcenter.pagination.range": ":from-:to of :total",
+    "reports.workcenter.pagination.prev": "Previous",
+    "reports.workcenter.pagination.next": "Next",
+    "reports.workcenter.pagination.page_label": "Page :page",
     "workcenters.mode.hard": "Requirement",
     "workcenters.mode.soft": "Preference",
     "reports.tab.uninformed_planning": "Uninformed planning",
@@ -84,14 +88,26 @@ const competenceReport = [
     { id: 2, name: "Bo Bee", competence_names: ["Forklift", "First aid"] },
 ];
 const workcenters = [{ id: 20, name: "Assembly A" }, { id: 21, name: "Paint Booth" }];
-const unassignedWorkcenterReport = [
+
+// Mirrors the shape ReportController now returns for both workcenter-report tables.
+const paginate = (data, overrides = {}) => ({
+    data,
+    links: [],
+    from: data.length ? 1 : null,
+    to: data.length,
+    total: data.length,
+    last_page: 1,
+    ...overrides,
+});
+
+const unassignedWorkcenterReport = paginate([
     { id: 1, name: "Ann Ant", business_line: "PMP", weekly_hours: 24, confirmed: true },
     { id: 2, name: "Bo Bee", business_line: null, weekly_hours: 40, confirmed: false },
-];
-const workcenterReport = [
+]);
+const workcenterReport = paginate([
     { id: 1, name: "Ann Ant", mode: "hard", business_line: "PMP", weekly_hours: 24, confirmed: true },
     { id: 2, name: "Bo Bee", mode: "soft", business_line: null, weekly_hours: 40, confirmed: false },
-];
+]);
 
 const mountIndex = (props = {}) =>
     mount(Index, {
@@ -102,8 +118,8 @@ const mountIndex = (props = {}) =>
             competences,
             competenceReport: [],
             workcenters,
-            unassignedWorkcenterReport: [],
-            workcenterReport: [],
+            unassignedWorkcenterReport: paginate([]),
+            workcenterReport: paginate([]),
             uninformedPlanning: [],
             filters: {
                 shift: null,
@@ -114,6 +130,8 @@ const mountIndex = (props = {}) =>
                 competence_id: null,
                 workcenter_mode: "unassigned",
                 workcenter_id: null,
+                workcenter_sort: "name",
+                workcenter_direction: "asc",
             },
             ...props,
         },
@@ -408,7 +426,7 @@ describe("Reports/Index", () => {
     });
 
     it("shows the empty state when every employee is assigned", async () => {
-        const w = await openWorkcenterTab({ unassignedWorkcenterReport: [] });
+        const w = await openWorkcenterTab({ unassignedWorkcenterReport: paginate([]) });
 
         expect(w.text()).toContain("Every employee is assigned to a workcenter.");
     });
@@ -483,11 +501,74 @@ describe("Reports/Index", () => {
 
     it("shows empty results when the picked workcenter has no employees", async () => {
         const w = await openWorkcenterTab({
-            workcenterReport: [],
+            workcenterReport: paginate([]),
             filters: { shift: null, business_line: null, unconfirmed: true, competence_mode: "missing", competence_id: null, workcenter_mode: "for_workcenter", workcenter_id: 20 },
         });
 
         expect(w.text()).toContain("No employees are assigned to this workcenter.");
+    });
+
+    it("reloads with the sort and direction when a column header is clicked", async () => {
+        const w = await openWorkcenterTab({ unassignedWorkcenterReport });
+
+        const header = w.findAll("thead button").find((b) => b.text() === "Weekly hours");
+        await header.trigger("click");
+
+        expect(router.get).toHaveBeenCalledWith(
+            "/reports",
+            expect.objectContaining({ workcenter_sort: "weekly_hours", workcenter_direction: "asc" }),
+            expect.anything(),
+        );
+    });
+
+    it("flips to descending when the same column header is clicked again", async () => {
+        const w = await openWorkcenterTab({
+            unassignedWorkcenterReport,
+            filters: {
+                shift: null, business_line: null, unconfirmed: true, competence_mode: "missing", competence_id: null,
+                workcenter_mode: "unassigned", workcenter_id: null, workcenter_sort: "weekly_hours", workcenter_direction: "asc",
+            },
+        });
+
+        const header = w.findAll("thead button").find((b) => b.text().includes("Weekly hours"));
+        await header.trigger("click");
+
+        expect(router.get).toHaveBeenCalledWith(
+            "/reports",
+            expect.objectContaining({ workcenter_sort: "weekly_hours", workcenter_direction: "desc" }),
+            expect.anything(),
+        );
+    });
+
+    it("shows the pagination footer when the report has more than one page", async () => {
+        const w = await openWorkcenterTab({
+            unassignedWorkcenterReport: paginate(
+                [{ id: 1, name: "Ann Ant", business_line: "PMP", weekly_hours: 24, confirmed: true }],
+                {
+                    from: 1, to: 15, total: 16, last_page: 2,
+                    links: [
+                        { url: null, label: "&laquo; Previous", active: false },
+                        { url: "/reports?workcenter_page=1", label: "1", active: true },
+                        { url: "/reports?workcenter_page=2", label: "2", active: false },
+                        { url: "/reports?workcenter_page=2", label: "Next &raquo;", active: false },
+                    ],
+                },
+            ),
+        });
+
+        expect(w.find('[data-testid="workcenter-pagination"]').exists()).toBe(true);
+        expect(w.text()).toContain("1-15 of 16");
+
+        const pageTwo = w.findAll('[data-testid="workcenter-pagination"] button').find((b) => b.text() === "2");
+        await pageTwo.trigger("click");
+
+        expect(router.get).toHaveBeenCalledWith("/reports?workcenter_page=2", {}, expect.anything());
+    });
+
+    it("hides the pagination footer when the report fits on one page", async () => {
+        const w = await openWorkcenterTab({ unassignedWorkcenterReport });
+
+        expect(w.find('[data-testid="workcenter-pagination"]').exists()).toBe(false);
     });
 
     // ── Uninformed planning tab ─────────────────────────────────────────
