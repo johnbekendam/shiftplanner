@@ -1,4 +1,4 @@
-Status: in progress — 1/3
+Status: in progress — 2/3
 
 - [x] 1. `Workcenter::employees()` relation and controller data
       Add `Workcenter::employees(): BelongsToMany` with
@@ -28,7 +28,7 @@ Status: in progress — 1/3
         right `mode`, and excludes employees assigned elsewhere.
       - The `workcenters` prop excludes archived workcenters.
 
-- [ ] 2. Workcenter tab UI: mode selector, picker, and both tables
+- [x] 2. Workcenter tab UI: mode selector, picker, and both tables
       Add a `workcenter` tab to `resources/js/pages/Reports/Index.vue`'s
       `tabs` array, positioned right after `competences`. Add
       `workcenterMode` and `workcenterId` refs seeded from

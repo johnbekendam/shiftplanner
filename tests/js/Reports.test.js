@@ -27,6 +27,17 @@ const en = {
     "reports.competences.column.name": "Name",
     "reports.competences.column.competences": "Competences",
     "reports.competences.none_configured": "No competences configured.",
+    "reports.tab.workcenter": "Workcenter",
+    "reports.workcenter.mode.unassigned": "Unassigned",
+    "reports.workcenter.mode.for_workcenter": "For workcenter",
+    "reports.workcenter.workcenter_placeholder": "Select workcenter",
+    "reports.workcenter.empty_selection": "Select a workcenter to show employees.",
+    "reports.workcenter.empty_unassigned": "Every employee is assigned to a workcenter.",
+    "reports.workcenter.empty_results": "No employees are assigned to this workcenter.",
+    "reports.workcenter.column.name": "Name",
+    "reports.workcenter.column.mode": "Requirement",
+    "workcenters.mode.hard": "Requirement",
+    "workcenters.mode.soft": "Preference",
     "reports.tab.uninformed_planning": "Uninformed planning",
     "reports.uninformed_planning.business_line_placeholder": "All business lines",
     "reports.uninformed_planning.empty": "Every employee with planning has been informed.",
@@ -66,6 +77,15 @@ const competenceReport = [
     { id: 1, name: "Ann Ant", competence_names: ["First aid"] },
     { id: 2, name: "Bo Bee", competence_names: ["Forklift", "First aid"] },
 ];
+const workcenters = [{ id: 20, name: "Assembly A" }, { id: 21, name: "Paint Booth" }];
+const unassignedWorkcenterReport = [
+    { id: 1, name: "Ann Ant" },
+    { id: 2, name: "Bo Bee" },
+];
+const workcenterReport = [
+    { id: 1, name: "Ann Ant", mode: "hard" },
+    { id: 2, name: "Bo Bee", mode: "soft" },
+];
 
 const mountIndex = (props = {}) =>
     mount(Index, {
@@ -75,6 +95,9 @@ const mountIndex = (props = {}) =>
             businessLines,
             competences,
             competenceReport: [],
+            workcenters,
+            unassignedWorkcenterReport: [],
+            workcenterReport: [],
             uninformedPlanning: [],
             filters: {
                 shift: null,
@@ -83,6 +106,8 @@ const mountIndex = (props = {}) =>
                 planning_business_line: null,
                 competence_mode: "missing",
                 competence_id: null,
+                workcenter_mode: "unassigned",
+                workcenter_id: null,
             },
             ...props,
         },
@@ -104,9 +129,9 @@ describe("Reports/Index", () => {
 
     it("orders the tabs and defaults to Competences", () => {
         const w = mountIndex();
-        const tabLabels = w.findAll("button").slice(0, 3).map((button) => button.text());
+        const tabLabels = w.findAll("button").slice(0, 4).map((button) => button.text());
 
-        expect(tabLabels).toEqual(["Competences", "Uninformed planning", "Missing availability"]);
+        expect(tabLabels).toEqual(["Competences", "Workcenter", "Uninformed planning", "Missing availability"]);
         expect(w.text()).toContain("Select a competence to show employees.");
     });
 
@@ -348,6 +373,99 @@ describe("Reports/Index", () => {
         await w.find("tbody tr").trigger("click");
 
         expect(router.visit).toHaveBeenCalledWith("/employees/1/edit?tab=competences");
+    });
+
+    // ── Workcenter report tab ────────────────────────────────────────────
+
+    const openWorkcenterTab = async (props = {}) => {
+        const w = mountIndex(props);
+        await w.findAll("button").find((button) => button.text() === "Workcenter").trigger("click");
+
+        return w;
+    };
+
+    it("defaults to Unassigned mode and lists unassigned employees", async () => {
+        const w = await openWorkcenterTab({ unassignedWorkcenterReport });
+
+        expect(w.findComponent(SelectInput).props("modelValue")).toBe("unassigned");
+        expect(w.text()).toContain("Ann Ant");
+        expect(w.text()).toContain("Bo Bee");
+        expect(w.findAllComponents(SelectInput)).toHaveLength(1);
+    });
+
+    it("shows the empty state when every employee is assigned", async () => {
+        const w = await openWorkcenterTab({ unassignedWorkcenterReport: [] });
+
+        expect(w.text()).toContain("Every employee is assigned to a workcenter.");
+    });
+
+    it("opens the employee workcenters tab when an unassigned row is clicked", async () => {
+        const w = await openWorkcenterTab({ unassignedWorkcenterReport });
+
+        await w.find("tbody tr").trigger("click");
+
+        expect(router.visit).toHaveBeenCalledWith("/employees/1/edit?tab=workcenters");
+    });
+
+    it("reveals the workcenter picker in For workcenter mode and reloads", async () => {
+        const w = await openWorkcenterTab();
+
+        w.findComponent(SelectInput).vm.$emit("update:modelValue", "for_workcenter");
+        await w.vm.$nextTick();
+
+        expect(router.get).toHaveBeenCalledWith(
+            "/reports",
+            expect.objectContaining({ workcenter_mode: "for_workcenter" }),
+            expect.anything(),
+        );
+    });
+
+    it("shows an empty prompt in For workcenter mode before a workcenter is picked", async () => {
+        const w = await openWorkcenterTab({
+            filters: { shift: null, business_line: null, unconfirmed: true, competence_mode: "missing", competence_id: null, workcenter_mode: "for_workcenter", workcenter_id: null },
+        });
+
+        expect(w.text()).toContain("Select a workcenter to show employees.");
+    });
+
+    it("reloads with the workcenter query param when a workcenter is picked", async () => {
+        const w = await openWorkcenterTab({
+            filters: { shift: null, business_line: null, unconfirmed: true, competence_mode: "missing", competence_id: null, workcenter_mode: "for_workcenter", workcenter_id: null },
+        });
+
+        w.findAllComponents(SelectInput)[1].vm.$emit("update:modelValue", 20);
+        await w.vm.$nextTick();
+
+        expect(router.get).toHaveBeenCalledWith(
+            "/reports",
+            expect.objectContaining({ workcenter_mode: "for_workcenter", workcenter: 20 }),
+            expect.anything(),
+        );
+    });
+
+    it("lists workcenter report rows with their mode and opens the employee workcenters tab", async () => {
+        const w = await openWorkcenterTab({
+            workcenterReport,
+            filters: { shift: null, business_line: null, unconfirmed: true, competence_mode: "missing", competence_id: null, workcenter_mode: "for_workcenter", workcenter_id: 20 },
+        });
+
+        expect(w.text()).toContain("Ann Ant");
+        expect(w.text()).toContain("Requirement");
+        expect(w.text()).toContain("Bo Bee");
+        expect(w.text()).toContain("Preference");
+
+        await w.find("tbody tr").trigger("click");
+
+        expect(router.visit).toHaveBeenCalledWith("/employees/1/edit?tab=workcenters");
+    });
+
+    it("shows empty results when the picked workcenter has no employees", async () => {
+        const w = await openWorkcenterTab({
+            workcenterReport: [],
+            filters: { shift: null, business_line: null, unconfirmed: true, competence_mode: "missing", competence_id: null, workcenter_mode: "for_workcenter", workcenter_id: 20 },
+        });
+
+        expect(w.text()).toContain("No employees are assigned to this workcenter.");
     });
 
     // ── Uninformed planning tab ─────────────────────────────────────────

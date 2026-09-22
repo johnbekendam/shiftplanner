@@ -20,11 +20,15 @@ const props = defineProps({
     uninformedPlanning: { type: Array, default: () => [] }, // { id, name, business_line, uninformed_count, first_date }
     competences: { type: Array, default: () => [] }, // { id, name, read_only }
     competenceReport: { type: Array, default: () => [] }, // { id, name, competence_names }
-    filters: { type: Object, required: true }, // { shift, business_line, unconfirmed, planning_business_line, competence_mode, competence_id }
+    unassignedWorkcenterReport: { type: Array, default: () => [] }, // { id, name }
+    workcenterReport: { type: Array, default: () => [] }, // { id, name, mode }
+    workcenters: { type: Array, default: () => [] }, // { id, name }
+    filters: { type: Object, required: true }, // { shift, business_line, unconfirmed, planning_business_line, competence_mode, competence_id, workcenter_mode, workcenter_id }
 })
 
 const tabs = [
     { value: 'competences', label: __('reports.tab.competences') },
+    { value: 'workcenter', label: __('reports.tab.workcenter') },
     { value: 'uninformed-planning', label: __('reports.tab.uninformed_planning') },
     { value: 'missing-availability', label: __('reports.tab.missing_availability') },
 ]
@@ -36,6 +40,8 @@ const includeUnconfirmed = ref(props.filters.unconfirmed)
 const planningBusinessLine = ref(props.filters.planning_business_line ?? '')
 const competenceMode = ref(props.filters.competence_mode ?? 'missing')
 const competenceId = ref(props.filters.competence_id ?? '')
+const workcenterMode = ref(props.filters.workcenter_mode ?? 'unassigned')
+const workcenterId = ref(props.filters.workcenter_id ?? '')
 
 const shiftOptions = computed(() => [
     { value: '', label: __('reports.missing_availability.shift_placeholder') },
@@ -53,6 +59,14 @@ const competenceOptions = computed(() => [
     { value: '', label: __('reports.competences.competence_placeholder') },
     ...props.competences.map((competence) => ({ value: competence.id, label: competence.name })),
 ])
+const workcenterModeOptions = computed(() => [
+    { value: 'unassigned', label: __('reports.workcenter.mode.unassigned') },
+    { value: 'for_workcenter', label: __('reports.workcenter.mode.for_workcenter') },
+])
+const workcenterOptions = computed(() => [
+    { value: '', label: __('reports.workcenter.workcenter_placeholder') },
+    ...props.workcenters.map((workcenter) => ({ value: workcenter.id, label: workcenter.name })),
+])
 
 function reload() {
     router.get('/reports', {
@@ -62,13 +76,22 @@ function reload() {
         planning_business_line: planningBusinessLine.value || undefined,
         competence_mode: competenceMode.value,
         competence: competenceId.value || undefined,
+        workcenter_mode: workcenterMode.value,
+        workcenter: workcenterId.value || undefined,
     }, { preserveState: true })
 }
 
-watch([shift, businessLine, includeUnconfirmed, planningBusinessLine, competenceMode, competenceId], reload)
+watch(
+    [shift, businessLine, includeUnconfirmed, planningBusinessLine, competenceMode, competenceId, workcenterMode, workcenterId],
+    reload,
+)
 
 function openEmployeeCompetences(employee) {
     router.visit(`/employees/${employee.id}/edit?tab=competences`)
+}
+
+function openEmployeeWorkcenters(employee) {
+    router.visit(`/employees/${employee.id}/edit?tab=workcenters`)
 }
 
 const selectedIds = ref([])
@@ -155,6 +178,84 @@ function emailSelected() {
 
                 <p v-else class="text-sm text-(--color-text-secondary)">
                     {{ __('reports.competences.empty_results') }}
+                </p>
+            </div>
+
+            <div v-else-if="tab === 'workcenter'" class="p-6 space-y-5">
+                <div class="flex flex-wrap items-center gap-3">
+                    <SelectInput
+                        v-model="workcenterMode"
+                        :options="workcenterModeOptions"
+                        class="w-56"
+                    />
+
+                    <template v-if="workcenterMode === 'for_workcenter'">
+                        <span class="text-sm text-(--color-text-secondary)">:</span>
+
+                        <SelectInput
+                            v-model="workcenterId"
+                            :options="workcenterOptions"
+                            class="w-72"
+                        />
+                    </template>
+                </div>
+
+                <CardSeparator />
+
+                <p v-if="workcenterMode === 'unassigned' && unassignedWorkcenterReport.length === 0" class="text-sm text-(--color-text-secondary)">
+                    {{ __('reports.workcenter.empty_unassigned') }}
+                </p>
+
+                <table v-else-if="workcenterMode === 'unassigned'" class="w-full text-sm">
+                    <thead>
+                        <tr class="border-b border-(--color-table-header-separator) text-left text-(--color-table-header-text)">
+                            <th class="px-2 py-2 font-medium">{{ __('reports.workcenter.column.name') }}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr
+                            v-for="employee in unassignedWorkcenterReport"
+                            :key="employee.id"
+                            class="cursor-pointer border-b border-(--color-table-row-separator) hover:bg-(--color-table-row-hover-bg)"
+                            tabindex="0"
+                            @click="openEmployeeWorkcenters(employee)"
+                            @keydown.enter="openEmployeeWorkcenters(employee)"
+                        >
+                            <td class="px-2 py-2 text-(--color-table-row-text)">{{ employee.name }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <p v-else-if="!workcenterId" class="text-sm text-(--color-text-secondary)">
+                    {{ __('reports.workcenter.empty_selection') }}
+                </p>
+
+                <table v-else-if="workcenterReport.length > 0" class="w-full text-sm">
+                    <thead>
+                        <tr class="border-b border-(--color-table-header-separator) text-left text-(--color-table-header-text)">
+                            <th class="px-2 py-2 font-medium">{{ __('reports.workcenter.column.name') }}</th>
+                            <th class="px-2 py-2 font-medium">{{ __('reports.workcenter.column.mode') }}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr
+                            v-for="employee in workcenterReport"
+                            :key="employee.id"
+                            class="cursor-pointer border-b border-(--color-table-row-separator) hover:bg-(--color-table-row-hover-bg)"
+                            tabindex="0"
+                            @click="openEmployeeWorkcenters(employee)"
+                            @keydown.enter="openEmployeeWorkcenters(employee)"
+                        >
+                            <td class="px-2 py-2 text-(--color-table-row-text)">{{ employee.name }}</td>
+                            <td class="px-2 py-2 text-(--color-table-row-text)">
+                                {{ __(`workcenters.mode.${employee.mode}`) }}
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <p v-else class="text-sm text-(--color-text-secondary)">
+                    {{ __('reports.workcenter.empty_results') }}
                 </p>
             </div>
 
