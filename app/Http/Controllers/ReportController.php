@@ -94,11 +94,13 @@ class ReportController extends Controller
 
     /**
      * Streams the planned-hours report as an .xlsx, covering the full result set (no pagination).
+     * With `all=1` it ignores the From/To range and covers every date.
      * Dates and hours are typed cells, so Excel shows them in the viewer's own locale.
      */
     public function exportPlannedHours(Request $request): StreamedResponse
     {
-        [$from, $to] = $this->plannedHoursRange($request);
+        $all = $request->boolean('all');
+        [$from, $to] = $all ? $this->plannedHoursFullRange() : $this->plannedHoursRange($request);
         $rows = $this->sortPlannedHours($this->plannedHoursRows($from, $to), 'date', 'asc');
 
         return response()->streamDownload(function () use ($rows) {
@@ -120,7 +122,19 @@ class ReportController extends Controller
                 ]));
             }
             $writer->close();
-        }, 'planned-hours.xlsx', ['Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']);
+        }, $all ? 'planned-hours-all.xlsx' : 'planned-hours.xlsx', ['Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']);
+    }
+
+    /** A range spanning every assignment date, for the export-all download. Today when there are none. */
+    private function plannedHoursFullRange(): array
+    {
+        $first = ShiftAssignment::query()->min('date');
+        $last = ShiftAssignment::query()->max('date');
+
+        return [
+            $first ? Carbon::parse($first)->startOfDay() : Carbon::today(),
+            $last ? Carbon::parse($last)->startOfDay() : Carbon::today(),
+        ];
     }
 
     /** The planned-hours date range from the request, defaulting to the current week (Monday to Sunday). */

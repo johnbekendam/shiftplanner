@@ -776,4 +776,39 @@ class ReportsTest extends TestCase
         [, $rows] = $this->readExport($response);
         $this->assertSame([['Workcenter', 'Date', 'Hours']], $rows);
     }
+
+    public function test_planned_hours_export_all_covers_every_date_and_ignores_the_range(): void
+    {
+        $this->admin();
+        $workcenter = Workcenter::factory()->create(['name' => 'Assembly A']);
+        $this->publishedAssignment($workcenter, '2025-01-07');
+        $this->publishedAssignment($workcenter, '2026-09-22');
+        $this->publishedAssignment($workcenter, '2027-03-03');
+
+        $response = $this->get('/reports/planned-hours/export?all=1&planned_hours_from=2026-09-21&planned_hours_to=2026-09-27');
+
+        $response->assertOk();
+        $response->assertDownload('planned-hours-all.xlsx');
+        [, $rows] = $this->readExport($response);
+        $this->assertSame(
+            ['2025-01-07', '2026-09-22', '2027-03-03'],
+            array_map(fn ($row) => $row[1]->format('Y-m-d'), array_slice($rows, 1)),
+        );
+    }
+
+    public function test_planned_hours_export_all_excludes_drafts_and_archived_workcenters(): void
+    {
+        $this->admin();
+        $this->publishedAssignment(Workcenter::factory()->create(['archived_at' => now()]), '2026-09-22');
+        ShiftAssignment::factory()->create([
+            'workcenter_id' => Workcenter::factory()->create()->id,
+            'shift_id' => Shift::factory()->create(['start_time' => '08:00', 'end_time' => '16:00'])->id,
+            'date' => '2026-09-22',
+        ]);
+
+        $response = $this->get('/reports/planned-hours/export?all=1');
+
+        [, $rows] = $this->readExport($response);
+        $this->assertSame([['Workcenter', 'Date', 'Hours']], $rows);
+    }
 }
