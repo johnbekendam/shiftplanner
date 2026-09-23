@@ -66,6 +66,7 @@ const en = {
     "reports.planned_hours.from": "From",
     "reports.planned_hours.to": "To",
     "reports.planned_hours.export": enJson["reports.planned_hours.export"],
+    "reports.planned_hours.export_all": enJson["reports.planned_hours.export_all"],
     "reports.planned_hours.empty": "No published planned hours in this range.",
     "reports.planned_hours.column.workcenter": "Workcenter",
     "reports.planned_hours.column.date": "Date",
@@ -768,6 +769,14 @@ describe("Reports/Index", () => {
         expect(link.attributes("href")).toBe(
             "/reports/planned-hours/export?planned_hours_from=2026-09-21&planned_hours_to=2026-09-27",
         );
+    });
+
+    it("points the Export all to Excel link at the export route without a date range", async () => {
+        const w = await openPlannedHoursTab();
+
+        const link = w.get('a[href="/reports/planned-hours/export?all=1"]');
+        expect(link.text()).toBe("Export all to Excel");
+        expect(link.classes()).toContain("bg-[var(--color-btn-secondary-bg)]");
     });
 
     it("shows the pagination footer only when there is more than one page", async () => {

@@ -525,6 +525,14 @@ function emailSelected() {
                         <Icon name="download" class="size-4 shrink-0" />
                         {{ __('reports.planned_hours.export') }}
                     </a>
+
+                    <a
+                        href="/reports/planned-hours/export?all=1"
+                        class="inline-flex w-min items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border border-1 px-4 py-2 border-[var(--color-btn-secondary-border)] bg-[var(--color-btn-secondary-bg)] text-[var(--color-btn-secondary-text)] hover:border-[var(--color-btn-secondary-hover-border)] hover:bg-[var(--color-btn-secondary-hover-bg)] hover:text-[var(--color-btn-secondary-hover-text)]"
+                    >
+                        <Icon name="download" class="size-4 shrink-0" />
+                        {{ __('reports.planned_hours.export_all') }}
+                    </a>
                 </div>
 
                 <CardSeparator />
