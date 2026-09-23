@@ -36,6 +36,7 @@ COPY . .
 COPY --from=composer /app/vendor ./vendor
 COPY --from=composer /app/bootstrap/cache ./bootstrap/cache
 COPY --from=assets /app/public/build ./public/build
+COPY docker/php/uploads.ini /usr/local/etc/php/conf.d/uploads.ini
 
 RUN mkdir -p storage/app/public \
     && rm -rf public/storage \
