@@ -12,8 +12,12 @@ use App\Models\ShiftAssignment;
 use App\Models\User;
 use App\Models\Workcenter;
 use Carbon\Carbon;
+use DateTimeInterface;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Testing\TestResponse;
+use OpenSpout\Reader\XLSX\Reader as XlsxReader;
 use Tests\TestCase;
+use ZipArchive;
 
 class ReportsTest extends TestCase
 {
@@ -693,7 +697,34 @@ class ReportsTest extends TestCase
             );
     }
 
-    public function test_planned_hours_export_returns_a_csv_of_the_full_result_set(): void
+    /** Writes the streamed export to a temp file and returns the sheet name, the rows, and styles.xml. */
+    private function readExport(TestResponse $response): array
+    {
+        $path = tempnam(sys_get_temp_dir(), 'xlsx');
+        file_put_contents($path, $response->streamedContent());
+
+        $reader = new XlsxReader;
+        $reader->open($path);
+        foreach ($reader->getSheetIterator() as $sheet) {
+            $name = $sheet->getName();
+            $rows = [];
+            foreach ($sheet->getRowIterator() as $row) {
+                $rows[] = $row->toArray();
+            }
+            break;
+        }
+        $reader->close();
+
+        $zip = new ZipArchive;
+        $zip->open($path);
+        $styles = $zip->getFromName('xl/styles.xml');
+        $zip->close();
+        unlink($path);
+
+        return [$name, $rows, $styles];
+    }
+
+    public function test_planned_hours_export_returns_an_xlsx_of_the_full_result_set(): void
     {
         $this->admin();
         $workcenter = Workcenter::factory()->create(['name' => 'Assembly A']);
@@ -702,11 +733,32 @@ class ReportsTest extends TestCase
         $response = $this->get('/reports/planned-hours/export?planned_hours_from=2026-09-21&planned_hours_to=2026-09-27');
 
         $response->assertOk();
-        $response->assertHeader('Content-Type', 'text/csv; charset=UTF-8');
-        $this->assertSame(
-            "Workcenter,Date,Hours\n\"Assembly A\",2026-09-22,8\n",
-            $response->streamedContent(),
-        );
+        $response->assertHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        $response->assertDownload('planned-hours.xlsx');
+
+        [$name, $rows] = $this->readExport($response);
+        $this->assertSame('Planned hours', $name);
+        $this->assertSame(['Workcenter', 'Date', 'Hours'], $rows[0]);
+        $this->assertCount(2, $rows);
+        $this->assertSame('Assembly A', $rows[1][0]);
+        $this->assertInstanceOf(DateTimeInterface::class, $rows[1][1]);
+        $this->assertSame('2026-09-22', $rows[1][1]->format('Y-m-d'));
+        $this->assertIsNumeric($rows[1][2]);
+        $this->assertEquals(8, $rows[1][2]);
+    }
+
+    public function test_planned_hours_export_formats_dates_as_iso_and_hours_with_two_decimals(): void
+    {
+        $this->admin();
+        $this->publishedAssignment(Workcenter::factory()->create(), '2026-09-22', '08:00', '16:30');
+
+        $response = $this->get('/reports/planned-hours/export?planned_hours_from=2026-09-21&planned_hours_to=2026-09-27');
+
+        [, $rows, $styles] = $this->readExport($response);
+        $this->assertEquals(8.5, $rows[1][2]);
+        $this->assertStringContainsString('formatCode="yyyy-mm-dd"', $styles);
+        // 0.00 is Excel's built-in number format 2, so it has no custom numFmt entry.
+        $this->assertStringContainsString('<xf numFmtId="2"', $styles);
     }
 
     public function test_planned_hours_export_excludes_a_draft_assignment(): void
@@ -721,6 +773,42 @@ class ReportsTest extends TestCase
 
         $response = $this->get('/reports/planned-hours/export?planned_hours_from=2026-09-21&planned_hours_to=2026-09-27');
 
-        $this->assertSame("Workcenter,Date,Hours\n", $response->streamedContent());
+        [, $rows] = $this->readExport($response);
+        $this->assertSame([['Workcenter', 'Date', 'Hours']], $rows);
+    }
+
+    public function test_planned_hours_export_all_covers_every_date_and_ignores_the_range(): void
+    {
+        $this->admin();
+        $workcenter = Workcenter::factory()->create(['name' => 'Assembly A']);
+        $this->publishedAssignment($workcenter, '2025-01-07');
+        $this->publishedAssignment($workcenter, '2026-09-22');
+        $this->publishedAssignment($workcenter, '2027-03-03');
+
+        $response = $this->get('/reports/planned-hours/export?all=1&planned_hours_from=2026-09-21&planned_hours_to=2026-09-27');
+
+        $response->assertOk();
+        $response->assertDownload('planned-hours-all.xlsx');
+        [, $rows] = $this->readExport($response);
+        $this->assertSame(
+            ['2025-01-07', '2026-09-22', '2027-03-03'],
+            array_map(fn ($row) => $row[1]->format('Y-m-d'), array_slice($rows, 1)),
+        );
+    }
+
+    public function test_planned_hours_export_all_excludes_drafts_and_archived_workcenters(): void
+    {
+        $this->admin();
+        $this->publishedAssignment(Workcenter::factory()->create(['archived_at' => now()]), '2026-09-22');
+        ShiftAssignment::factory()->create([
+            'workcenter_id' => Workcenter::factory()->create()->id,
+            'shift_id' => Shift::factory()->create(['start_time' => '08:00', 'end_time' => '16:00'])->id,
+            'date' => '2026-09-22',
+        ]);
+
+        $response = $this->get('/reports/planned-hours/export?all=1');
+
+        [, $rows] = $this->readExport($response);
+        $this->assertSame([['Workcenter', 'Date', 'Hours']], $rows);
     }
 }

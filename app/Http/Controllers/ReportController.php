@@ -11,11 +11,16 @@ use App\Models\ShiftAssignment;
 use App\Models\Workcenter;
 use App\Services\UninformedPlanning;
 use Carbon\Carbon;
+use DateTimeImmutable;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Collection;
 use Inertia\Inertia;
+use OpenSpout\Common\Entity\Cell;
+use OpenSpout\Common\Entity\Row;
+use OpenSpout\Common\Entity\Style\Style;
+use OpenSpout\Writer\XLSX\Writer as XlsxWriter;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ReportController extends Controller
@@ -87,20 +92,49 @@ class ReportController extends Controller
         ]);
     }
 
-    /** Streams the planned-hours report as a CSV, covering the full result set (no pagination). */
+    /**
+     * Streams the planned-hours report as an .xlsx, covering the full result set (no pagination).
+     * With `all=1` it ignores the From/To range and covers every date.
+     * Dates and hours are typed cells, so Excel shows them in the viewer's own locale.
+     */
     public function exportPlannedHours(Request $request): StreamedResponse
     {
-        [$from, $to] = $this->plannedHoursRange($request);
+        $all = $request->boolean('all');
+        [$from, $to] = $all ? $this->plannedHoursFullRange() : $this->plannedHoursRange($request);
         $rows = $this->sortPlannedHours($this->plannedHoursRows($from, $to), 'date', 'asc');
 
         return response()->streamDownload(function () use ($rows) {
-            $handle = fopen('php://output', 'w');
-            fputcsv($handle, ['Workcenter', 'Date', 'Hours'], escape: '\\');
+            $writer = new XlsxWriter;
+            $writer->openToFile('php://output');
+            $writer->getCurrentSheet()->setName(__('reports.tab.planned_hours'));
+            $writer->addRow(Row::fromValues([
+                __('reports.planned_hours.column.workcenter'),
+                __('reports.planned_hours.column.date'),
+                __('reports.planned_hours.column.hours'),
+            ]));
+            $dateStyle = new Style(format: 'yyyy-mm-dd');
+            $hoursStyle = new Style(format: '0.00');
             foreach ($rows as $row) {
-                fputcsv($handle, [$row['workcenter'], $row['date'], $row['hours']], escape: '\\');
+                $writer->addRow(new Row([
+                    Cell::fromValue($row['workcenter']),
+                    Cell::fromValue(new DateTimeImmutable($row['date']), $dateStyle),
+                    Cell::fromValue($row['hours'], $hoursStyle),
+                ]));
             }
-            fclose($handle);
-        }, 'planned-hours.csv', ['Content-Type' => 'text/csv']);
+            $writer->close();
+        }, $all ? 'planned-hours-all.xlsx' : 'planned-hours.xlsx', ['Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']);
+    }
+
+    /** A range spanning every assignment date, for the export-all download. Today when there are none. */
+    private function plannedHoursFullRange(): array
+    {
+        $first = ShiftAssignment::query()->min('date');
+        $last = ShiftAssignment::query()->max('date');
+
+        return [
+            $first ? Carbon::parse($first)->startOfDay() : Carbon::today(),
+            $last ? Carbon::parse($last)->startOfDay() : Carbon::today(),
+        ];
     }
 
     /** The planned-hours date range from the request, defaulting to the current week (Monday to Sunday). */
