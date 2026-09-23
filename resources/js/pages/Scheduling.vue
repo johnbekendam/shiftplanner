@@ -307,7 +307,7 @@ const visibleWorkcenters = computed(() =>
                         </div>
                     </Card>
 
-                    <Card class="w-full sm:w-48">
+                    <Card class="w-full sm:w-auto">
                         <template #header>
                             <div class="px-6 py-3 text-base font-semibold">{{ __('scheduling.filter_shifts') }}</div>
                         </template>
@@ -319,7 +319,7 @@ const visibleWorkcenters = computed(() =>
                                 :model-value="checkedShiftIds.includes(shift.id)"
                                 @update:model-value="(checked) => toggleShift(shift.id, checked)"
                             >
-                                {{ shift.name }}
+                                <span class="whitespace-nowrap">{{ shift.name }}</span>
                             </CheckboxInput>
                         </div>
                     </Card>
