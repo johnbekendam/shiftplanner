@@ -220,7 +220,7 @@ final class PlanScorer
             return 0.0;
         }
 
-        $over = $assignments->totalHours($employee['id']) - ($employee['weekly_hours'] * 2);
+        $over = $assignments->totalCapHours($employee['id']) - ($employee['weekly_hours'] * 2);
 
         return $over > 0 ? $over * $this->softRules->maxHoursPerWeek['severity'] : 0.0;
     }

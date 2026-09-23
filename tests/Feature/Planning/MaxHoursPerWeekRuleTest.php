@@ -11,7 +11,8 @@ use Tests\TestCase;
 
 /**
  * The cap is `weekly_hours × 2` over the two-week cycle, for every hour the
- * employee holds in it: planned, fixed, and published. All shifts below last 8h.
+ * employee holds in it: planned, fixed, and published. Each shift counts at its
+ * duration rounded to a 4-hour block. Most shifts below last 8h.
  */
 class MaxHoursPerWeekRuleTest extends TestCase
 {
@@ -112,6 +113,41 @@ class MaxHoursPerWeekRuleTest extends TestCase
         $this->assertSame(2, ShiftAssignment::count());
     }
 
+    public function test_a_hard_cap_counts_a_slightly_long_shift_as_a_four_hour_block(): void
+    {
+        $workcenter = Workcenter::factory()->create();
+        $shift = Shift::factory()->create(['start_time' => '06:00', 'end_time' => '14:15']); // 8.25h counts as 8
+        $this->openCell($workcenter, $shift, '2026-09-08'); // week 1
+        $this->openDay($workcenter, $shift, '2026-09-15'); // week 2
+        $this->openDay($workcenter, $shift, '2026-09-09');
+        $employee = $this->employee(['weekly_hours' => 8]); // cap 16h: 16.5 real hours, 16 counted
+        $this->makeAvailable($employee, $shift, '2026-09-08');
+        $this->makeAvailable($employee, $shift, '2026-09-09');
+        PlanningRule::create(['type' => 'max_hours_per_week', 'mode' => 'hard']);
+
+        $this->generator()->generate($this->makeRun());
+
+        $this->assertSame(2, ShiftAssignment::count());
+    }
+
+    public function test_a_hard_cap_counts_a_nine_hour_evening_shift_as_eight(): void
+    {
+        $workcenter = Workcenter::factory()->create();
+        $shift = Shift::factory()->create(['start_time' => '14:00', 'end_time' => '23:00']);
+        foreach (['2026-09-08', '2026-09-09', '2026-09-10', '2026-09-11', '2026-09-15'] as $i => $date) {
+            $i === 0 ? $this->openCell($workcenter, $shift, $date) : $this->openDay($workcenter, $shift, $date);
+        }
+        $employee = $this->employee(['weekly_hours' => 20]); // cap 40h: 5 × 9 = 45 real hours, 40 counted
+        foreach (['2026-09-08', '2026-09-09', '2026-09-10', '2026-09-11'] as $date) {
+            $this->makeAvailable($employee, $shift, $date);
+        }
+        PlanningRule::create(['type' => 'max_hours_per_week', 'mode' => 'hard']);
+
+        $this->generator()->generate($this->makeRun());
+
+        $this->assertSame(5, ShiftAssignment::count());
+    }
+
     public function test_a_hard_cap_counts_the_hours_of_a_fixed_assignment(): void
     {
         $workcenter = Workcenter::factory()->create();
@@ -200,5 +236,26 @@ class MaxHoursPerWeekRuleTest extends TestCase
 
         $this->assertDatabaseHas('shift_assignments', ['employee_id' => $notPreferred->id]);
         $this->assertDatabaseMissing('shift_assignments', ['employee_id' => $over->id]);
+    }
+
+    public function test_a_soft_cap_counts_a_nine_hour_shift_as_eight(): void
+    {
+        $workcenter = Workcenter::factory()->create();
+        $shift = Shift::factory()->create(['start_time' => '14:00', 'end_time' => '23:00']);
+        $this->openCell($workcenter, $shift, '2026-09-08');
+        // Cap 8h. The 9h shift counts as 8, so it is not over the cap. Created first.
+        $small = $this->employee(['weekly_hours' => 4]);
+        $this->makeAvailable($small, $shift, '2026-09-08');
+        // Within the cap, but on a not-preferred cell that costs 5.
+        $notPreferred = $this->employee(['weekly_hours' => 40]);
+        $this->makeAvailable($notPreferred, $shift, '2026-09-08', 'not_preferred');
+        PlanningRule::create(['type' => 'not_preferred_shift', 'mode' => 'soft', 'severity' => 5]);
+        // Real hours would cost 1h × 10 = 10 and make the not-preferred cell win.
+        PlanningRule::create(['type' => 'max_hours_per_week', 'mode' => 'soft', 'severity' => 10]);
+
+        $this->generator()->generate($this->makeRun());
+
+        $this->assertDatabaseHas('shift_assignments', ['employee_id' => $small->id]);
+        $this->assertDatabaseMissing('shift_assignments', ['employee_id' => $notPreferred->id]);
     }
 }

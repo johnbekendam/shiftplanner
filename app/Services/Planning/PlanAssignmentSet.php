@@ -134,6 +134,17 @@ final class PlanAssignmentSet
         return $hours;
     }
 
+    /** Like {@see totalHours()}, but each shift counts at {@see Shift::capHoursBetween()} — for the max-hours cap only. */
+    public function totalCapHours(int $employeeId): float
+    {
+        $hours = 0.0;
+        foreach ($this->forEmployee($employeeId) as $a) {
+            $hours += $this->shiftCapHours($a['shift_id']);
+        }
+
+        return $hours;
+    }
+
     public function hasOverlap(int $employeeId, string $date, int $shiftId): bool
     {
         $shift = $this->shift($shiftId);
@@ -169,6 +180,16 @@ final class PlanAssignmentSet
         }
 
         return Shift::durationHoursBetween($shift['start_time'], $shift['end_time']);
+    }
+
+    public function shiftCapHours(int $shiftId): float
+    {
+        $shift = $this->shift($shiftId);
+        if (! $shift) {
+            return 0.0;
+        }
+
+        return Shift::capHoursBetween($shift['start_time'], $shift['end_time']);
     }
 
     /** @return array<int, array{employee_id: int, workcenter_id: int, shift_id: int, date: string, locked: bool}> */
