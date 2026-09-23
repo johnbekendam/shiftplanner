@@ -109,18 +109,13 @@ class SchedulingEligibility
                 ->whereBetween('date', [$cycleStart->toDateString(), $cycleEnd->toDateString()])
                 ->with('shift')
                 ->get()
-                ->sum(fn (ShiftAssignment $assignment): float => $this->shiftDurationHours($assignment->shift));
+                ->sum(fn (ShiftAssignment $assignment): float => $assignment->shift->capHours());
 
-            if ($hours + $this->shiftDurationHours($shift) > $employee->weekly_hours * 2) {
+            if ($hours + $shift->capHours() > $employee->weekly_hours * 2) {
                 return 'max_hours_per_week';
             }
         }
 
         return null;
-    }
-
-    private function shiftDurationHours(Shift $shift): float
-    {
-        return $shift->durationHours();
     }
 }

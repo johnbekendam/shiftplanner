@@ -12,6 +12,9 @@ class Shift extends Model
 {
     use HasFactory;
 
+    /** Block size, in hours, that {@see capHoursBetween()} rounds to. */
+    public const CAP_HOURS_STEP = 4;
+
     protected $fillable = [
         'name',
         'start_time',
@@ -68,6 +71,24 @@ class Shift extends Model
         }
 
         return $minutes / 60;
+    }
+
+    /** Hours this shift counts toward the max-hours cap: {@see capHoursBetween()}. */
+    public function capHours(): float
+    {
+        return self::capHoursBetween($this->start_time, $this->end_time);
+    }
+
+    /**
+     * The duration rounded to the nearest CAP_HOURS_STEP (ties up), never below
+     * one step. Only the max-hours cap uses it, so a slightly long shift (breaks
+     * included) still fits a contract counted in whole blocks.
+     */
+    public static function capHoursBetween(string $startTime, string $endTime): float
+    {
+        $steps = max(1, round(self::durationHoursBetween($startTime, $endTime) / self::CAP_HOURS_STEP));
+
+        return (float) ($steps * self::CAP_HOURS_STEP);
     }
 
     public function recurringAvailabilities(): HasMany

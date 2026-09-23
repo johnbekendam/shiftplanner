@@ -29,7 +29,7 @@ starts, a `plan.md` (the steps and progress).
 Snapshot `/Users/jb/Development/TeamApps/template` into this repo, keep
 this repo's `doc/`. Set `APP_NAME=ShiftPlanner`. Local dev runs on SQLite
 (`DB_CONNECTION=sqlite`) — no container runtime needed to develop.
-`docker-compose.yml` carries a `postgres` service plus an `app` stub,
+`docker/docker-compose.yml` carries a `postgres` service plus an `app` stub,
 unused until phase 2 wires PostgreSQL in. (It originally also stubbed a
 separate `scheduler` service for phase 5; that plan was reversed once
 phase 5 started — see that phase's section — so the stub was removed.)

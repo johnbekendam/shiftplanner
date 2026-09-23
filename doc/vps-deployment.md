@@ -2,7 +2,7 @@
 
 This describes how ShiftPlanner is deployed to a VPS by pulling code from
 git directly on the server. It is one of two deploy paths; the other is
-the self-contained container bundle in `container-deployment.md`. Pick one
+the GHCR container image in `docker-setup.md`. Pick one
 per environment — do not run both against the same database.
 
 This path assumes the VPS is set up by a shared `vps-setup` bootstrap
@@ -57,7 +57,7 @@ DB_USERNAME=shiftplanner
 DB_PASSWORD=<from provisioning>
 ```
 
-The container path (`container-deployment.md`) uses PostgreSQL instead.
+The container path (`docker-setup.md`) uses PostgreSQL instead.
 The migrations run on both engines; keep a single engine per environment.
 
 ## update.sh

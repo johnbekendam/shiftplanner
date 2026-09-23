@@ -164,6 +164,6 @@ final class PlanEligibility
 
         $cap = $employee['weekly_hours'] * 2;
 
-        return $current->totalHours($employee['id']) + $current->shiftDurationHours($shiftId) <= $cap;
+        return $current->totalCapHours($employee['id']) + $current->shiftCapHours($shiftId) <= $cap;
     }
 }

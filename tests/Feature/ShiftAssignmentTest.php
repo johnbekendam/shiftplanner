@@ -349,6 +349,30 @@ class ShiftAssignmentTest extends TestCase
         $this->assertSame(1, ShiftAssignment::count());
     }
 
+    public function test_store_counts_slightly_long_shifts_as_four_hour_blocks_for_the_hard_hours_cap(): void
+    {
+        $this->actingAsAdmin();
+        PlanningSettings::current()->update(['period_start' => '2026-09-14']);
+        $employee = Employee::factory()->create(['confirmed' => true, 'weekly_hours' => 8]); // cap 16h
+        $workcenter = Workcenter::factory()->create();
+        $existingShift = Shift::factory()->create(['start_time' => '06:00', 'end_time' => '14:15']); // 8.25h counts as 8
+        $targetShift = Shift::factory()->create(['start_time' => '14:15', 'end_time' => '23:00']); // 8.75h counts as 8
+        $this->setCapacity($workcenter, $targetShift, $this->aTuesday(), 5);
+        RecurringAvailability::factory()->create([
+            'employee_id' => $employee->id, 'weekday' => 2, 'shift_id' => $targetShift->id, 'level' => 'available',
+        ]);
+        ShiftAssignment::factory()->create([
+            'employee_id' => $employee->id, 'workcenter_id' => Workcenter::factory()->create()->id,
+            'shift_id' => $existingShift->id, 'date' => '2026-09-14',
+        ]);
+        PlanningRule::create(['type' => 'max_hours_per_week', 'mode' => 'hard']);
+
+        $this->post('/planning/assignments', $this->validPayload($employee, $workcenter, $targetShift))
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame(2, ShiftAssignment::count());
+    }
+
     public function test_store_accepts_a_non_overlapping_shift_the_same_day(): void
     {
         $this->actingAsAdmin();

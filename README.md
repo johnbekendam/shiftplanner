@@ -13,7 +13,7 @@ fair schedules automatically. Runs on the Prodrive intranet only.
 
 Laravel 12, Inertia, Vue 3, Tailwind 4. Local dev runs on SQLite;
 PostgreSQL is the deployment target, wired in at roadmap phase 2
-(`docker-compose.yml` already carries the service). Schedule generation
+(`docker/docker-compose.yml` already carries the service). Schedule generation
 runs in a Laravel queue job that calls a separate Python OR-Tools worker
 (roadmap phase 5). Scaffolded from a snapshot of the internal
 `TeamApps/template`; the snapshot has since diverged and is not re-synced.
