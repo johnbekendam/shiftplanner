@@ -1,83 +1,28 @@
 # Docker Setup With GitHub
 
-GitHub Actions builds the release image and pushes it to the GitHub Container Registry (GHCR). The Docker server pulls the image from GHCR. You do not copy `.tar` files.
+GitHub Actions builds the release image and pushes it to the GitHub Container Registry (GHCR). The Docker server pulls the image from GHCR. This is the only way to build a release image.
 
-This setup is only for servers that use Docker. Local development and the other servers run without Docker, as before. The manual `.tar` flow in [container-deployment.md](container-deployment.md) also continues to work.
+This setup is only for servers that use Docker. Local development and the VPS servers run without Docker (see [vps-deployment.md](vps-deployment.md)).
 
 Image address: `ghcr.io/johnbekendam/shiftplanner`
 
-## 1. Make the Image Name Configurable
+## 1. Compose File
 
-Open `docker-compose.yml`. In the `app` and `queue` services, change the `image` line to this value.
-
-```yaml
-image: "${IMAGE_NAME:-shiftplanner}:${IMAGE_TAG:?Set IMAGE_TAG in .env}"
-```
-
-Without `IMAGE_NAME`, compose uses the local `shiftplanner` image. The `.tar` flow does not change.
-
-Add this line to `.env.production.example`, above `IMAGE_TAG`.
-
-```dotenv
-# Leave empty for a local .tar image. Set to ghcr.io/johnbekendam/shiftplanner to pull from GitHub.
-IMAGE_NAME=
-```
-
-## 2. Add the GitHub Workflow
-
-Create `.github/workflows/docker.yml` with this content.
+In `docker/docker-compose.yml`, the `app` and `queue` services use this image.
 
 ```yaml
-name: Docker image
-
-on:
-  push:
-    tags: ["v*"]
-  workflow_dispatch:
-
-permissions:
-  contents: read
-  packages: write
-
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: docker/setup-buildx-action@v3
-
-      - uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ghcr.io/${{ github.repository }}
-          tags: |
-            type=semver,pattern={{version}}
-            type=sha
-            type=raw,value=latest
-
-      - uses: docker/build-push-action@v6
-        with:
-          context: .
-          platforms: linux/amd64
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+image: "ghcr.io/johnbekendam/shiftplanner:${IMAGE_TAG:?Set IMAGE_TAG in .env}"
 ```
 
-The workflow starts when you push a tag that starts with `v`. You can also start it by hand from the **Actions** tab.
+`IMAGE_TAG` in `.env` selects the version. Compose stops with an error if `IMAGE_TAG` has no value.
+
+## 2. GitHub Workflow
+
+`.github/workflows/docker.yml` builds the image from `docker/Dockerfile` for `linux/amd64` and pushes it to GHCR. The workflow starts when you push a tag that starts with `v`. You can also start it by hand from the **Actions** tab.
 
 `GITHUB_TOKEN` is a token that GitHub gives to each workflow run. You do not create a secret.
 
-Commit both changes and merge them into `main` through a pull request. The workflow file must be on the commit that you tag.
+The workflow file must be on the commit that you tag.
 
 ## 3. Release a Version
 
@@ -116,12 +61,11 @@ Docker keeps the login in `~/.docker/config.json`. Set an expiry date on the tok
 Do these steps one time.
 
 1. Make a directory on the server, for example `/opt/shiftplanner`.
-2. Copy `docker-compose.yml` from the repository into that directory.
+2. Copy `docker/docker-compose.yml` from the repository into that directory.
 3. Copy `.env.production.example` into that directory as `.env`.
 4. In `.env`, set these values.
 
     ```dotenv
-    IMAGE_NAME=ghcr.io/johnbekendam/shiftplanner
     IMAGE_TAG=1.0.0
     APP_URL=http://server-name:8080
     DB_PASSWORD=replace-with-a-strong-password
@@ -161,4 +105,4 @@ Use a fixed version in `IMAGE_TAG`, not `latest`. A fixed version shows which re
 - The workflow builds for `linux/amd64`. Most servers use this architecture. For an ARM server, change `platforms` to `linux/arm64`.
 - Private repositories get a limited number of free Actions minutes and package storage each month. This project uses a small part of the limit.
 - To remove old images, open the package on GitHub and delete old versions.
-- Do not run `docker compose down --volumes`. This command deletes the database and the stored files.
+- The `postgres-data` volume stores the database. The `app-storage` volume stores the application files. Do not run `docker compose down --volumes`. This command deletes both volumes.

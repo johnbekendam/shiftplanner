@@ -17,5 +17,3 @@ bootstrap/cache/*
 .env.backup
 .env.production
 *.log
-*.tar
-dist

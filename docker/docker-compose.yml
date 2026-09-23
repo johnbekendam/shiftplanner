@@ -1,14 +1,12 @@
 # ShiftPlanner production container stack.
 #
-# Build a release with scripts/build-image.ps1 (Windows) or
-# scripts/build-image.sh (macOS/Linux). The .sh script stages this file,
-# a tar image, and an .env template together in dist/ - copy that whole
-# directory to the server. Local development continues to run on the host
+# GitHub Actions builds the image and pushes it to GHCR on each v* tag.
+# See doc/docker-setup.md. Local development continues to run on the host
 # against SQLite.
 
 services:
   app:
-    image: "shiftplanner:${IMAGE_TAG:?Set IMAGE_TAG in .env}"
+    image: "ghcr.io/johnbekendam/shiftplanner:${IMAGE_TAG:?Set IMAGE_TAG in .env}"
     env_file: .env
     environment:
       DB_CONNECTION: pgsql
@@ -24,7 +22,7 @@ services:
     restart: unless-stopped
 
   queue:
-    image: "shiftplanner:${IMAGE_TAG:?Set IMAGE_TAG in .env}"
+    image: "ghcr.io/johnbekendam/shiftplanner:${IMAGE_TAG:?Set IMAGE_TAG in .env}"
     command: php artisan queue:work --sleep=3 --tries=3 --max-time=3600
     env_file: .env
     environment:
@@ -55,7 +53,7 @@ services:
       retries: 10
 
   # app:
-  #   build: ./docker/app          # PHP-FPM + nginx, built in a later phase
+  #   build: ./app                 # PHP-FPM + nginx, built in a later phase
   #   depends_on:
   #     postgres:
   #       condition: service_healthy

@@ -28,7 +28,7 @@ class BackupUploadPhpConfigTest extends TestCase
 
     public function test_dockerfile_installs_a_php_ini_override_for_uploads(): void
     {
-        $dockerfile = file_get_contents($this->basePath('Dockerfile'));
+        $dockerfile = file_get_contents($this->basePath('docker/Dockerfile'));
 
         $this->assertMatchesRegularExpression(
             '#COPY\s+\S+\s+/usr/local/etc/php/conf\.d/\S+\.ini#',
