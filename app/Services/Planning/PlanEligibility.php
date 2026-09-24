@@ -87,7 +87,7 @@ final class PlanEligibility
             && $this->matchesRequiredBusinessLine($id, $workcenterId)
             && ! $current->hasOverlap($id, $date, $shiftId)
             && $this->withinMaxShiftsPerDay($current, $id, $date)
-            && $this->withinMaxHoursPerWeek($current, $employee, $shiftId);
+            && $this->withinMaxHoursPerWeek($current, $employee, $shiftId, $date);
     }
 
     /** A hard not_preferred_shift rule closes not-preferred cells like unavailable ones. */
@@ -156,14 +156,16 @@ final class PlanEligibility
         return $current->countOnDate($employeeId, $date) + 1 <= $this->hardMaxShiftsPerDay;
     }
 
-    private function withinMaxHoursPerWeek(PlanAssignmentSet $current, array $employee, int $shiftId): bool
+    private function withinMaxHoursPerWeek(PlanAssignmentSet $current, array $employee, int $shiftId, string $date): bool
     {
         if (! $this->hardMaxHoursPerWeek) {
             return true;
         }
 
-        $cap = $employee['weekly_hours'] * 2;
+        $shiftHours = $current->shiftCapHours($shiftId);
+        $cycleWithinCap = $current->totalCapHours($employee['id']) + $shiftHours <= $employee['weekly_hours'] * 2;
+        $weekWithinCap = $current->totalCapHoursForWeek($employee['id'], $date) + $shiftHours <= $employee['weekly_hours'] + 4;
 
-        return $current->totalCapHours($employee['id']) + $current->shiftCapHours($shiftId) <= $cap;
+        return $cycleWithinCap && $weekWithinCap;
     }
 }

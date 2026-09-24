@@ -9,6 +9,7 @@ use App\Models\Workcenter;
 use App\Services\SchedulingEligibility;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 class ShiftAssignmentController extends Controller
@@ -18,58 +19,21 @@ class ShiftAssignmentController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate([
-            'employee_id' => ['required', 'integer', 'exists:employees,id'],
+            'employee_id' => ['required', 'integer', Rule::exists('employees', 'id')->whereNull('archived_at')],
             'workcenter_id' => ['required', 'integer', 'exists:workcenters,id'],
             'shift_id' => ['required', 'integer', 'exists:shifts,id'],
             'date' => ['required', 'date_format:Y-m-d'],
         ]);
 
-        $employee = Employee::findOrFail($data['employee_id']);
+        $employee = Employee::active()->findOrFail($data['employee_id']);
         $workcenter = Workcenter::findOrFail($data['workcenter_id']);
         $shift = Shift::findOrFail($data['shift_id']);
         $date = Carbon::parse($data['date']);
 
-        $existing = ShiftAssignment::query()
-            ->where('workcenter_id', $workcenter->id)
-            ->where('shift_id', $shift->id)
-            ->whereDate('date', $date);
-
-        if ((clone $existing)->where('employee_id', $employee->id)->exists()) {
-            throw ValidationException::withMessages(['employee_id' => __('scheduling.error.duplicate')]);
-        }
-
-        if (! $employee->confirmed) {
-            throw ValidationException::withMessages(['employee_id' => __('scheduling.error.unconfirmed')]);
-        }
-
-        if ($existing->count() >= $workcenter->spotsFor($shift, $date)) {
-            throw ValidationException::withMessages(['employee_id' => __('scheduling.error.cell_full')]);
-        }
-
-        if (! $shift->visible_by_default) {
-            throw ValidationException::withMessages(['employee_id' => __('scheduling.error.shift_hidden')]);
-        }
-
-        if ($this->eligibility->isOnHoliday($employee, $date)) {
-            throw ValidationException::withMessages(['employee_id' => __('scheduling.error.holiday')]);
-        }
-
-        if ($this->eligibility->isUnavailable($employee, $date->isoWeekday(), $shift)) {
-            throw ValidationException::withMessages(['employee_id' => __('scheduling.error.unavailable')]);
-        }
-
-        if ($this->eligibility->isWorkcenterIneligible($employee, $workcenter)) {
-            throw ValidationException::withMessages(['employee_id' => __('scheduling.error.workcenter_ineligible')]);
-        }
-
-        if ($this->eligibility->hasOverlap($employee, $date, $shift)) {
-            throw ValidationException::withMessages(['employee_id' => __('scheduling.error.overlap')]);
-        }
-
-        $capViolation = $this->eligibility->hardCapViolation($employee, $shift, $date);
-        if ($capViolation !== null) {
+        $blockReason = $this->eligibility->assignmentBlockReason($employee, $workcenter, $shift, $date);
+        if ($blockReason !== null) {
             throw ValidationException::withMessages([
-                'employee_id' => __("scheduling.error.{$capViolation}"),
+                'employee_id' => __("scheduling.error.{$blockReason}"),
             ]);
         }
 

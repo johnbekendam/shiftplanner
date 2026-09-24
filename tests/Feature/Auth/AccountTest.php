@@ -72,6 +72,17 @@ class AccountTest extends TestCase
         $this->assertSame($employee->id, $user->fresh()->employee_id);
     }
 
+    public function test_linking_cannot_reactivate_an_archived_employee(): void
+    {
+        Employee::factory()->create(['email' => 'ivy@example.com', 'archived_at' => now()]);
+        $user = User::factory()->create(['email' => 'ivy@example.com']);
+
+        $this->actingAs($user)->post('/account/employee')->assertStatus(409);
+
+        $this->assertNull($user->fresh()->employee_id);
+        $this->assertSame(1, Employee::count());
+    }
+
     public function test_an_admin_cannot_add_itself_as_an_employee(): void
     {
         $admin = User::factory()->admin()->create();

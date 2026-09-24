@@ -34,7 +34,22 @@ onUnmounted(() => document.removeEventListener('click', handleOutsideClick))
 // following the same NavLink pattern.
 const isAdmin = computed(() => user.value?.role === 'admin')
 
+function planningHref() {
+    const userId = user.value?.id
+    if (!userId || typeof window === 'undefined') return '/planning'
+
+    const selectedWeek = window.sessionStorage.getItem(`planning.selectedWeek.${userId}`)
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(selectedWeek ?? '')) return '/planning'
+
+    const [year, month, day] = selectedWeek.split('-').map(Number)
+    const date = new Date(year, month - 1, day)
+    if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) return '/planning'
+
+    return `/planning?year=${year}&month=${month}&date=${selectedWeek}`
+}
+
 const navItems = computed(() => {
+    page.url
     const items = [
         { label: __('nav.dashboard'), href: '/dashboard', icon: 'chart-bar' },
         { label: __('nav.employees'), href: '/employees', icon: 'users' },
@@ -43,7 +58,7 @@ const navItems = computed(() => {
     if (isAdmin.value) {
         items.push(
             { label: __('nav.workcenter_shifts'), href: '/schedule', icon: 'table-cells' },
-            { label: __('nav.scheduling'), href: '/planning', icon: 'calendar-days' },
+            { label: __('nav.scheduling'), href: planningHref(), icon: 'calendar-days' },
             { label: __('nav.mailbox'), href: '/mailbox', icon: 'envelope' },
             { label: __('nav.reports'), href: '/reports', icon: 'clipboard-list' },
             { separator: true },
@@ -66,6 +81,7 @@ const navItems = computed(() => {
             { label: __('nav.settings'), href: '/settings', icon: 'cog' },
             { label: __('nav.planning_rules'), href: '/planning-rules', icon: 'adjustments-horizontal' },
             { label: __('nav.employee_backup'), href: '/employee-backup', icon: 'archive-box-x-mark' },
+            { label: __('nav.employee_audit'), href: '/employee-audit', icon: 'shield-check' },
         )
         // Theme builder stays reachable at /theme-builder but is not in the nav.
     }
@@ -80,8 +96,9 @@ function logout() {
 const breadcrumbs = computed(() => segments.value)
 
 function isActive(href) {
-    const url = page.url ?? ''
-    return url === href || url.startsWith(href + '/')
+    const url = (page.url ?? '').split('?')[0]
+    const path = href.split('?')[0]
+    return url === path || url.startsWith(path + '/')
 }
 </script>
 

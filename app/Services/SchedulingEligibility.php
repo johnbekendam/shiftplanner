@@ -17,6 +17,48 @@ use Carbon\Carbon;
  */
 class SchedulingEligibility
 {
+    public function assignmentBlockReason(Employee $employee, Workcenter $workcenter, Shift $shift, Carbon $date): ?string
+    {
+        $assignments = ShiftAssignment::query()
+            ->where('workcenter_id', $workcenter->id)
+            ->where('shift_id', $shift->id)
+            ->whereDate('date', $date);
+
+        if ((clone $assignments)->where('employee_id', $employee->id)->exists()) {
+            return 'duplicate';
+        }
+
+        if (! $employee->confirmed) {
+            return 'unconfirmed';
+        }
+
+        if ($assignments->count() >= $workcenter->spotsFor($shift, $date)) {
+            return 'cell_full';
+        }
+
+        if ($this->isShiftUnavailableForWorkcenter($employee, $workcenter, $shift)) {
+            return 'shift_hidden';
+        }
+
+        if ($this->isOnHoliday($employee, $date)) {
+            return 'holiday';
+        }
+
+        if ($this->isUnavailable($employee, $date->isoWeekday(), $shift)) {
+            return 'unavailable';
+        }
+
+        if ($this->isWorkcenterIneligible($employee, $workcenter)) {
+            return 'workcenter_ineligible';
+        }
+
+        if ($this->hasOverlap($employee, $date, $shift)) {
+            return 'overlap';
+        }
+
+        return $this->hardCapViolation($employee, $shift, $date);
+    }
+
     public function isOnHoliday(Employee $employee, Carbon $date): bool
     {
         return $employee->holidays()
@@ -28,6 +70,19 @@ class SchedulingEligibility
     public function isUnavailable(Employee $employee, int $weekday, Shift $shift): bool
     {
         return ! in_array($this->recurringLevel($employee, $weekday, $shift), ['available', 'not_preferred'], true);
+    }
+
+    public function isShiftUnavailableForWorkcenter(Employee $employee, Workcenter $workcenter, Shift $shift): bool
+    {
+        if ($shift->visible_by_default) {
+            return false;
+        }
+
+        return ! $employee->workcenters()
+            ->where('workcenters.id', $workcenter->id)
+            ->wherePivot('mode', 'hard')
+            ->whereHas('shifts', fn ($q) => $q->where('shifts.id', $shift->id))
+            ->exists();
     }
 
     public function isNotPreferred(Employee $employee, int $weekday, Shift $shift): bool
@@ -104,15 +159,28 @@ class SchedulingEligibility
         $cycleStart = PlanningCycle::containing($date);
         if ($hoursRule !== null && $cycleStart !== null) {
             $cycleEnd = $cycleStart->copy()->addDays(13);
-            $hours = ShiftAssignment::query()
+            $assignments = ShiftAssignment::query()
                 ->where('employee_id', $employee->id)
+                ->with('shift');
+            $shiftHours = $shift->capHours();
+            $cycleHours = (clone $assignments)
                 ->whereBetween('date', [$cycleStart->toDateString(), $cycleEnd->toDateString()])
-                ->with('shift')
                 ->get()
                 ->sum(fn (ShiftAssignment $assignment): float => $assignment->shift->capHours());
 
-            if ($hours + $shift->capHours() > $employee->weekly_hours * 2) {
+            if ($cycleHours + $shiftHours > $employee->weekly_hours * 2) {
                 return 'max_hours_per_week';
+            }
+
+            $weekStart = $date->copy()->startOfWeek(Carbon::MONDAY);
+            $weekEnd = $date->copy()->endOfWeek(Carbon::SUNDAY);
+            $weekHours = (clone $assignments)
+                ->whereBetween('date', [$weekStart->toDateString(), $weekEnd->toDateString()])
+                ->get()
+                ->sum(fn (ShiftAssignment $assignment): float => $assignment->shift->capHours());
+
+            if ($weekHours + $shiftHours > $employee->weekly_hours + 4) {
+                return 'max_hours_per_week_distribution';
             }
         }
 

@@ -2,7 +2,7 @@
 import { ref, computed, nextTick, onBeforeUnmount } from 'vue'
 import axios from 'axios'
 import Icon from '@/components/ui/Icon.vue'
-import { SearchInput } from '@/components/ui/Input'
+import { CheckboxInput, SearchInput } from '@/components/ui/Input'
 import { useI18n } from '@/composables/useI18n'
 import { putAsync, postAsync, deleteAsync } from '@/utils/inertiaAsync'
 
@@ -184,6 +184,7 @@ const openAssignDate = ref(null)
 const openTriggerEl = ref(null)
 const eligible = ref([])
 const searchTerm = ref('')
+const showAll = ref(false)
 const panelRef = ref(null)
 const panelStyle = ref({})
 
@@ -195,6 +196,7 @@ async function openAssign(date, event) {
     openAssignDate.value = date
     openTriggerEl.value = event.currentTarget
     searchTerm.value = ''
+    showAll.value = false
     panelStyle.value = positionPanel(openTriggerEl.value, null)
     await nextTick()
     computePanelPosition()
@@ -214,11 +216,19 @@ function closeAssign() {
 
 const filteredEligible = computed(() => {
     const q = searchTerm.value.trim().toLowerCase()
-    if (!q) return eligible.value
-    return eligible.value.filter((e) => e.name.toLowerCase().includes(q))
+    return eligible.value.filter((employee) =>
+        (showAll.value || !employee.block_reason)
+        && (!q || employee.name.toLowerCase().includes(q)),
+    )
 })
 
+function blockReasonLabel(employee) {
+    return employee.block_reason ? __(`scheduling.error.${employee.block_reason}`) : ''
+}
+
 async function assign(employee) {
+    if (employee.block_reason) return
+
     const date = openAssignDate.value
     closeAssign()
     await postAsync('/planning/assignments', {
@@ -393,17 +403,34 @@ onBeforeUnmount(() => {
             ref="panelRef"
             data-testid="assign-popover"
             :style="panelStyle"
-            class="fixed z-50 w-max min-w-48 max-w-[calc(100vw-2rem)] rounded-md border border-(--color-dropdown-panel-border) bg-(--color-dropdown-panel-bg) p-2 shadow-lg"
+            class="fixed z-50 w-fit min-w-48 max-w-[calc(100vw-2rem)] rounded-md border border-(--color-dropdown-panel-border) bg-(--color-dropdown-panel-bg) p-2 shadow-lg"
         >
-            <SearchInput v-model="searchTerm" class="w-full" />
+            <div class="flex items-center gap-3">
+                <SearchInput v-model="searchTerm" class="w-40" />
+                <div class="shrink-0">
+                    <CheckboxInput v-model="showAll" data-testid="show-all-employees">
+                        {{ __('scheduling.show_all_employees') }}
+                    </CheckboxInput>
+                </div>
+            </div>
             <ul data-testid="assign-list" class="mt-1 max-h-40 overflow-y-auto">
                 <li v-for="employee in filteredEligible" :key="employee.id">
                     <button
                         type="button"
-                        class="flex w-full items-center justify-between gap-1 rounded px-1 py-1 text-left hover:bg-(--color-dropdown-option-hover-bg)"
+                        :data-testid="`employee-option-${employee.id}`"
+                        :disabled="Boolean(employee.block_reason)"
+                        class="flex w-full items-start justify-between gap-2 rounded px-1 py-1 text-left"
+                        :class="employee.block_reason
+                            ? 'cursor-not-allowed text-(--color-text-muted)'
+                            : 'hover:bg-(--color-dropdown-option-hover-bg)'"
                         @click="assign(employee)"
                     >
-                        <span class="whitespace-nowrap">{{ employee.name }}</span>
+                        <span class="flex max-w-80 flex-col whitespace-nowrap">
+                            <span class="whitespace-nowrap">{{ employee.name }}</span>
+                            <span v-if="employee.block_reason" class="text-xs whitespace-normal text-(--color-text-secondary)">
+                                {{ blockReasonLabel(employee) }}
+                            </span>
+                        </span>
                         <span class="flex shrink-0 items-center gap-1">
                             <span v-if="employee.not_preferred" data-testid="not-preferred-icon" class="contents">
                                 <Icon name="exclamation-triangle" class="size-3 text-(--color-badge-warning-text)" />
@@ -416,12 +443,6 @@ onBeforeUnmount(() => {
                 </li>
                 <li v-if="!filteredEligible.length" class="px-1 py-1 text-(--color-text-secondary)">
                     {{ __('scheduling.no_eligible_employees') }}
-                </li>
-            </ul>
-            <!-- Invisible copy of the full list: the panel is as wide as the longest name, however the search filters. -->
-            <ul data-testid="assign-sizer" aria-hidden="true" class="invisible h-0 overflow-hidden">
-                <li v-for="employee in eligible" :key="employee.id" class="whitespace-nowrap pl-1 pr-8">
-                    {{ employee.name }}
                 </li>
             </ul>
         </div>

@@ -26,6 +26,7 @@ class SelfSignupService
     public function __construct(
         private PersonalLinkMessage $placeholders,
         private MessageComposer $composer,
+        private EmployeeAuditLogger $audit,
     ) {}
 
     /**
@@ -47,12 +48,33 @@ class SelfSignupService
 
         $employee = Employee::query()
             ->whereRaw('lower(email) = ?', [Str::lower($email)])
-            ->first()
-            ?? Employee::create([
-                'first_name' => $firstName,
-                'last_name' => $lastName,
-                'email' => $email,
-            ]);
+            ->first();
+
+        if ($employee?->archived_at !== null) {
+            return;
+        }
+
+        $isNew = $employee === null;
+        $employee ??= Employee::create([
+            'first_name' => $firstName,
+            'last_name' => $lastName,
+            'email' => $email,
+        ]);
+
+        if ($isNew) {
+            $employee->refresh();
+            $this->audit->record(
+                $employee,
+                'created',
+                'employee',
+                $employee->id,
+                [],
+                $employee->only(EmployeeAuditLogger::EMPLOYEE_FIELDS),
+                'public_signup',
+                actorType: 'public',
+                actorSnapshot: ['name' => trim("{$firstName} {$lastName}"), 'email' => $email],
+            );
+        }
 
         $this->send($employee);
     }
@@ -76,7 +98,7 @@ class SelfSignupService
             ->whereRaw('lower(email) = ?', [Str::lower($email)])
             ->first();
 
-        if (! $employee) {
+        if (! $employee || $employee->archived_at !== null) {
             return;
         }
 

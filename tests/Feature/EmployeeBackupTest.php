@@ -6,16 +6,20 @@ use App\Models\AvailabilityQuestion;
 use App\Models\BusinessLine;
 use App\Models\Competence;
 use App\Models\Employee;
+use App\Models\EmployeeAuditEvent;
 use App\Models\EmployeeHoliday;
 use App\Models\PlanGenerationRun;
 use App\Models\RecurringAvailability;
 use App\Models\Shift;
 use App\Models\User;
 use App\Services\ApplicationBackup;
+use App\Services\EmployeeAuditLogger;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Mockery;
+use RuntimeException;
 use Tests\TestCase;
 
 class EmployeeBackupTest extends TestCase
@@ -127,6 +131,41 @@ class EmployeeBackupTest extends TestCase
         $response->assertOk()->assertJsonPath('version', 2)->assertJsonPath('imported', 1);
         $this->assertDatabaseCount('employees', 1);
         $this->assertDatabaseHas('employees', ['id' => $employee->id, 'email' => 'jane@example.com']);
+    }
+
+    public function test_application_import_audits_changed_employees_with_the_admin_actor(): void
+    {
+        $admin = $this->admin();
+        $employee = Employee::factory()->create(['first_name' => 'Before']);
+        $archive = app(ApplicationBackup::class)->export();
+        $employeeIndex = collect($archive['data']['employees'])->search(fn (array $row) => $row['id'] === $employee->id);
+        $archive['data']['employees'][$employeeIndex]['first_name'] = 'After';
+        $file = UploadedFile::fake()->createWithContent('backup.json', json_encode($archive, JSON_THROW_ON_ERROR));
+
+        $this->actingAs($admin)->post('/employee-backup/import', ['file' => $file])->assertOk();
+
+        $event = EmployeeAuditEvent::query()->where('employee_id', $employee->id)->sole();
+        $this->assertSame('import_updated', $event->action);
+        $this->assertSame('backup_import', $event->source);
+        $this->assertSame($admin->name, $event->actor_name);
+        $this->assertSame('Before', $event->old_values['first_name']);
+        $this->assertSame('After', $event->new_values['first_name']);
+    }
+
+    public function test_application_import_rolls_back_when_audit_recording_fails(): void
+    {
+        $employee = Employee::factory()->create(['first_name' => 'Before']);
+        $archive = app(ApplicationBackup::class)->export();
+        $employeeIndex = collect($archive['data']['employees'])->search(fn (array $row) => $row['id'] === $employee->id);
+        $archive['data']['employees'][$employeeIndex]['first_name'] = 'After';
+        $file = UploadedFile::fake()->createWithContent('backup.json', json_encode($archive, JSON_THROW_ON_ERROR));
+        $audit = Mockery::mock(EmployeeAuditLogger::class);
+        $audit->shouldReceive('recordForEmployeeId')->once()->andThrow(new RuntimeException('Audit failed.'));
+        $this->app->instance(EmployeeAuditLogger::class, $audit);
+
+        $this->actingAs($this->admin())->post('/employee-backup/import', ['file' => $file])->assertUnprocessable();
+
+        $this->assertDatabaseHas('employees', ['id' => $employee->id, 'first_name' => 'Before']);
     }
 
     public function test_import_uses_existing_references_for_employee_configuration(): void
@@ -398,6 +437,35 @@ class EmployeeBackupTest extends TestCase
             'A table is neither in the backup archive nor in ApplicationBackup::EXCLUDED_TABLES.',
         );
         $this->assertSame([], array_values(array_diff($archived, $tables)));
+    }
+
+    public function test_application_import_keeps_existing_audit_events(): void
+    {
+        $admin = $this->admin();
+        $employee = Employee::factory()->create();
+        $event = EmployeeAuditEvent::create([
+            'employee_id' => $employee->id,
+            'action' => 'updated',
+            'subject_type' => 'employee',
+            'subject_id' => $employee->id,
+            'source' => 'user',
+            'actor_type' => 'user',
+            'actor_id' => $admin->id,
+            'actor_name' => $admin->name,
+            'actor_email' => $admin->email,
+            'actor_role' => $admin->role,
+            'old_values' => ['weekly_hours' => 24],
+            'new_values' => ['weekly_hours' => 28],
+        ]);
+        $archive = $this->actingAs($admin)->get('/employee-backup/export')->getContent();
+
+        $this->actingAs($admin)->post('/employee-backup/import', [
+            'file' => UploadedFile::fake()->createWithContent('shiftplanner-backup.json', $archive),
+        ])->assertOk();
+
+        $this->assertDatabaseCount('employee_audit_events', 1);
+        $this->assertSame(['weekly_hours' => 24], $event->fresh()->old_values);
+        $this->assertSame(['weekly_hours' => 28], $event->fresh()->new_values);
     }
 
     public function test_import_clears_stale_plan_generation_runs(): void

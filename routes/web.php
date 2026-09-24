@@ -7,6 +7,7 @@ use App\Http\Controllers\BusinessLineController;
 use App\Http\Controllers\CompetenceController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EligibleEmployeeController;
+use App\Http\Controllers\EmployeeAuditController;
 use App\Http\Controllers\EmployeeBackupController;
 use App\Http\Controllers\EmployeeCompetenceController;
 use App\Http\Controllers\EmployeeController;
@@ -24,8 +25,8 @@ use App\Http\Controllers\PersonalQuestionController;
 use App\Http\Controllers\PersonalRecurringAvailabilityController;
 use App\Http\Controllers\PlanGenerationController;
 use App\Http\Controllers\PlannerOpenWeekController;
-use App\Http\Controllers\PlanNotificationController;
 use App\Http\Controllers\PlanningRuleController;
+use App\Http\Controllers\PlanNotificationController;
 use App\Http\Controllers\PublishedWeekController;
 use App\Http\Controllers\QuestionController;
 use App\Http\Controllers\RecurringAvailabilityController;
@@ -73,6 +74,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/employee-backup', [EmployeeBackupController::class, 'index'])->name('employee-backup.index');
         Route::get('/employee-backup/export', [EmployeeBackupController::class, 'export'])->name('employee-backup.export');
         Route::post('/employee-backup/import', [EmployeeBackupController::class, 'import'])->name('employee-backup.import');
+        Route::get('/employee-audit', [EmployeeAuditController::class, 'index'])->name('employee-audit.index');
+        Route::post('/employees/{employee}/restore', [EmployeeController::class, 'restore'])->name('employees.restore');
 
         Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
         Route::post('/settings/competences', [CompetenceController::class, 'store'])->name('settings.competences.store');
@@ -161,22 +164,22 @@ Route::middleware('auth')->group(function () {
     Route::post('/employees', [EmployeeController::class, 'store'])->name('employees.store');
     Route::post('/employees/bulk-delete', [EmployeeController::class, 'bulkDelete'])->name('employees.bulk-delete');
     Route::get('/employees/{employee}/edit', [EmployeeController::class, 'edit'])->name('employees.edit');
-    Route::put('/employees/{employee}', [EmployeeController::class, 'update'])->name('employees.update');
-    Route::put('/employees/{employee}/confirmed', [EmployeeController::class, 'updateConfirmed'])->name('employees.confirmed.update');
+    Route::put('/employees/{employee}', [EmployeeController::class, 'update'])->middleware('employee.active')->name('employees.update');
+    Route::put('/employees/{employee}/confirmed', [EmployeeController::class, 'updateConfirmed'])->middleware('employee.active')->name('employees.confirmed.update');
     Route::delete('/employees/{employee}', [EmployeeController::class, 'destroy'])->name('employees.destroy');
-    Route::get('/employees/{employee}/personal-page', [EmployeeController::class, 'personalPage'])->name('employees.personal-page');
+    Route::get('/employees/{employee}/personal-page', [EmployeeController::class, 'personalPage'])->middleware('employee.active')->name('employees.personal-page');
     // Queues the personal-page-link message straight to the outbox — no Compose UI.
-    Route::post('/employees/{employee}/send-link', [EmployeeController::class, 'sendLink'])->name('employees.send-link');
-    Route::post('/employees/{employee}/holidays', [EmployeeHolidayController::class, 'store'])->name('employees.holidays.store');
-    Route::delete('/employees/{employee}/holidays/{holiday}', [EmployeeHolidayController::class, 'destroy'])->name('employees.holidays.destroy');
+    Route::post('/employees/{employee}/send-link', [EmployeeController::class, 'sendLink'])->middleware('employee.active')->name('employees.send-link');
+    Route::post('/employees/{employee}/holidays', [EmployeeHolidayController::class, 'store'])->middleware('employee.active')->name('employees.holidays.store');
+    Route::delete('/employees/{employee}/holidays/{holiday}', [EmployeeHolidayController::class, 'destroy'])->middleware('employee.active')->name('employees.holidays.destroy');
     Route::put('/employees/{employee}/availability/{weekday}/{shift}', [RecurringAvailabilityController::class, 'update'])
         ->where(['weekday' => '[1-5]', 'shift' => '[0-9]+'])
-        ->name('employees.availability.update');
-    Route::put('/employees/{employee}/competences/{competence}', [EmployeeCompetenceController::class, 'update'])->name('employees.competences.update');
-    Route::delete('/employees/{employee}/competences/{competence}', [EmployeeCompetenceController::class, 'destroy'])->name('employees.competences.destroy');
-    Route::put('/employees/{employee}/workcenters/{workcenter}', [EmployeeWorkcenterController::class, 'update'])->name('employees.workcenters.update');
-    Route::delete('/employees/{employee}/workcenters/{workcenter}', [EmployeeWorkcenterController::class, 'destroy'])->name('employees.workcenters.destroy');
-    Route::put('/employees/{employee}/questions/{question}', [EmployeeQuestionController::class, 'update'])->name('employees.questions.update');
+        ->middleware('employee.active')->name('employees.availability.update');
+    Route::put('/employees/{employee}/competences/{competence}', [EmployeeCompetenceController::class, 'update'])->middleware('employee.active')->name('employees.competences.update');
+    Route::delete('/employees/{employee}/competences/{competence}', [EmployeeCompetenceController::class, 'destroy'])->middleware('employee.active')->name('employees.competences.destroy');
+    Route::put('/employees/{employee}/workcenters/{workcenter}', [EmployeeWorkcenterController::class, 'update'])->middleware('employee.active')->name('employees.workcenters.update');
+    Route::delete('/employees/{employee}/workcenters/{workcenter}', [EmployeeWorkcenterController::class, 'destroy'])->middleware('employee.active')->name('employees.workcenters.destroy');
+    Route::put('/employees/{employee}/questions/{question}', [EmployeeQuestionController::class, 'update'])->middleware('employee.active')->name('employees.questions.update');
 });
 
 // Employee personal page — token-only, no auth. Prototype preview links.
@@ -186,7 +189,7 @@ Route::get('/personal/{token}', [PersonalPageController::class, 'show'])->name('
 // Employee-side writes: blocked when a manager turns off
 // `allow_employee_changes` (features/employee-change-lock/). The show route
 // above is deliberately outside this group so the page stays viewable.
-Route::middleware('employee.changes')->group(function () {
+Route::middleware(['employee.changes', 'employee.active'])->group(function () {
     Route::put('/personal/{token}', [PersonalPageController::class, 'update'])->name('personal.update');
     Route::post('/personal/{token}/holidays', [PersonalHolidayController::class, 'store'])->name('personal.holidays.store');
     Route::delete('/personal/{token}/holidays/{holiday}', [PersonalHolidayController::class, 'destroy'])->name('personal.holidays.destroy');

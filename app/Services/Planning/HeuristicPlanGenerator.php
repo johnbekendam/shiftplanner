@@ -151,6 +151,7 @@ class HeuristicPlanGenerator implements PlanGeneratorContract
             ->all();
 
         $employees = Employee::query()
+            ->active()
             ->where('confirmed', true)
             ->where('weekly_hours', '>', 0)
             ->with(['holidays', 'recurringAvailabilities', 'workcenters', 'competences'])

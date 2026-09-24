@@ -39,6 +39,8 @@ const en = {
     "employees.action.saved": "Saved",
     "employees.action.cancel": "Cancel",
     "employees.action.delete": "Delete",
+    "employees.action.restore": "Restore",
+    "employees.archived.notice": "This employee is archived. Employee data is read-only.",
     "employees.delete.title": "Delete this employee?",
     "employees.delete.body": "This permanently removes :name's details from ShiftPlanner.",
     "employees.delete.confirm": "Yes, delete",
@@ -47,9 +49,10 @@ const en = {
 
 // Requests fired by putAsync/postAsync/deleteAsync (availability, holidays,
 // questions, competences) go through this mocked router.
-const { routerCalls, failUrlsRef, router } = vi.hoisted(() => {
+const { routerCalls, failUrlsRef, authState, router } = vi.hoisted(() => {
     const routerCalls = [];
     const failUrlsRef = { current: [] };
+    const authState = { user: { role: "admin" } };
     const respond = (name) => (...args) => {
         const last = args.at(-1);
         const hasOpts = last && typeof last === "object" && (last.onSuccess || last.onError);
@@ -59,14 +62,14 @@ const { routerCalls, failUrlsRef, router } = vi.hoisted(() => {
         failUrlsRef.current.includes(rest[0]) ? opts?.onError?.() : opts?.onSuccess?.();
     };
     const router = { put: respond("put"), post: respond("post"), delete: respond("delete"), on: () => () => {} };
-    return { routerCalls, failUrlsRef, router };
+    return { routerCalls, failUrlsRef, authState, router };
 });
 
 vi.mock("@inertiajs/vue3", () => ({
     router,
     Head: { name: "Head", render: () => null },
     Link: { name: "Link", props: ["href"], template: '<a :href="href"><slot /></a>' },
-    usePage: () => ({ props: { translations: en } }),
+    usePage: () => ({ props: { translations: en, auth: { user: authState.user } } }),
     useForm: (initial) => {
         const form = reactive({
             ...initial,
@@ -115,9 +118,70 @@ const findDeleteButton = (w) => w.findAll("button").find((b) => b.text() === "De
 beforeEach(() => {
     routerCalls.length = 0;
     failUrlsRef.current = [];
+    authState.user = { role: "admin" };
+    window.history.replaceState({}, "", "/");
 });
 
 describe("Employees/Form", () => {
+    it("makes an archived employee read-only and lets an admin restore it", async () => {
+        const w = mount(Form, {
+            props: {
+                employee: {
+                    id: 3,
+                    first_name: "A",
+                    last_name: "B",
+                    email: "a@b.c",
+                    weekly_hours: 24,
+                    archived: true,
+                },
+                holidays: [],
+                questions: [{ id: 1, text: "Question" }],
+                competences: [{ id: 1, name: "Skill", read_only: false }],
+                workcenters: [{ id: 1, name: "Line", archived: false }],
+            },
+            global: { stubs },
+        });
+
+        expect(w.text()).toContain("This employee is archived. Employee data is read-only.");
+        expect(w.findComponent(EmployeeFields).props("readonlyIdentity")).toBe(true);
+        expect(w.findComponent(WeeklyHoursField).props("disabled")).toBe(true);
+        expect(w.findComponent(AvailabilityGrid).props("disabled")).toBe(true);
+        expect(w.findComponent(HolidayList).props("disabled")).toBe(true);
+        expect(w.findComponent(QuestionChecklist).props("disabled")).toBe(true);
+        expect(w.findComponent(TagChecklist).props("disabled")).toBe(true);
+        expect(w.findComponent(WorkcenterChecklist).props("disabled")).toBe(true);
+        expect(w.findComponent(EmployeePlanningSettings).props("disabled")).toBe(true);
+        expect(findSaveButton(w)).toBeUndefined();
+        expect(findDeleteButton(w)).toBeUndefined();
+
+        await w.findAll("button").find((button) => button.text() === "Restore").trigger("click");
+        expect(routerCalls).toContainEqual(["post", "/employees/3/restore", {}]);
+    });
+
+    it("does not show restore to a manager", () => {
+        authState.user = { role: "manager" };
+        const w = mount(Form, {
+            props: { employee: { id: 3, first_name: "A", last_name: "B", weekly_hours: 24, archived: true } },
+            global: { stubs },
+        });
+
+        expect(w.findAll("button").some((button) => button.text() === "Restore")).toBe(false);
+    });
+
+    it("omits employee history and falls back from a stale audit tab URL", () => {
+        window.history.replaceState({}, "", "/employees/3/edit?tab=audit");
+        const w = mount(Form, {
+            props: {
+                employee: { id: 3, first_name: "A", last_name: "B", weekly_hours: 24, archived: true },
+            },
+            global: { stubs },
+        });
+
+        expect(w.findAll("button").some((button) => button.text() === "History")).toBe(false);
+        expect(w.find('[data-testid="panel-audit"]').exists()).toBe(false);
+        expect(w.get('[data-testid="panel-settings"]').isVisible()).toBe(true);
+    });
+
     it("shows Settings first and hides the Information tab", () => {
         const w = mount(Form, {
             props: { employee: { id: 3, name: "A", email: "a@b.c", weekly_hours: 24 }, holidays: [] },

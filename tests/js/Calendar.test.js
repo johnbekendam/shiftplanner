@@ -43,6 +43,15 @@ describe("Calendar", () => {
         expect(w.emitted("change").at(-1)[0]).toMatchObject({ day: 10 });
     });
 
+    it("updates the selected week when controlled date props change", async () => {
+        const w = mount(Calendar, { props: { year: 2026, month: 9, initialDay: 10 } });
+
+        await w.setProps({ year: 2026, month: 10, initialDay: 12 });
+
+        const day12 = w.findAll("button").find((b) => b.text() === "12");
+        expect(weekRow(day12).className).toContain("border-(--color-tab-active-border)");
+    });
+
     it("selects the whole week when a day is clicked", async () => {
         const w = mount(Calendar, { props: { year: 2026, month: 9 } });
         const day10 = w.findAll("button").find((b) => b.text() === "10");

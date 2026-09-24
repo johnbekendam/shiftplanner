@@ -3,6 +3,7 @@ import { ref, computed, watch, onBeforeUnmount, onMounted } from 'vue'
 import { Head, Link, router } from '@inertiajs/vue3'
 import AppLayout from '@/layouts/AppLayout.vue'
 import Card from '@/components/ui/Card.vue'
+import Tabs from '@/components/ui/Tabs.vue'
 import ButtonDanger from '@/components/ui/ButtonDanger.vue'
 import ButtonPrimary from '@/components/ui/ButtonPrimary.vue'
 import ButtonSecondary from '@/components/ui/ButtonSecondary.vue'
@@ -19,6 +20,7 @@ const props = defineProps({
     search: { type: String, default: '' },
     sort: { type: String, default: 'name' },
     direction: { type: String, default: 'asc' },
+    status: { type: String, default: 'active' },
     businessLines: { type: Array, default: () => [] },
     selectedBusinessLines: { type: Array, default: () => [] },
 })
@@ -31,10 +33,17 @@ const columns = [
     { key: 'confirmed', label: 'employees.column.confirmed', sortable: false },
 ]
 
+const statusTabs = computed(() => [
+    { value: 'active', label: __('employees.status.active') },
+    { value: 'archived', label: __('employees.status.archived') },
+    { value: 'all', label: __('employees.status.all') },
+])
+
 const searchTerm = ref(props.search ?? '')
 const selectedIds = ref([])
 const allSelected = computed(() =>
-    props.employees.data.length > 0 && selectedIds.value.length === props.employees.data.length,
+    props.employees.data.some((employee) => !employee.archived)
+        && selectedIds.value.length === props.employees.data.filter((employee) => !employee.archived).length,
 )
 
 const businessLineOptions = computed(() => [
@@ -51,6 +60,7 @@ const query = computed(() => {
     if (search !== '') q.search = search
     if (props.sort !== 'name') q.sort = props.sort
     if (props.direction !== 'asc') q.direction = props.direction
+    if (props.status !== 'active') q.status = props.status
     if (!allBusinessLinesSelected.value) q.business_lines = props.selectedBusinessLines
     return q
 })
@@ -144,6 +154,10 @@ function sortBy(key) {
     reload({ sort: key === 'name' ? undefined : key, direction: direction === 'asc' ? undefined : direction })
 }
 
+function changeStatus(status) {
+    reload({ status: status === 'active' ? undefined : status })
+}
+
 const businessLinesMenuOpen = ref(false)
 const businessLinesMenuTriggerEl = ref(null)
 const businessLinesMenuRef = ref(null)
@@ -233,7 +247,7 @@ function updateConfirmed(employee, confirmed) {
 }
 
 function toggleSelectAll(checked) {
-    selectedIds.value = checked ? props.employees.data.map(employee => employee.id) : []
+    selectedIds.value = checked ? props.employees.data.filter(employee => !employee.archived).map(employee => employee.id) : []
 }
 
 function bulkDelete() {
@@ -251,9 +265,7 @@ function bulkDelete() {
 
         <Card class="max-w-5xl overflow-visible">
             <template #header>
-                <div class="flex items-center justify-between gap-3 px-6 py-3">
-                    <span class="text-base font-semibold">{{ __('employees.title') }}</span>
-                </div>
+                <Tabs :model-value="status" :tabs="statusTabs" @update:model-value="changeStatus" />
             </template>
 
             <div class="space-y-4 p-6">
@@ -387,10 +399,19 @@ function bulkDelete() {
                                 <CheckboxInput
                                     v-model="selectedIds"
                                     :value="employee.id"
+                                    :disabled="employee.archived"
                                     :aria-label="__('employees.selection.select_employee', { name: employee.name })"
                                 />
                             </td>
-                            <td class="px-2 py-2 text-(--color-table-row-text)">{{ employee.name }}</td>
+                            <td class="px-2 py-2 text-(--color-table-row-text)">
+                                <span>{{ employee.name }}</span>
+                                <span
+                                    v-if="employee.archived"
+                                    class="ml-2 inline-flex rounded-full border border-(--color-badge-standard-border) bg-(--color-badge-standard-bg) px-2 py-0.5 text-xs font-medium text-(--color-badge-standard-text)"
+                                >
+                                    {{ __('employees.status.archived') }}
+                                </span>
+                            </td>
                             <td class="px-2 py-2 text-(--color-table-row-text)">
                                 {{ employee.business_line ?? __('employees.no_business_line') }}
                             </td>
@@ -411,6 +432,7 @@ function bulkDelete() {
                             <td class="px-2 py-2 text-(--color-table-row-text)" @click.stop>
                                 <CheckboxInput
                                     :model-value="employee.confirmed"
+                                    :disabled="employee.archived"
                                     :aria-label="employee.confirmed ? __('employees.confirmed.yes') : __('employees.confirmed.no')"
                                     @update:model-value="(confirmed) => updateConfirmed(employee, confirmed)"
                                 />
@@ -419,7 +441,7 @@ function bulkDelete() {
                                 <ButtonSecondary
                                     type="button"
                                     :icon="linkSentId === employee.id ? 'check-circle' : 'envelope'"
-                                    :disabled="employee.has_email === false || sendingLinkId === employee.id"
+                                    :disabled="employee.archived || employee.has_email === false || sendingLinkId === employee.id"
                                     @click="sendLink(employee)"
                                 >
                                     {{

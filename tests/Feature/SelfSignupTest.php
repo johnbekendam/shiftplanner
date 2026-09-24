@@ -96,6 +96,18 @@ class SelfSignupTest extends TestCase
         Queue::assertPushed(SendMailboxMessage::class, 1);
     }
 
+    public function test_an_archived_email_does_not_create_or_send_from_signup(): void
+    {
+        Queue::fake();
+        Employee::factory()->create(['email' => 'archived@example.com', 'archived_at' => now()]);
+
+        $this->service()->register('Archived', 'Person', 'archived@example.com');
+
+        $this->assertSame(1, Employee::count());
+        $this->assertSame(0, Message::count());
+        Queue::assertNothingPushed();
+    }
+
     public function test_a_known_email_match_is_case_insensitive(): void
     {
         Queue::fake();

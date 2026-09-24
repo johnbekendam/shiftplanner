@@ -5,12 +5,16 @@ namespace App\Http\Controllers;
 use App\Models\BusinessLine;
 use App\Models\Employee;
 use App\Models\User;
+use App\Services\EmployeeAuditLogger;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 
 class AccountController extends Controller
 {
+    public function __construct(private EmployeeAuditLogger $audit) {}
+
     public function show(Request $request)
     {
         return Inertia::render('Account/Show', [
@@ -62,18 +66,27 @@ class AccountController extends Controller
         $firstName = Str::contains($name, ' ') ? Str::before($name, ' ') : $name;
         $lastName = Str::contains($name, ' ') ? trim(Str::after($name, ' ')) : '';
 
-        $employee = Employee::firstOrCreate(
-            ['email' => $user->email],
-            [
-                'first_name' => $firstName,
-                'last_name' => $lastName,
-                'weekly_hours' => Employee::DEFAULT_WEEKLY_HOURS,
-            ],
-        );
+        DB::transaction(function () use ($user, $firstName, $lastName): void {
+            $employee = Employee::firstOrCreate(
+                ['email' => $user->email],
+                [
+                    'first_name' => $firstName,
+                    'last_name' => $lastName,
+                    'weekly_hours' => Employee::DEFAULT_WEEKLY_HOURS,
+                ],
+            );
 
-        abort_if($employee->user()->whereKeyNot($user->id)->exists(), 409);
+            abort_if($employee->archived_at !== null, 409, __('employees.error.archived'));
+            abort_if($employee->user()->whereKeyNot($user->id)->exists(), 409);
 
-        $user->update(['employee_id' => $employee->id]);
+            if ($employee->wasRecentlyCreated) {
+                $employee->refresh();
+                $this->audit->record($employee, 'created', 'employee', $employee->id, [], $employee->only(EmployeeAuditLogger::EMPLOYEE_FIELDS), 'account_link', $user);
+            }
+
+            $user->update(['employee_id' => $employee->id]);
+            $this->audit->record($employee, 'linked', 'user', $user->id, ['employee_id' => null], ['employee_id' => $employee->id], 'account_link', $user);
+        });
 
         return redirect('/account')->with('success', __('account.flash.employee_linked'));
     }

@@ -112,6 +112,20 @@ class ShiftAssignmentTest extends TestCase
         $this->assertSame(0, ShiftAssignment::count());
     }
 
+    public function test_store_rejects_an_archived_employee(): void
+    {
+        $this->actingAsAdmin();
+        $employee = Employee::factory()->create(['confirmed' => true, 'archived_at' => now()]);
+        $workcenter = Workcenter::factory()->create();
+        $shift = Shift::factory()->create();
+        $this->setCapacity($workcenter, $shift, $this->aTuesday(), 1);
+
+        $this->post('/planning/assignments', $this->validPayload($employee, $workcenter, $shift))
+            ->assertSessionHasErrors('employee_id');
+
+        $this->assertSame(0, ShiftAssignment::count());
+    }
+
     public function test_store_rejects_a_full_cell(): void
     {
         $this->actingAsAdmin();
@@ -251,6 +265,27 @@ class ShiftAssignmentTest extends TestCase
         $this->assertSame(0, ShiftAssignment::count());
     }
 
+    public function test_store_accepts_a_hard_workcenter_employee_for_a_hidden_workcenter_shift(): void
+    {
+        $this->actingAsAdmin();
+        $employee = Employee::factory()->create(['confirmed' => true]);
+        $workcenter = Workcenter::factory()->create();
+        $shift = Shift::factory()->create(['visible_by_default' => false]);
+        $this->setCapacity($workcenter, $shift, $this->aTuesday(), 5);
+        $employee->workcenters()->attach($workcenter, ['mode' => 'hard']);
+        RecurringAvailability::factory()->create([
+            'employee_id' => $employee->id,
+            'weekday' => $this->aTuesday()->isoWeekday(),
+            'shift_id' => $shift->id,
+            'level' => 'available',
+        ]);
+
+        $this->post('/planning/assignments', $this->validPayload($employee, $workcenter, $shift))
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame(1, ShiftAssignment::count());
+    }
+
     public function test_hiding_a_shift_keeps_an_existing_assignment(): void
     {
         $assignment = ShiftAssignment::factory()->create();
@@ -349,11 +384,37 @@ class ShiftAssignmentTest extends TestCase
         $this->assertSame(1, ShiftAssignment::count());
     }
 
+    public function test_store_rejects_an_employee_over_the_hard_hours_cap_for_one_week(): void
+    {
+        $this->actingAsAdmin();
+        PlanningSettings::current()->update(['period_start' => '2026-09-14']);
+        $employee = Employee::factory()->create(['confirmed' => true, 'weekly_hours' => 8]);
+        $workcenter = Workcenter::factory()->create();
+        $existingShift = Shift::factory()->create(['start_time' => '06:00', 'end_time' => '14:00']);
+        $targetShift = Shift::factory()->create(['start_time' => '14:00', 'end_time' => '22:00']);
+        $this->setCapacity($workcenter, $targetShift, $this->aTuesday(), 5);
+        RecurringAvailability::factory()->create([
+            'employee_id' => $employee->id, 'weekday' => 2, 'shift_id' => $targetShift->id, 'level' => 'available',
+        ]);
+        ShiftAssignment::factory()->create([
+            'employee_id' => $employee->id, 'workcenter_id' => Workcenter::factory()->create()->id,
+            'shift_id' => $existingShift->id, 'date' => '2026-09-14',
+        ]);
+        PlanningRule::create(['type' => 'max_hours_per_week', 'mode' => 'hard']);
+
+        $this->post('/planning/assignments', $this->validPayload($employee, $workcenter, $targetShift))
+            ->assertSessionHasErrors([
+                'employee_id' => __('scheduling.error.max_hours_per_week_distribution'),
+            ]);
+
+        $this->assertSame(1, ShiftAssignment::count());
+    }
+
     public function test_store_counts_slightly_long_shifts_as_four_hour_blocks_for_the_hard_hours_cap(): void
     {
         $this->actingAsAdmin();
         PlanningSettings::current()->update(['period_start' => '2026-09-14']);
-        $employee = Employee::factory()->create(['confirmed' => true, 'weekly_hours' => 8]); // cap 16h
+        $employee = Employee::factory()->create(['confirmed' => true, 'weekly_hours' => 12]); // weekly cap 16h
         $workcenter = Workcenter::factory()->create();
         $existingShift = Shift::factory()->create(['start_time' => '06:00', 'end_time' => '14:15']); // 8.25h counts as 8
         $targetShift = Shift::factory()->create(['start_time' => '14:15', 'end_time' => '23:00']); // 8.75h counts as 8

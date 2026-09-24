@@ -94,7 +94,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { usePage } from '@inertiajs/vue3'
 import Card from '@/components/ui/Card.vue'
 import ButtonSecondary from '@/components/ui/ButtonSecondary.vue'
@@ -151,6 +151,16 @@ const onToday = props.year === todayY && props.month === todayM
 const selectedDay = ref(props.initialDay ?? (onToday ? todayD : 1))
 const selectedDayOfWeek = ref(onToday ? todayDow : isoWeekday(1))
 const selectedWeekStart = ref(dateString(weekStartForDay(selectedDay.value)))
+
+watch(
+    () => [props.year, props.month, props.initialDay],
+    ([year, month, initialDay]) => {
+        const day = initialDay ?? (year === todayY && month === todayM ? todayD : 1)
+        selectedDay.value = day
+        selectedDayOfWeek.value = isoWeekday(day, year, month)
+        selectedWeekStart.value = dateString(weekStartForDay(day, year, month))
+    },
+)
 
 // ── Computed ──────────────────────────────────────────────────────────────────
 

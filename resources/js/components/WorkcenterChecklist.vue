@@ -12,6 +12,7 @@ const props = defineProps({
     selectedRows: { type: Array, default: () => [] },
     // i18n key for the empty-list message.
     emptyKey: { type: String, required: true },
+    disabled: { type: Boolean, default: false },
 })
 
 const emit = defineEmits(['update:selectedRows'])
@@ -30,6 +31,7 @@ function modeFor(itemId) {
 }
 
 function toggle(item, checked) {
+    if (props.disabled) return
     rows.value = checked
         ? [...rows.value, { workcenter_id: item.id, mode: 'hard' }]
         : rows.value.filter((row) => row.workcenter_id !== item.id)
@@ -37,6 +39,7 @@ function toggle(item, checked) {
 }
 
 function setMode(item, mode) {
+    if (props.disabled) return
     rows.value = rows.value.map((row) => (row.workcenter_id === item.id ? { ...row, mode } : row))
     emit('update:selectedRows', rows.value)
 }
@@ -51,6 +54,7 @@ function itemLabel(item) {
         <div v-for="item in items" :key="item.id" class="flex items-center gap-3">
             <CheckboxInput
                 :model-value="modeFor(item.id) !== null"
+                :disabled="disabled"
                 :data-testid="`workcenter-${item.id}`"
                 @update:model-value="toggle(item, $event)"
             >
@@ -60,6 +64,7 @@ function itemLabel(item) {
                 v-if="modeFor(item.id) !== null"
                 :model-value="modeFor(item.id)"
                 :options="modeOptions"
+                :disabled="disabled"
                 class="w-32"
                 @update:model-value="setMode(item, $event)"
             />

@@ -46,6 +46,53 @@ class EmployeeAdminTest extends TestCase
             );
     }
 
+    public function test_index_filters_active_archived_and_all_employees(): void
+    {
+        $user = User::factory()->create();
+        $active = Employee::factory()->create(['first_name' => 'Active', 'archived_at' => null]);
+        $archived = Employee::factory()->create(['first_name' => 'Archived', 'archived_at' => now()]);
+
+        $this->actingAs($user)->get('/employees')->assertInertia(fn ($page) => $page
+            ->has('employees.data', 1)
+            ->where('employees.data.0.id', $active->id)
+            ->where('status', 'active')
+        );
+        $this->actingAs($user)->get('/employees?status=archived')->assertInertia(fn ($page) => $page
+            ->has('employees.data', 1)
+            ->where('employees.data.0.id', $archived->id)
+            ->where('employees.data.0.archived', true)
+            ->where('status', 'archived')
+        );
+        $this->actingAs($user)->get('/employees?status=all')->assertInertia(fn ($page) => $page
+            ->has('employees.data', 2)
+            ->where('status', 'all')
+        );
+    }
+
+    public function test_edit_marks_an_archived_employee_read_only(): void
+    {
+        $user = User::factory()->create();
+        $employee = Employee::factory()->create(['archived_at' => now()]);
+
+        $this->actingAs($user)->get("/employees/{$employee->id}/edit")
+            ->assertInertia(fn ($page) => $page->where('employee.archived', true));
+    }
+
+    public function test_an_archived_employee_cannot_be_updated_directly(): void
+    {
+        $user = User::factory()->create();
+        $employee = Employee::factory()->create(['first_name' => 'Before', 'archived_at' => now()]);
+
+        $this->actingAs($user)->put("/employees/{$employee->id}", [
+            'first_name' => 'After',
+            'last_name' => $employee->last_name,
+            'email' => $employee->email,
+            'weekly_hours' => $employee->weekly_hours,
+        ])->assertStatus(409);
+
+        $this->assertSame('Before', $employee->fresh()->first_name);
+    }
+
     public function test_created_employee_defaults_to_unconfirmed(): void
     {
         $user = User::factory()->create();
@@ -632,7 +679,7 @@ class EmployeeAdminTest extends TestCase
         $this->assertModelExists($employee);
     }
 
-    public function test_manager_can_bulk_delete_only_selected_employees_and_dependent_data(): void
+    public function test_manager_can_bulk_archive_only_selected_employees_and_preserve_dependent_data(): void
     {
         $manager = User::factory()->create();
         $selected = Employee::factory()->create();
@@ -643,34 +690,41 @@ class EmployeeAdminTest extends TestCase
         $question = AvailabilityQuestion::factory()->create();
         $selected->competences()->attach($competence);
         $selected->availabilityQuestions()->attach($question);
-        $selected->personalLink()->create(['token' => 'delete-me']);
+        $selected->personalLink()->create(['token' => 'archive-me']);
 
         $response = $this->actingAs($manager)->post('/employees/bulk-delete', [
             'ids' => [$selected->id],
         ]);
 
         $response->assertRedirect()->assertSessionHas('success');
-        $this->assertModelMissing($selected);
-        $this->assertModelExists($untouched);
-        $this->assertModelMissing($holiday);
-        $this->assertModelMissing($availability);
-        $this->assertDatabaseMissing('competence_employee', ['employee_id' => $selected->id]);
-        $this->assertDatabaseMissing('availability_question_employee', ['employee_id' => $selected->id]);
-        $this->assertDatabaseMissing('employee_personal_links', ['employee_id' => $selected->id]);
+        $this->assertNotNull($selected->fresh()->archived_at);
+        $this->assertNull($untouched->fresh()->archived_at);
+        $this->assertModelExists($holiday);
+        $this->assertModelExists($availability);
+        $this->assertDatabaseHas('competence_employee', ['employee_id' => $selected->id]);
+        $this->assertDatabaseHas('availability_question_employee', ['employee_id' => $selected->id]);
+        $this->assertDatabaseHas('employee_personal_links', ['employee_id' => $selected->id]);
+        $this->assertDatabaseHas('employee_audit_events', [
+            'employee_id' => $selected->id,
+            'action' => 'archived',
+            'actor_id' => $manager->id,
+        ]);
     }
 
-    public function test_admin_can_bulk_delete_employees(): void
+    public function test_bulk_archive_records_one_event_per_employee(): void
     {
         $admin = User::factory()->admin()->create();
-        $employee = Employee::factory()->create();
+        $employees = Employee::factory()->count(2)->create();
 
-        $this->actingAs($admin)->post('/employees/bulk-delete', ['ids' => [$employee->id]])
-            ->assertRedirect();
+        $this->actingAs($admin)->post('/employees/bulk-delete', [
+            'ids' => $employees->pluck('id')->all(),
+        ])->assertRedirect();
 
-        $this->assertModelMissing($employee);
+        $this->assertSame(2, $employees->filter(fn (Employee $employee) => $employee->fresh()->archived_at !== null)->count());
+        $this->assertDatabaseCount('employee_audit_events', 2);
     }
 
-    public function test_bulk_delete_keeps_and_unlinks_a_linked_user_account(): void
+    public function test_bulk_archive_keeps_the_linked_user_account(): void
     {
         $manager = User::factory()->create();
         $employee = Employee::factory()->create();
@@ -680,10 +734,10 @@ class EmployeeAdminTest extends TestCase
             ->assertRedirect();
 
         $this->assertModelExists($linkedUser);
-        $this->assertNull($linkedUser->fresh()->employee_id);
+        $this->assertSame($employee->id, $linkedUser->fresh()->employee_id);
     }
 
-    public function test_bulk_delete_requires_existing_distinct_employee_ids(): void
+    public function test_bulk_archive_requires_existing_distinct_employee_ids(): void
     {
         $manager = User::factory()->create();
         $employee = Employee::factory()->create();
@@ -695,37 +749,42 @@ class EmployeeAdminTest extends TestCase
             'ids' => [$employee->id, $employee->id, 999999],
         ])->assertSessionHasErrors(['ids.1', 'ids.2']);
 
-        $this->assertModelExists($employee);
+        $this->assertNull($employee->fresh()->archived_at);
     }
 
-    public function test_guest_cannot_delete_an_employee(): void
+    public function test_guest_cannot_archive_an_employee(): void
     {
         $employee = Employee::factory()->create();
 
         $this->delete("/employees/{$employee->id}")->assertRedirect('/login');
 
-        $this->assertModelExists($employee);
+        $this->assertNull($employee->fresh()->archived_at);
     }
 
-    public function test_manager_can_delete_an_employee_and_its_dependent_data(): void
+    public function test_manager_can_archive_an_employee_and_preserve_dependent_data(): void
     {
         $manager = User::factory()->create();
         $employee = Employee::factory()->create();
         $holiday = EmployeeHoliday::factory()->create(['employee_id' => $employee->id]);
         $availability = RecurringAvailability::factory()->create(['employee_id' => $employee->id]);
-        $employee->personalLink()->create(['token' => 'delete-me-too']);
+        $employee->personalLink()->create(['token' => 'archive-me-too']);
 
         $this->actingAs($manager)->delete("/employees/{$employee->id}")
             ->assertRedirect('/employees')
             ->assertSessionHas('success');
 
-        $this->assertModelMissing($employee);
-        $this->assertModelMissing($holiday);
-        $this->assertModelMissing($availability);
-        $this->assertDatabaseMissing('employee_personal_links', ['employee_id' => $employee->id]);
+        $this->assertNotNull($employee->fresh()->archived_at);
+        $this->assertModelExists($holiday);
+        $this->assertModelExists($availability);
+        $this->assertDatabaseHas('employee_personal_links', ['employee_id' => $employee->id]);
+        $this->assertDatabaseHas('employee_audit_events', [
+            'employee_id' => $employee->id,
+            'action' => 'archived',
+            'actor_id' => $manager->id,
+        ]);
     }
 
-    public function test_admin_can_delete_an_employee(): void
+    public function test_admin_can_archive_an_employee(): void
     {
         $admin = User::factory()->admin()->create();
         $employee = Employee::factory()->create();
@@ -733,6 +792,33 @@ class EmployeeAdminTest extends TestCase
         $this->actingAs($admin)->delete("/employees/{$employee->id}")
             ->assertRedirect('/employees');
 
-        $this->assertModelMissing($employee);
+        $this->assertNotNull($employee->fresh()->archived_at);
+    }
+
+    public function test_manager_cannot_restore_an_archived_employee(): void
+    {
+        $manager = User::factory()->create();
+        $employee = Employee::factory()->create(['archived_at' => now()]);
+
+        $this->actingAs($manager)->post("/employees/{$employee->id}/restore")
+            ->assertForbidden();
+
+        $this->assertNotNull($employee->fresh()->archived_at);
+    }
+
+    public function test_admin_can_restore_an_archived_employee_and_records_an_event(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $employee = Employee::factory()->create(['archived_at' => now()]);
+
+        $this->actingAs($admin)->post("/employees/{$employee->id}/restore")
+            ->assertRedirect("/employees/{$employee->id}/edit");
+
+        $this->assertNull($employee->fresh()->archived_at);
+        $this->assertDatabaseHas('employee_audit_events', [
+            'employee_id' => $employee->id,
+            'action' => 'restored',
+            'actor_id' => $admin->id,
+        ]);
     }
 }

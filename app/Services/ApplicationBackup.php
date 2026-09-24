@@ -40,7 +40,8 @@ class ApplicationBackup
 
     /**
      * Tables the archive leaves out on purpose: framework runtime state,
-     * short-lived login links, and transient plan generation runs.
+    * short-lived login links, audit history, and transient plan generation
+    * runs.
      *
      * @var list<string>
      */
@@ -48,6 +49,7 @@ class ApplicationBackup
         'cache',
         'cache_locks',
         'failed_jobs',
+        'employee_audit_events',
         'job_batches',
         'jobs',
         'login_links',

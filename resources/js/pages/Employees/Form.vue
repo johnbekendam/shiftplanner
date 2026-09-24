@@ -20,12 +20,14 @@ import ButtonSecondary from '@/components/ui/ButtonSecondary.vue'
 import ButtonDanger from '@/components/ui/ButtonDanger.vue'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 import { useI18n } from '@/composables/useI18n'
+import { useAuth } from '@/composables/useAuth'
 import { useSaveRegistry } from '@/composables/useSaveRegistry'
 import { useUnsavedChangesGuard } from '@/composables/useUnsavedChangesGuard'
 import { putAsync, postAsync, deleteAsync } from '@/utils/inertiaAsync'
 import { calculateAvailabilityHours } from '@/utils/availabilityHours'
 
 const __ = useI18n()
+const { user: currentUser } = useAuth()
 
 const props = defineProps({
     employee: { type: Object, default: null },
@@ -48,9 +50,11 @@ const props = defineProps({
 })
 
 const isEdit = computed(() => props.employee !== null)
+const isArchived = computed(() => props.employee?.archived === true)
+const isAdmin = computed(() => currentUser.value?.role === 'admin')
 
 const registry = useSaveRegistry()
-useUnsavedChangesGuard(() => isEdit.value && registry.anyDirty.value)
+useUnsavedChangesGuard(() => isEdit.value && !isArchived.value && registry.anyDirty.value)
 
 const form = useForm({
     first_name: props.employee?.first_name ?? '',
@@ -90,7 +94,7 @@ function submit() {
     if (!isEdit.value) form.post('/employees')
 }
 
-if (isEdit.value) {
+if (isEdit.value && !isArchived.value) {
     // ── Details + weekly hours: one backend resource (PUT /employees/{id}) ──
     registry.register('personal', {
         isDirty: () => form.isDirty,
@@ -141,7 +145,7 @@ function onAvailabilityChange({ weekday, shiftId, level }) {
     }
 }
 
-if (isEdit.value) {
+if (isEdit.value && !isArchived.value) {
     registry.register('availability', {
         isDirty: () => Object.keys(pendingAvailability).length > 0,
         save: async () => {
@@ -185,7 +189,7 @@ function onHolidaysChange(rows) {
     currentHolidayRows.value = rows
 }
 
-if (isEdit.value) {
+if (isEdit.value && !isArchived.value) {
     registry.register('holidays', {
         isDirty: () => {
             const savedIds = committedHolidays.value.map((h) => h.id)
@@ -226,7 +230,7 @@ function onAnsweredIdsChange(ids) {
     pendingAnsweredIds.value = ids
 }
 
-if (isEdit.value) {
+if (isEdit.value && !isArchived.value) {
     registry.register('questions', {
         isDirty: () => {
             const before = new Set(savedAnsweredIds.value)
@@ -264,7 +268,7 @@ function onSelectedCompetenceIdsChange(ids, items) {
     ]
 }
 
-if (isEdit.value) {
+if (isEdit.value && !isArchived.value) {
     registry.register('competences', {
         isDirty: () => {
             const before = new Set(savedCompetenceIds.value)
@@ -381,6 +385,10 @@ const employeeName = computed(() => [props.employee?.first_name, props.employee?
 function onDeleteConfirm() {
     router.delete(`/employees/${props.employee.id}`)
 }
+
+function restore() {
+    router.post(`/employees/${props.employee.id}/restore`, {})
+}
 </script>
 
 <template>
@@ -392,12 +400,26 @@ function onDeleteConfirm() {
                 <Tabs v-model="tab" :tabs="tabs" />
             </template>
 
+            <p
+                v-if="isArchived"
+                class="border-b border-(--color-card-border) bg-(--color-badge-warning-bg) px-6 py-3 text-sm text-(--color-badge-warning-text)"
+            >
+                {{ __('employees.archived.notice') }}
+            </p>
+
             <div
                 v-show="!isEdit || tab === 'details'"
                 data-testid="panel-details"
                 class="p-6"
             >
-                <EmployeeFields v-if="isEdit" :form="form" :business-lines="businessLines" live />
+                <EmployeeFields
+                    v-if="isEdit"
+                    :form="form"
+                    :business-lines="businessLines"
+                    :readonly-identity="isArchived"
+                    :disabled="isArchived"
+                    live
+                />
 
                 <form v-else class="space-y-5" @submit.prevent="submit">
                     <EmployeeFields :form="form" :business-lines="businessLines" />
@@ -419,6 +441,7 @@ function onDeleteConfirm() {
                         :model-value="form.weekly_hours"
                         :minimum="effectiveWeeklyHoursMinimum"
                         :error="form.errors.weekly_hours"
+                        :disabled="isArchived"
                         live
                         @update:model-value="onWeeklyHoursChange"
                     />
@@ -447,6 +470,7 @@ function onDeleteConfirm() {
                         :key="availabilityVersion"
                         :shifts="shifts"
                         :availability="committedAvailability"
+                        :disabled="isArchived"
                         show-add-hint
                         @update:availability="onAvailabilityChange"
                     />
@@ -464,6 +488,7 @@ function onDeleteConfirm() {
                             :key="questionsVersion"
                             :items="questions"
                             :answered-ids="savedAnsweredIds"
+                            :disabled="isArchived"
                             @update:answered-ids="onAnsweredIdsChange"
                         />
                     </section>
@@ -478,6 +503,7 @@ function onDeleteConfirm() {
                     <HolidayList
                         :key="holidaysVersion"
                         :holidays="committedHolidays"
+                        :disabled="isArchived"
                         @update:holidays="onHolidaysChange"
                     />
                 </section>
@@ -489,6 +515,7 @@ function onDeleteConfirm() {
                     :items="editableCompetences"
                     :selected-ids="savedCompetenceIds.filter((id) => editableCompetences.some((item) => item.id === id))"
                     empty-key="competences.checklist_empty"
+                    :disabled="isArchived"
                     @update:selected-ids="onSelectedCompetenceIdsChange($event, editableCompetences)"
                 />
                 <template v-if="readOnlyCompetences.length">
@@ -497,6 +524,7 @@ function onDeleteConfirm() {
                         :items="readOnlyCompetences"
                         :selected-ids="savedCompetenceIds.filter((id) => readOnlyCompetences.some((item) => item.id === id))"
                         empty-key="competences.checklist_empty"
+                        :disabled="isArchived"
                         @update:selected-ids="onSelectedCompetenceIdsChange($event, readOnlyCompetences)"
                     />
                 </template>
@@ -508,6 +536,7 @@ function onDeleteConfirm() {
                     :items="workcenters"
                     :selected-rows="savedWorkcenterRows"
                     empty-key="workcenters.checklist_empty"
+                    :disabled="isArchived"
                     @update:selected-rows="onWorkcenterRowsChange"
                 />
             </div>
@@ -516,6 +545,7 @@ function onDeleteConfirm() {
                 <EmployeePlanningSettings
                     :form="form"
                     :inherited-minimum="globalWeeklyHoursMinimum"
+                    :disabled="isArchived"
                 />
             </div>
 
@@ -535,7 +565,13 @@ function onDeleteConfirm() {
             <div v-if="isEdit" class="p-6 pt-0">
                 <CardSeparator />
 
-                <div class="flex items-center justify-between gap-3">
+                <div v-if="isArchived" class="flex justify-end">
+                    <ButtonPrimary v-if="isAdmin" type="button" @click="restore">
+                        {{ __('employees.action.restore') }}
+                    </ButtonPrimary>
+                </div>
+
+                <div v-else class="flex items-center justify-between gap-3">
                     <ButtonDanger type="button" @click="deleteDialogOpen = true">
                         {{ __('employees.action.delete') }}
                     </ButtonDanger>
@@ -567,7 +603,7 @@ function onDeleteConfirm() {
         </Card>
 
         <ConfirmDialog
-            v-if="isEdit"
+            v-if="isEdit && !isArchived"
             :open="deleteDialogOpen"
             :title="__('employees.delete.title')"
             :confirm-label="__('employees.delete.confirm')"

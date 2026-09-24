@@ -14,19 +14,25 @@ use App\Models\MessageTemplate;
 use App\Models\PlanningSettings;
 use App\Models\Shift;
 use App\Models\Workcenter;
+use App\Services\EmployeeAuditLogger;
 use App\Services\EmployeePersonalLinkService;
 use App\Services\MessageComposer;
 use App\Services\PersonalLinkMessage;
 use App\Services\PlannedShifts;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 
 class EmployeeController extends Controller
 {
-    public function __construct(private EmployeePersonalLinkService $links, private PlannedShifts $plannedShifts) {}
+    public function __construct(
+        private EmployeePersonalLinkService $links,
+        private PlannedShifts $plannedShifts,
+        private EmployeeAuditLogger $audit,
+    ) {}
 
     /** Sortable list columns mapped to their ORDER BY expression(s). */
     private const SORT_COLUMNS = [
@@ -40,6 +46,9 @@ class EmployeeController extends Controller
     public function index(Request $request)
     {
         $search = trim((string) $request->input('search', ''));
+        $status = in_array($request->input('status'), ['active', 'archived', 'all'], true)
+            ? $request->input('status')
+            : 'active';
 
         $sort = $request->input('sort');
         $sort = array_key_exists($sort, self::SORT_COLUMNS) ? $sort : 'name';
@@ -56,6 +65,12 @@ class EmployeeController extends Controller
             ->select('employees.*')
             ->leftJoin('business_lines', 'business_lines.id', '=', 'employees.business_line_id')
             ->with(['businessLine', 'recurringAvailabilities']);
+
+        if ($status === 'active') {
+            $query->whereNull('employees.archived_at');
+        } elseif ($status === 'archived') {
+            $query->whereNotNull('employees.archived_at');
+        }
 
         foreach (self::SORT_COLUMNS[$sort] as $column) {
             $query->orderBy($column, $direction);
@@ -77,9 +92,15 @@ class EmployeeController extends Controller
             $filterIncludesNone = in_array('none', $businessLineFilter, true);
 
             $query->where(function ($q) use ($filterIds, $filterIncludesNone) {
-                if ($filterIds !== []) $q->orWhereIn('employees.business_line_id', $filterIds);
-                if ($filterIncludesNone) $q->orWhereNull('employees.business_line_id');
-                if ($filterIds === [] && ! $filterIncludesNone) $q->whereRaw('1 = 0');
+                if ($filterIds !== []) {
+                    $q->orWhereIn('employees.business_line_id', $filterIds);
+                }
+                if ($filterIncludesNone) {
+                    $q->orWhereNull('employees.business_line_id');
+                }
+                if ($filterIds === [] && ! $filterIncludesNone) {
+                    $q->whereRaw('1 = 0');
+                }
             });
         }
 
@@ -98,6 +119,7 @@ class EmployeeController extends Controller
             'business_line' => $employee->businessLine?->abbreviation,
             'weekly_hours' => $employee->weekly_hours,
             'confirmed' => $employee->confirmed,
+            'archived' => $employee->archived_at !== null,
             'shift_coverage' => $this->shiftCoverage($employee, $shifts),
         ]);
 
@@ -106,6 +128,7 @@ class EmployeeController extends Controller
             'search' => $search,
             'sort' => $sort,
             'direction' => $direction,
+            'status' => $status,
             'businessLines' => $businessLines->map(fn (BusinessLine $line) => [
                 'id' => $line->id,
                 'abbreviation' => $line->abbreviation,
@@ -125,6 +148,18 @@ class EmployeeController extends Controller
     public function store(Request $request)
     {
         $employee = Employee::create($this->validated($request));
+        $employee->refresh();
+
+        $this->audit->record(
+            $employee,
+            'created',
+            'employee',
+            $employee->id,
+            [],
+            $employee->only(EmployeeAuditLogger::EMPLOYEE_FIELDS),
+            'user',
+            $request->user(),
+        );
 
         return redirect("/employees/{$employee->id}/edit")->with('success', __('employees.flash.created'));
     }
@@ -140,6 +175,7 @@ class EmployeeController extends Controller
         return Inertia::render('Employees/Form', [
             'employee' => [
                 ...$employee->only(['id', 'first_name', 'last_name', 'email', 'weekly_hours', 'weekly_hours_minimum', 'business_line_id']),
+                'archived' => $employee->archived_at !== null,
                 'link_sent' => $employee->email !== null && Message::query()
                     ->where('type', MessageType::PersonalPageLink)
                     ->where('status', 'sent')
@@ -176,8 +212,23 @@ class EmployeeController extends Controller
     public function update(Request $request, Employee $employee)
     {
         $data = $this->validated($request, $employee);
+        $before = $employee->only(array_keys($data));
         $employee->fill($data);
+        $changed = array_keys($employee->getDirty());
         $employee->save();
+
+        if ($changed !== []) {
+            $this->audit->record(
+                $employee,
+                'updated',
+                'employee',
+                $employee->id,
+                array_intersect_key($before, array_flip($changed)),
+                $employee->only($changed),
+                'user',
+                $request->user(),
+            );
+        }
 
         return redirect("/employees/{$employee->id}/edit")->with('success', __('employees.flash.updated'));
     }
@@ -188,7 +239,21 @@ class EmployeeController extends Controller
             'confirmed' => ['required', 'boolean'],
         ]);
 
+        $before = $employee->only(['confirmed']);
         $employee->update(['confirmed' => $data['confirmed']]);
+
+        if ($before['confirmed'] !== $employee->confirmed) {
+            $this->audit->record(
+                $employee,
+                'confirmation_changed',
+                'employee',
+                $employee->id,
+                $before,
+                $employee->only(['confirmed']),
+                'user',
+                $request->user(),
+            );
+        }
 
         return redirect()->back()->with('success', __('employees.flash.updated'));
     }
@@ -200,17 +265,71 @@ class EmployeeController extends Controller
             'ids.*' => ['integer', 'distinct', 'exists:employees,id'],
         ]);
 
-        $count = Employee::query()->whereKey($data['ids'])->delete();
+        $employees = Employee::query()
+            ->whereKey($data['ids'])
+            ->whereNull('archived_at')
+            ->get();
 
-        return redirect()->back()->with('success', __('employees.flash.deleted', ['count' => $count]));
+        DB::transaction(function () use ($employees, $request): void {
+            foreach ($employees as $employee) {
+                $this->archive($employee, $request);
+            }
+        });
+
+        return redirect()->back()->with('success', __('employees.flash.deleted', ['count' => $employees->count()]));
     }
 
     /** Single-employee delete from the edit page. Same cascade as bulkDelete. */
-    public function destroy(Employee $employee)
+    public function destroy(Request $request, Employee $employee)
     {
-        $employee->delete();
+        DB::transaction(fn () => $this->archive($employee, $request));
 
         return redirect('/employees')->with('success', __('employees.flash.deleted_one'));
+    }
+
+    public function restore(Request $request, Employee $employee)
+    {
+        if ($employee->archived_at === null) {
+            return redirect("/employees/{$employee->id}/edit");
+        }
+
+        DB::transaction(function () use ($employee, $request): void {
+            $before = ['archived_at' => $employee->archived_at->toIso8601String()];
+            $employee->update(['archived_at' => null]);
+
+            $this->audit->record(
+                $employee,
+                'restored',
+                'employee',
+                $employee->id,
+                $before,
+                ['archived_at' => null],
+                'user',
+                $request->user(),
+            );
+        });
+
+        return redirect("/employees/{$employee->id}/edit")->with('success', __('employees.flash.updated'));
+    }
+
+    private function archive(Employee $employee, Request $request): void
+    {
+        if ($employee->archived_at !== null) {
+            return;
+        }
+
+        $employee->update(['archived_at' => now()]);
+
+        $this->audit->record(
+            $employee,
+            'archived',
+            'employee',
+            $employee->id,
+            ['archived_at' => null],
+            ['archived_at' => $employee->archived_at->toIso8601String()],
+            'user',
+            $request->user(),
+        );
     }
 
     private function shiftCoverage(Employee $employee, Collection $shifts): array

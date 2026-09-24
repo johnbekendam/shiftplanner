@@ -35,6 +35,7 @@ class Employee extends Model
         'weekly_hours_minimum',
         'business_line_id',
         'confirmed',
+        'archived_at',
     ];
 
     protected function casts(): array
@@ -43,6 +44,7 @@ class Employee extends Model
             'weekly_hours' => 'integer',
             'weekly_hours_minimum' => 'integer',
             'confirmed' => 'boolean',
+            'archived_at' => 'datetime',
         ];
     }
 
@@ -130,5 +132,10 @@ class Employee extends Model
                 ->orWhere('last_name', 'like', "%{$search}%")
                 ->orWhere('email', 'like', "%{$search}%");
         });
+    }
+
+    public function scopeActive($query)
+    {
+        return $query->whereNull('employees.archived_at');
     }
 }

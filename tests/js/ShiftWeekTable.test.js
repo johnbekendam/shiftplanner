@@ -9,6 +9,8 @@ const en = {
     "scheduling.unfreeze": "Unfreeze",
     "scheduling.remove": "Remove",
     "scheduling.no_eligible_employees": "No one eligible.",
+    "scheduling.show_all_employees": "Show all",
+    "scheduling.error.holiday": "This employee is on holiday that day.",
     "scheduling.open_spot": "Add employee",
     "scheduling.unfulfilled_reason.no_eligible_employee": "No eligible employee found.",
     "scheduling.unfulfilled_reason.hard_cap_reached": "Every eligible employee was blocked by a hard cap.",
@@ -237,7 +239,7 @@ describe("ShiftWeekTable", () => {
     });
 
     it("clicking an Open cell fetches eligible employees and lists them; clicking one assigns and closes the popover", async () => {
-        axiosGet.mockResolvedValue({ data: [{ id: 3, name: "Els de Vries", not_preferred: false }] });
+        axiosGet.mockResolvedValue({ data: [{ id: 3, name: "Els de Vries", block_reason: null, not_preferred: false }] });
         const w = mountTable();
 
         await w.get('[data-testid="cell-9-2026-09-17-0"] button').trigger("click");
@@ -261,8 +263,42 @@ describe("ShiftWeekTable", () => {
         w.unmount();
     });
 
+    it("shows blocked employees only when Show all is checked and does not allow their assignment", async () => {
+        axiosGet.mockResolvedValue({
+            data: [
+                { id: 3, name: "Els de Vries", block_reason: null, not_preferred: false },
+                { id: 4, name: "Jan Smit", block_reason: "holiday", not_preferred: false },
+            ],
+        });
+        const w = mountTable();
+
+        await w.get('[data-testid="cell-9-2026-09-17-0"] button').trigger("click");
+        await flushPromises();
+
+        const popover = bodyWrapper().get('[data-testid="assign-popover"]');
+        const eligibleOption = popover.get('[data-testid="employee-option-3"]');
+        const showAll = popover.get('[data-testid="show-all-employees"]');
+
+        expect(eligibleOption.attributes("disabled")).toBeUndefined();
+        expect(showAll.element.checked).toBe(false);
+        expect(popover.find('[data-testid="employee-option-4"]').exists()).toBe(false);
+
+        await showAll.setValue(true);
+
+        const blockedOption = popover.get('[data-testid="employee-option-4"]');
+        expect(blockedOption.attributes("disabled")).toBeDefined();
+        expect(blockedOption.text()).toContain("Jan Smit");
+        expect(blockedOption.text()).toContain("This employee is on holiday that day.");
+
+        await blockedOption.trigger("click");
+
+        expect(routerCalls).toEqual([]);
+        expect(bodyWrapper().find('[data-testid="assign-popover"]').exists()).toBe(true);
+        w.unmount();
+    });
+
     const openPopoverWith = async (names) => {
-        axiosGet.mockResolvedValue({ data: names.map((name, i) => ({ id: i + 1, name, not_preferred: false })) });
+        axiosGet.mockResolvedValue({ data: names.map((name, i) => ({ id: i + 1, name, block_reason: null, not_preferred: false })) });
         const w = mountTable();
         await w.get('[data-testid="cell-9-2026-09-17-0"] button').trigger("click");
         await flushPromises();
@@ -270,30 +306,27 @@ describe("ShiftWeekTable", () => {
         return w;
     };
 
-    it("sizes the assign popover to its content and keeps names on one line", async () => {
+    it("uses a compact search and lets the assign popover fit its visible content", async () => {
         const w = await openPopoverWith(["Maria Alexandra van der Westhuizen-Oosterhoutstraat"]);
         const popover = bodyWrapper().get('[data-testid="assign-popover"]');
 
-        expect(popover.classes()).toContain("w-max");
+        expect(popover.classes()).toContain("w-fit");
         expect(popover.classes()).toContain("min-w-48");
-        expect(popover.classes()).not.toContain("w-48");
+        expect(w.findComponent(SearchInput).classes()).toContain("w-40");
         expect(popover.get('[data-testid="assign-list"] li button span').classes()).toContain("whitespace-nowrap");
+        expect(popover.find('[data-testid="assign-sizer"]').exists()).toBe(false);
         w.unmount();
     });
 
-    it("keeps the popover width steady while the search narrows the list", async () => {
+    it("filters the visible employee list when searching", async () => {
         const w = await openPopoverWith(["Els de Vries", "Bram Bakker"]);
         const list = () => bodyWrapper().get('[data-testid="assign-list"]');
-        const sizer = () => bodyWrapper().get('[data-testid="assign-sizer"]');
         expect(list().findAll("li")).toHaveLength(2);
 
         w.findComponent(SearchInput).vm.$emit("update:modelValue", "Els");
         await flushPromises();
 
         expect(list().findAll("li")).toHaveLength(1);
-        // A hidden copy of the full list keeps the width the same.
-        expect(sizer().attributes("aria-hidden")).toBe("true");
-        expect(sizer().findAll("li").map((li) => li.text())).toEqual(["Els de Vries", "Bram Bakker"]);
         w.unmount();
     });
 

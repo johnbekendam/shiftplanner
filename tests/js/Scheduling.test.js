@@ -39,6 +39,7 @@ const en = {
 
 const routerGetCalls = vi.hoisted(() => []);
 const routerReloadCalls = vi.hoisted(() => []);
+const pageState = vi.hoisted(() => ({ url: "/planning", user: { id: 7, role: "admin" } }));
 
 const { routerCalls, router } = vi.hoisted(() => {
     const routerCalls = [];
@@ -65,7 +66,10 @@ vi.mock("@inertiajs/vue3", () => ({
         on: () => () => {},
     },
     Head: { name: "Head", render: () => null },
-    usePage: () => ({ props: { translations: en, auth: { settings: { month_format: "my" } } } }),
+    usePage: () => ({
+        url: pageState.url,
+        props: { translations: en, auth: { user: pageState.user, settings: { month_format: "my" } } },
+    }),
 }));
 
 import Scheduling from "@/pages/Scheduling.vue";
@@ -139,6 +143,9 @@ beforeEach(() => {
     routerGetCalls.length = 0;
     routerReloadCalls.length = 0;
     routerCalls.length = 0;
+    pageState.url = "/planning";
+    pageState.user = { id: 7, role: "admin" };
+    window.sessionStorage.clear();
 });
 
 describe("Scheduling", () => {
@@ -189,6 +196,166 @@ describe("Scheduling", () => {
 
         expect(dayButton(w, 12).classes().join(" ")).toContain("bg-(--color-badge-muted-bg)");
         expect(routerGetCalls).toHaveLength(0);
+        expect(JSON.parse(window.sessionStorage.getItem("planning.selectedWorkcenters.7"))).toEqual({
+            available: [1, 2],
+            selected: [1],
+        });
+    });
+
+    it("restores selected workcenters from the user session", () => {
+        window.sessionStorage.setItem("planning.selectedWorkcenters.7", JSON.stringify({
+            available: [1, 2],
+            selected: [2],
+        }));
+
+        const w = mountPage();
+        const checkboxes = w.findAll('input[type="checkbox"]');
+
+        expect(checkboxes.at(0).element.checked).toBe(false);
+        expect(checkboxes.at(1).element.checked).toBe(true);
+    });
+
+    it("restores an empty workcenter selection", () => {
+        window.sessionStorage.setItem("planning.selectedWorkcenters.7", JSON.stringify({
+            available: [1, 2],
+            selected: [],
+        }));
+
+        const w = mountPage();
+        const checkboxes = w.findAll('input[type="checkbox"]');
+
+        expect(checkboxes.at(0).element.checked).toBe(false);
+        expect(checkboxes.at(1).element.checked).toBe(false);
+    });
+
+    it("selects new workcenters and removes stale workcenters from the session", () => {
+        window.sessionStorage.setItem("planning.selectedWorkcenters.7", JSON.stringify({
+            available: [1, 99],
+            selected: [99],
+        }));
+
+        const w = mountPage();
+        const checkboxes = w.findAll('input[type="checkbox"]');
+
+        expect(checkboxes.at(0).element.checked).toBe(false);
+        expect(checkboxes.at(1).element.checked).toBe(true);
+        expect(JSON.parse(window.sessionStorage.getItem("planning.selectedWorkcenters.7"))).toEqual({
+            available: [1, 2],
+            selected: [2],
+        });
+    });
+
+    it("selects all workcenters when the stored selection is invalid", () => {
+        window.sessionStorage.setItem("planning.selectedWorkcenters.7", "invalid");
+
+        const w = mountPage();
+        const checkboxes = w.findAll('input[type="checkbox"]');
+
+        expect(checkboxes.at(0).element.checked).toBe(true);
+        expect(checkboxes.at(1).element.checked).toBe(true);
+        expect(JSON.parse(window.sessionStorage.getItem("planning.selectedWorkcenters.7"))).toEqual({
+            available: [1, 2],
+            selected: [1, 2],
+        });
+    });
+
+    it("does not restore another user's workcenter selection", () => {
+        window.sessionStorage.setItem("planning.selectedWorkcenters.8", JSON.stringify({
+            available: [1, 2],
+            selected: [],
+        }));
+
+        const w = mountPage();
+        const checkboxes = w.findAll('input[type="checkbox"]');
+
+        expect(checkboxes.at(0).element.checked).toBe(true);
+        expect(checkboxes.at(1).element.checked).toBe(true);
+        expect(JSON.parse(window.sessionStorage.getItem("planning.selectedWorkcenters.7"))).toEqual({
+            available: [1, 2],
+            selected: [1, 2],
+        });
+    });
+
+    it("stores shift selection changes in the user session", async () => {
+        const w = mountPage();
+        const lateCheckbox = w.findAll('input[type="checkbox"]').at(3);
+
+        await lateCheckbox.setValue(false);
+
+        expect(dayButton(w, 12).classes().join(" ")).toContain("bg-(--color-badge-muted-bg)");
+        expect(JSON.parse(window.sessionStorage.getItem("planning.selectedShifts.7"))).toEqual({
+            available: [9, 10],
+            selected: [9],
+        });
+    });
+
+    it("restores selected shifts from the user session", () => {
+        window.sessionStorage.setItem("planning.selectedShifts.7", JSON.stringify({
+            available: [9, 10],
+            selected: [10],
+        }));
+
+        const checkboxes = mountPage().findAll('input[type="checkbox"]');
+
+        expect(checkboxes.at(2).element.checked).toBe(false);
+        expect(checkboxes.at(3).element.checked).toBe(true);
+    });
+
+    it("restores an empty shift selection", () => {
+        window.sessionStorage.setItem("planning.selectedShifts.7", JSON.stringify({
+            available: [9, 10],
+            selected: [],
+        }));
+
+        const checkboxes = mountPage().findAll('input[type="checkbox"]');
+
+        expect(checkboxes.at(2).element.checked).toBe(false);
+        expect(checkboxes.at(3).element.checked).toBe(false);
+    });
+
+    it("selects new shifts and removes stale shifts from the session", () => {
+        window.sessionStorage.setItem("planning.selectedShifts.7", JSON.stringify({
+            available: [9, 99],
+            selected: [99],
+        }));
+
+        const checkboxes = mountPage().findAll('input[type="checkbox"]');
+
+        expect(checkboxes.at(2).element.checked).toBe(false);
+        expect(checkboxes.at(3).element.checked).toBe(true);
+        expect(JSON.parse(window.sessionStorage.getItem("planning.selectedShifts.7"))).toEqual({
+            available: [9, 10],
+            selected: [10],
+        });
+    });
+
+    it("selects all shifts when the stored selection is invalid", () => {
+        window.sessionStorage.setItem("planning.selectedShifts.7", "invalid");
+
+        const checkboxes = mountPage().findAll('input[type="checkbox"]');
+
+        expect(checkboxes.at(2).element.checked).toBe(true);
+        expect(checkboxes.at(3).element.checked).toBe(true);
+        expect(JSON.parse(window.sessionStorage.getItem("planning.selectedShifts.7"))).toEqual({
+            available: [9, 10],
+            selected: [9, 10],
+        });
+    });
+
+    it("does not restore another user's shift selection", () => {
+        window.sessionStorage.setItem("planning.selectedShifts.8", JSON.stringify({
+            available: [9, 10],
+            selected: [],
+        }));
+
+        const checkboxes = mountPage().findAll('input[type="checkbox"]');
+
+        expect(checkboxes.at(2).element.checked).toBe(true);
+        expect(checkboxes.at(3).element.checked).toBe(true);
+        expect(JSON.parse(window.sessionStorage.getItem("planning.selectedShifts.7"))).toEqual({
+            available: [9, 10],
+            selected: [9, 10],
+        });
     });
 
     it("navigates to the next month via the calendar, carrying year/month/date", async () => {
@@ -207,6 +374,45 @@ describe("Scheduling", () => {
 
         expect(routerGetCalls).toHaveLength(1);
         expect(routerGetCalls[0][1]).toEqual({ year: 2026, month: 9, date: "2026-09-20" });
+        expect(window.sessionStorage.getItem("planning.selectedWeek.7")).toBe("2026-09-14");
+    });
+
+    it("restores the stored week on a plain planning visit", () => {
+        window.sessionStorage.setItem("planning.selectedWeek.7", "2026-10-12");
+
+        mountPage();
+
+        expect(routerGetCalls).toHaveLength(1);
+        expect(routerGetCalls[0][0]).toBe("/planning");
+        expect(routerGetCalls[0][1]).toEqual({ year: 2026, month: 10, date: "2026-10-12" });
+    });
+
+    it("lets an explicit URL date replace the stored week", () => {
+        window.sessionStorage.setItem("planning.selectedWeek.7", "2026-10-12");
+        pageState.url = "/planning?year=2026&month=9&date=2026-09-23";
+
+        mountPage({ date: "2026-09-23", weekStart: "2026-09-21" });
+
+        expect(routerGetCalls).toHaveLength(0);
+        expect(window.sessionStorage.getItem("planning.selectedWeek.7")).toBe("2026-09-21");
+    });
+
+    it("discards an invalid stored week and keeps the default week", () => {
+        window.sessionStorage.setItem("planning.selectedWeek.7", "not-a-date");
+
+        mountPage();
+
+        expect(routerGetCalls).toHaveLength(0);
+        expect(window.sessionStorage.getItem("planning.selectedWeek.7")).toBe("2026-09-07");
+    });
+
+    it("does not restore another user's selected week", () => {
+        window.sessionStorage.setItem("planning.selectedWeek.8", "2026-10-12");
+
+        mountPage();
+
+        expect(routerGetCalls).toHaveLength(0);
+        expect(window.sessionStorage.getItem("planning.selectedWeek.7")).toBe("2026-09-07");
     });
 
     it("does not navigate on initial mount", () => {

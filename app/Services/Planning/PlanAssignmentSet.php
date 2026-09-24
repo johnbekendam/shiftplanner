@@ -3,6 +3,7 @@
 namespace App\Services\Planning;
 
 use App\Models\Shift;
+use Carbon\Carbon;
 
 /**
  * Mutable working state for one planner run: every assignment currently
@@ -140,6 +141,21 @@ final class PlanAssignmentSet
         $hours = 0.0;
         foreach ($this->forEmployee($employeeId) as $a) {
             $hours += $this->shiftCapHours($a['shift_id']);
+        }
+
+        return $hours;
+    }
+
+    public function totalCapHoursForWeek(int $employeeId, string $date): float
+    {
+        $weekStart = Carbon::parse($date)->startOfWeek(Carbon::MONDAY)->toDateString();
+        $weekEnd = Carbon::parse($date)->endOfWeek(Carbon::SUNDAY)->toDateString();
+        $hours = 0.0;
+
+        foreach ($this->forEmployee($employeeId) as $assignment) {
+            if ($assignment['date'] >= $weekStart && $assignment['date'] <= $weekEnd) {
+                $hours += $this->shiftCapHours($assignment['shift_id']);
+            }
         }
 
         return $hours;

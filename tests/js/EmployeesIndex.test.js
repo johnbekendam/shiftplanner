@@ -13,6 +13,9 @@ const en = {
     "employees.column.confirmed_help": "Only confirmed employees can be planned.\nManagers should set the employee to confirmed in this column.",
     "employees.confirmed.yes": "Confirmed",
     "employees.confirmed.no": "Unconfirmed",
+    "employees.status.active": "Active",
+    "employees.status.archived": "Archived",
+    "employees.status.all": "All",
     "employees.no_business_line": "—",
     "employees.no_email": "No email",
     "employees.business_lines.label": "Business lines",
@@ -46,6 +49,8 @@ vi.mock("@inertiajs/vue3", () => ({
 }));
 
 import Index from "@/pages/Employees/Index.vue";
+import Card from "@/components/ui/Card.vue";
+import Tabs from "@/components/ui/Tabs.vue";
 
 const employees = {
     data: [
@@ -56,6 +61,7 @@ const employees = {
             business_line: "PMP",
             weekly_hours: 24,
             confirmed: true,
+            archived: false,
             shift_coverage: [
                 { shift_id: 1, name: "Morning", coverage_percentage: 100 },
                 { shift_id: 2, name: "Evening", coverage_percentage: 60 },
@@ -68,6 +74,7 @@ const employees = {
             business_line: null,
             weekly_hours: 40,
             confirmed: false,
+            archived: false,
             shift_coverage: [
                 { shift_id: 1, name: "Morning", coverage_percentage: 20 },
                 { shift_id: 2, name: "Evening", coverage_percentage: 100 },
@@ -102,6 +109,7 @@ const mountIndex = (props = {}) =>
             direction: "asc",
             businessLines: [],
             selectedBusinessLines: ["none"],
+            status: "active",
             ...props,
         },
         global: { stubs: { AppLayout: { template: "<div><slot /></div>" } } },
@@ -132,6 +140,37 @@ afterEach(() => {
 });
 
 describe("Employees/Index", () => {
+    it("puts the status tabs in the card header without a visible title", () => {
+        const w = mountIndex();
+        const card = w.findComponent(Card);
+        const tabs = card.findComponent(Tabs);
+
+        expect(w.text()).not.toContain("Employees");
+        expect(card.element.firstElementChild.contains(tabs.element)).toBe(true);
+    });
+
+    it("changes the employee status filter", async () => {
+        const w = mountIndex();
+
+        await w.findAll("button").find((button) => button.text() === "Archived").trigger("click");
+
+        expect(router.get).toHaveBeenCalledWith(
+            "/employees",
+            { status: "archived" },
+            expect.objectContaining({ preserveState: true, replace: true }),
+        );
+    });
+
+    it("marks archived rows and disables active-only actions", () => {
+        const archived = { ...employees.data[0], archived: true };
+        const w = mountIndex({ employees: { ...employees, data: [archived] }, status: "archived" });
+        const row = w.get("tbody tr");
+
+        expect(row.text()).toContain("Archived");
+        expect(row.findAll('input[type="checkbox"]').every((input) => input.attributes("disabled") !== undefined)).toBe(true);
+        expect(row.get("td:last-child button").attributes("disabled")).toBeDefined();
+    });
+
     it("shows name, business line and weekly-hours columns", () => {
         const w = mountIndex();
         const headers = w.findAll("thead th").map((th) => th.text());
