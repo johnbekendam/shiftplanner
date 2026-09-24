@@ -97,23 +97,21 @@ const blocks = computed(() => {
 
         <div v-else data-testid="dashboard-card-grid" class="grid w-full gap-6">
             <div class="flex flex-wrap gap-x-10 gap-y-3" role="group" :aria-label="__('dashboard.lines.label')">
-                <CheckboxInput
-                    v-for="option in lineOptions"
-                    :key="option.key"
-                    data-testid="dashboard-line-toggle"
-                    :model-value="isVisible(option.key)"
-                    @update:model-value="toggleLine(option.key)"
-                >
-                    <span class="inline-flex items-center gap-1.5">
-                        <span
-                            data-testid="dashboard-line-toggle-marker"
-                            class="h-1 w-4 shrink-0 rounded-full"
-                            :class="option.markerClass"
-                            aria-hidden="true"
-                        ></span>
+                <div v-for="option in lineOptions" :key="option.key" class="inline-flex flex-col gap-1">
+                    <CheckboxInput
+                        data-testid="dashboard-line-toggle"
+                        :model-value="isVisible(option.key)"
+                        @update:model-value="toggleLine(option.key)"
+                    >
                         {{ __(option.label) }}
-                    </span>
-                </CheckboxInput>
+                    </CheckboxInput>
+                    <span
+                        data-testid="dashboard-line-toggle-marker"
+                        class="h-1 w-full rounded-full"
+                        :class="option.markerClass"
+                        aria-hidden="true"
+                    ></span>
+                </div>
             </div>
 
             <p

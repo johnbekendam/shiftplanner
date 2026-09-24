@@ -24,9 +24,9 @@ The single-choice selector becomes a legend of four checkboxes, in this order:
 
 - Each checkbox switches its own line on or off. Any combination is
   valid. With all lines off, the chart shows the target line only.
-- Each checkbox is a `CheckboxInput` followed by the line-color marker and
-  the label, so the row is the chart legend. The row uses small text with
-  a clear gap between items.
+- Each checkbox is a `CheckboxInput` with its label. A line in the
+  line color underlines the checkbox and label, so the row is the chart
+  legend. The row uses small text with a clear gap between items.
 - The default set is Total + Planned.
 - The query string holds the set, for example `?lines=confirmed,planned`.
   The default set gives no query string. With no `lines` parameter, the
