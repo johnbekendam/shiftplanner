@@ -1,4 +1,4 @@
-Status: in progress - 4/8
+Status: in progress - 5/8
 
 - [x] 1. Add the audit event schema, model, recorder, and core employee create,
   update, and confirmation events. Test changed values, actor snapshots, and
@@ -14,7 +14,7 @@ Status: in progress - 4/8
   operational selectors. Block personal-link writes, signup, and account
   linking until an administrator restores the employee. Test each boundary.
   Commit as `feat: suspend archived employees`.
-- [ ] 5. Audit manager and administrator changes to holidays, recurring
+- [x] 5. Audit manager and administrator changes to holidays, recurring
   availability, competences, workcenters, and question answers. Test create,
   update, and removal values. Commit as `feat: audit employee configuration`.
 - [ ] 6. Audit public signup, personal-link changes, account linking, and
