@@ -25,6 +25,6 @@ Status: complete - 8/8
   Test authorization and payload formatting. Commit as
   `feat: show employee audit timeline`.
 - [x] 8. Add the administrator audit page with employee and actor search,
-  action, source, and date filters. Keep audit events outside application
+  action and source filters. Keep audit events outside application
   backup exports and restores. Test filters, authorization, retention, and
   backup exclusion. Commit as `feat: add employee audit log`.

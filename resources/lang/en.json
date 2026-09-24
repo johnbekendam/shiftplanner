@@ -292,8 +292,6 @@
     "audit.search_actor": "Search actors",
     "audit.filter.action": "Action",
     "audit.filter.source": "Source",
-    "audit.filter.from": "From",
-    "audit.filter.to": "To",
     "audit.filter.all_actions": "All actions",
     "audit.filter.all_sources": "All sources",
     "audit.column.when": "When",

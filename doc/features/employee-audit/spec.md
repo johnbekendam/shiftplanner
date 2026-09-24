@@ -70,8 +70,7 @@ Add an audit timeline to the employee page. Show the newest events first and
 let the user expand an event to inspect its changed values.
 
 Add a global audit page for administrators. The page shows the newest events
-first. It supports employee or actor search and filters for action, source,
-and date range.
+first. It supports employee or actor search and filters for action and source.
 
 ## Key Decisions
 

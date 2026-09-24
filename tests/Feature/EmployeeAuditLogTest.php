@@ -55,14 +55,12 @@ class EmployeeAuditLogTest extends TestCase
                 ->where('filters.actor', '')
                 ->where('filters.action', null)
                 ->where('filters.source', null)
-                ->where('filters.from', null)
-                ->where('filters.to', null)
                 ->where('actions', ['created', 'updated'])
                 ->where('sources', ['user'])
             );
     }
 
-    public function test_audit_log_filters_employee_actor_action_source_and_date(): void
+    public function test_audit_log_filters_employee_actor_action_and_source(): void
     {
         $admin = User::factory()->admin()->create();
         $ada = Employee::factory()->create(['first_name' => 'Ada', 'last_name' => 'Lovelace', 'email' => 'ada@example.com']);
@@ -87,7 +85,6 @@ class EmployeeAuditLogTest extends TestCase
             '/employee-audit?actor=alice%40example.com' => $adaEvent->id,
             '/employee-audit?action=holiday_created' => $graceEvent->id,
             '/employee-audit?source=employee_personal_link' => $graceEvent->id,
-            '/employee-audit?from=2026-09-22&to=2026-09-23' => $graceEvent->id,
         ] as $url => $expectedId) {
             $this->actingAs($admin)->get($url)
                 ->assertInertia(fn (Assert $page) => $page
@@ -96,14 +93,12 @@ class EmployeeAuditLogTest extends TestCase
                 );
         }
 
-        $this->actingAs($admin)->get('/employee-audit?employee=ada&actor=alice&action=updated&source=user&from=2026-09-21&to=2026-09-21')
+        $this->actingAs($admin)->get('/employee-audit?employee=ada&actor=alice&action=updated&source=user')
             ->assertInertia(fn (Assert $page) => $page
                 ->where('filters.employee', 'ada')
                 ->where('filters.actor', 'alice')
                 ->where('filters.action', 'updated')
                 ->where('filters.source', 'user')
-                ->where('filters.from', '2026-09-21')
-                ->where('filters.to', '2026-09-21')
             );
     }
 

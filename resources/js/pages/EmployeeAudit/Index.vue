@@ -4,7 +4,7 @@ import { Head, router } from '@inertiajs/vue3'
 import AppLayout from '@/layouts/AppLayout.vue'
 import Card from '@/components/ui/Card.vue'
 import Icon from '@/components/ui/Icon.vue'
-import { DateInput, SearchInput, SelectInput } from '@/components/ui/Input'
+import { SearchInput, SelectInput } from '@/components/ui/Input'
 import { useI18n } from '@/composables/useI18n'
 
 const __ = useI18n()
@@ -20,8 +20,6 @@ const employee = ref(props.filters.employee ?? '')
 const actor = ref(props.filters.actor ?? '')
 const action = ref(props.filters.action ?? null)
 const source = ref(props.filters.source ?? null)
-const from = ref(props.filters.from ?? '')
-const to = ref(props.filters.to ?? '')
 const expandedIds = ref([])
 
 const actionOptions = computed(() => [
@@ -41,8 +39,6 @@ function query() {
     if (actorSearch) result.actor = actorSearch
     if (action.value) result.action = action.value
     if (source.value) result.source = source.value
-    if (from.value) result.from = from.value
-    if (to.value) result.to = to.value
     return result
 }
 
@@ -59,7 +55,7 @@ watch([employee, actor], () => {
     clearTimeout(searchTimer)
     searchTimer = setTimeout(reload, 250)
 })
-watch([action, source, from, to], reload)
+watch([action, source], reload)
 onBeforeUnmount(() => clearTimeout(searchTimer))
 
 function toggle(id) {
@@ -157,14 +153,6 @@ function goToPage(url) {
                     <SearchInput v-model="actor" :placeholder="__('audit.search_actor')" />
                     <SelectInput v-model="action" :options="actionOptions" :placeholder="__('audit.filter.action')" />
                     <SelectInput v-model="source" :options="sourceOptions" :placeholder="__('audit.filter.source')" />
-                    <label class="space-y-1 text-xs text-(--color-text-secondary)">
-                        <span>{{ __('audit.filter.from') }}</span>
-                        <DateInput v-model="from" format="ymd" />
-                    </label>
-                    <label class="space-y-1 text-xs text-(--color-text-secondary)">
-                        <span>{{ __('audit.filter.to') }}</span>
-                        <DateInput v-model="to" format="ymd" />
-                    </label>
                 </div>
 
                 <div class="overflow-x-auto">

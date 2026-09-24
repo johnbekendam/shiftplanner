@@ -7,8 +7,6 @@ const en = {
     "audit.search_actor": "Search actors",
     "audit.filter.action": "Action",
     "audit.filter.source": "Source",
-    "audit.filter.from": "From",
-    "audit.filter.to": "To",
     "audit.filter.all_actions": "All actions",
     "audit.filter.all_sources": "All sources",
     "audit.column.when": "When",
@@ -38,7 +36,7 @@ vi.mock("@inertiajs/vue3", () => ({
 }));
 
 import Index from "@/pages/EmployeeAudit/Index.vue";
-import { DateInput, SearchInput, SelectInput } from "@/components/ui/Input";
+import { SearchInput, SelectInput } from "@/components/ui/Input";
 
 const event = {
     id: 1,
@@ -67,7 +65,7 @@ function mountPage(overrides = {}) {
                     { url: "/employee-audit?page=2", label: "Next", active: false },
                 ],
             },
-            filters: { employee: "", actor: "", action: null, source: null, from: null, to: null },
+            filters: { employee: "", actor: "", action: null, source: null },
             actions: ["updated"],
             sources: ["user"],
             ...overrides,
@@ -108,10 +106,6 @@ describe("EmployeeAudit/Index", () => {
         wrapper.findAllComponents(SelectInput)[0].vm.$emit("update:modelValue", "updated");
         await wrapper.vm.$nextTick();
         expect(get).toHaveBeenLastCalledWith("/employee-audit", { employee: "Ada", action: "updated" }, expect.any(Object));
-
-        wrapper.findAllComponents(DateInput)[0].vm.$emit("update:modelValue", "2026-09-01");
-        await wrapper.vm.$nextTick();
-        expect(get).toHaveBeenLastCalledWith("/employee-audit", { employee: "Ada", action: "updated", from: "2026-09-01" }, expect.any(Object));
     });
 
     it("uses server pagination links", async () => {

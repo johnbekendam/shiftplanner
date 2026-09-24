@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\EmployeeAuditEvent;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Validator;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -18,8 +17,6 @@ class EmployeeAuditController extends Controller
         $sources = EmployeeAuditEvent::query()->distinct()->orderBy('source')->pluck('source')->all();
         $action = in_array($request->input('action'), $actions, true) ? $request->input('action') : null;
         $source = in_array($request->input('source'), $sources, true) ? $request->input('source') : null;
-        $from = $this->dateFilter($request->input('from'));
-        $to = $this->dateFilter($request->input('to'));
 
         $events = EmployeeAuditEvent::query()
             ->with('employee')
@@ -36,8 +33,6 @@ class EmployeeAuditController extends Controller
                 ->orWhere('actor_email', 'like', "%{$actor}%")))
             ->when($action, fn ($query) => $query->where('action', $action))
             ->when($source, fn ($query) => $query->where('source', $source))
-            ->when($from, fn ($query) => $query->whereDate('created_at', '>=', $from))
-            ->when($to, fn ($query) => $query->whereDate('created_at', '<=', $to))
             ->orderByDesc('created_at')
             ->orderByDesc('id')
             ->paginate(25)
@@ -64,21 +59,10 @@ class EmployeeAuditController extends Controller
 
         return Inertia::render('EmployeeAudit/Index', [
             'events' => $events,
-            'filters' => compact('employee', 'actor', 'action', 'source', 'from', 'to'),
+            'filters' => compact('employee', 'actor', 'action', 'source'),
             'actions' => $actions,
             'sources' => $sources,
         ]);
-    }
-
-    private function dateFilter(mixed $value): ?string
-    {
-        if (! is_string($value)) {
-            return null;
-        }
-
-        return Validator::make(['date' => $value], ['date' => ['date_format:Y-m-d']])->passes()
-            ? $value
-            : null;
     }
 
     private function employeeName(EmployeeAuditEvent $event): string
