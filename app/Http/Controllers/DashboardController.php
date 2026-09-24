@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\BusinessLine;
 use App\Models\Employee;
 use App\Models\PlanningSettings;
+use App\Models\ShiftAssignment;
 use Carbon\CarbonInterface;
 use Carbon\CarbonPeriod;
 use Illuminate\Support\Collection;
@@ -61,6 +62,8 @@ class DashboardController extends Controller
             }
         });
 
+        $planned = $this->plannedFte($days, $businessLines, $settings->fte_hours);
+
         $overall = $this->selectedSeries(
             $employeeStatusFilter,
             $series['confirmed']['overall'],
@@ -79,6 +82,7 @@ class DashboardController extends Controller
                 'available' => $overall,
                 'available_confirmed' => $series['confirmed']['overall'],
                 'available_unconfirmed' => $series['unconfirmed']['overall'],
+                'planned' => $planned['overall'],
                 'target' => (float) $businessLines->sum('target_fte'),
                 'available_hours' => $this->availableHours($overall, $dailyFteHours),
                 'available_hours_confirmed' => $this->availableHours($series['confirmed']['overall'], $dailyFteHours),
@@ -86,7 +90,7 @@ class DashboardController extends Controller
                 'required_hours' => (float) $businessLines->sum('target_fte') * $days->count() * $dailyFteHours,
             ],
             'unconfirmedEmployeeCount' => $unconfirmedEmployeeCount,
-            'lines' => $businessLines->map(function (BusinessLine $line) use ($days, $dailyFteHours, $employeeStatusFilter, $series) {
+            'lines' => $businessLines->map(function (BusinessLine $line) use ($days, $dailyFteHours, $employeeStatusFilter, $series, $planned) {
                 $confirmed = $series['confirmed']['lines'][$line->id];
                 $unconfirmed = $series['unconfirmed']['lines'][$line->id];
                 $available = $this->selectedSeries($employeeStatusFilter, $confirmed, $unconfirmed);
@@ -98,6 +102,7 @@ class DashboardController extends Controller
                     'available' => $available,
                     'available_confirmed' => $confirmed,
                     'available_unconfirmed' => $unconfirmed,
+                    'planned' => $planned['lines'][$line->id],
                     'target' => (float) $line->target_fte,
                     'available_hours' => $this->availableHours($available, $dailyFteHours),
                     'available_hours_confirmed' => $this->availableHours($confirmed, $dailyFteHours),
@@ -133,6 +138,51 @@ class DashboardController extends Controller
     private function availableHours(array $series, float $dailyFteHours): float
     {
         return array_sum($series) * $dailyFteHours;
+    }
+
+    /**
+     * Planned FTE per day: the hours of every assignment (published or draft) in the day's
+     * full Monday–Sunday week, over fte_hours. Business-line series follow the employee.
+     *
+     * @param  Collection<int, CarbonInterface>  $days
+     * @param  Collection<int, BusinessLine>  $businessLines
+     * @return array{overall: list<float>, lines: array<int, list<float>>}
+     */
+    private function plannedFte(Collection $days, Collection $businessLines, int $fteHours): array
+    {
+        $weekKey = fn (CarbonInterface $date) => $date->copy()->startOfWeek(CarbonInterface::MONDAY)->toDateString();
+        $weekHours = ['overall' => [], 'lines' => []];
+
+        if ($days->isNotEmpty()) {
+            ShiftAssignment::query()
+                ->whereBetween('date', [
+                    $days->first()->copy()->startOfWeek(CarbonInterface::MONDAY)->toDateString(),
+                    $days->last()->copy()->endOfWeek(CarbonInterface::SUNDAY)->toDateString(),
+                ])
+                ->with(['employee:id,business_line_id', 'shift:id,start_time,end_time'])
+                ->get()
+                ->each(function (ShiftAssignment $assignment) use ($weekKey, &$weekHours) {
+                    $week = $weekKey($assignment->date);
+                    $hours = $assignment->shift->durationHours();
+                    $weekHours['overall'][$week] = ($weekHours['overall'][$week] ?? 0.0) + $hours;
+
+                    $lineId = $assignment->employee?->business_line_id;
+                    if ($lineId) {
+                        $weekHours['lines'][$lineId][$week] = ($weekHours['lines'][$lineId][$week] ?? 0.0) + $hours;
+                    }
+                });
+        }
+
+        $series = fn (array $hoursByWeek) => $days
+            ->map(fn (CarbonInterface $day) => ($hoursByWeek[$weekKey($day)] ?? 0.0) / $fteHours)
+            ->all();
+
+        return [
+            'overall' => $series($weekHours['overall']),
+            'lines' => $businessLines
+                ->mapWithKeys(fn (BusinessLine $line) => [$line->id => $series($weekHours['lines'][$line->id] ?? [])])
+                ->all(),
+        ];
     }
 
     /**

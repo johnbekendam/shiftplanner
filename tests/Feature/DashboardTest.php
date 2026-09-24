@@ -5,6 +5,8 @@ namespace Tests\Feature;
 use App\Models\BusinessLine;
 use App\Models\Employee;
 use App\Models\PlanningSettings;
+use App\Models\Shift;
+use App\Models\ShiftAssignment;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -275,5 +277,71 @@ class DashboardTest extends TestCase
                 ->where('lines.1.abbreviation', 'VLV')
                 ->where('lines.1.available', [0])
             );
+    }
+
+    private function assign(Employee $employee, string $date, string $start = '08:00', string $end = '16:00'): void
+    {
+        ShiftAssignment::factory()->create([
+            'employee_id' => $employee->id,
+            'shift_id' => Shift::factory()->create(['start_time' => $start, 'end_time' => $end])->id,
+            'date' => $date,
+        ]);
+    }
+
+    public function test_planned_hours_are_a_weekly_fte_step_across_each_weeks_weekdays(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->setPeriod('2026-01-05', '2026-01-16', fteHours: 40); // two full weeks
+        $employee = Employee::factory()->create(['confirmed' => true]);
+        $this->assign($employee, '2026-01-05'); // Monday, 8 h
+        $this->assign($employee, '2026-01-10'); // Saturday, 8 h — weekend shifts count
+        $this->assign($employee, '2026-01-13', '12:00', '16:00'); // 4 h in week two
+
+        $this->get('/dashboard')->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('overall.planned', [0.4, 0.4, 0.4, 0.4, 0.4, 0.1, 0.1, 0.1, 0.1, 0.1])
+            );
+    }
+
+    public function test_planned_hours_count_the_full_iso_week_outside_the_period(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->setPeriod('2026-01-07', '2026-01-09', fteHours: 40); // Wednesday to Friday
+        $employee = Employee::factory()->create(['confirmed' => true]);
+        $this->assign($employee, '2026-01-05'); // Monday of the same week, before the period
+        $this->assign($employee, '2026-01-12'); // next week, outside the chart
+
+        $this->get('/dashboard')->assertOk()
+            ->assertInertia(fn ($page) => $page->where('overall.planned', [0.2, 0.2, 0.2]));
+    }
+
+    public function test_planned_hours_split_by_the_employees_business_line(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->setPeriod('2026-01-05', '2026-01-05', fteHours: 40);
+        $line = BusinessLine::factory()->create();
+        $other = BusinessLine::factory()->create();
+        $this->assign(Employee::factory()->create(['business_line_id' => $line->id, 'confirmed' => true]), '2026-01-05');
+        $this->assign(Employee::factory()->create(['business_line_id' => $line->id, 'confirmed' => false]), '2026-01-06');
+        $this->assign(Employee::factory()->create(['business_line_id' => null, 'confirmed' => true]), '2026-01-07');
+
+        $this->get('/dashboard')->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('overall.planned', [0.6])
+                ->where('lines.0.id', $line->id)
+                ->where('lines.0.planned', [0.4])
+                ->where('lines.1.id', $other->id)
+                ->where('lines.1.planned', [0])
+            );
+    }
+
+    public function test_a_weekend_only_period_has_an_empty_planned_series(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->setPeriod('2026-01-10', '2026-01-11', fteHours: 40);
+        $this->assign(Employee::factory()->create(), '2026-01-10');
+
+        $this->get('/dashboard')->assertOk()
+            ->assertInertia(fn ($page) => $page->where('overall.planned', []));
     }
 }
