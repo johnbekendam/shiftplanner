@@ -96,7 +96,7 @@ const blocks = computed(() => {
         </p>
 
         <div v-else data-testid="dashboard-card-grid" class="grid w-full gap-6">
-            <div class="flex flex-wrap gap-x-8 gap-y-3" role="group" :aria-label="__('dashboard.lines.label')">
+            <div class="flex flex-wrap gap-x-10 gap-y-3" role="group" :aria-label="__('dashboard.lines.label')">
                 <CheckboxInput
                     v-for="option in lineOptions"
                     :key="option.key"
