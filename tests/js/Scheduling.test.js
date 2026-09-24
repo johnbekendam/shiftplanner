@@ -39,6 +39,7 @@ const en = {
 
 const routerGetCalls = vi.hoisted(() => []);
 const routerReloadCalls = vi.hoisted(() => []);
+const pageState = vi.hoisted(() => ({ url: "/planning", user: { id: 7, role: "admin" } }));
 
 const { routerCalls, router } = vi.hoisted(() => {
     const routerCalls = [];
@@ -65,7 +66,10 @@ vi.mock("@inertiajs/vue3", () => ({
         on: () => () => {},
     },
     Head: { name: "Head", render: () => null },
-    usePage: () => ({ props: { translations: en, auth: { settings: { month_format: "my" } } } }),
+    usePage: () => ({
+        url: pageState.url,
+        props: { translations: en, auth: { user: pageState.user, settings: { month_format: "my" } } },
+    }),
 }));
 
 import Scheduling from "@/pages/Scheduling.vue";
@@ -139,6 +143,9 @@ beforeEach(() => {
     routerGetCalls.length = 0;
     routerReloadCalls.length = 0;
     routerCalls.length = 0;
+    pageState.url = "/planning";
+    pageState.user = { id: 7, role: "admin" };
+    window.sessionStorage.clear();
 });
 
 describe("Scheduling", () => {
@@ -207,6 +214,45 @@ describe("Scheduling", () => {
 
         expect(routerGetCalls).toHaveLength(1);
         expect(routerGetCalls[0][1]).toEqual({ year: 2026, month: 9, date: "2026-09-20" });
+        expect(window.sessionStorage.getItem("planning.selectedWeek.7")).toBe("2026-09-14");
+    });
+
+    it("restores the stored week on a plain planning visit", () => {
+        window.sessionStorage.setItem("planning.selectedWeek.7", "2026-10-12");
+
+        mountPage();
+
+        expect(routerGetCalls).toHaveLength(1);
+        expect(routerGetCalls[0][0]).toBe("/planning");
+        expect(routerGetCalls[0][1]).toEqual({ year: 2026, month: 10, date: "2026-10-12" });
+    });
+
+    it("lets an explicit URL date replace the stored week", () => {
+        window.sessionStorage.setItem("planning.selectedWeek.7", "2026-10-12");
+        pageState.url = "/planning?year=2026&month=9&date=2026-09-23";
+
+        mountPage({ date: "2026-09-23", weekStart: "2026-09-21" });
+
+        expect(routerGetCalls).toHaveLength(0);
+        expect(window.sessionStorage.getItem("planning.selectedWeek.7")).toBe("2026-09-21");
+    });
+
+    it("discards an invalid stored week and keeps the default week", () => {
+        window.sessionStorage.setItem("planning.selectedWeek.7", "not-a-date");
+
+        mountPage();
+
+        expect(routerGetCalls).toHaveLength(0);
+        expect(window.sessionStorage.getItem("planning.selectedWeek.7")).toBe("2026-09-07");
+    });
+
+    it("does not restore another user's selected week", () => {
+        window.sessionStorage.setItem("planning.selectedWeek.8", "2026-10-12");
+
+        mountPage();
+
+        expect(routerGetCalls).toHaveLength(0);
+        expect(window.sessionStorage.getItem("planning.selectedWeek.7")).toBe("2026-09-07");
     });
 
     it("does not navigate on initial mount", () => {

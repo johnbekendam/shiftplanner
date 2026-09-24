@@ -1,6 +1,6 @@
 <script setup>
-import { ref, computed, watch, onBeforeUnmount } from 'vue'
-import { Head, router } from '@inertiajs/vue3'
+import { ref, computed, watch, onBeforeUnmount, onMounted } from 'vue'
+import { Head, router, usePage } from '@inertiajs/vue3'
 import AppLayout from '@/layouts/AppLayout.vue'
 import Card from '@/components/ui/Card.vue'
 import Calendar from '@/components/ui/Calendar.vue'
@@ -14,6 +14,7 @@ import { useI18n } from '@/composables/useI18n'
 import { postAsync } from '@/utils/inertiaAsync'
 
 const __ = useI18n()
+const page = usePage()
 
 const props = defineProps({
     workcenters: { type: Array, default: () => [] }, // { id, name }, active only
@@ -235,9 +236,53 @@ function addDays(dateString, offset) {
     return dateStr(date.getFullYear(), date.getMonth() + 1, date.getDate())
 }
 
+function selectedWeekSessionKey() {
+    const userId = page.props.auth?.user?.id
+    return userId ? `planning.selectedWeek.${userId}` : null
+}
+
+function isValidIsoDate(value) {
+    if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false
+    const [year, month, day] = value.split('-').map(Number)
+    const date = new Date(year, month - 1, day)
+    return date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day
+}
+
+function storeSelectedWeek(date) {
+    const key = selectedWeekSessionKey()
+    if (key) window.sessionStorage.setItem(key, mondayOf(date))
+}
+
+onMounted(() => {
+    const key = selectedWeekSessionKey()
+    if (!key) return
+
+    const hasExplicitDate = new URL(page.url, window.location.origin).searchParams.has('date')
+    if (hasExplicitDate) {
+        window.sessionStorage.setItem(key, props.weekStart)
+        return
+    }
+
+    const storedWeek = window.sessionStorage.getItem(key)
+    if (!isValidIsoDate(storedWeek)) {
+        window.sessionStorage.setItem(key, props.weekStart)
+        return
+    }
+
+    if (storedWeek === props.weekStart) return
+
+    const [year, month] = storedWeek.split('-').map(Number)
+    router.get('/planning', { year, month, date: storedWeek }, {
+        preserveState: true,
+        preserveScroll: true,
+        replace: true,
+    })
+})
+
 function onCalendarChange({ year, month, day }) {
     const date = dateStr(year, month, day)
     if (year !== props.year || month !== props.month || date !== props.date) {
+        storeSelectedWeek(date)
         router.get('/planning', { year, month, date }, { preserveState: true, preserveScroll: true })
     }
 }
