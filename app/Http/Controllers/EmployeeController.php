@@ -21,6 +21,7 @@ use App\Services\PersonalLinkMessage;
 use App\Services\PlannedShifts;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -246,17 +247,71 @@ class EmployeeController extends Controller
             'ids.*' => ['integer', 'distinct', 'exists:employees,id'],
         ]);
 
-        $count = Employee::query()->whereKey($data['ids'])->delete();
+        $employees = Employee::query()
+            ->whereKey($data['ids'])
+            ->whereNull('archived_at')
+            ->get();
 
-        return redirect()->back()->with('success', __('employees.flash.deleted', ['count' => $count]));
+        DB::transaction(function () use ($employees, $request): void {
+            foreach ($employees as $employee) {
+                $this->archive($employee, $request);
+            }
+        });
+
+        return redirect()->back()->with('success', __('employees.flash.deleted', ['count' => $employees->count()]));
     }
 
     /** Single-employee delete from the edit page. Same cascade as bulkDelete. */
-    public function destroy(Employee $employee)
+    public function destroy(Request $request, Employee $employee)
     {
-        $employee->delete();
+        DB::transaction(fn () => $this->archive($employee, $request));
 
         return redirect('/employees')->with('success', __('employees.flash.deleted_one'));
+    }
+
+    public function restore(Request $request, Employee $employee)
+    {
+        if ($employee->archived_at === null) {
+            return redirect("/employees/{$employee->id}/edit");
+        }
+
+        DB::transaction(function () use ($employee, $request): void {
+            $before = ['archived_at' => $employee->archived_at->toIso8601String()];
+            $employee->update(['archived_at' => null]);
+
+            $this->audit->record(
+                $employee,
+                'restored',
+                'employee',
+                $employee->id,
+                $before,
+                ['archived_at' => null],
+                'user',
+                $request->user(),
+            );
+        });
+
+        return redirect("/employees/{$employee->id}/edit")->with('success', __('employees.flash.updated'));
+    }
+
+    private function archive(Employee $employee, Request $request): void
+    {
+        if ($employee->archived_at !== null) {
+            return;
+        }
+
+        $employee->update(['archived_at' => now()]);
+
+        $this->audit->record(
+            $employee,
+            'archived',
+            'employee',
+            $employee->id,
+            ['archived_at' => null],
+            ['archived_at' => $employee->archived_at->toIso8601String()],
+            'user',
+            $request->user(),
+        );
     }
 
     private function shiftCoverage(Employee $employee, Collection $shifts): array

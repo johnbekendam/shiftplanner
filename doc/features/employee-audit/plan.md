@@ -1,9 +1,9 @@
-Status: in progress - 1/8
+Status: in progress - 2/8
 
 - [x] 1. Add the audit event schema, model, recorder, and core employee create,
   update, and confirmation events. Test changed values, actor snapshots, and
   immutable event records. Commit as `feat: audit core employee changes`.
-- [ ] 2. Add employee archival and administrator restoration. Replace single
+- [x] 2. Add employee archival and administrator restoration. Replace single
   and bulk deletion with archival, preserve related data, and test role access
   and one event per employee. Commit as `feat: archive and restore employees`.
 - [ ] 3. Add Active, Archived, and All employee list filters. Make archived

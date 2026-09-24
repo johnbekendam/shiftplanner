@@ -73,6 +73,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/employee-backup', [EmployeeBackupController::class, 'index'])->name('employee-backup.index');
         Route::get('/employee-backup/export', [EmployeeBackupController::class, 'export'])->name('employee-backup.export');
         Route::post('/employee-backup/import', [EmployeeBackupController::class, 'import'])->name('employee-backup.import');
+        Route::post('/employees/{employee}/restore', [EmployeeController::class, 'restore'])->name('employees.restore');
 
         Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
         Route::post('/settings/competences', [CompetenceController::class, 'store'])->name('settings.competences.store');
