@@ -2,7 +2,7 @@
 
 ## Problem
 
-The planning page resets its week and workcenter selection after a planner visits another page. The planner must restore the same view when they return.
+The planning page resets its week, workcenter, and shift selections after a planner visits another page. The planner must restore the same view when they return.
 
 ## Solution
 
@@ -14,6 +14,8 @@ Discard a stored value if it is not a valid ISO date. Keep the current default-w
 
 Store the selected workcenter IDs in a separate per-user session value. Restore an empty selection and all other valid selections. Remove IDs for deleted workcenters. Select new workcenters by default when they do not exist in the stored selection.
 
+Store the selected shift IDs in a separate per-user session value. Use the same restore and reconciliation rules as the workcenter selection.
+
 ## Key Decisions
 
 - **Use browser-tab session storage.** The selection survives navigation and refresh. It resets when the browser-tab session ends.
@@ -22,6 +24,8 @@ Store the selected workcenter IDs in a separate per-user session value. Restore 
 - **Store the Monday.** The feature persists the selected week, not the exact clicked day.
 - **Preserve workcenter choices.** The feature stores selected and deselected workcenters, including an empty selection.
 - **Select new workcenters.** A new workcenter starts selected. A deleted workcenter is removed from the stored selection.
+- **Preserve shift choices.** The feature stores selected and deselected shifts, including an empty selection.
+- **Select new shifts.** A new shift starts selected. A deleted shift is removed from the stored selection.
 - **Keep persistence in the frontend.** The feature needs no server session or database changes.
 
 ## Non-goals

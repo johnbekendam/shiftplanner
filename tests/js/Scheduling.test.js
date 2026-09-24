@@ -276,6 +276,88 @@ describe("Scheduling", () => {
         });
     });
 
+    it("stores shift selection changes in the user session", async () => {
+        const w = mountPage();
+        const lateCheckbox = w.findAll('input[type="checkbox"]').at(3);
+
+        await lateCheckbox.setValue(false);
+
+        expect(dayButton(w, 12).classes().join(" ")).toContain("bg-(--color-badge-muted-bg)");
+        expect(JSON.parse(window.sessionStorage.getItem("planning.selectedShifts.7"))).toEqual({
+            available: [9, 10],
+            selected: [9],
+        });
+    });
+
+    it("restores selected shifts from the user session", () => {
+        window.sessionStorage.setItem("planning.selectedShifts.7", JSON.stringify({
+            available: [9, 10],
+            selected: [10],
+        }));
+
+        const checkboxes = mountPage().findAll('input[type="checkbox"]');
+
+        expect(checkboxes.at(2).element.checked).toBe(false);
+        expect(checkboxes.at(3).element.checked).toBe(true);
+    });
+
+    it("restores an empty shift selection", () => {
+        window.sessionStorage.setItem("planning.selectedShifts.7", JSON.stringify({
+            available: [9, 10],
+            selected: [],
+        }));
+
+        const checkboxes = mountPage().findAll('input[type="checkbox"]');
+
+        expect(checkboxes.at(2).element.checked).toBe(false);
+        expect(checkboxes.at(3).element.checked).toBe(false);
+    });
+
+    it("selects new shifts and removes stale shifts from the session", () => {
+        window.sessionStorage.setItem("planning.selectedShifts.7", JSON.stringify({
+            available: [9, 99],
+            selected: [99],
+        }));
+
+        const checkboxes = mountPage().findAll('input[type="checkbox"]');
+
+        expect(checkboxes.at(2).element.checked).toBe(false);
+        expect(checkboxes.at(3).element.checked).toBe(true);
+        expect(JSON.parse(window.sessionStorage.getItem("planning.selectedShifts.7"))).toEqual({
+            available: [9, 10],
+            selected: [10],
+        });
+    });
+
+    it("selects all shifts when the stored selection is invalid", () => {
+        window.sessionStorage.setItem("planning.selectedShifts.7", "invalid");
+
+        const checkboxes = mountPage().findAll('input[type="checkbox"]');
+
+        expect(checkboxes.at(2).element.checked).toBe(true);
+        expect(checkboxes.at(3).element.checked).toBe(true);
+        expect(JSON.parse(window.sessionStorage.getItem("planning.selectedShifts.7"))).toEqual({
+            available: [9, 10],
+            selected: [9, 10],
+        });
+    });
+
+    it("does not restore another user's shift selection", () => {
+        window.sessionStorage.setItem("planning.selectedShifts.8", JSON.stringify({
+            available: [9, 10],
+            selected: [],
+        }));
+
+        const checkboxes = mountPage().findAll('input[type="checkbox"]');
+
+        expect(checkboxes.at(2).element.checked).toBe(true);
+        expect(checkboxes.at(3).element.checked).toBe(true);
+        expect(JSON.parse(window.sessionStorage.getItem("planning.selectedShifts.7"))).toEqual({
+            available: [9, 10],
+            selected: [9, 10],
+        });
+    });
+
     it("navigates to the next month via the calendar, carrying year/month/date", async () => {
         const w = mountPage();
         await w.get('[aria-label="Next month"]').trigger("click");
