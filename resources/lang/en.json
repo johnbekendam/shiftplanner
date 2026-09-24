@@ -496,6 +496,7 @@
     "scheduling.remove": "Remove",
     "scheduling.add": "Add",
     "scheduling.no_eligible_employees": "No one eligible.",
+    "scheduling.show_all_employees": "Show all",
     "scheduling.open_spot": "Add employee",
     "scheduling.unfulfilled_reason.no_eligible_employee": "The last generation run found no eligible employee for this spot.",
     "scheduling.unfulfilled_reason.hard_cap_reached": "The last generation run found eligible employees, but all were blocked by a hard cap.",

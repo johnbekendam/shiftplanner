@@ -6,7 +6,7 @@ The manual planning picker shows only employees who can take the selected shift.
 
 ## Solution
 
-Show every confirmed employee in the manual planning picker. Keep eligible employees selectable. Show blocked employees as disabled rows with one primary reason.
+Show eligible employees in the manual planning picker by default. Add a Show all checkbox that shows every confirmed employee when selected. Keep eligible employees selectable. Show blocked employees as disabled rows with one primary reason.
 
 The picker remains searchable. It loads all confirmed employees when the planner opens it.
 
@@ -14,7 +14,8 @@ Use the same eligibility result for the picker and assignment creation. This kee
 
 ## Key decisions
 
-- Include all confirmed employees. Unconfirmed employees do not appear because the picker is an operational planning tool.
+- Load all confirmed employees. Unconfirmed employees do not appear because the picker is an operational planning tool.
+- Hide blocked employees by default. A Show all checkbox displays them when a planner needs eligibility details.
 - Use one list. This lets a planner search for any confirmed employee without changing filters.
 - Show one primary blocking reason. Use the assignment validation order to select that reason.
 - Disable blocked rows. A planner cannot submit an assignment that the server will reject.

@@ -2,7 +2,7 @@
 import { ref, computed, nextTick, onBeforeUnmount } from 'vue'
 import axios from 'axios'
 import Icon from '@/components/ui/Icon.vue'
-import { SearchInput } from '@/components/ui/Input'
+import { CheckboxInput, SearchInput } from '@/components/ui/Input'
 import { useI18n } from '@/composables/useI18n'
 import { putAsync, postAsync, deleteAsync } from '@/utils/inertiaAsync'
 
@@ -184,6 +184,7 @@ const openAssignDate = ref(null)
 const openTriggerEl = ref(null)
 const eligible = ref([])
 const searchTerm = ref('')
+const showAll = ref(false)
 const panelRef = ref(null)
 const panelStyle = ref({})
 
@@ -195,6 +196,7 @@ async function openAssign(date, event) {
     openAssignDate.value = date
     openTriggerEl.value = event.currentTarget
     searchTerm.value = ''
+    showAll.value = false
     panelStyle.value = positionPanel(openTriggerEl.value, null)
     await nextTick()
     computePanelPosition()
@@ -214,8 +216,10 @@ function closeAssign() {
 
 const filteredEligible = computed(() => {
     const q = searchTerm.value.trim().toLowerCase()
-    if (!q) return eligible.value
-    return eligible.value.filter((e) => e.name.toLowerCase().includes(q))
+    return eligible.value.filter((employee) =>
+        (showAll.value || !employee.block_reason)
+        && (!q || employee.name.toLowerCase().includes(q)),
+    )
 })
 
 function blockReasonLabel(employee) {
@@ -401,7 +405,14 @@ onBeforeUnmount(() => {
             :style="panelStyle"
             class="fixed z-50 w-max min-w-48 max-w-[calc(100vw-2rem)] rounded-md border border-(--color-dropdown-panel-border) bg-(--color-dropdown-panel-bg) p-2 shadow-lg"
         >
-            <SearchInput v-model="searchTerm" class="w-full" />
+            <div class="flex items-center gap-3">
+                <SearchInput v-model="searchTerm" class="min-w-0 flex-1" />
+                <div class="shrink-0">
+                    <CheckboxInput v-model="showAll" data-testid="show-all-employees">
+                        {{ __('scheduling.show_all_employees') }}
+                    </CheckboxInput>
+                </div>
+            </div>
             <ul data-testid="assign-list" class="mt-1 max-h-40 overflow-y-auto">
                 <li v-for="employee in filteredEligible" :key="employee.id">
                     <button

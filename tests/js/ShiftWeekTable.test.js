@@ -9,6 +9,7 @@ const en = {
     "scheduling.unfreeze": "Unfreeze",
     "scheduling.remove": "Remove",
     "scheduling.no_eligible_employees": "No one eligible.",
+    "scheduling.show_all_employees": "Show all",
     "scheduling.error.holiday": "This employee is on holiday that day.",
     "scheduling.open_spot": "Add employee",
     "scheduling.unfulfilled_reason.no_eligible_employee": "No eligible employee found.",
@@ -262,7 +263,7 @@ describe("ShiftWeekTable", () => {
         w.unmount();
     });
 
-    it("shows a blocked employee with the reason and does not allow assignment", async () => {
+    it("shows blocked employees only when Show all is checked and does not allow their assignment", async () => {
         axiosGet.mockResolvedValue({
             data: [
                 { id: 3, name: "Els de Vries", block_reason: null, not_preferred: false },
@@ -276,9 +277,15 @@ describe("ShiftWeekTable", () => {
 
         const popover = bodyWrapper().get('[data-testid="assign-popover"]');
         const eligibleOption = popover.get('[data-testid="employee-option-3"]');
-        const blockedOption = popover.get('[data-testid="employee-option-4"]');
+        const showAll = popover.get('[data-testid="show-all-employees"]');
 
         expect(eligibleOption.attributes("disabled")).toBeUndefined();
+        expect(showAll.element.checked).toBe(false);
+        expect(popover.find('[data-testid="employee-option-4"]').exists()).toBe(false);
+
+        await showAll.setValue(true);
+
+        const blockedOption = popover.get('[data-testid="employee-option-4"]');
         expect(blockedOption.attributes("disabled")).toBeDefined();
         expect(blockedOption.text()).toContain("Jan Smit");
         expect(blockedOption.text()).toContain("This employee is on holiday that day.");
