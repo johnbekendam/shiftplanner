@@ -15,6 +15,7 @@ use App\Models\PlanningSettings;
 use App\Models\Shift;
 use App\Models\Workcenter;
 use App\Services\EmployeePersonalLinkService;
+use App\Services\EmployeeAuditLogger;
 use App\Services\MessageComposer;
 use App\Services\PersonalLinkMessage;
 use App\Services\PlannedShifts;
@@ -26,7 +27,11 @@ use Inertia\Inertia;
 
 class EmployeeController extends Controller
 {
-    public function __construct(private EmployeePersonalLinkService $links, private PlannedShifts $plannedShifts) {}
+    public function __construct(
+        private EmployeePersonalLinkService $links,
+        private PlannedShifts $plannedShifts,
+        private EmployeeAuditLogger $audit,
+    ) {}
 
     /** Sortable list columns mapped to their ORDER BY expression(s). */
     private const SORT_COLUMNS = [
@@ -125,6 +130,18 @@ class EmployeeController extends Controller
     public function store(Request $request)
     {
         $employee = Employee::create($this->validated($request));
+        $employee->refresh();
+
+        $this->audit->record(
+            $employee,
+            'created',
+            'employee',
+            $employee->id,
+            [],
+            $employee->only(EmployeeAuditLogger::EMPLOYEE_FIELDS),
+            'user',
+            $request->user(),
+        );
 
         return redirect("/employees/{$employee->id}/edit")->with('success', __('employees.flash.created'));
     }
@@ -176,8 +193,23 @@ class EmployeeController extends Controller
     public function update(Request $request, Employee $employee)
     {
         $data = $this->validated($request, $employee);
+        $before = $employee->only(array_keys($data));
         $employee->fill($data);
+        $changed = array_keys($employee->getDirty());
         $employee->save();
+
+        if ($changed !== []) {
+            $this->audit->record(
+                $employee,
+                'updated',
+                'employee',
+                $employee->id,
+                array_intersect_key($before, array_flip($changed)),
+                $employee->only($changed),
+                'user',
+                $request->user(),
+            );
+        }
 
         return redirect("/employees/{$employee->id}/edit")->with('success', __('employees.flash.updated'));
     }
@@ -188,7 +220,21 @@ class EmployeeController extends Controller
             'confirmed' => ['required', 'boolean'],
         ]);
 
+        $before = $employee->only(['confirmed']);
         $employee->update(['confirmed' => $data['confirmed']]);
+
+        if ($before['confirmed'] !== $employee->confirmed) {
+            $this->audit->record(
+                $employee,
+                'confirmation_changed',
+                'employee',
+                $employee->id,
+                $before,
+                $employee->only(['confirmed']),
+                'user',
+                $request->user(),
+            );
+        }
 
         return redirect()->back()->with('success', __('employees.flash.updated'));
     }
