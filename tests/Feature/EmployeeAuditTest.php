@@ -6,7 +6,6 @@ use App\Models\Employee;
 use App\Models\EmployeeAuditEvent;
 use App\Models\User;
 use App\Services\SelfSignupService;
-use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -171,65 +170,14 @@ class EmployeeAuditTest extends TestCase
         $this->assertSame(['employee_id' => $employee->id], $event->new_values);
     }
 
-    public function test_manager_can_view_an_archived_employee_audit_timeline_newest_first(): void
+    public function test_employee_edit_page_does_not_include_audit_events(): void
     {
         $manager = User::factory()->create(['role' => User::ROLE_MANAGER]);
         $employee = Employee::factory()->create(['archived_at' => now()]);
-        EmployeeAuditEvent::create([
-            'employee_id' => $employee->id,
-            'action' => 'updated',
-            'subject_type' => 'employee',
-            'subject_id' => $employee->id,
-            'source' => 'user',
-            'actor_type' => 'user',
-            'actor_id' => $manager->id,
-            'actor_name' => 'Manager Name',
-            'actor_email' => 'manager@example.com',
-            'actor_role' => User::ROLE_MANAGER,
-            'old_values' => ['weekly_hours' => 24, 'confirmed' => false],
-            'new_values' => ['weekly_hours' => 28, 'confirmed' => true],
-            'created_at' => Carbon::parse('2026-09-23 10:00:00'),
-        ]);
-        $newest = EmployeeAuditEvent::create([
-            'employee_id' => $employee->id,
-            'action' => 'archived',
-            'subject_type' => 'employee',
-            'subject_id' => $employee->id,
-            'source' => 'user',
-            'actor_type' => null,
-            'actor_id' => null,
-            'actor_name' => null,
-            'actor_email' => null,
-            'actor_role' => null,
-            'old_values' => ['archived_at' => null],
-            'new_values' => ['archived_at' => '2026-09-24T10:00:00+00:00'],
-            'created_at' => Carbon::parse('2026-09-24 10:00:00'),
-        ]);
 
         $this->actingAs($manager)->get("/employees/{$employee->id}/edit")
             ->assertInertia(fn (Assert $page) => $page
-                ->has('auditEvents', 2)
-                ->where('auditEvents.0.id', $newest->id)
-                ->where('auditEvents.0.action', 'archived')
-                ->where('auditEvents.0.subject_type', 'employee')
-                ->where('auditEvents.0.subject_id', $employee->id)
-                ->where('auditEvents.0.source', 'user')
-                ->where('auditEvents.0.actor_type', null)
-                ->where('auditEvents.0.actor_id', null)
-                ->where('auditEvents.0.actor_name', null)
-                ->where('auditEvents.0.actor_email', null)
-                ->where('auditEvents.0.actor_role', null)
-                ->where('auditEvents.0.old_values', ['archived_at' => null])
-                ->where('auditEvents.0.new_values', ['archived_at' => '2026-09-24T10:00:00+00:00'])
-                ->where('auditEvents.0.created_at', '2026-09-24T10:00:00+00:00')
-                ->where('auditEvents.1.action', 'updated')
+                ->missing('auditEvents')
             );
-    }
-
-    public function test_guest_cannot_view_an_employee_audit_timeline(): void
-    {
-        $employee = Employee::factory()->create();
-
-        $this->get("/employees/{$employee->id}/edit")->assertRedirect('/login');
     }
 }

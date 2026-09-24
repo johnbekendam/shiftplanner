@@ -22,7 +22,7 @@ All results. The employee page shows archived records as read-only.
 
 Managers and administrators can archive employees under the current employee
 access rules. Only administrators can restore archived employees. Managers can
-view the history of employees that they can access.
+view employee records that they can access.
 
 Archived employees do not appear in planning, scheduling choices, or other
 operational employee selectors. Personal-link requests cannot change an
@@ -64,10 +64,7 @@ Audit events remain in the live database indefinitely. The app has no action
 to edit or delete them. Application backup exports and restores exclude audit
 events.
 
-### Audit history
-
-Add an audit timeline to the employee page. Show the newest events first and
-let the user expand an event to inspect its changed values.
+### Global audit log
 
 Add a global audit page for administrators. The page shows the newest events
 first. It supports employee or actor search and filters for action and source.

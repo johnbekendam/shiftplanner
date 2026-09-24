@@ -206,23 +206,6 @@ class EmployeeController extends Controller
             'questions' => AvailabilityQuestion::all()->map->toPayload()->all(),
             'questionAnswers' => $employee->availabilityQuestions->pluck('id')->all(),
             'plannedShifts' => $this->plannedShifts->forEmployee($employee, publishedOnly: false),
-            'auditEvents' => $employee->auditEvents->map(fn ($event) => [
-                ...$event->only([
-                    'id',
-                    'action',
-                    'subject_type',
-                    'subject_id',
-                    'source',
-                    'actor_type',
-                    'actor_id',
-                    'actor_name',
-                    'actor_email',
-                    'actor_role',
-                    'old_values',
-                    'new_values',
-                ]),
-                'created_at' => $event->created_at->toIso8601String(),
-            ])->all(),
         ]);
     }
 
