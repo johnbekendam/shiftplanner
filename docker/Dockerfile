@@ -39,6 +39,10 @@ COPY --from=assets /app/public/build ./public/build
 COPY docker/php/uploads.ini /usr/local/etc/php/conf.d/uploads.ini
 
 RUN mkdir -p storage/app/public \
+    storage/framework/cache/data \
+    storage/framework/sessions \
+    storage/framework/views \
+    storage/logs \
     && rm -rf public/storage \
     && ln -s ../storage/app/public public/storage \
     && chown -R www-data:www-data storage bootstrap/cache
