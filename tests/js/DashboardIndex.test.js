@@ -9,7 +9,7 @@ const en = {
     "dashboard.lines.label": "Chart lines",
     "dashboard.lines.unconfirmed": "Unconfirmed",
     "dashboard.lines.confirmed": "Confirmed",
-    "dashboard.lines.total": "Total available",
+    "dashboard.lines.total": "Total",
     "dashboard.lines.planned": "Planned",
     "dashboard.coverage": "Hours covered",
     "dashboard.hours_ratio": ":available / :required h",
@@ -170,7 +170,7 @@ describe("Dashboard/Index", () => {
         expect(boxes.map((b) => b.element.closest("label").textContent.trim())).toEqual([
             "Unconfirmed",
             "Confirmed",
-            "Total available",
+            "Total",
             "Planned",
         ]);
         expect(w.findAll("button")).toHaveLength(0);

@@ -631,7 +631,7 @@
     "dashboard.lines.label": "Chart lines",
     "dashboard.lines.unconfirmed": "Unconfirmed",
     "dashboard.lines.confirmed": "Confirmed",
-    "dashboard.lines.total": "Total available",
+    "dashboard.lines.total": "Total",
     "dashboard.lines.planned": "Planned",
     "dashboard.coverage": "Hours covered",
     "dashboard.confirmed": "Confirmed",

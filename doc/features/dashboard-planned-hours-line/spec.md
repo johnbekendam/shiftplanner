@@ -19,7 +19,7 @@ The single-choice selector becomes a legend of four checkboxes, in this order:
 | --- | --- | --- |
 | Unconfirmed | unconfirmed availability | `--color-text-secondary` (gray) |
 | Confirmed | confirmed availability | `--color-badge-success-text` (green) |
-| Total available | confirmed + unconfirmed availability | `--color-brand-bg` (blue) |
+| Total | confirmed + unconfirmed availability | `--color-brand-bg` (blue) |
 | Planned | planned hours per week, as FTE | `--color-badge-warning-text` (amber) |
 
 - Each checkbox switches its own line on or off. Any combination is
@@ -27,13 +27,13 @@ The single-choice selector becomes a legend of four checkboxes, in this order:
 - Each checkbox is a `CheckboxInput` followed by the line-color marker and
   the label, so the row is the chart legend. The row uses small text with
   a clear gap between items.
-- The default set is Total available + Planned.
+- The default set is Total + Planned.
 - The query string holds the set, for example `?lines=confirmed,planned`.
   The default set gives no query string. With no `lines` parameter, the
   default set applies. An empty `lines` value turns all lines off. An
   unknown value is ignored. The old `?employees=` parameter is removed.
 - The "unconfirmed employees" notice shows when Confirmed is on and
-  Unconfirmed and Total available are both off.
+  Unconfirmed and Total are both off.
 
 ### Planned line
 
@@ -77,8 +77,8 @@ lines and the target.
   large, and the outlines of two active neighbors almost touched. A
   checkbox legend is compact, shows on and off clearly, and reuses
   `CheckboxInput` with no custom styling.
-- **"Total available" replaces "Stacked".** The lines are not stacked,
-  and the name must stay clear next to "Planned".
+- **"Total" replaces "Stacked".** The lines are not stacked. "Total"
+  sits next to Unconfirmed and Confirmed, so it reads as their sum.
 - **Amber from an existing token.** `--color-badge-warning-text` is
   distinct from gray, green, and blue. No new role or component var is
   necessary.
