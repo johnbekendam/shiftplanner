@@ -5,15 +5,9 @@ const props = defineProps({
     title: { type: String, required: true },
     // ISO date strings, one per point.
     days: { type: Array, default: () => [] },
-    // Available FTE, one value per day.
-    available: { type: Array, default: () => [] },
-    // Optional independent second line (e.g. confirmed availability).
-    baseAvailable: { type: Array, default: null },
-    // Optional independent third line (e.g. unconfirmed availability).
-    secondaryAvailable: { type: Array, default: null },
-    availableStroke: { type: String, default: 'var(--color-brand-bg)' },
-    baseAvailableStroke: { type: String, default: 'var(--color-brand-bg)' },
-    secondaryAvailableStroke: { type: String, default: 'var(--color-text-secondary)' },
+    // FTE lines to draw, in paint order: { key, values (one per day), stroke,
+    // step? }. A step line holds each value flat and jumps midway between days.
+    lines: { type: Array, default: () => [] },
     // Target FTE — a flat reference line.
     target: { type: Number, default: 0 },
     // Show the title as a visible caption above the chart. Turn off when a
@@ -30,10 +24,12 @@ const plotH = H - PAD.top - PAD.bottom
 
 const Y_STEPS = 4
 
+const drawnLines = computed(() =>
+    props.lines.filter((line) => Array.isArray(line.values) && line.values.length === props.days.length && line.values.length > 0),
+)
+
 const maxValue = computed(() => {
-    const baseValues = Array.isArray(props.baseAvailable) ? props.baseAvailable : []
-    const secondaryValues = Array.isArray(props.secondaryAvailable) ? props.secondaryAvailable : []
-    const peak = Math.max(props.target, ...props.available, ...baseValues, ...secondaryValues, 1)
+    const peak = Math.max(props.target, ...drawnLines.value.flatMap((line) => line.values), 1)
     // Round up to a whole-number axis top that divides evenly into Y_STEPS,
     // so every tick lands on an integer.
     const step = Math.max(1, Math.ceil((peak * 1.1) / Y_STEPS))
@@ -41,32 +37,24 @@ const maxValue = computed(() => {
 })
 
 const x = (i) => {
-    const n = props.available.length
+    const n = props.days.length
     if (n <= 1) return PAD.left + plotW / 2
     return PAD.left + (plotW * i) / (n - 1)
 }
 const y = (v) => PAD.top + plotH * (1 - v / maxValue.value)
 
-const linePoints = computed(() => props.available.map((v, i) => `${x(i)},${y(v)}`).join(' '))
-
-const hasBaseLine = computed(
-    () => Array.isArray(props.baseAvailable) && props.baseAvailable.length === props.available.length && props.baseAvailable.length > 0,
-)
-
-const baseLinePoints = computed(() =>
-    hasBaseLine.value ? props.baseAvailable.map((v, i) => `${x(i)},${y(v)}`).join(' ') : '',
-)
-
-const hasSecondaryLine = computed(
-    () =>
-        Array.isArray(props.secondaryAvailable) &&
-        props.secondaryAvailable.length === props.available.length &&
-        props.secondaryAvailable.length > 0,
-)
-
-const secondaryLinePoints = computed(() =>
-    hasSecondaryLine.value ? props.secondaryAvailable.map((v, i) => `${x(i)},${y(v)}`).join(' ') : '',
-)
+const pointsFor = (line) => {
+    const points = []
+    line.values.forEach((v, i) => {
+        const prev = line.values[i - 1]
+        if (line.step && i > 0 && v !== prev) {
+            const mid = (x(i - 1) + x(i)) / 2
+            points.push(`${mid},${y(prev)}`, `${mid},${y(v)}`)
+        }
+        points.push(`${x(i)},${y(v)}`)
+    })
+    return points.join(' ')
+}
 
 const targetY = computed(() => y(props.target))
 
@@ -187,34 +175,14 @@ const xTicks = computed(() => {
                 stroke-dasharray="4 3"
             />
 
-            <!-- Available FTE series -->
+            <!-- FTE series -->
             <polyline
-                v-if="hasBaseLine"
-                data-testid="fte-base-line"
-                :points="baseLinePoints"
+                v-for="line in drawnLines"
+                :key="line.key"
+                :data-testid="`fte-line-${line.key}`"
+                :points="pointsFor(line)"
                 fill="none"
-                :stroke="baseAvailableStroke"
-                stroke-width="2"
-                stroke-linejoin="round"
-                stroke-linecap="round"
-            />
-
-            <polyline
-                v-if="hasSecondaryLine"
-                data-testid="fte-secondary-line"
-                :points="secondaryLinePoints"
-                fill="none"
-                :stroke="secondaryAvailableStroke"
-                stroke-width="2"
-                stroke-linejoin="round"
-                stroke-linecap="round"
-            />
-
-            <polyline
-                data-testid="fte-line"
-                :points="linePoints"
-                fill="none"
-                :stroke="availableStroke"
+                :stroke="line.stroke"
                 stroke-width="2"
                 stroke-linejoin="round"
                 stroke-linecap="round"

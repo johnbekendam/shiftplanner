@@ -6,19 +6,22 @@ const en = {
     "dashboard.overall": "Overall",
     "dashboard.no_period": "Set a period on the Settings page to see available FTE.",
     "dashboard.unconfirmed_employees": ":count unconfirmed employees are not included in these numbers.",
-    "dashboard.employee_filter.confirmed": "Confirmed",
-    "dashboard.employee_filter.unconfirmed": "Unconfirmed",
-    "dashboard.employee_filter.both": "Stacked",
+    "dashboard.lines.label": "Chart lines",
+    "dashboard.lines.unconfirmed": "Unconfirmed",
+    "dashboard.lines.confirmed": "Confirmed",
+    "dashboard.lines.total": "Total",
+    "dashboard.lines.planned": "Planned",
     "dashboard.coverage": "Hours covered",
     "dashboard.hours_ratio": ":available / :required h",
 };
 
 const routerGet = vi.hoisted(() => vi.fn());
+const page = vi.hoisted(() => ({ url: "/dashboard" }));
 
 vi.mock("@inertiajs/vue3", () => ({
     Head: { name: "Head", render: () => null },
     Link: { name: "Link", props: ["href"], template: '<a :href="href"><slot /></a>' },
-    usePage: () => ({ props: { translations: en } }),
+    usePage: () => ({ props: { translations: en }, url: page.url }),
     router: { get: routerGet },
 }));
 
@@ -28,7 +31,25 @@ import CoverageDonut from "@/components/CoverageDonut.vue";
 
 const stubs = { AppLayout: { template: "<div><slot /></div>" } };
 
-const mountPage = (props = {}) => mount(Dashboard, { props, global: { stubs } });
+const mountPage = (props = {}, url = "/dashboard") => {
+    page.url = url;
+    return mount(Dashboard, { props, global: { stubs } });
+};
+
+const period = { start: "2026-01-05", end: "2026-01-06", fte_hours: 40 };
+const days = ["2026-01-05", "2026-01-06"];
+const overall = {
+    available_unconfirmed: [0.5, 0.25],
+    available_confirmed: [1, 1],
+    available_total: [1.5, 1.25],
+    planned: [0.75, 0.75],
+    target: 8,
+    available_hours_confirmed: 16,
+    required_hours: 64,
+};
+const toggles = (w) => w.findAll('[data-testid="dashboard-line-toggle"]');
+const checked = (w) => toggles(w).map((t) => t.element.checked);
+const chartLines = (w) => w.getComponent(FteLineChart).props("lines");
 
 describe("Dashboard/Index", () => {
     beforeEach(() => {
@@ -41,68 +62,14 @@ describe("Dashboard/Index", () => {
         expect(w.findAll('[data-testid="dashboard-block"]')).toHaveLength(0);
     });
 
-    it("shows all employee status filter options", () => {
-        const w = mountPage({
-            period: { start: "2026-01-05", end: "2026-01-06", fte_hours: 40 },
-            days: ["2026-01-05", "2026-01-06"],
-            overall: { available: [1, 1], target: 8, available_hours: 16, required_hours: 64 },
-            lines: [],
-        });
-
-        const options = w.findAll('[data-testid="dashboard-employee-filter"]');
-        expect(options).toHaveLength(3);
-        expect(options[2].element.tagName).toBe("BUTTON");
-        expect(options.map((option) => option.text())).toEqual(["Unconfirmed", "Confirmed", "Stacked"]);
-        expect(options[2].attributes("aria-pressed")).toBe("true");
-        expect(options[2].classes()).toContain("outline");
-        expect(options[2].classes()).toContain("outline-2");
-        expect(options[2].classes()).toContain("outline-offset-2");
-        expect(options[2].classes()).toContain("outline-[var(--color-brand-bg)]");
-        expect(options[0].classes()).not.toContain("outline-2");
-
-        const legendLines = w.findAll('[data-testid="dashboard-employee-filter-line"]');
-        expect(legendLines).toHaveLength(3);
-        expect(legendLines[0].classes()).toContain("bg-[var(--color-text-secondary)]");
-        expect(legendLines[1].classes()).toContain("bg-[var(--color-badge-success-text)]");
-        expect(legendLines[2].classes()).toContain("bg-[var(--color-brand-bg)]");
-    });
-
-    it("navigates with a query string when confirmed is selected", async () => {
-        const w = mountPage({
-            period: { start: "2026-01-05", end: "2026-01-06", fte_hours: 40 },
-            days: ["2026-01-05", "2026-01-06"],
-            employeeStatusFilter: "both",
-            overall: { available: [1, 1], target: 8, available_hours: 16, required_hours: 64 },
-            lines: [],
-        });
-
-        await w.findAll('[data-testid="dashboard-employee-filter"]')[1].trigger("click");
-
-        expect(routerGet).toHaveBeenCalledWith("/dashboard", { employees: "confirmed" }, { preserveScroll: true, preserveState: true });
-    });
-
-    it("uses no employee query string when stacked is selected", async () => {
-        const w = mountPage({
-            period: { start: "2026-01-05", end: "2026-01-06", fte_hours: 40 },
-            days: ["2026-01-05", "2026-01-06"],
-            employeeStatusFilter: "confirmed",
-            overall: { available: [1, 1], target: 8, available_hours: 16, required_hours: 64 },
-            lines: [],
-        });
-
-        await w.findAll('[data-testid="dashboard-employee-filter"]')[2].trigger("click");
-
-        expect(routerGet).toHaveBeenCalledWith("/dashboard", {}, { preserveScroll: true, preserveState: true });
-    });
-
     it("shows an overall block first, then one per business line", () => {
         const w = mountPage({
             period: { start: "2026-01-05", end: "2026-01-06", fte_hours: 40 },
             days: ["2026-01-05", "2026-01-06"],
-            overall: { available: [2, 1], target: 8, available_hours: 24, required_hours: 64 },
+            overall: { available_total: [2, 1], target: 8, available_hours: 24, required_hours: 64 },
             lines: [
-                { abbreviation: "PMP", description: "Pumps", available: [1, 1], target: 5, available_hours: 16, required_hours: 40 },
-                { abbreviation: "VLV", description: "Valves", available: [1, 0], target: 3, available_hours: 8, required_hours: 24 },
+                { abbreviation: "PMP", description: "Pumps", available_total: [1, 1], target: 5, available_hours: 16, required_hours: 40 },
+                { abbreviation: "VLV", description: "Valves", available_total: [1, 0], target: 3, available_hours: 8, required_hours: 24 },
             ],
         });
 
@@ -115,7 +82,8 @@ describe("Dashboard/Index", () => {
         const charts = w.findAllComponents(FteLineChart);
         expect(charts).toHaveLength(3);
         expect(charts[0].props("title")).toBe("Overall");
-        expect(charts[0].props("available")).toEqual([2, 1]);
+        expect(charts[0].props("lines").find((line) => line.key === "total").values).toEqual([2, 1]);
+        expect(charts[1].props("lines").find((line) => line.key === "total").values).toEqual([1, 1]);
         expect(charts[1].props("target")).toBe(5);
     });
 
@@ -123,7 +91,7 @@ describe("Dashboard/Index", () => {
         const w = mountPage({
             period: { start: "2026-01-05", end: "2026-01-06", fte_hours: 40 },
             days: ["2026-01-05", "2026-01-06"],
-            overall: { available: [2, 1], target: 8, available_hours: 24, required_hours: 64 },
+            overall: { available_total: [2, 1], target: 8, available_hours: 24, required_hours: 64 },
             lines: [],
         });
 
@@ -132,25 +100,11 @@ describe("Dashboard/Index", () => {
         expect(grid.classes()).not.toContain("md:w-1/2");
     });
 
-    it("shows one dashboard notice when unconfirmed employees are excluded", () => {
-        const w = mountPage({
-            period: { start: "2026-01-05", end: "2026-01-06", fte_hours: 40 },
-            days: ["2026-01-05", "2026-01-06"],
-            employeeStatusFilter: "confirmed",
-            overall: { available: [1, 1], target: 8, available_hours: 16, required_hours: 64 },
-            lines: [],
-            unconfirmedEmployeeCount: 3,
-        });
-
-        expect(w.text()).toContain("3 unconfirmed employees are not included in these numbers.");
-        expect(w.findAll('[data-testid="unconfirmed-employees-notice"]')).toHaveLength(1);
-    });
-
     it("hides the unconfirmed notice when everyone is confirmed", () => {
         const w = mountPage({
             period: { start: "2026-01-05", end: "2026-01-06", fte_hours: 40 },
             days: ["2026-01-05", "2026-01-06"],
-            overall: { available: [1, 1], target: 8, available_hours: 16, required_hours: 64 },
+            overall: { available_total: [1, 1], target: 8, available_hours: 16, required_hours: 64 },
             lines: [],
             unconfirmedEmployeeCount: 0,
         });
@@ -158,78 +112,13 @@ describe("Dashboard/Index", () => {
         expect(w.find('[data-testid="unconfirmed-employees-notice"]').exists()).toBe(false);
     });
 
-    it("renders confirmed, unconfirmed, and the blue sum line in stacked (both) mode", () => {
-        const w = mountPage({
-            period: { start: "2026-01-05", end: "2026-01-06", fte_hours: 40 },
-            days: ["2026-01-05", "2026-01-06"],
-            employeeStatusFilter: "both",
-            overall: {
-                available: [1.5, 1.25],
-                available_confirmed: [1, 1],
-                available_unconfirmed: [0.5, 0.25],
-                target: 8,
-                available_hours: 22,
-                required_hours: 64,
-            },
-            lines: [],
-        });
-
-        const chart = w.getComponent(FteLineChart);
-        expect(chart.props("available")).toEqual([1.5, 1.25]);
-        expect(chart.props("availableStroke")).toBe("var(--color-brand-bg)");
-        expect(chart.props("baseAvailable")).toEqual([1, 1]);
-        expect(chart.props("baseAvailableStroke")).toBe("var(--color-badge-success-text)");
-        expect(chart.props("secondaryAvailable")).toEqual([0.5, 0.25]);
-        expect(chart.props("secondaryAvailableStroke")).toBe("var(--color-text-secondary)");
-    });
-
-    it("shows only the main line in confirmed-only and unconfirmed-only modes", () => {
-        const w = mountPage({
-            period: { start: "2026-01-05", end: "2026-01-06", fte_hours: 40 },
-            days: ["2026-01-05", "2026-01-06"],
-            employeeStatusFilter: "confirmed",
-            overall: { available: [1, 1], target: 8, available_hours: 16, required_hours: 64 },
-            lines: [],
-        });
-
-        const chart = w.getComponent(FteLineChart);
-        expect(chart.props("baseAvailable")).toBe(null);
-        expect(chart.props("secondaryAvailable")).toBe(null);
-    });
-
-    it("uses gray for the unconfirmed-only line", () => {
-        const w = mountPage({
-            period: { start: "2026-01-05", end: "2026-01-06", fte_hours: 40 },
-            days: ["2026-01-05", "2026-01-06"],
-            employeeStatusFilter: "unconfirmed",
-            overall: { available: [0.5, 0.25], target: 8, available_hours: 6, required_hours: 64 },
-            lines: [],
-        });
-
-        const chart = w.getComponent(FteLineChart);
-        expect(chart.props("availableStroke")).toBe("var(--color-text-secondary)");
-    });
-
-    it("uses green for the confirmed-only line", () => {
-        const w = mountPage({
-            period: { start: "2026-01-05", end: "2026-01-06", fte_hours: 40 },
-            days: ["2026-01-05", "2026-01-06"],
-            employeeStatusFilter: "confirmed",
-            overall: { available: [1, 1], target: 8, available_hours: 16, required_hours: 64 },
-            lines: [],
-        });
-
-        const chart = w.getComponent(FteLineChart);
-        expect(chart.props("availableStroke")).toBe("var(--color-badge-success-text)");
-    });
-
     it("links each card header to the matching filtered employees view", () => {
         const w = mountPage({
             period: { start: "2026-01-05", end: "2026-01-06", fte_hours: 40 },
             days: ["2026-01-05", "2026-01-06"],
-            overall: { available: [2, 1], target: 8, available_hours: 24, required_hours: 64 },
+            overall: { available_total: [2, 1], target: 8, available_hours: 24, required_hours: 64 },
             lines: [
-                { id: 7, abbreviation: "PMP", description: "Pumps", available: [1, 1], target: 5, available_hours: 16, required_hours: 40 },
+                { id: 7, abbreviation: "PMP", description: "Pumps", available_total: [1, 1], target: 5, available_hours: 16, required_hours: 40 },
             ],
         });
 
@@ -244,7 +133,7 @@ describe("Dashboard/Index", () => {
             period: { start: "2026-01-05", end: "2026-01-06", fte_hours: 40 },
             days: ["2026-01-05", "2026-01-06"],
             overall: {
-                available: [2, 1],
+                available_total: [2, 1],
                 target: 8,
                 available_hours: 24,
                 available_hours_confirmed: 18,
@@ -255,7 +144,7 @@ describe("Dashboard/Index", () => {
                 {
                     abbreviation: "PMP",
                     description: "Pumps",
-                    available: [1, 1],
+                    available_total: [1, 1],
                     target: 5,
                     available_hours: 16,
                     available_hours_confirmed: 12,
@@ -271,5 +160,95 @@ describe("Dashboard/Index", () => {
         expect(donuts[0].props("required")).toBe(64);
         expect(donuts[1].props("available")).toBe(12);
         expect(donuts[1].props("required")).toBe(40);
+    });
+
+    it("shows four line toggles with color markers in order", () => {
+        const w = mountPage({ period, days, overall, lines: [] });
+
+        const boxes = toggles(w);
+        expect(boxes.map((b) => b.attributes("type"))).toEqual(["checkbox", "checkbox", "checkbox", "checkbox"]);
+        expect(boxes.map((b) => b.element.closest("label").textContent.trim())).toEqual([
+            "Unconfirmed",
+            "Confirmed",
+            "Total",
+            "Planned",
+        ]);
+        expect(w.findAll("button")).toHaveLength(0);
+
+        const markers = w.findAll('[data-testid="dashboard-line-toggle-marker"]');
+        expect(markers.map((m) => m.classes().find((c) => c.startsWith("bg-")))).toEqual([
+            "bg-[var(--color-text-secondary)]",
+            "bg-[var(--color-badge-success-text)]",
+            "bg-[var(--color-brand-bg)]",
+            "bg-[var(--color-badge-warning-text)]",
+        ]);
+    });
+
+    it("turns on total available and planned by default", () => {
+        const w = mountPage({ period, days, overall, lines: [] });
+
+        expect(checked(w)).toEqual([false, false, true, true]);
+        expect(chartLines(w)).toEqual([
+            { key: "total", values: [1.5, 1.25], stroke: "var(--color-brand-bg)", step: false },
+            { key: "planned", values: [0.75, 0.75], stroke: "var(--color-badge-warning-text)", step: true },
+        ]);
+    });
+
+    it("reads the visible lines from the query string", () => {
+        const w = mountPage({ period, days, overall, lines: [] }, "/dashboard?lines=planned,unconfirmed,bogus");
+
+        expect(checked(w)).toEqual([true, false, false, true]);
+        expect(chartLines(w).map((line) => line.key)).toEqual(["unconfirmed", "planned"]);
+        expect(chartLines(w)[0]).toEqual({ key: "unconfirmed", values: [0.5, 0.25], stroke: "var(--color-text-secondary)", step: false });
+    });
+
+    it("draws no lines when the query string turns them all off", () => {
+        const w = mountPage({ period, days, overall, lines: [] }, "/dashboard?lines=");
+
+        expect(checked(w)).toEqual([false, false, false, false]);
+        expect(chartLines(w)).toEqual([]);
+    });
+
+    it("switches a line on by adding it to the query string", async () => {
+        const w = mountPage({ period, days, overall, lines: [] });
+
+        await toggles(w)[1].setValue(true);
+
+        expect(routerGet).toHaveBeenCalledWith(
+            "/dashboard",
+            { lines: "confirmed,total,planned" },
+            { preserveScroll: true, preserveState: true },
+        );
+    });
+
+    it("switches a line off by removing it from the query string", async () => {
+        const w = mountPage({ period, days, overall, lines: [] }, "/dashboard?lines=planned");
+
+        await toggles(w)[3].setValue(false);
+
+        expect(routerGet).toHaveBeenCalledWith("/dashboard", { lines: "" }, { preserveScroll: true, preserveState: true });
+    });
+
+    it("drops the query string when the toggles match the default", async () => {
+        const w = mountPage({ period, days, overall, lines: [] }, "/dashboard?lines=total");
+
+        await toggles(w)[3].setValue(true);
+
+        expect(routerGet).toHaveBeenCalledWith("/dashboard", {}, { preserveScroll: true, preserveState: true });
+    });
+
+    it("shows the unconfirmed notice when confirmed is the only availability line", () => {
+        const w = mountPage({ period, days, overall, lines: [], unconfirmedEmployeeCount: 3 }, "/dashboard?lines=confirmed,planned");
+
+        expect(w.text()).toContain("3 unconfirmed employees are not included in these numbers.");
+        expect(w.findAll('[data-testid="unconfirmed-employees-notice"]')).toHaveLength(1);
+    });
+
+    it("hides the unconfirmed notice when unconfirmed or total available is also on", () => {
+        const withTotal = mountPage({ period, days, overall, lines: [], unconfirmedEmployeeCount: 3 }, "/dashboard?lines=confirmed,total");
+        expect(withTotal.find('[data-testid="unconfirmed-employees-notice"]').exists()).toBe(false);
+
+        const withUnconfirmed = mountPage({ period, days, overall, lines: [], unconfirmedEmployeeCount: 3 }, "/dashboard?lines=confirmed,unconfirmed");
+        expect(withUnconfirmed.find('[data-testid="unconfirmed-employees-notice"]').exists()).toBe(false);
     });
 });
