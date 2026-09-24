@@ -46,6 +46,9 @@ class EmployeeController extends Controller
     public function index(Request $request)
     {
         $search = trim((string) $request->input('search', ''));
+        $status = in_array($request->input('status'), ['active', 'archived', 'all'], true)
+            ? $request->input('status')
+            : 'active';
 
         $sort = $request->input('sort');
         $sort = array_key_exists($sort, self::SORT_COLUMNS) ? $sort : 'name';
@@ -62,6 +65,12 @@ class EmployeeController extends Controller
             ->select('employees.*')
             ->leftJoin('business_lines', 'business_lines.id', '=', 'employees.business_line_id')
             ->with(['businessLine', 'recurringAvailabilities']);
+
+        if ($status === 'active') {
+            $query->whereNull('employees.archived_at');
+        } elseif ($status === 'archived') {
+            $query->whereNotNull('employees.archived_at');
+        }
 
         foreach (self::SORT_COLUMNS[$sort] as $column) {
             $query->orderBy($column, $direction);
@@ -104,6 +113,7 @@ class EmployeeController extends Controller
             'business_line' => $employee->businessLine?->abbreviation,
             'weekly_hours' => $employee->weekly_hours,
             'confirmed' => $employee->confirmed,
+            'archived' => $employee->archived_at !== null,
             'shift_coverage' => $this->shiftCoverage($employee, $shifts),
         ]);
 
@@ -112,6 +122,7 @@ class EmployeeController extends Controller
             'search' => $search,
             'sort' => $sort,
             'direction' => $direction,
+            'status' => $status,
             'businessLines' => $businessLines->map(fn (BusinessLine $line) => [
                 'id' => $line->id,
                 'abbreviation' => $line->abbreviation,
@@ -158,6 +169,7 @@ class EmployeeController extends Controller
         return Inertia::render('Employees/Form', [
             'employee' => [
                 ...$employee->only(['id', 'first_name', 'last_name', 'email', 'weekly_hours', 'weekly_hours_minimum', 'business_line_id']),
+                'archived' => $employee->archived_at !== null,
                 'link_sent' => $employee->email !== null && Message::query()
                     ->where('type', MessageType::PersonalPageLink)
                     ->where('status', 'sent')

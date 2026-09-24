@@ -46,6 +46,38 @@ class EmployeeAdminTest extends TestCase
             );
     }
 
+    public function test_index_filters_active_archived_and_all_employees(): void
+    {
+        $user = User::factory()->create();
+        $active = Employee::factory()->create(['first_name' => 'Active', 'archived_at' => null]);
+        $archived = Employee::factory()->create(['first_name' => 'Archived', 'archived_at' => now()]);
+
+        $this->actingAs($user)->get('/employees')->assertInertia(fn ($page) => $page
+            ->has('employees.data', 1)
+            ->where('employees.data.0.id', $active->id)
+            ->where('status', 'active')
+        );
+        $this->actingAs($user)->get('/employees?status=archived')->assertInertia(fn ($page) => $page
+            ->has('employees.data', 1)
+            ->where('employees.data.0.id', $archived->id)
+            ->where('employees.data.0.archived', true)
+            ->where('status', 'archived')
+        );
+        $this->actingAs($user)->get('/employees?status=all')->assertInertia(fn ($page) => $page
+            ->has('employees.data', 2)
+            ->where('status', 'all')
+        );
+    }
+
+    public function test_edit_marks_an_archived_employee_read_only(): void
+    {
+        $user = User::factory()->create();
+        $employee = Employee::factory()->create(['archived_at' => now()]);
+
+        $this->actingAs($user)->get("/employees/{$employee->id}/edit")
+            ->assertInertia(fn ($page) => $page->where('employee.archived', true));
+    }
+
     public function test_created_employee_defaults_to_unconfirmed(): void
     {
         $user = User::factory()->create();
