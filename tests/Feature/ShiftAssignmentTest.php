@@ -251,6 +251,27 @@ class ShiftAssignmentTest extends TestCase
         $this->assertSame(0, ShiftAssignment::count());
     }
 
+    public function test_store_accepts_a_hard_workcenter_employee_for_a_hidden_workcenter_shift(): void
+    {
+        $this->actingAsAdmin();
+        $employee = Employee::factory()->create(['confirmed' => true]);
+        $workcenter = Workcenter::factory()->create();
+        $shift = Shift::factory()->create(['visible_by_default' => false]);
+        $this->setCapacity($workcenter, $shift, $this->aTuesday(), 5);
+        $employee->workcenters()->attach($workcenter, ['mode' => 'hard']);
+        RecurringAvailability::factory()->create([
+            'employee_id' => $employee->id,
+            'weekday' => $this->aTuesday()->isoWeekday(),
+            'shift_id' => $shift->id,
+            'level' => 'available',
+        ]);
+
+        $this->post('/planning/assignments', $this->validPayload($employee, $workcenter, $shift))
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame(1, ShiftAssignment::count());
+    }
+
     public function test_hiding_a_shift_keeps_an_existing_assignment(): void
     {
         $assignment = ShiftAssignment::factory()->create();

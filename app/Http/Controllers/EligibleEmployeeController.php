@@ -39,7 +39,7 @@ class EligibleEmployeeController extends Controller
             ->orderBy('first_name')
             ->orderBy('last_name')
             ->get()
-            ->reject(fn (Employee $employee) => ! $shift->visible_by_default
+            ->reject(fn (Employee $employee) => $this->eligibility->isShiftUnavailableForWorkcenter($employee, $workcenter, $shift)
                 || $this->eligibility->isOnHoliday($employee, $date)
                 || $this->eligibility->isUnavailable($employee, $weekday, $shift)
                 || $this->eligibility->hasOverlap($employee, $date, $shift)

@@ -30,6 +30,19 @@ class SchedulingEligibility
         return ! in_array($this->recurringLevel($employee, $weekday, $shift), ['available', 'not_preferred'], true);
     }
 
+    public function isShiftUnavailableForWorkcenter(Employee $employee, Workcenter $workcenter, Shift $shift): bool
+    {
+        if ($shift->visible_by_default) {
+            return false;
+        }
+
+        return ! $employee->workcenters()
+            ->where('workcenters.id', $workcenter->id)
+            ->wherePivot('mode', 'hard')
+            ->whereHas('shifts', fn ($q) => $q->where('shifts.id', $shift->id))
+            ->exists();
+    }
+
     public function isNotPreferred(Employee $employee, int $weekday, Shift $shift): bool
     {
         return $this->recurringLevel($employee, $weekday, $shift) === RecurringAvailability::LEVELS[0];

@@ -128,6 +128,23 @@ class EligibleEmployeeTest extends TestCase
         $this->assertNotContains($employee->id, $ids);
     }
 
+    public function test_includes_a_hard_workcenter_employee_for_a_hidden_workcenter_shift(): void
+    {
+        $this->actingAsAdmin();
+        $workcenter = Workcenter::factory()->create();
+        $shift = Shift::factory()->create(['visible_by_default' => false]);
+        $workcenter->shifts()->attach($shift);
+        $employee = Employee::factory()->create(['confirmed' => true]);
+        $employee->workcenters()->attach($workcenter, ['mode' => 'hard']);
+        RecurringAvailability::factory()->create([
+            'employee_id' => $employee->id, 'weekday' => 2, 'shift_id' => $shift->id, 'level' => 'available',
+        ]);
+
+        $ids = collect($this->get($this->url($workcenter, $shift))->json())->pluck('id');
+
+        $this->assertContains($employee->id, $ids);
+    }
+
     public function test_excludes_an_employee_with_a_same_date_overlapping_assignment(): void
     {
         $this->actingAsAdmin();
