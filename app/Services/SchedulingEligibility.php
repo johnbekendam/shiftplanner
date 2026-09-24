@@ -17,6 +17,48 @@ use Carbon\Carbon;
  */
 class SchedulingEligibility
 {
+    public function assignmentBlockReason(Employee $employee, Workcenter $workcenter, Shift $shift, Carbon $date): ?string
+    {
+        $assignments = ShiftAssignment::query()
+            ->where('workcenter_id', $workcenter->id)
+            ->where('shift_id', $shift->id)
+            ->whereDate('date', $date);
+
+        if ((clone $assignments)->where('employee_id', $employee->id)->exists()) {
+            return 'duplicate';
+        }
+
+        if (! $employee->confirmed) {
+            return 'unconfirmed';
+        }
+
+        if ($assignments->count() >= $workcenter->spotsFor($shift, $date)) {
+            return 'cell_full';
+        }
+
+        if ($this->isShiftUnavailableForWorkcenter($employee, $workcenter, $shift)) {
+            return 'shift_hidden';
+        }
+
+        if ($this->isOnHoliday($employee, $date)) {
+            return 'holiday';
+        }
+
+        if ($this->isUnavailable($employee, $date->isoWeekday(), $shift)) {
+            return 'unavailable';
+        }
+
+        if ($this->isWorkcenterIneligible($employee, $workcenter)) {
+            return 'workcenter_ineligible';
+        }
+
+        if ($this->hasOverlap($employee, $date, $shift)) {
+            return 'overlap';
+        }
+
+        return $this->hardCapViolation($employee, $shift, $date);
+    }
+
     public function isOnHoliday(Employee $employee, Carbon $date): bool
     {
         return $employee->holidays()

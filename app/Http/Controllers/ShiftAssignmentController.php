@@ -29,47 +29,10 @@ class ShiftAssignmentController extends Controller
         $shift = Shift::findOrFail($data['shift_id']);
         $date = Carbon::parse($data['date']);
 
-        $existing = ShiftAssignment::query()
-            ->where('workcenter_id', $workcenter->id)
-            ->where('shift_id', $shift->id)
-            ->whereDate('date', $date);
-
-        if ((clone $existing)->where('employee_id', $employee->id)->exists()) {
-            throw ValidationException::withMessages(['employee_id' => __('scheduling.error.duplicate')]);
-        }
-
-        if (! $employee->confirmed) {
-            throw ValidationException::withMessages(['employee_id' => __('scheduling.error.unconfirmed')]);
-        }
-
-        if ($existing->count() >= $workcenter->spotsFor($shift, $date)) {
-            throw ValidationException::withMessages(['employee_id' => __('scheduling.error.cell_full')]);
-        }
-
-        if ($this->eligibility->isShiftUnavailableForWorkcenter($employee, $workcenter, $shift)) {
-            throw ValidationException::withMessages(['employee_id' => __('scheduling.error.shift_hidden')]);
-        }
-
-        if ($this->eligibility->isOnHoliday($employee, $date)) {
-            throw ValidationException::withMessages(['employee_id' => __('scheduling.error.holiday')]);
-        }
-
-        if ($this->eligibility->isUnavailable($employee, $date->isoWeekday(), $shift)) {
-            throw ValidationException::withMessages(['employee_id' => __('scheduling.error.unavailable')]);
-        }
-
-        if ($this->eligibility->isWorkcenterIneligible($employee, $workcenter)) {
-            throw ValidationException::withMessages(['employee_id' => __('scheduling.error.workcenter_ineligible')]);
-        }
-
-        if ($this->eligibility->hasOverlap($employee, $date, $shift)) {
-            throw ValidationException::withMessages(['employee_id' => __('scheduling.error.overlap')]);
-        }
-
-        $capViolation = $this->eligibility->hardCapViolation($employee, $shift, $date);
-        if ($capViolation !== null) {
+        $blockReason = $this->eligibility->assignmentBlockReason($employee, $workcenter, $shift, $date);
+        if ($blockReason !== null) {
             throw ValidationException::withMessages([
-                'employee_id' => __("scheduling.error.{$capViolation}"),
+                'employee_id' => __("scheduling.error.{$blockReason}"),
             ]);
         }
 

@@ -11,6 +11,7 @@ use App\Models\Shift;
 use App\Models\ShiftAssignment;
 use App\Models\User;
 use App\Models\Workcenter;
+use App\Models\WorkcenterShiftCapacity;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -34,6 +35,12 @@ class EligibleEmployeeTest extends TestCase
 
     private function url(Workcenter $workcenter, Shift $shift): string
     {
+        WorkcenterShiftCapacity::query()->firstOrCreate([
+            'workcenter_id' => $workcenter->id,
+            'shift_id' => $shift->id,
+            'weekday' => 2,
+        ], ['spots' => 10]);
+
         return "/planning/eligible-employees?workcenter_id={$workcenter->id}&shift_id={$shift->id}&date={$this->aTuesday()}";
     }
 
@@ -56,76 +63,76 @@ class EligibleEmployeeTest extends TestCase
         $this->get($this->url($workcenter, $shift))->assertForbidden();
     }
 
-    // ── Filtering ──────────────────────────────────────────────────────
+    // ── Eligibility ────────────────────────────────────────────────────
 
-    public function test_excludes_an_employee_already_assigned_to_this_cell(): void
+    public function test_marks_an_employee_already_assigned_to_this_cell_as_blocked(): void
     {
         $this->actingAsAdmin();
         $workcenter = Workcenter::factory()->create();
         $shift = Shift::factory()->create();
-        $employee = Employee::factory()->create();
+        $employee = Employee::factory()->create(['confirmed' => true]);
         ShiftAssignment::factory()->create([
             'employee_id' => $employee->id, 'workcenter_id' => $workcenter->id,
             'shift_id' => $shift->id, 'date' => $this->aTuesday(),
         ]);
 
-        $ids = collect($this->get($this->url($workcenter, $shift))->json())->pluck('id');
+        $entry = collect($this->get($this->url($workcenter, $shift))->json())->firstWhere('id', $employee->id);
 
-        $this->assertNotContains($employee->id, $ids);
+        $this->assertSame('duplicate', $entry['block_reason']);
     }
 
-    public function test_excludes_an_employee_on_holiday(): void
+    public function test_marks_an_employee_on_holiday_as_blocked(): void
     {
         $this->actingAsAdmin();
         $workcenter = Workcenter::factory()->create();
         $shift = Shift::factory()->create();
-        $employee = Employee::factory()->create();
+        $employee = Employee::factory()->create(['confirmed' => true]);
         EmployeeHoliday::factory()->create([
             'employee_id' => $employee->id, 'start_date' => $this->aTuesday(), 'end_date' => $this->aTuesday(),
         ]);
 
-        $ids = collect($this->get($this->url($workcenter, $shift))->json())->pluck('id');
+        $entry = collect($this->get($this->url($workcenter, $shift))->json())->firstWhere('id', $employee->id);
 
-        $this->assertNotContains($employee->id, $ids);
+        $this->assertSame('holiday', $entry['block_reason']);
     }
 
-    public function test_excludes_an_unavailable_employee(): void
+    public function test_marks_an_unavailable_employee_as_blocked(): void
     {
         $this->actingAsAdmin();
         $workcenter = Workcenter::factory()->create();
         $shift = Shift::factory()->create();
-        $employee = Employee::factory()->create();
+        $employee = Employee::factory()->create(['confirmed' => true]);
         RecurringAvailability::factory()->create([
             'employee_id' => $employee->id, 'weekday' => 2, 'shift_id' => $shift->id, 'level' => 'unavailable',
         ]);
 
-        $ids = collect($this->get($this->url($workcenter, $shift))->json())->pluck('id');
+        $entry = collect($this->get($this->url($workcenter, $shift))->json())->firstWhere('id', $employee->id);
 
-        $this->assertNotContains($employee->id, $ids);
+        $this->assertSame('unavailable', $entry['block_reason']);
     }
 
-    public function test_excludes_an_employee_with_availability_not_set(): void
+    public function test_marks_an_employee_with_availability_not_set_as_blocked(): void
     {
         $this->actingAsAdmin();
         $workcenter = Workcenter::factory()->create();
         $shift = Shift::factory()->create();
-        $employee = Employee::factory()->create();
+        $employee = Employee::factory()->create(['confirmed' => true]);
 
-        $ids = collect($this->get($this->url($workcenter, $shift))->json())->pluck('id');
+        $entry = collect($this->get($this->url($workcenter, $shift))->json())->firstWhere('id', $employee->id);
 
-        $this->assertNotContains($employee->id, $ids);
+        $this->assertSame('unavailable', $entry['block_reason']);
     }
 
-    public function test_excludes_an_employee_when_the_shift_is_hidden(): void
+    public function test_marks_an_employee_as_blocked_when_the_shift_is_hidden(): void
     {
         $this->actingAsAdmin();
         $workcenter = Workcenter::factory()->create();
         $shift = Shift::factory()->create(['visible_by_default' => false]);
-        $employee = Employee::factory()->create();
+        $employee = Employee::factory()->create(['confirmed' => true]);
 
-        $ids = collect($this->get($this->url($workcenter, $shift))->json())->pluck('id');
+        $entry = collect($this->get($this->url($workcenter, $shift))->json())->firstWhere('id', $employee->id);
 
-        $this->assertNotContains($employee->id, $ids);
+        $this->assertSame('shift_hidden', $entry['block_reason']);
     }
 
     public function test_includes_a_hard_workcenter_employee_for_a_hidden_workcenter_shift(): void
@@ -140,15 +147,15 @@ class EligibleEmployeeTest extends TestCase
             'employee_id' => $employee->id, 'weekday' => 2, 'shift_id' => $shift->id, 'level' => 'available',
         ]);
 
-        $ids = collect($this->get($this->url($workcenter, $shift))->json())->pluck('id');
+        $entry = collect($this->get($this->url($workcenter, $shift))->json())->firstWhere('id', $employee->id);
 
-        $this->assertContains($employee->id, $ids);
+        $this->assertNull($entry['block_reason']);
     }
 
-    public function test_excludes_an_employee_with_a_same_date_overlapping_assignment(): void
+    public function test_marks_an_employee_with_a_same_date_overlapping_assignment_as_blocked(): void
     {
         $this->actingAsAdmin();
-        $employee = Employee::factory()->create();
+        $employee = Employee::factory()->create(['confirmed' => true]);
         $otherWorkcenter = Workcenter::factory()->create();
         $overlappingShift = Shift::factory()->create(['start_time' => '06:00', 'end_time' => '14:00']);
         ShiftAssignment::factory()->create([
@@ -158,10 +165,13 @@ class EligibleEmployeeTest extends TestCase
 
         $workcenter = Workcenter::factory()->create();
         $shift = Shift::factory()->create(['start_time' => '08:00', 'end_time' => '16:00']);
+        RecurringAvailability::factory()->create([
+            'employee_id' => $employee->id, 'weekday' => 2, 'shift_id' => $shift->id, 'level' => 'available',
+        ]);
 
-        $ids = collect($this->get($this->url($workcenter, $shift))->json())->pluck('id');
+        $entry = collect($this->get($this->url($workcenter, $shift))->json())->firstWhere('id', $employee->id);
 
-        $this->assertNotContains($employee->id, $ids);
+        $this->assertSame('overlap', $entry['block_reason']);
     }
 
     public function test_includes_a_not_preferred_employee_flagged(): void
@@ -177,6 +187,7 @@ class EligibleEmployeeTest extends TestCase
         $entry = collect($this->get($this->url($workcenter, $shift))->json())->firstWhere('id', $employee->id);
 
         $this->assertNotNull($entry);
+        $this->assertNull($entry['block_reason']);
         $this->assertTrue($entry['not_preferred']);
     }
 
@@ -193,10 +204,11 @@ class EligibleEmployeeTest extends TestCase
         $entry = collect($this->get($this->url($workcenter, $shift))->json())->firstWhere('id', $employee->id);
 
         $this->assertNotNull($entry);
+        $this->assertNull($entry['block_reason']);
         $this->assertFalse($entry['not_preferred']);
     }
 
-    public function test_excludes_an_employee_hard_assigned_to_a_different_workcenter(): void
+    public function test_marks_an_employee_hard_assigned_to_a_different_workcenter_as_blocked(): void
     {
         $this->actingAsAdmin();
         $workcenter = Workcenter::factory()->create();
@@ -204,10 +216,13 @@ class EligibleEmployeeTest extends TestCase
         $shift = Shift::factory()->create();
         $employee = Employee::factory()->create(['confirmed' => true]);
         $employee->workcenters()->attach($otherWorkcenter, ['mode' => 'hard']);
+        RecurringAvailability::factory()->create([
+            'employee_id' => $employee->id, 'weekday' => 2, 'shift_id' => $shift->id, 'level' => 'available',
+        ]);
 
-        $ids = collect($this->get($this->url($workcenter, $shift))->json())->pluck('id');
+        $entry = collect($this->get($this->url($workcenter, $shift))->json())->firstWhere('id', $employee->id);
 
-        $this->assertNotContains($employee->id, $ids);
+        $this->assertSame('workcenter_ineligible', $entry['block_reason']);
     }
 
     public function test_includes_an_employee_hard_assigned_to_this_workcenter(): void
@@ -221,9 +236,9 @@ class EligibleEmployeeTest extends TestCase
             'employee_id' => $employee->id, 'weekday' => 2, 'shift_id' => $shift->id, 'level' => 'available',
         ]);
 
-        $ids = collect($this->get($this->url($workcenter, $shift))->json())->pluck('id');
+        $entry = collect($this->get($this->url($workcenter, $shift))->json())->firstWhere('id', $employee->id);
 
-        $this->assertContains($employee->id, $ids);
+        $this->assertNull($entry['block_reason']);
     }
 
     public function test_includes_a_soft_assigned_employee_at_any_workcenter(): void
@@ -238,9 +253,9 @@ class EligibleEmployeeTest extends TestCase
             'employee_id' => $employee->id, 'weekday' => 2, 'shift_id' => $shift->id, 'level' => 'available',
         ]);
 
-        $ids = collect($this->get($this->url($workcenter, $shift))->json())->pluck('id');
+        $entry = collect($this->get($this->url($workcenter, $shift))->json())->firstWhere('id', $employee->id);
 
-        $this->assertContains($employee->id, $ids);
+        $this->assertNull($entry['block_reason']);
     }
 
     public function test_flags_a_soft_assigned_employee_as_workcenter_not_preferred(): void
@@ -288,7 +303,7 @@ class EligibleEmployeeTest extends TestCase
         $this->assertNotContains($employee->id, $ids);
     }
 
-    public function test_excludes_an_employee_at_the_hard_daily_shift_cap(): void
+    public function test_marks_an_employee_at_the_hard_daily_shift_cap_as_blocked(): void
     {
         $this->actingAsAdmin();
         $workcenter = Workcenter::factory()->create();
@@ -305,12 +320,12 @@ class EligibleEmployeeTest extends TestCase
         ]);
         PlanningRule::create(['type' => 'max_shifts_per_day', 'mode' => 'hard', 'config' => ['value' => 1]]);
 
-        $ids = collect($this->get($this->url($workcenter, $targetShift))->json())->pluck('id');
+        $entry = collect($this->get($this->url($workcenter, $targetShift))->json())->firstWhere('id', $employee->id);
 
-        $this->assertNotContains($employee->id, $ids);
+        $this->assertSame('max_shifts_per_day', $entry['block_reason']);
     }
 
-    public function test_excludes_an_employee_over_the_hard_hours_cap_for_the_planning_cycle(): void
+    public function test_marks_an_employee_over_the_hard_hours_cap_for_the_planning_cycle_as_blocked(): void
     {
         $this->actingAsAdmin();
         PlanningSettings::current()->update(['period_start' => '2026-09-14']);
@@ -327,9 +342,9 @@ class EligibleEmployeeTest extends TestCase
         ]);
         PlanningRule::create(['type' => 'max_hours_per_week', 'mode' => 'hard']);
 
-        $ids = collect($this->get($this->url($workcenter, $targetShift))->json())->pluck('id');
+        $entry = collect($this->get($this->url($workcenter, $targetShift))->json())->firstWhere('id', $employee->id);
 
-        $this->assertNotContains($employee->id, $ids);
+        $this->assertSame('max_hours_per_week', $entry['block_reason']);
     }
 
     public function test_counts_slightly_long_shifts_as_four_hour_blocks_for_the_hard_hours_cap(): void
@@ -349,8 +364,8 @@ class EligibleEmployeeTest extends TestCase
         ]);
         PlanningRule::create(['type' => 'max_hours_per_week', 'mode' => 'hard']);
 
-        $ids = collect($this->get($this->url($workcenter, $targetShift))->json())->pluck('id');
+        $entry = collect($this->get($this->url($workcenter, $targetShift))->json())->firstWhere('id', $employee->id);
 
-        $this->assertContains($employee->id, $ids);
+        $this->assertNull($entry['block_reason']);
     }
 }
