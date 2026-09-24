@@ -196,6 +196,84 @@ describe("Scheduling", () => {
 
         expect(dayButton(w, 12).classes().join(" ")).toContain("bg-(--color-badge-muted-bg)");
         expect(routerGetCalls).toHaveLength(0);
+        expect(JSON.parse(window.sessionStorage.getItem("planning.selectedWorkcenters.7"))).toEqual({
+            available: [1, 2],
+            selected: [1],
+        });
+    });
+
+    it("restores selected workcenters from the user session", () => {
+        window.sessionStorage.setItem("planning.selectedWorkcenters.7", JSON.stringify({
+            available: [1, 2],
+            selected: [2],
+        }));
+
+        const w = mountPage();
+        const checkboxes = w.findAll('input[type="checkbox"]');
+
+        expect(checkboxes.at(0).element.checked).toBe(false);
+        expect(checkboxes.at(1).element.checked).toBe(true);
+    });
+
+    it("restores an empty workcenter selection", () => {
+        window.sessionStorage.setItem("planning.selectedWorkcenters.7", JSON.stringify({
+            available: [1, 2],
+            selected: [],
+        }));
+
+        const w = mountPage();
+        const checkboxes = w.findAll('input[type="checkbox"]');
+
+        expect(checkboxes.at(0).element.checked).toBe(false);
+        expect(checkboxes.at(1).element.checked).toBe(false);
+    });
+
+    it("selects new workcenters and removes stale workcenters from the session", () => {
+        window.sessionStorage.setItem("planning.selectedWorkcenters.7", JSON.stringify({
+            available: [1, 99],
+            selected: [99],
+        }));
+
+        const w = mountPage();
+        const checkboxes = w.findAll('input[type="checkbox"]');
+
+        expect(checkboxes.at(0).element.checked).toBe(false);
+        expect(checkboxes.at(1).element.checked).toBe(true);
+        expect(JSON.parse(window.sessionStorage.getItem("planning.selectedWorkcenters.7"))).toEqual({
+            available: [1, 2],
+            selected: [2],
+        });
+    });
+
+    it("selects all workcenters when the stored selection is invalid", () => {
+        window.sessionStorage.setItem("planning.selectedWorkcenters.7", "invalid");
+
+        const w = mountPage();
+        const checkboxes = w.findAll('input[type="checkbox"]');
+
+        expect(checkboxes.at(0).element.checked).toBe(true);
+        expect(checkboxes.at(1).element.checked).toBe(true);
+        expect(JSON.parse(window.sessionStorage.getItem("planning.selectedWorkcenters.7"))).toEqual({
+            available: [1, 2],
+            selected: [1, 2],
+        });
+    });
+
+    it("does not restore another user's workcenter selection", () => {
+        window.sessionStorage.setItem("planning.selectedWorkcenters.8", JSON.stringify({
+            available: [1, 2],
+            selected: [],
+        }));
+
+        const w = mountPage();
+        const checkboxes = w.findAll('input[type="checkbox"]');
+
+        expect(checkboxes.at(0).element.checked).toBe(true);
+        expect(checkboxes.at(1).element.checked).toBe(true);
+        expect(JSON.parse(window.sessionStorage.getItem("planning.selectedWorkcenters.7"))).toEqual({
+            available: [1, 2],
+            selected: [1, 2],
+        });
     });
 
     it("navigates to the next month via the calendar, carrying year/month/date", async () => {

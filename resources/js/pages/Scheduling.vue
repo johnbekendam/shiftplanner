@@ -129,13 +129,60 @@ watch(
 
 onBeforeUnmount(stopGenerationPoll)
 
-const checkedWorkcenterIds = ref(props.workcenters.map((w) => w.id))
+function selectedWorkcentersSessionKey() {
+    const userId = page.props.auth?.user?.id
+    return userId ? `planning.selectedWorkcenters.${userId}` : null
+}
+
+function storeSelectedWorkcenters(selectedIds) {
+    const key = selectedWorkcentersSessionKey()
+    if (!key || typeof window === 'undefined') return
+
+    window.sessionStorage.setItem(key, JSON.stringify({
+        available: props.workcenters.map((workcenter) => workcenter.id),
+        selected: selectedIds,
+    }))
+}
+
+function initialSelectedWorkcenterIds() {
+    const availableIds = props.workcenters.map((workcenter) => workcenter.id)
+    const key = selectedWorkcentersSessionKey()
+    if (!key || typeof window === 'undefined') return availableIds
+
+    let stored
+    try {
+        stored = JSON.parse(window.sessionStorage.getItem(key))
+    } catch {
+        stored = null
+    }
+
+    const valid = stored !== null
+        && Array.isArray(stored.available)
+        && Array.isArray(stored.selected)
+        && stored.available.every(Number.isInteger)
+        && stored.selected.every((id) => Number.isInteger(id) && stored.available.includes(id))
+
+    if (!valid) {
+        storeSelectedWorkcenters(availableIds)
+        return availableIds
+    }
+
+    const selectedIds = availableIds.filter((id) =>
+        stored.selected.includes(id) || !stored.available.includes(id),
+    )
+    storeSelectedWorkcenters(selectedIds)
+    return selectedIds
+}
+
+const checkedWorkcenterIds = ref(initialSelectedWorkcenterIds())
 const checkedShiftIds = ref(props.shifts.map((s) => s.id))
 
 function toggleWorkcenter(id, checked) {
-    checkedWorkcenterIds.value = checked
+    const selectedIds = checked
         ? [...checkedWorkcenterIds.value, id]
         : checkedWorkcenterIds.value.filter((x) => x !== id)
+    checkedWorkcenterIds.value = selectedIds
+    storeSelectedWorkcenters(selectedIds)
 }
 
 function toggleShift(id, checked) {
