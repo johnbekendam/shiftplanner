@@ -8,6 +8,7 @@ use App\Models\Competence;
 use App\Models\Employee;
 use App\Models\Shift;
 use App\Services\ApplicationBackup;
+use App\Services\EmployeeAuditLogger;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -18,6 +19,8 @@ use Inertia\Response;
 class EmployeeBackupController extends Controller
 {
     private const VERSION = 1;
+
+    public function __construct(private EmployeeAuditLogger $audit) {}
 
     public function index(): Response
     {
@@ -61,7 +64,15 @@ class EmployeeBackupController extends Controller
 
         if (($archive['version'] ?? null) === ApplicationBackup::VERSION) {
             try {
-                return response()->json($backup->import($archive));
+                $before = $this->auditSnapshots();
+                $result = DB::transaction(function () use ($archive, $backup, $before, $request): array {
+                    $result = $backup->import($archive);
+                    $this->auditImportChanges($before, $this->auditSnapshots(), $request);
+
+                    return $result;
+                });
+
+                return response()->json($result);
             } catch (\RuntimeException $exception) {
                 return response()->json(['errors' => [$exception->getMessage()]], 422);
             }
@@ -73,7 +84,9 @@ class EmployeeBackupController extends Controller
             return response()->json(['errors' => $errors], 422);
         }
 
-        [$created, $updated] = DB::transaction(function () use ($archive): array {
+        $before = $this->auditSnapshots();
+
+        [$created, $updated] = DB::transaction(function () use ($archive, $before, $request): array {
             $created = 0;
             $updated = 0;
 
@@ -118,10 +131,60 @@ class EmployeeBackupController extends Controller
                 $isNew ? $created++ : $updated++;
             }
 
+            $this->auditImportChanges($before, $this->auditSnapshots(), $request);
+
             return [$created, $updated];
         });
 
         return response()->json(['created' => $created, 'updated' => $updated]);
+    }
+
+    private function auditSnapshots(): array
+    {
+        return Employee::query()
+            ->with(['holidays', 'recurringAvailabilities', 'competences', 'availabilityQuestions', 'workcenters'])
+            ->get()
+            ->mapWithKeys(function (Employee $employee): array {
+                $snapshot = $employee->only(EmployeeAuditLogger::EMPLOYEE_FIELDS);
+                $snapshot['archived_at'] = $employee->archived_at?->toIso8601String();
+                $snapshot['holidays'] = $employee->holidays->map->toPayload()->values()->all();
+                $snapshot['availability'] = $employee->recurringAvailabilities->map->toPayload()->values()->all();
+                $snapshot['competence_ids'] = $employee->competences->pluck('id')->sort()->values()->all();
+                $snapshot['question_ids'] = $employee->availabilityQuestions->pluck('id')->sort()->values()->all();
+                $snapshot['workcenters'] = $employee->workcenters
+                    ->map(fn ($workcenter) => ['id' => $workcenter->id, 'mode' => $workcenter->pivot->mode])
+                    ->sortBy('id')->values()->all();
+
+                return [$employee->id => $snapshot];
+            })
+            ->all();
+    }
+
+    private function auditImportChanges(array $before, array $after, Request $request): void
+    {
+        foreach (array_unique([...array_keys($before), ...array_keys($after)]) as $employeeId) {
+            $old = $before[$employeeId] ?? null;
+            $new = $after[$employeeId] ?? null;
+
+            if ($old === $new) {
+                continue;
+            }
+
+            $action = $old === null ? 'import_created' : ($new === null ? 'import_removed' : 'import_updated');
+            $keys = array_unique([...array_keys($old ?? []), ...array_keys($new ?? [])]);
+            $changed = array_values(array_filter($keys, fn (string $key) => ($old[$key] ?? null) !== ($new[$key] ?? null)));
+
+            $this->audit->recordForEmployeeId(
+                (int) $employeeId,
+                $action,
+                'employee',
+                (int) $employeeId,
+                $old === null ? [] : array_intersect_key($old, array_flip($changed)),
+                $new === null ? [] : array_intersect_key($new, array_flip($changed)),
+                'backup_import',
+                $request->user(),
+            );
+        }
     }
 
     private function exportEmployee(Employee $employee): array

@@ -7,6 +7,7 @@ use App\Models\BusinessLine;
 use App\Models\Competence;
 use App\Models\Employee;
 use App\Models\PlanningSettings;
+use App\Services\EmployeeAuditLogger;
 use App\Services\EmployeePersonalLinkService;
 use App\Services\PlannedShifts;
 use Illuminate\Http\Request;
@@ -25,7 +26,11 @@ use Inertia\Inertia;
  */
 class PersonalPageController extends Controller
 {
-    public function __construct(private EmployeePersonalLinkService $links, private PlannedShifts $plannedShifts) {}
+    public function __construct(
+        private EmployeePersonalLinkService $links,
+        private PlannedShifts $plannedShifts,
+        private EmployeeAuditLogger $audit,
+    ) {}
 
     public function show(string $token)
     {
@@ -79,7 +84,24 @@ class PersonalPageController extends Controller
             'business_line_id' => ['nullable', 'integer', 'exists:business_lines,id'],
         ]);
 
+        $before = $employee->only(array_keys($data));
+        $employee->fill($data);
+        $changed = array_keys($employee->getDirty());
         $employee->update($data);
+
+        if ($changed !== []) {
+            $this->audit->record(
+                $employee,
+                'updated',
+                'employee',
+                $employee->id,
+                array_intersect_key($before, array_flip($changed)),
+                $employee->only($changed),
+                'employee_personal_link',
+                actorType: 'employee',
+                actorSnapshot: ['id' => $employee->id, 'name' => $employee->name, 'email' => $employee->email],
+            );
+        }
 
         return redirect("/personal/{$token}")->with('success', __('personal.flash.saved'));
     }

@@ -5,7 +5,9 @@ namespace Tests\Feature;
 use App\Models\Employee;
 use App\Models\EmployeeAuditEvent;
 use App\Models\User;
+use App\Services\SelfSignupService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Queue;
 use LogicException;
 use Tests\TestCase;
 
@@ -117,5 +119,51 @@ class EmployeeAuditTest extends TestCase
 
         $this->expectException(LogicException::class);
         $event->delete();
+    }
+
+    public function test_public_signup_records_a_public_actor_snapshot(): void
+    {
+        Queue::fake();
+
+        app(SelfSignupService::class)->register('Public', 'Person', 'public@example.com');
+
+        $event = EmployeeAuditEvent::sole();
+        $this->assertSame('public_signup', $event->source);
+        $this->assertSame('public', $event->actor_type);
+        $this->assertSame('Public Person', $event->actor_name);
+        $this->assertSame('public@example.com', $event->actor_email);
+    }
+
+    public function test_personal_link_update_records_the_employee_as_actor(): void
+    {
+        $employee = Employee::factory()->create(['weekly_hours' => 24]);
+        $employee->personalLink()->create(['token' => 'audit-personal-token']);
+
+        $this->put('/personal/audit-personal-token', [
+            'weekly_hours' => 28,
+            'business_line_id' => null,
+        ])->assertRedirect();
+
+        $event = EmployeeAuditEvent::sole();
+        $this->assertSame('employee_personal_link', $event->source);
+        $this->assertSame('employee', $event->actor_type);
+        $this->assertSame($employee->id, $event->actor_id);
+        $this->assertSame(['weekly_hours' => 24], $event->old_values);
+        $this->assertSame(['weekly_hours' => 28], $event->new_values);
+    }
+
+    public function test_account_link_records_the_authenticated_user(): void
+    {
+        $employee = Employee::factory()->create(['email' => 'link@example.com']);
+        $user = User::factory()->create(['email' => 'link@example.com', 'employee_id' => null]);
+
+        $this->actingAs($user)->post('/account/employee')->assertRedirect();
+
+        $event = EmployeeAuditEvent::sole();
+        $this->assertSame('linked', $event->action);
+        $this->assertSame('account_link', $event->source);
+        $this->assertSame($user->id, $event->actor_id);
+        $this->assertSame(['employee_id' => null], $event->old_values);
+        $this->assertSame(['employee_id' => $employee->id], $event->new_values);
     }
 }

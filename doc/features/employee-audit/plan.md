@@ -1,4 +1,4 @@
-Status: in progress - 5/8
+Status: in progress - 6/8
 
 - [x] 1. Add the audit event schema, model, recorder, and core employee create,
   update, and confirmation events. Test changed values, actor snapshots, and
@@ -17,7 +17,7 @@ Status: in progress - 5/8
 - [x] 5. Audit manager and administrator changes to holidays, recurring
   availability, competences, workcenters, and question answers. Test create,
   update, and removal values. Commit as `feat: audit employee configuration`.
-- [ ] 6. Audit public signup, personal-link changes, account linking, and
+- [x] 6. Audit public signup, personal-link changes, account linking, and
   employee changes from imports. Test typed sources and the strongest
   available actor identity. Commit as `feat: audit employee change sources`.
 - [ ] 7. Add the employee audit timeline for authorized users. Show newest

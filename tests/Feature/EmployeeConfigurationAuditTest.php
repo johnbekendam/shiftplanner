@@ -100,4 +100,32 @@ class EmployeeConfigurationAuditTest extends TestCase
         $this->assertSame(['answer' => false], $event->old_values);
         $this->assertSame(['answer' => true], $event->new_values);
     }
+
+    public function test_personal_link_configuration_changes_use_the_employee_actor(): void
+    {
+        $employee = Employee::factory()->create();
+        $employee->personalLink()->create(['token' => 'personal-audit']);
+        $shift = Shift::factory()->create(['visible_by_default' => true]);
+        $competence = Competence::factory()->create();
+        $question = AvailabilityQuestion::factory()->create();
+
+        $this->post('/personal/personal-audit/holidays', [
+            'start_date' => '2026-11-01',
+            'end_date' => '2026-11-02',
+        ]);
+        $this->put("/personal/personal-audit/availability/2/{$shift->id}", ['level' => 'available']);
+        $this->put("/personal/personal-audit/competences/{$competence->id}");
+        $this->put("/personal/personal-audit/questions/{$question->id}", ['answer' => true]);
+
+        $events = EmployeeAuditEvent::query()->where('employee_id', $employee->id)->get();
+        $this->assertSame([
+            'holiday_created',
+            'availability_changed',
+            'competence_attached',
+            'question_answer_changed',
+        ], $events->pluck('action')->all());
+        $this->assertTrue($events->every(fn (EmployeeAuditEvent $event) => $event->source === 'employee_personal_link'));
+        $this->assertTrue($events->every(fn (EmployeeAuditEvent $event) => $event->actor_type === 'employee'));
+        $this->assertTrue($events->every(fn (EmployeeAuditEvent $event) => $event->actor_id === $employee->id));
+    }
 }
