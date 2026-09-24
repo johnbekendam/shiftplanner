@@ -14,8 +14,8 @@ use App\Models\MessageTemplate;
 use App\Models\PlanningSettings;
 use App\Models\Shift;
 use App\Models\Workcenter;
-use App\Services\EmployeePersonalLinkService;
 use App\Services\EmployeeAuditLogger;
+use App\Services\EmployeePersonalLinkService;
 use App\Services\MessageComposer;
 use App\Services\PersonalLinkMessage;
 use App\Services\PlannedShifts;
@@ -92,9 +92,15 @@ class EmployeeController extends Controller
             $filterIncludesNone = in_array('none', $businessLineFilter, true);
 
             $query->where(function ($q) use ($filterIds, $filterIncludesNone) {
-                if ($filterIds !== []) $q->orWhereIn('employees.business_line_id', $filterIds);
-                if ($filterIncludesNone) $q->orWhereNull('employees.business_line_id');
-                if ($filterIds === [] && ! $filterIncludesNone) $q->whereRaw('1 = 0');
+                if ($filterIds !== []) {
+                    $q->orWhereIn('employees.business_line_id', $filterIds);
+                }
+                if ($filterIncludesNone) {
+                    $q->orWhereNull('employees.business_line_id');
+                }
+                if ($filterIds === [] && ! $filterIncludesNone) {
+                    $q->whereRaw('1 = 0');
+                }
             });
         }
 
@@ -200,6 +206,23 @@ class EmployeeController extends Controller
             'questions' => AvailabilityQuestion::all()->map->toPayload()->all(),
             'questionAnswers' => $employee->availabilityQuestions->pluck('id')->all(),
             'plannedShifts' => $this->plannedShifts->forEmployee($employee, publishedOnly: false),
+            'auditEvents' => $employee->auditEvents->map(fn ($event) => [
+                ...$event->only([
+                    'id',
+                    'action',
+                    'subject_type',
+                    'subject_id',
+                    'source',
+                    'actor_type',
+                    'actor_id',
+                    'actor_name',
+                    'actor_email',
+                    'actor_role',
+                    'old_values',
+                    'new_values',
+                ]),
+                'created_at' => $event->created_at->toIso8601String(),
+            ])->all(),
         ]);
     }
 

@@ -1,4 +1,4 @@
-Status: in progress - 6/8
+Status: in progress - 7/8
 
 - [x] 1. Add the audit event schema, model, recorder, and core employee create,
   update, and confirmation events. Test changed values, actor snapshots, and
@@ -20,7 +20,7 @@ Status: in progress - 6/8
 - [x] 6. Audit public signup, personal-link changes, account linking, and
   employee changes from imports. Test typed sources and the strongest
   available actor identity. Commit as `feat: audit employee change sources`.
-- [ ] 7. Add the employee audit timeline for authorized users. Show newest
+- [x] 7. Add the employee audit timeline for authorized users. Show newest
   events first with expandable changed values, including archived employees.
   Test authorization and payload formatting. Commit as
   `feat: show employee audit timeline`.

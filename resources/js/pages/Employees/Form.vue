@@ -15,6 +15,7 @@ import QuestionChecklist from '@/components/QuestionChecklist.vue'
 import TagChecklist from '@/components/TagChecklist.vue'
 import WorkcenterChecklist from '@/components/WorkcenterChecklist.vue'
 import PlanningTable from '@/components/PlanningTable.vue'
+import EmployeeAuditTimeline from '@/components/EmployeeAuditTimeline.vue'
 import ButtonPrimary from '@/components/ui/ButtonPrimary.vue'
 import ButtonSecondary from '@/components/ui/ButtonSecondary.vue'
 import ButtonDanger from '@/components/ui/ButtonDanger.vue'
@@ -47,6 +48,7 @@ const props = defineProps({
     questionAnswers: { type: Array, default: () => [] },
     // [{ weekStart, weekEnd, published, assignments }] — every assignment, draft included.
     plannedShifts: { type: Array, default: () => [] },
+    auditEvents: { type: Array, default: () => [] },
 })
 
 const isEdit = computed(() => props.employee !== null)
@@ -73,7 +75,7 @@ const plannedAssignments = computed(() => props.plannedShifts.flatMap((week) => 
 const publishedAssignments = computed(() => plannedAssignments.value.filter((a) => a.published))
 const draftAssignments = computed(() => plannedAssignments.value.filter((a) => !a.published))
 
-const employeeTabs = ['settings', 'details', 'availability', 'competences', 'workcenters', 'planning']
+const employeeTabs = ['settings', 'details', 'availability', 'competences', 'workcenters', 'planning', 'audit']
 const requestedTab = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('tab') : null
 const tab = ref(isEdit.value && employeeTabs.includes(requestedTab) ? requestedTab : 'settings')
 const tabs = computed(() => [
@@ -88,6 +90,7 @@ const tabs = computed(() => [
     { value: 'competences', label: __('competences.tab'), hasError: registry.hasError('competences') },
     { value: 'workcenters', label: __('workcenters.employee_tab'), hasError: registry.hasError('workcenters') },
     { value: 'planning', label: __('planning.tab') },
+    { value: 'audit', label: __('employees.audit.tab') },
 ])
 
 function submit() {
@@ -560,6 +563,10 @@ function restore() {
                         <PlanningTable :assignments="draftAssignments" :empty-text="__('planning.draft_empty')" />
                     </section>
                 </div>
+            </div>
+
+            <div v-if="isEdit" v-show="tab === 'audit'" data-testid="panel-audit" class="p-6">
+                <EmployeeAuditTimeline :events="auditEvents" />
             </div>
 
             <div v-if="isEdit" class="p-6 pt-0">

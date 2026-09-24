@@ -33,6 +33,15 @@ const en = {
     "employees.hours_option": ":count hours",
     "employees.form.edit_title": "Edit employee",
     "employees.form.create_title": "Add employee",
+    "employees.audit.tab": "History",
+    "employees.audit.empty": "No history yet.",
+    "employees.audit.by": "by :actor",
+    "employees.audit.system_actor": "System",
+    "employees.audit.before": "Before",
+    "employees.audit.after": "After",
+    "employees.audit.not_set": "Not set",
+    "employees.audit.action.updated": "Employee updated",
+    "employees.audit.source.user": "Manager or administrator",
     "employees.action.save": "Save",
     "employees.action.create": "Create",
     "employees.action.saving": "Saving…",
@@ -165,6 +174,40 @@ describe("Employees/Form", () => {
         });
 
         expect(w.findAll("button").some((button) => button.text() === "Restore")).toBe(false);
+    });
+
+    it("shows archived employee audit details in an expandable History tab", async () => {
+        const w = mount(Form, {
+            props: {
+                employee: { id: 3, first_name: "A", last_name: "B", weekly_hours: 24, archived: true },
+                auditEvents: [{
+                    id: 9,
+                    action: "updated",
+                    source: "user",
+                    actor_name: "Manager Name",
+                    actor_email: "manager@example.com",
+                    old_values: { weekly_hours: 24, confirmed: false },
+                    new_values: { weekly_hours: 28, confirmed: true },
+                    created_at: "2026-09-24T10:00:00+00:00",
+                }],
+            },
+            global: { stubs },
+        });
+
+        await w.findAll("button").find((button) => button.text() === "History").trigger("click");
+        const event = w.get('[data-testid="audit-event-9"]');
+        expect(event.text()).toContain("Employee updated");
+        expect(event.text()).toContain("by Manager Name");
+        expect(event.text()).not.toContain("weekly_hours");
+
+        await event.get("button").trigger("click");
+        expect(event.text()).toContain("weekly_hours");
+        expect(event.text()).toContain("24");
+        expect(event.text()).toContain("28");
+        expect(event.text()).toContain("confirmed");
+        expect(event.text()).toContain("false");
+        expect(event.text()).toContain("true");
+        expect(event.get("button").attributes("aria-expanded")).toBe("true");
     });
 
     it("shows Settings first and hides the Information tab", () => {

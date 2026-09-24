@@ -86,6 +86,13 @@ class Employee extends Model
         return $this->hasMany(ShiftAssignment::class);
     }
 
+    public function auditEvents(): HasMany
+    {
+        return $this->hasMany(EmployeeAuditEvent::class)
+            ->orderByDesc('created_at')
+            ->orderByDesc('id');
+    }
+
     public function effectiveWeeklyHoursMinimum(): int
     {
         return $this->weekly_hours_minimum ?? PlanningSettings::current()->weekly_hours_minimum;
