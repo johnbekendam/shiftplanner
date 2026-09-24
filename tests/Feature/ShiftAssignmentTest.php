@@ -112,6 +112,20 @@ class ShiftAssignmentTest extends TestCase
         $this->assertSame(0, ShiftAssignment::count());
     }
 
+    public function test_store_rejects_an_archived_employee(): void
+    {
+        $this->actingAsAdmin();
+        $employee = Employee::factory()->create(['confirmed' => true, 'archived_at' => now()]);
+        $workcenter = Workcenter::factory()->create();
+        $shift = Shift::factory()->create();
+        $this->setCapacity($workcenter, $shift, $this->aTuesday(), 1);
+
+        $this->post('/planning/assignments', $this->validPayload($employee, $workcenter, $shift))
+            ->assertSessionHasErrors('employee_id');
+
+        $this->assertSame(0, ShiftAssignment::count());
+    }
+
     public function test_store_rejects_a_full_cell(): void
     {
         $this->actingAsAdmin();

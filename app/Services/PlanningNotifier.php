@@ -46,7 +46,7 @@ class PlanningNotifier
 
         $queued = 0;
 
-        foreach (Employee::whereIn('id', $rows->pluck('id'))->get() as $employee) {
+        foreach (Employee::active()->whereIn('id', $rows->pluck('id'))->get() as $employee) {
             $resolved = $this->placeholders->resolve($template->subject, $template->body, $employee);
 
             if ($resolved['unresolved'] !== []) {

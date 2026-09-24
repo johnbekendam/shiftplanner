@@ -1,4 +1,4 @@
-Status: in progress - 3/8
+Status: in progress - 4/8
 
 - [x] 1. Add the audit event schema, model, recorder, and core employee create,
   update, and confirmation events. Test changed values, actor snapshots, and
@@ -10,7 +10,7 @@ Status: in progress - 3/8
   employee forms read-only and add the administrator restore action. Test the
   list, form, archive, and restore flows. Commit as
   `feat: add archived employee management`.
-- [ ] 4. Exclude archived employees from planning, scheduling choices, and
+- [x] 4. Exclude archived employees from planning, scheduling choices, and
   operational selectors. Block personal-link writes, signup, and account
   linking until an administrator restores the employee. Test each boundary.
   Commit as `feat: suspend archived employees`.

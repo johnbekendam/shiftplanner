@@ -27,6 +27,7 @@ class EligibleEmployeeController extends Controller
         $weekday = $date->isoWeekday();
 
         $employees = Employee::query()
+            ->active()
             ->where('confirmed', true)
             ->orderBy('first_name')
             ->orderBy('last_name')

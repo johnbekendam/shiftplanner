@@ -9,6 +9,7 @@ use App\Models\Workcenter;
 use App\Services\SchedulingEligibility;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 class ShiftAssignmentController extends Controller
@@ -18,13 +19,13 @@ class ShiftAssignmentController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate([
-            'employee_id' => ['required', 'integer', 'exists:employees,id'],
+            'employee_id' => ['required', 'integer', Rule::exists('employees', 'id')->whereNull('archived_at')],
             'workcenter_id' => ['required', 'integer', 'exists:workcenters,id'],
             'shift_id' => ['required', 'integer', 'exists:shifts,id'],
             'date' => ['required', 'date_format:Y-m-d'],
         ]);
 
-        $employee = Employee::findOrFail($data['employee_id']);
+        $employee = Employee::active()->findOrFail($data['employee_id']);
         $workcenter = Workcenter::findOrFail($data['workcenter_id']);
         $shift = Shift::findOrFail($data['shift_id']);
         $date = Carbon::parse($data['date']);

@@ -78,6 +78,21 @@ class EmployeeAdminTest extends TestCase
             ->assertInertia(fn ($page) => $page->where('employee.archived', true));
     }
 
+    public function test_an_archived_employee_cannot_be_updated_directly(): void
+    {
+        $user = User::factory()->create();
+        $employee = Employee::factory()->create(['first_name' => 'Before', 'archived_at' => now()]);
+
+        $this->actingAs($user)->put("/employees/{$employee->id}", [
+            'first_name' => 'After',
+            'last_name' => $employee->last_name,
+            'email' => $employee->email,
+            'weekly_hours' => $employee->weekly_hours,
+        ])->assertStatus(409);
+
+        $this->assertSame('Before', $employee->fresh()->first_name);
+    }
+
     public function test_created_employee_defaults_to_unconfirmed(): void
     {
         $user = User::factory()->create();

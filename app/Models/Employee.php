@@ -133,4 +133,9 @@ class Employee extends Model
                 ->orWhere('email', 'like', "%{$search}%");
         });
     }
+
+    public function scopeActive($query)
+    {
+        return $query->whereNull('employees.archived_at');
+    }
 }

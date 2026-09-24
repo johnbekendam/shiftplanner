@@ -47,8 +47,13 @@ class SelfSignupService
 
         $employee = Employee::query()
             ->whereRaw('lower(email) = ?', [Str::lower($email)])
-            ->first()
-            ?? Employee::create([
+            ->first();
+
+        if ($employee?->archived_at !== null) {
+            return;
+        }
+
+        $employee ??= Employee::create([
                 'first_name' => $firstName,
                 'last_name' => $lastName,
                 'email' => $email,
@@ -76,7 +81,7 @@ class SelfSignupService
             ->whereRaw('lower(email) = ?', [Str::lower($email)])
             ->first();
 
-        if (! $employee) {
+        if (! $employee || $employee->archived_at !== null) {
             return;
         }
 

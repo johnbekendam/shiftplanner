@@ -71,6 +71,8 @@ class AccountController extends Controller
             ],
         );
 
+        abort_if($employee->archived_at !== null, 409, __('employees.error.archived'));
+
         abort_if($employee->user()->whereKeyNot($user->id)->exists(), 409);
 
         $user->update(['employee_id' => $employee->id]);

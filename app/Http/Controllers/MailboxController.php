@@ -87,6 +87,7 @@ class MailboxController extends Controller
             'type' => $type->value,
             'template' => MessageTemplate::forType($type)->only('subject', 'body'),
             'employees' => Employee::query()
+                ->active()
                 ->whereNotNull('email')
                 ->orderBy('first_name')
                 ->orderBy('last_name')
@@ -124,7 +125,7 @@ class MailboxController extends Controller
         $pluralIds = $single ? [] : array_map('intval', (array) $request->query('employee_ids', []));
         $ids = array_values(array_unique(array_filter([$singleId, ...$pluralIds])));
 
-        return Employee::whereIn('id', $ids)->whereNotNull('email')->pluck('id')
+        return Employee::active()->whereIn('id', $ids)->whereNotNull('email')->pluck('id')
             ->sortBy(fn (int $id) => array_search($id, $ids, true))
             ->values()
             ->all();
@@ -139,7 +140,7 @@ class MailboxController extends Controller
      */
     private function resolveRecipients(array $employeeIds, array $userIds): Collection
     {
-        $employees = Employee::whereIn('id', $employeeIds)->whereNotNull('email')->get();
+        $employees = Employee::active()->whereIn('id', $employeeIds)->whereNotNull('email')->get();
         $seenEmails = $employees->map(fn (Employee $employee) => Str::lower($employee->email))->all();
 
         $users = User::whereIn('id', $userIds)->get()
@@ -154,12 +155,12 @@ class MailboxController extends Controller
             'type' => ['required', Rule::enum(MessageType::class)],
             'subject' => ['required', 'string'],
             'body' => ['required', 'string'],
-            'employee_id' => ['nullable', 'integer', 'exists:employees,id'],
+            'employee_id' => ['nullable', 'integer', Rule::exists('employees', 'id')->whereNull('archived_at')],
             'user_id' => ['nullable', 'integer', 'exists:users,id'],
         ]);
 
         $recipient = ! empty($data['employee_id'])
-            ? Employee::findOrFail($data['employee_id'])
+            ? Employee::active()->findOrFail($data['employee_id'])
             : (! empty($data['user_id']) ? User::findOrFail($data['user_id']) : null);
 
         if ($recipient === null) {
@@ -182,7 +183,7 @@ class MailboxController extends Controller
             'subject' => ['required', 'string', 'max:255'],
             'body' => ['required', 'string', 'max:20000'],
             'employee_ids' => ['array'],
-            'employee_ids.*' => ['integer', 'exists:employees,id'],
+            'employee_ids.*' => ['integer', Rule::exists('employees', 'id')->whereNull('archived_at')],
             'user_ids' => ['array'],
             'user_ids.*' => ['integer', 'exists:users,id'],
             'send_mode' => ['required', 'in:draft,queue'],

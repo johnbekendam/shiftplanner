@@ -165,6 +165,7 @@ class ReportController extends Controller
     private function missingAvailability(?int $shiftId, ?int $businessLineId, bool $includeUnconfirmed): array
     {
         return Employee::query()
+            ->active()
             ->where('weekly_hours', '>', 0)
             ->when(!$includeUnconfirmed, fn ($q) => $q->where('confirmed', true))
             ->when($businessLineId !== null, fn ($q) => $q->where('business_line_id', $businessLineId))
@@ -194,6 +195,7 @@ class ReportController extends Controller
         }
 
         return Employee::query()
+            ->active()
             ->with('competences:id,name')
             ->orderBy('first_name')
             ->orderBy('last_name')
@@ -232,6 +234,7 @@ class ReportController extends Controller
     private function unassignedWorkcenterReport(string $sort, string $direction)
     {
         $query = Employee::query()
+            ->active()
             ->where('confirmed', true)
             ->whereDoesntHave('workcenters')
             ->with('businessLine');
@@ -255,7 +258,7 @@ class ReportController extends Controller
             return ['data' => [], 'links' => [], 'from' => null, 'to' => null, 'total' => 0, 'last_page' => 1];
         }
 
-        $query = $selectedWorkcenter->employees()->where('confirmed', true)->with('businessLine');
+        $query = $selectedWorkcenter->employees()->active()->where('confirmed', true)->with('businessLine');
 
         $this->applyWorkcenterSort($query, in_array($sort, self::FOR_WORKCENTER_SORT_KEYS, true) ? $sort : 'name', $direction);
 

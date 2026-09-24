@@ -141,6 +141,19 @@ class EmployeeHolidayTest extends TestCase
         ]);
     }
 
+    public function test_an_archived_employee_cannot_add_a_holiday_by_token(): void
+    {
+        $employee = Employee::factory()->create(['archived_at' => now()]);
+        $token = $this->linkedToken($employee);
+
+        $this->post("/personal/{$token}/holidays", [
+            'start_date' => '2026-08-01',
+            'end_date' => '2026-08-07',
+        ])->assertStatus(409);
+
+        $this->assertSame(0, EmployeeHoliday::count());
+    }
+
     public function test_add_holiday_with_a_bad_token_is_404(): void
     {
         $this->post('/personal/not-a-real-token/holidays', [

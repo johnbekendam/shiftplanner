@@ -65,6 +65,19 @@ class EligibleEmployeeTest extends TestCase
 
     // ── Eligibility ────────────────────────────────────────────────────
 
+    public function test_archived_employees_are_excluded(): void
+    {
+        $this->actingAsAdmin();
+        $workcenter = Workcenter::factory()->create();
+        $shift = Shift::factory()->create();
+        $active = Employee::factory()->create(['confirmed' => true]);
+        Employee::factory()->create(['confirmed' => true, 'archived_at' => now()]);
+
+        $ids = collect($this->get($this->url($workcenter, $shift))->json())->pluck('id');
+
+        $this->assertSame([$active->id], $ids->all());
+    }
+
     public function test_marks_an_employee_already_assigned_to_this_cell_as_blocked(): void
     {
         $this->actingAsAdmin();

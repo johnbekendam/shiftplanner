@@ -41,7 +41,7 @@ class PersonalPageController extends Controller
 
         return Inertia::render('Personal/Show', [
             'token' => $token,
-            'editable' => PlanningSettings::current()->allow_employee_changes,
+            'editable' => $employee->archived_at === null && PlanningSettings::current()->allow_employee_changes,
             'employee' => [
                 'first_name' => $employee->first_name,
                 'last_name' => $employee->last_name,

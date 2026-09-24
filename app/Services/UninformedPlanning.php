@@ -46,6 +46,7 @@ class UninformedPlanning
     {
         $query = $this->upcoming()
             ->whereNull('informed_at')
+            ->whereHas('employee', fn ($employee) => $employee->active())
             ->when($excludeQueued, fn ($q) => $q->whereNotIn('id', $this->queuedAssignmentIds()))
             ->when($reachableOnly, fn ($q) => $q->whereHas(
                 'employee',

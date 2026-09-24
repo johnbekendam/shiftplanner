@@ -18,7 +18,7 @@ class DashboardController extends Controller
         $settings = PlanningSettings::current();
         $employeeStatusFilter = $this->employeeStatusFilter($request->query('employees'));
 
-        $unconfirmedEmployeeCount = Employee::query()->where('confirmed', false)->count();
+        $unconfirmedEmployeeCount = Employee::query()->active()->where('confirmed', false)->count();
 
         if (! $settings->period_start || ! $settings->period_end || $settings->period_end->lt($settings->period_start)) {
             return Inertia::render('Dashboard/Index', [
@@ -50,7 +50,7 @@ class DashboardController extends Controller
             ],
         ];
 
-        Employee::query()->with('holidays')->get()->each(function (Employee $employee) use ($days, $settings, &$series) {
+        Employee::query()->active()->with('holidays')->get()->each(function (Employee $employee) use ($days, $settings, &$series) {
             $status = $employee->confirmed ? 'confirmed' : 'unconfirmed';
 
             foreach ($this->availableFte($employee, $days, $settings->fte_hours) as $i => $value) {
