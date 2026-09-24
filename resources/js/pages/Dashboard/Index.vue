@@ -3,7 +3,7 @@ import { computed } from 'vue'
 import { Head, Link, router, usePage } from '@inertiajs/vue3'
 import AppLayout from '@/layouts/AppLayout.vue'
 import Card from '@/components/ui/Card.vue'
-import ButtonSecondary from '@/components/ui/ButtonSecondary.vue'
+import { CheckboxInput } from '@/components/ui/Input'
 import FteLineChart from '@/components/FteLineChart.vue'
 import CoverageDonut from '@/components/CoverageDonut.vue'
 import { useI18n } from '@/composables/useI18n'
@@ -96,25 +96,24 @@ const blocks = computed(() => {
         </p>
 
         <div v-else data-testid="dashboard-card-grid" class="grid w-full gap-6">
-            <div class="flex flex-wrap gap-2" role="group" :aria-label="__('dashboard.lines.label')">
-                <component
-                    :is="ButtonSecondary"
+            <div class="flex flex-wrap gap-x-5 gap-y-2" role="group" :aria-label="__('dashboard.lines.label')">
+                <CheckboxInput
                     v-for="option in lineOptions"
                     :key="option.key"
-                    type="button"
                     data-testid="dashboard-line-toggle"
-                    :class="isVisible(option.key) ? 'outline outline-2 outline-offset-2 outline-[var(--color-brand-bg)]' : ''"
-                    :aria-pressed="isVisible(option.key)"
-                    @click="toggleLine(option.key)"
+                    :model-value="isVisible(option.key)"
+                    @update:model-value="toggleLine(option.key)"
                 >
-                    <span
-                        data-testid="dashboard-line-toggle-marker"
-                        class="h-0.5 w-5 shrink-0 rounded-full"
-                        :class="option.markerClass"
-                        aria-hidden="true"
-                    ></span>
-                    {{ __(option.label) }}
-                </component>
+                    <span class="inline-flex items-center gap-1.5">
+                        <span
+                            data-testid="dashboard-line-toggle-marker"
+                            class="h-0.5 w-4 shrink-0 rounded-full"
+                            :class="option.markerClass"
+                            aria-hidden="true"
+                        ></span>
+                        {{ __(option.label) }}
+                    </span>
+                </CheckboxInput>
             </div>
 
             <p

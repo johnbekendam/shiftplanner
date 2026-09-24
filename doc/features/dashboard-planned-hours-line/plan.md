@@ -1,6 +1,6 @@
 # Dashboard — Planned Hours Line and Line Toggles — Plan
 
-Status: done — 5/5
+Status: done — 6/6
 
 - [x] 1. Backend planned series: `DashboardController` adds a `planned`
   weekly-FTE series to the overall block and each business-line block.
@@ -21,3 +21,6 @@ Status: done — 5/5
 - [x] 5. Backend cleanup: remove the `employees` query filter,
   `employeeStatusFilter`, the filter-selected `available` series, and
   `available_hours`. Update `DashboardTest`.
+- [x] 6. Checkbox legend: replace the four toggle buttons with a compact
+  row of `CheckboxInput`s. Each checkbox shows its line-color marker and
+  label. Update `DashboardIndex.test.js`.

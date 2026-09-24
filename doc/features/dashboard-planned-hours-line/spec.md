@@ -13,7 +13,7 @@ longer fits when a planned line joins the chart.
 
 ### Line toggles
 
-The single-choice selector becomes four toggle buttons, in this order:
+The single-choice selector becomes a legend of four checkboxes, in this order:
 
 | Button | Line | Color token |
 | --- | --- | --- |
@@ -22,10 +22,11 @@ The single-choice selector becomes four toggle buttons, in this order:
 | Total available | confirmed + unconfirmed availability | `--color-brand-bg` (blue) |
 | Planned | planned hours per week, as FTE | `--color-badge-warning-text` (amber) |
 
-- Each button switches its own line on or off. Any combination is valid.
-  With all lines off, the chart shows the target line only.
-- Each button keeps its line-color marker, so the buttons are the legend.
-  An active button keeps the current outline treatment.
+- Each checkbox switches its own line on or off. Any combination is
+  valid. With all lines off, the chart shows the target line only.
+- Each checkbox is a `CheckboxInput` followed by the line-color marker and
+  the label, so the row is the chart legend. The row uses small text with
+  a clear gap between items.
 - The default set is Total available + Planned.
 - The query string holds the set, for example `?lines=confirmed,planned`.
   The default set gives no query string. With no `lines` parameter, the
@@ -72,6 +73,10 @@ lines and the target.
   line. This matches how availability is split per card.
 - **Toggles instead of a single choice.** The user wants to show and hide
   each line on its own.
+- **Checkboxes, not buttons.** Four `ButtonSecondary` toggles were too
+  large, and the outlines of two active neighbors almost touched. A
+  checkbox legend is compact, shows on and off clearly, and reuses
+  `CheckboxInput` with no custom styling.
 - **"Total available" replaces "Stacked".** The lines are not stacked,
   and the name must stay clear next to "Planned".
 - **Amber from an existing token.** `--color-badge-warning-text` is

@@ -48,6 +48,7 @@ const overall = {
     required_hours: 64,
 };
 const toggles = (w) => w.findAll('[data-testid="dashboard-line-toggle"]');
+const checked = (w) => toggles(w).map((t) => t.element.checked);
 const chartLines = (w) => w.getComponent(FteLineChart).props("lines");
 
 describe("Dashboard/Index", () => {
@@ -164,9 +165,15 @@ describe("Dashboard/Index", () => {
     it("shows four line toggles with color markers in order", () => {
         const w = mountPage({ period, days, overall, lines: [] });
 
-        const buttons = toggles(w);
-        expect(buttons.map((b) => b.text())).toEqual(["Unconfirmed", "Confirmed", "Total available", "Planned"]);
-        expect(buttons[0].element.tagName).toBe("BUTTON");
+        const boxes = toggles(w);
+        expect(boxes.map((b) => b.attributes("type"))).toEqual(["checkbox", "checkbox", "checkbox", "checkbox"]);
+        expect(boxes.map((b) => b.element.closest("label").textContent.trim())).toEqual([
+            "Unconfirmed",
+            "Confirmed",
+            "Total available",
+            "Planned",
+        ]);
+        expect(w.findAll("button")).toHaveLength(0);
 
         const markers = w.findAll('[data-testid="dashboard-line-toggle-marker"]');
         expect(markers.map((m) => m.classes().find((c) => c.startsWith("bg-")))).toEqual([
@@ -180,10 +187,7 @@ describe("Dashboard/Index", () => {
     it("turns on total available and planned by default", () => {
         const w = mountPage({ period, days, overall, lines: [] });
 
-        expect(toggles(w).map((b) => b.attributes("aria-pressed"))).toEqual(["false", "false", "true", "true"]);
-        expect(toggles(w)[2].classes()).toContain("outline-2");
-        expect(toggles(w)[2].classes()).toContain("outline-[var(--color-brand-bg)]");
-        expect(toggles(w)[0].classes()).not.toContain("outline-2");
+        expect(checked(w)).toEqual([false, false, true, true]);
         expect(chartLines(w)).toEqual([
             { key: "total", values: [1.5, 1.25], stroke: "var(--color-brand-bg)", step: false },
             { key: "planned", values: [0.75, 0.75], stroke: "var(--color-badge-warning-text)", step: true },
@@ -193,7 +197,7 @@ describe("Dashboard/Index", () => {
     it("reads the visible lines from the query string", () => {
         const w = mountPage({ period, days, overall, lines: [] }, "/dashboard?lines=planned,unconfirmed,bogus");
 
-        expect(toggles(w).map((b) => b.attributes("aria-pressed"))).toEqual(["true", "false", "false", "true"]);
+        expect(checked(w)).toEqual([true, false, false, true]);
         expect(chartLines(w).map((line) => line.key)).toEqual(["unconfirmed", "planned"]);
         expect(chartLines(w)[0]).toEqual({ key: "unconfirmed", values: [0.5, 0.25], stroke: "var(--color-text-secondary)", step: false });
     });
@@ -201,14 +205,14 @@ describe("Dashboard/Index", () => {
     it("draws no lines when the query string turns them all off", () => {
         const w = mountPage({ period, days, overall, lines: [] }, "/dashboard?lines=");
 
-        expect(toggles(w).map((b) => b.attributes("aria-pressed"))).toEqual(["false", "false", "false", "false"]);
+        expect(checked(w)).toEqual([false, false, false, false]);
         expect(chartLines(w)).toEqual([]);
     });
 
     it("switches a line on by adding it to the query string", async () => {
         const w = mountPage({ period, days, overall, lines: [] });
 
-        await toggles(w)[1].trigger("click");
+        await toggles(w)[1].setValue(true);
 
         expect(routerGet).toHaveBeenCalledWith(
             "/dashboard",
@@ -220,7 +224,7 @@ describe("Dashboard/Index", () => {
     it("switches a line off by removing it from the query string", async () => {
         const w = mountPage({ period, days, overall, lines: [] }, "/dashboard?lines=planned");
 
-        await toggles(w)[3].trigger("click");
+        await toggles(w)[3].setValue(false);
 
         expect(routerGet).toHaveBeenCalledWith("/dashboard", { lines: "" }, { preserveScroll: true, preserveState: true });
     });
@@ -228,7 +232,7 @@ describe("Dashboard/Index", () => {
     it("drops the query string when the toggles match the default", async () => {
         const w = mountPage({ period, days, overall, lines: [] }, "/dashboard?lines=total");
 
-        await toggles(w)[3].trigger("click");
+        await toggles(w)[3].setValue(true);
 
         expect(routerGet).toHaveBeenCalledWith("/dashboard", {}, { preserveScroll: true, preserveState: true });
     });
