@@ -319,8 +319,8 @@ class DashboardTest extends TestCase
     {
         $this->actingAs(User::factory()->create());
         $this->setPeriod('2026-01-05', '2026-01-05', fteHours: 40);
-        $line = BusinessLine::factory()->create();
-        $other = BusinessLine::factory()->create();
+        $line = BusinessLine::factory()->create(['position' => 1]);
+        $other = BusinessLine::factory()->create(['position' => 2]);
         $this->assign(Employee::factory()->create(['business_line_id' => $line->id, 'confirmed' => true]), '2026-01-05');
         $this->assign(Employee::factory()->create(['business_line_id' => $line->id, 'confirmed' => false]), '2026-01-06');
         $this->assign(Employee::factory()->create(['business_line_id' => null, 'confirmed' => true]), '2026-01-07');
@@ -343,5 +343,20 @@ class DashboardTest extends TestCase
 
         $this->get('/dashboard')->assertOk()
             ->assertInertia(fn ($page) => $page->where('overall.planned', []));
+    }
+
+    public function test_each_block_carries_a_total_available_series_whatever_the_filter(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->setPeriod('2026-01-05', '2026-01-05', fteHours: 40);
+        $line = BusinessLine::factory()->create();
+        Employee::factory()->create(['weekly_hours' => 40, 'business_line_id' => $line->id, 'confirmed' => true]);
+        Employee::factory()->create(['weekly_hours' => 20, 'business_line_id' => $line->id, 'confirmed' => false]);
+
+        $this->get('/dashboard?employees=confirmed')->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('overall.available_total', [1.5])
+                ->where('lines.0.available_total', [1.5])
+            );
     }
 }

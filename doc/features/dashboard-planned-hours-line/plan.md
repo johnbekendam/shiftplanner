@@ -1,12 +1,12 @@
 # Dashboard — Planned Hours Line and Line Toggles — Plan
 
-Status: in progress — 1/5
+Status: in progress — 2/5
 
 - [x] 1. Backend planned series: `DashboardController` adds a `planned`
   weekly-FTE series to the overall block and each business-line block.
   It counts published and draft assignments over full ISO weeks, split
   by the employee's business line. Feature tests in `DashboardTest`.
-- [ ] 2. Backend total series: add an `available_total` series
+- [x] 2. Backend total series: add an `available_total` series
   (confirmed + unconfirmed) to each block, independent of the
   `employees` filter. Feature tests in `DashboardTest`.
 - [ ] 3. Chart lines list: `FteLineChart` takes a `lines` prop (a list
