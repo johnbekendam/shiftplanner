@@ -159,15 +159,28 @@ class SchedulingEligibility
         $cycleStart = PlanningCycle::containing($date);
         if ($hoursRule !== null && $cycleStart !== null) {
             $cycleEnd = $cycleStart->copy()->addDays(13);
-            $hours = ShiftAssignment::query()
+            $assignments = ShiftAssignment::query()
                 ->where('employee_id', $employee->id)
+                ->with('shift');
+            $shiftHours = $shift->capHours();
+            $cycleHours = (clone $assignments)
                 ->whereBetween('date', [$cycleStart->toDateString(), $cycleEnd->toDateString()])
-                ->with('shift')
                 ->get()
                 ->sum(fn (ShiftAssignment $assignment): float => $assignment->shift->capHours());
 
-            if ($hours + $shift->capHours() > $employee->weekly_hours * 2) {
+            if ($cycleHours + $shiftHours > $employee->weekly_hours * 2) {
                 return 'max_hours_per_week';
+            }
+
+            $weekStart = $date->copy()->startOfWeek(Carbon::MONDAY);
+            $weekEnd = $date->copy()->endOfWeek(Carbon::SUNDAY);
+            $weekHours = (clone $assignments)
+                ->whereBetween('date', [$weekStart->toDateString(), $weekEnd->toDateString()])
+                ->get()
+                ->sum(fn (ShiftAssignment $assignment): float => $assignment->shift->capHours());
+
+            if ($weekHours + $shiftHours > $employee->weekly_hours + 4) {
+                return 'max_hours_per_week_distribution';
             }
         }
 

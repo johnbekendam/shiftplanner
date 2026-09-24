@@ -347,6 +347,28 @@ class EligibleEmployeeTest extends TestCase
         $this->assertSame('max_hours_per_week', $entry['block_reason']);
     }
 
+    public function test_marks_an_employee_over_the_hard_hours_cap_for_one_week_as_blocked(): void
+    {
+        $this->actingAsAdmin();
+        PlanningSettings::current()->update(['period_start' => '2026-09-14']);
+        $workcenter = Workcenter::factory()->create();
+        $existingShift = Shift::factory()->create(['start_time' => '06:00', 'end_time' => '14:00']);
+        $targetShift = Shift::factory()->create(['start_time' => '14:00', 'end_time' => '22:00']);
+        $employee = Employee::factory()->create(['confirmed' => true, 'weekly_hours' => 8]);
+        RecurringAvailability::factory()->create([
+            'employee_id' => $employee->id, 'weekday' => 2, 'shift_id' => $targetShift->id, 'level' => 'available',
+        ]);
+        ShiftAssignment::factory()->create([
+            'employee_id' => $employee->id, 'workcenter_id' => Workcenter::factory()->create()->id,
+            'shift_id' => $existingShift->id, 'date' => '2026-09-14',
+        ]);
+        PlanningRule::create(['type' => 'max_hours_per_week', 'mode' => 'hard']);
+
+        $entry = collect($this->get($this->url($workcenter, $targetShift))->json())->firstWhere('id', $employee->id);
+
+        $this->assertSame('max_hours_per_week_distribution', $entry['block_reason']);
+    }
+
     public function test_counts_slightly_long_shifts_as_four_hour_blocks_for_the_hard_hours_cap(): void
     {
         $this->actingAsAdmin();
@@ -354,7 +376,7 @@ class EligibleEmployeeTest extends TestCase
         $workcenter = Workcenter::factory()->create();
         $existingShift = Shift::factory()->create(['start_time' => '06:00', 'end_time' => '14:15']); // 8.25h counts as 8
         $targetShift = Shift::factory()->create(['start_time' => '14:15', 'end_time' => '23:00']); // 8.75h counts as 8
-        $employee = Employee::factory()->create(['confirmed' => true, 'weekly_hours' => 8]); // cap 16h
+        $employee = Employee::factory()->create(['confirmed' => true, 'weekly_hours' => 12]); // weekly cap 16h
         RecurringAvailability::factory()->create([
             'employee_id' => $employee->id, 'weekday' => 2, 'shift_id' => $targetShift->id, 'level' => 'available',
         ]);
