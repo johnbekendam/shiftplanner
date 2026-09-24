@@ -31,6 +31,8 @@ const en = {
     "employees.field.business_line": "Business line",
     "employees.field.business_line_none": "None",
     "employees.hours_option": ":count hours",
+    "employees.form.edit_title": "Edit employee",
+    "employees.form.create_title": "Add employee",
     "employees.action.save": "Save",
     "employees.action.create": "Create",
     "employees.action.saving": "Saving…",
@@ -106,8 +108,6 @@ import TagChecklist from "@/components/TagChecklist.vue";
 import WorkcenterChecklist from "@/components/WorkcenterChecklist.vue";
 import QuestionChecklist from "@/components/QuestionChecklist.vue";
 import EmployeePlanningSettings from "@/components/EmployeePlanningSettings.vue";
-import Card from "@/components/ui/Card.vue";
-import Tabs from "@/components/ui/Tabs.vue";
 import { NumberInput } from "@/components/ui/Input";
 
 const stubs = { AppLayout: { template: "<div><slot /></div>" }, teleport: true };
@@ -123,19 +123,6 @@ beforeEach(() => {
 });
 
 describe("Employees/Form", () => {
-    it("puts the edit tabs in the card header without a page title", () => {
-        const w = mount(Form, {
-            props: { employee: { id: 3, first_name: "A", last_name: "B", weekly_hours: 24 } },
-            global: { stubs },
-        });
-
-        const card = w.findComponent(Card);
-        const tabs = card.findComponent(Tabs);
-
-        expect(w.findComponent({ name: "Head" }).exists()).toBe(false);
-        expect(card.element.firstElementChild.contains(tabs.element)).toBe(true);
-    });
-
     it("makes an archived employee read-only and lets an admin restore it", async () => {
         const w = mount(Form, {
             props: {

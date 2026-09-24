@@ -265,12 +265,8 @@ function bulkDelete() {
 
         <Card class="max-w-5xl overflow-visible">
             <template #header>
-                <div class="flex items-center justify-between gap-3 px-6 py-3">
-                    <span class="text-base font-semibold">{{ __('employees.title') }}</span>
-                </div>
+                <Tabs :model-value="status" :tabs="statusTabs" @update:model-value="changeStatus" />
             </template>
-
-            <Tabs :model-value="status" :tabs="statusTabs" @update:model-value="changeStatus" />
 
             <div class="space-y-4 p-6">
                 <div class="flex items-center justify-between gap-3">

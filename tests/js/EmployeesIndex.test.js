@@ -49,6 +49,8 @@ vi.mock("@inertiajs/vue3", () => ({
 }));
 
 import Index from "@/pages/Employees/Index.vue";
+import Card from "@/components/ui/Card.vue";
+import Tabs from "@/components/ui/Tabs.vue";
 
 const employees = {
     data: [
@@ -138,6 +140,15 @@ afterEach(() => {
 });
 
 describe("Employees/Index", () => {
+    it("puts the status tabs in the card header without a visible title", () => {
+        const w = mountIndex();
+        const card = w.findComponent(Card);
+        const tabs = card.findComponent(Tabs);
+
+        expect(w.text()).not.toContain("Employees");
+        expect(card.element.firstElementChild.contains(tabs.element)).toBe(true);
+    });
+
     it("changes the employee status filter", async () => {
         const w = mountIndex();
 

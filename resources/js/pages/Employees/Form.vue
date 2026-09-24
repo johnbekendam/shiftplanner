@@ -1,6 +1,6 @@
 <script setup>
 import { computed, reactive, ref } from 'vue'
-import { Link, router, useForm } from '@inertiajs/vue3'
+import { Head, Link, router, useForm } from '@inertiajs/vue3'
 import AppLayout from '@/layouts/AppLayout.vue'
 import Card from '@/components/ui/Card.vue'
 import CardSeparator from '@/components/ui/CardSeparator.vue'
@@ -393,6 +393,8 @@ function restore() {
 
 <template>
     <AppLayout>
+        <Head :title="isEdit ? __('employees.form.edit_title') : __('employees.form.create_title')" />
+
         <Card class="max-w-2xl">
             <template v-if="isEdit" #header>
                 <Tabs v-model="tab" :tabs="tabs" />
