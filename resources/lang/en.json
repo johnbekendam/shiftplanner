@@ -255,8 +255,6 @@
     "employees.pagination.next": "Next",
     "employees.pagination.page": "Page :current of :total",
     "employees.pagination.page_label": "Page :page",
-    "employees.form.create_title": "Add employee",
-    "employees.form.edit_title": "Edit employee",
     "employees.audit.system_actor": "System",
     "employees.audit.before": "Before",
     "employees.audit.after": "After",
