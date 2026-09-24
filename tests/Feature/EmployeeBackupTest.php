@@ -439,6 +439,35 @@ class EmployeeBackupTest extends TestCase
         $this->assertSame([], array_values(array_diff($archived, $tables)));
     }
 
+    public function test_application_import_keeps_existing_audit_events(): void
+    {
+        $admin = $this->admin();
+        $employee = Employee::factory()->create();
+        $event = EmployeeAuditEvent::create([
+            'employee_id' => $employee->id,
+            'action' => 'updated',
+            'subject_type' => 'employee',
+            'subject_id' => $employee->id,
+            'source' => 'user',
+            'actor_type' => 'user',
+            'actor_id' => $admin->id,
+            'actor_name' => $admin->name,
+            'actor_email' => $admin->email,
+            'actor_role' => $admin->role,
+            'old_values' => ['weekly_hours' => 24],
+            'new_values' => ['weekly_hours' => 28],
+        ]);
+        $archive = $this->actingAs($admin)->get('/employee-backup/export')->getContent();
+
+        $this->actingAs($admin)->post('/employee-backup/import', [
+            'file' => UploadedFile::fake()->createWithContent('shiftplanner-backup.json', $archive),
+        ])->assertOk();
+
+        $this->assertDatabaseCount('employee_audit_events', 1);
+        $this->assertSame(['weekly_hours' => 24], $event->fresh()->old_values);
+        $this->assertSame(['weekly_hours' => 28], $event->fresh()->new_values);
+    }
+
     public function test_import_clears_stale_plan_generation_runs(): void
     {
         $admin = $this->admin();

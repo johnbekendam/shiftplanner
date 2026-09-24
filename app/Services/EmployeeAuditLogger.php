@@ -41,6 +41,7 @@ class EmployeeAuditLogger
             $actor,
             $actorType,
             $actorSnapshot,
+            ['name' => $employee->name, 'email' => $employee->email],
         );
     }
 
@@ -55,9 +56,12 @@ class EmployeeAuditLogger
         ?User $actor = null,
         ?string $actorType = null,
         array $actorSnapshot = [],
+        array $employeeSnapshot = [],
     ): EmployeeAuditEvent {
         return EmployeeAuditEvent::create([
             'employee_id' => $employeeId,
+            'employee_name' => $employeeSnapshot['name'] ?? null,
+            'employee_email' => $employeeSnapshot['email'] ?? null,
             'action' => $action,
             'subject_type' => $subjectType,
             'subject_id' => $subjectId,

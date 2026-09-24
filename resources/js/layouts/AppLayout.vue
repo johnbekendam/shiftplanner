@@ -66,6 +66,7 @@ const navItems = computed(() => {
             { label: __('nav.settings'), href: '/settings', icon: 'cog' },
             { label: __('nav.planning_rules'), href: '/planning-rules', icon: 'adjustments-horizontal' },
             { label: __('nav.employee_backup'), href: '/employee-backup', icon: 'archive-box-x-mark' },
+            { label: __('nav.employee_audit'), href: '/employee-audit', icon: 'shield-check' },
         )
         // Theme builder stays reachable at /theme-builder but is not in the nav.
     }

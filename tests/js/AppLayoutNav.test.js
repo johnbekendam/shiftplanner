@@ -11,6 +11,7 @@ const en = {
     "nav.scheduling": "Planning",
     "nav.planning_rules": "Planning rules",
     "nav.employee_backup": "Backup",
+    "nav.employee_audit": "Audit log",
     "nav.users": "Users",
     "nav.settings": "Settings",
 };
@@ -62,8 +63,10 @@ describe("AppLayout navigation", () => {
             "/settings",
             "/planning-rules",
             "/employee-backup",
+            "/employee-audit",
         ]);
         expect(navLabels(w)).toContain("Backup");
+        expect(navLabels(w)).toContain("Audit log");
     });
 
     it("hides Backup from a manager", () => {
@@ -72,6 +75,7 @@ describe("AppLayout navigation", () => {
         const hrefs = navHrefs(w);
 
         expect(hrefs).not.toContain("/employee-backup");
+        expect(hrefs).not.toContain("/employee-audit");
         expect(navLabels(w)).not.toContain("Backup");
     });
 

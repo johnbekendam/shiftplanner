@@ -7,6 +7,7 @@ use App\Http\Controllers\BusinessLineController;
 use App\Http\Controllers\CompetenceController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EligibleEmployeeController;
+use App\Http\Controllers\EmployeeAuditController;
 use App\Http\Controllers\EmployeeBackupController;
 use App\Http\Controllers\EmployeeCompetenceController;
 use App\Http\Controllers\EmployeeController;
@@ -24,8 +25,8 @@ use App\Http\Controllers\PersonalQuestionController;
 use App\Http\Controllers\PersonalRecurringAvailabilityController;
 use App\Http\Controllers\PlanGenerationController;
 use App\Http\Controllers\PlannerOpenWeekController;
-use App\Http\Controllers\PlanNotificationController;
 use App\Http\Controllers\PlanningRuleController;
+use App\Http\Controllers\PlanNotificationController;
 use App\Http\Controllers\PublishedWeekController;
 use App\Http\Controllers\QuestionController;
 use App\Http\Controllers\RecurringAvailabilityController;
@@ -73,6 +74,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/employee-backup', [EmployeeBackupController::class, 'index'])->name('employee-backup.index');
         Route::get('/employee-backup/export', [EmployeeBackupController::class, 'export'])->name('employee-backup.export');
         Route::post('/employee-backup/import', [EmployeeBackupController::class, 'import'])->name('employee-backup.import');
+        Route::get('/employee-audit', [EmployeeAuditController::class, 'index'])->name('employee-audit.index');
         Route::post('/employees/{employee}/restore', [EmployeeController::class, 'restore'])->name('employees.restore');
 
         Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');

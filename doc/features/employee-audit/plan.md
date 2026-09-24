@@ -1,4 +1,4 @@
-Status: in progress - 7/8
+Status: complete - 8/8
 
 - [x] 1. Add the audit event schema, model, recorder, and core employee create,
   update, and confirmation events. Test changed values, actor snapshots, and
@@ -24,7 +24,7 @@ Status: in progress - 7/8
   events first with expandable changed values, including archived employees.
   Test authorization and payload formatting. Commit as
   `feat: show employee audit timeline`.
-- [ ] 8. Add the administrator audit page with employee and actor search,
+- [x] 8. Add the administrator audit page with employee and actor search,
   action, source, and date filters. Keep audit events outside application
   backup exports and restores. Test filters, authorization, retention, and
   backup exclusion. Commit as `feat: add employee audit log`.

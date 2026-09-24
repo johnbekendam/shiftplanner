@@ -36,6 +36,8 @@ class EmployeeAuditTest extends TestCase
         $event = EmployeeAuditEvent::sole();
 
         $this->assertSame($employee->id, $event->employee_id);
+        $this->assertSame('Silvio Teixeira', $event->employee_name);
+        $this->assertSame('silvio@example.com', $event->employee_email);
         $this->assertSame('created', $event->action);
         $this->assertSame('employee', $event->subject_type);
         $this->assertSame($employee->id, $event->subject_id);

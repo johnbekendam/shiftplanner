@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use LogicException;
 
 class EmployeeAuditEvent extends Model
@@ -24,5 +25,10 @@ class EmployeeAuditEvent extends Model
     {
         static::updating(fn () => throw new LogicException('Employee audit events cannot be updated.'));
         static::deleting(fn () => throw new LogicException('Employee audit events cannot be deleted.'));
+    }
+
+    public function employee(): BelongsTo
+    {
+        return $this->belongsTo(Employee::class);
     }
 }

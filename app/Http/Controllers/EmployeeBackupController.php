@@ -173,6 +173,7 @@ class EmployeeBackupController extends Controller
             $action = $old === null ? 'import_created' : ($new === null ? 'import_removed' : 'import_updated');
             $keys = array_unique([...array_keys($old ?? []), ...array_keys($new ?? [])]);
             $changed = array_values(array_filter($keys, fn (string $key) => ($old[$key] ?? null) !== ($new[$key] ?? null)));
+            $identity = $new ?? $old;
 
             $this->audit->recordForEmployeeId(
                 (int) $employeeId,
@@ -182,7 +183,11 @@ class EmployeeBackupController extends Controller
                 $old === null ? [] : array_intersect_key($old, array_flip($changed)),
                 $new === null ? [] : array_intersect_key($new, array_flip($changed)),
                 'backup_import',
-                $request->user(),
+                actor: $request->user(),
+                employeeSnapshot: [
+                    'name' => trim("{$identity['first_name']} {$identity['last_name']}"),
+                    'email' => $identity['email'],
+                ],
             );
         }
     }
