@@ -9,6 +9,7 @@ const en = {
     "scheduling.unfreeze": "Unfreeze",
     "scheduling.remove": "Remove",
     "scheduling.no_eligible_employees": "No one eligible.",
+    "scheduling.error.holiday": "This employee is on holiday that day.",
     "scheduling.open_spot": "Add employee",
     "scheduling.unfulfilled_reason.no_eligible_employee": "No eligible employee found.",
     "scheduling.unfulfilled_reason.hard_cap_reached": "Every eligible employee was blocked by a hard cap.",
@@ -237,7 +238,7 @@ describe("ShiftWeekTable", () => {
     });
 
     it("clicking an Open cell fetches eligible employees and lists them; clicking one assigns and closes the popover", async () => {
-        axiosGet.mockResolvedValue({ data: [{ id: 3, name: "Els de Vries", not_preferred: false }] });
+        axiosGet.mockResolvedValue({ data: [{ id: 3, name: "Els de Vries", block_reason: null, not_preferred: false }] });
         const w = mountTable();
 
         await w.get('[data-testid="cell-9-2026-09-17-0"] button').trigger("click");
@@ -261,8 +262,36 @@ describe("ShiftWeekTable", () => {
         w.unmount();
     });
 
+    it("shows a blocked employee with the reason and does not allow assignment", async () => {
+        axiosGet.mockResolvedValue({
+            data: [
+                { id: 3, name: "Els de Vries", block_reason: null, not_preferred: false },
+                { id: 4, name: "Jan Smit", block_reason: "holiday", not_preferred: false },
+            ],
+        });
+        const w = mountTable();
+
+        await w.get('[data-testid="cell-9-2026-09-17-0"] button').trigger("click");
+        await flushPromises();
+
+        const popover = bodyWrapper().get('[data-testid="assign-popover"]');
+        const eligibleOption = popover.get('[data-testid="employee-option-3"]');
+        const blockedOption = popover.get('[data-testid="employee-option-4"]');
+
+        expect(eligibleOption.attributes("disabled")).toBeUndefined();
+        expect(blockedOption.attributes("disabled")).toBeDefined();
+        expect(blockedOption.text()).toContain("Jan Smit");
+        expect(blockedOption.text()).toContain("This employee is on holiday that day.");
+
+        await blockedOption.trigger("click");
+
+        expect(routerCalls).toEqual([]);
+        expect(bodyWrapper().find('[data-testid="assign-popover"]').exists()).toBe(true);
+        w.unmount();
+    });
+
     const openPopoverWith = async (names) => {
-        axiosGet.mockResolvedValue({ data: names.map((name, i) => ({ id: i + 1, name, not_preferred: false })) });
+        axiosGet.mockResolvedValue({ data: names.map((name, i) => ({ id: i + 1, name, block_reason: null, not_preferred: false })) });
         const w = mountTable();
         await w.get('[data-testid="cell-9-2026-09-17-0"] button').trigger("click");
         await flushPromises();
