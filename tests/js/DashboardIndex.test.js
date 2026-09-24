@@ -115,7 +115,7 @@ describe("Dashboard/Index", () => {
         const charts = w.findAllComponents(FteLineChart);
         expect(charts).toHaveLength(3);
         expect(charts[0].props("title")).toBe("Overall");
-        expect(charts[0].props("available")).toEqual([2, 1]);
+        expect(charts[0].props("lines").find((line) => line.key === "total").values).toEqual([2, 1]);
         expect(charts[1].props("target")).toBe(5);
     });
 
@@ -175,12 +175,11 @@ describe("Dashboard/Index", () => {
         });
 
         const chart = w.getComponent(FteLineChart);
-        expect(chart.props("available")).toEqual([1.5, 1.25]);
-        expect(chart.props("availableStroke")).toBe("var(--color-brand-bg)");
-        expect(chart.props("baseAvailable")).toEqual([1, 1]);
-        expect(chart.props("baseAvailableStroke")).toBe("var(--color-badge-success-text)");
-        expect(chart.props("secondaryAvailable")).toEqual([0.5, 0.25]);
-        expect(chart.props("secondaryAvailableStroke")).toBe("var(--color-text-secondary)");
+        expect(chart.props("lines")).toEqual([
+            { key: "confirmed", values: [1, 1], stroke: "var(--color-badge-success-text)" },
+            { key: "unconfirmed", values: [0.5, 0.25], stroke: "var(--color-text-secondary)" },
+            { key: "total", values: [1.5, 1.25], stroke: "var(--color-brand-bg)" },
+        ]);
     });
 
     it("shows only the main line in confirmed-only and unconfirmed-only modes", () => {
@@ -193,8 +192,7 @@ describe("Dashboard/Index", () => {
         });
 
         const chart = w.getComponent(FteLineChart);
-        expect(chart.props("baseAvailable")).toBe(null);
-        expect(chart.props("secondaryAvailable")).toBe(null);
+        expect(chart.props("lines")).toHaveLength(1);
     });
 
     it("uses gray for the unconfirmed-only line", () => {
@@ -207,7 +205,7 @@ describe("Dashboard/Index", () => {
         });
 
         const chart = w.getComponent(FteLineChart);
-        expect(chart.props("availableStroke")).toBe("var(--color-text-secondary)");
+        expect(chart.props("lines")[0].stroke).toBe("var(--color-text-secondary)");
     });
 
     it("uses green for the confirmed-only line", () => {
@@ -220,7 +218,7 @@ describe("Dashboard/Index", () => {
         });
 
         const chart = w.getComponent(FteLineChart);
-        expect(chart.props("availableStroke")).toBe("var(--color-badge-success-text)");
+        expect(chart.props("lines")[0].stroke).toBe("var(--color-badge-success-text)");
     });
 
     it("links each card header to the matching filtered employees view", () => {

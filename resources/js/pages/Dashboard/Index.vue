@@ -34,21 +34,21 @@ const activeEmployeeFilter = computed(() =>
     ['confirmed', 'unconfirmed', 'both'].includes(props.employeeStatusFilter) ? props.employeeStatusFilter : 'both',
 )
 
-const lineStrokeFor = (filter) => {
-    if (filter === 'confirmed') return confirmedLineColor
-    if (filter === 'unconfirmed') return unconfirmedLineColor
-    return stackedLineColor
-}
-
-const stackedLines = (block) =>
+// Paint order: the main line last, so it sits on top.
+const chartLines = (block) =>
     activeEmployeeFilter.value === 'both'
-        ? {
-              baseAvailable: block.available_confirmed,
-              baseAvailableStroke: confirmedLineColor,
-              secondaryAvailable: block.available_unconfirmed,
-              secondaryAvailableStroke: unconfirmedLineColor,
-          }
-        : { baseAvailable: null, secondaryAvailable: null }
+        ? [
+              { key: 'confirmed', values: block.available_confirmed, stroke: confirmedLineColor },
+              { key: 'unconfirmed', values: block.available_unconfirmed, stroke: unconfirmedLineColor },
+              { key: 'total', values: block.available, stroke: stackedLineColor },
+          ]
+        : [
+              {
+                  key: activeEmployeeFilter.value,
+                  values: block.available,
+                  stroke: activeEmployeeFilter.value === 'confirmed' ? confirmedLineColor : unconfirmedLineColor,
+              },
+          ]
 
 const selectEmployeeFilter = (filter) => {
     if (filter === activeEmployeeFilter.value) return
@@ -66,26 +66,22 @@ const blocks = computed(() => {
         {
             key: 'overall',
             title: __('dashboard.overall'),
-            available: props.overall.available,
-            availableStroke: lineStrokeFor(activeEmployeeFilter.value),
+            lines: chartLines(props.overall),
             target: props.overall.target,
             availableHours: props.overall.available_hours,
             requiredHours: props.overall.required_hours,
             confirmedHours: props.overall.available_hours_confirmed,
             employeesHref: '/employees',
-            ...stackedLines(props.overall),
         },
         ...props.lines.map((line) => ({
             key: line.abbreviation,
             title: `${line.abbreviation} — ${line.description}`,
-            available: line.available,
-            availableStroke: lineStrokeFor(activeEmployeeFilter.value),
+            lines: chartLines(line),
             target: line.target,
             availableHours: line.available_hours,
             requiredHours: line.required_hours,
             confirmedHours: line.available_hours_confirmed,
             employeesHref: `/employees?business_lines[]=${line.id}`,
-            ...stackedLines(line),
         })),
     ]
 })
@@ -146,12 +142,7 @@ const blocks = computed(() => {
                         <FteLineChart
                             :title="block.title"
                             :days="days"
-                            :available="block.available"
-                            :available-stroke="block.availableStroke"
-                            :base-available="block.baseAvailable"
-                            :base-available-stroke="block.baseAvailableStroke"
-                            :secondary-available="block.secondaryAvailable"
-                            :secondary-available-stroke="block.secondaryAvailableStroke"
+                            :lines="block.lines"
                             :target="block.target"
                             :show-caption="false"
                         />

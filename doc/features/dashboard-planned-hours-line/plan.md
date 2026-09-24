@@ -1,6 +1,6 @@
 # Dashboard — Planned Hours Line and Line Toggles — Plan
 
-Status: in progress — 2/5
+Status: in progress — 3/5
 
 - [x] 1. Backend planned series: `DashboardController` adds a `planned`
   weekly-FTE series to the overall block and each business-line block.
@@ -9,7 +9,7 @@ Status: in progress — 2/5
 - [x] 2. Backend total series: add an `available_total` series
   (confirmed + unconfirmed) to each block, independent of the
   `employees` filter. Feature tests in `DashboardTest`.
-- [ ] 3. Chart lines list: `FteLineChart` takes a `lines` prop (a list
+- [x] 3. Chart lines list: `FteLineChart` takes a `lines` prop (a list
   of `{ key, values, stroke }`) in place of the fixed line props. It
   scales the y-axis to the visible lines and the target. Update
   `FteLineChart.test.js`.
