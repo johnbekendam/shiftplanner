@@ -306,30 +306,27 @@ describe("ShiftWeekTable", () => {
         return w;
     };
 
-    it("sizes the assign popover to its content and keeps names on one line", async () => {
+    it("uses a compact search and lets the assign popover fit its visible content", async () => {
         const w = await openPopoverWith(["Maria Alexandra van der Westhuizen-Oosterhoutstraat"]);
         const popover = bodyWrapper().get('[data-testid="assign-popover"]');
 
-        expect(popover.classes()).toContain("w-max");
+        expect(popover.classes()).toContain("w-fit");
         expect(popover.classes()).toContain("min-w-48");
-        expect(popover.classes()).not.toContain("w-48");
+        expect(w.findComponent(SearchInput).classes()).toContain("w-40");
         expect(popover.get('[data-testid="assign-list"] li button span').classes()).toContain("whitespace-nowrap");
+        expect(popover.find('[data-testid="assign-sizer"]').exists()).toBe(false);
         w.unmount();
     });
 
-    it("keeps the popover width steady while the search narrows the list", async () => {
+    it("filters the visible employee list when searching", async () => {
         const w = await openPopoverWith(["Els de Vries", "Bram Bakker"]);
         const list = () => bodyWrapper().get('[data-testid="assign-list"]');
-        const sizer = () => bodyWrapper().get('[data-testid="assign-sizer"]');
         expect(list().findAll("li")).toHaveLength(2);
 
         w.findComponent(SearchInput).vm.$emit("update:modelValue", "Els");
         await flushPromises();
 
         expect(list().findAll("li")).toHaveLength(1);
-        // A hidden copy of the full list keeps the width the same.
-        expect(sizer().attributes("aria-hidden")).toBe("true");
-        expect(sizer().findAll("li").map((li) => li.text())).toEqual(["Els de Vries", "Bram Bakker"]);
         w.unmount();
     });
 

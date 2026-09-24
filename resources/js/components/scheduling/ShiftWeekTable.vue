@@ -403,10 +403,10 @@ onBeforeUnmount(() => {
             ref="panelRef"
             data-testid="assign-popover"
             :style="panelStyle"
-            class="fixed z-50 w-max min-w-48 max-w-[calc(100vw-2rem)] rounded-md border border-(--color-dropdown-panel-border) bg-(--color-dropdown-panel-bg) p-2 shadow-lg"
+            class="fixed z-50 w-fit min-w-48 max-w-[calc(100vw-2rem)] rounded-md border border-(--color-dropdown-panel-border) bg-(--color-dropdown-panel-bg) p-2 shadow-lg"
         >
             <div class="flex items-center gap-3">
-                <SearchInput v-model="searchTerm" class="min-w-0 flex-1" />
+                <SearchInput v-model="searchTerm" class="w-40" />
                 <div class="shrink-0">
                     <CheckboxInput v-model="showAll" data-testid="show-all-employees">
                         {{ __('scheduling.show_all_employees') }}
@@ -443,12 +443,6 @@ onBeforeUnmount(() => {
                 </li>
                 <li v-if="!filteredEligible.length" class="px-1 py-1 text-(--color-text-secondary)">
                     {{ __('scheduling.no_eligible_employees') }}
-                </li>
-            </ul>
-            <!-- Invisible copy of the full list: the panel is as wide as the longest name, however the search filters. -->
-            <ul data-testid="assign-sizer" aria-hidden="true" class="invisible h-0 overflow-hidden">
-                <li v-for="employee in eligible" :key="employee.id" class="whitespace-nowrap pl-1 pr-8">
-                    {{ employee.name }} {{ blockReasonLabel(employee) }}
                 </li>
             </ul>
         </div>
