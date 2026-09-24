@@ -5,7 +5,6 @@ const en = {
     "dashboard.title": "Dashboard",
     "dashboard.overall": "Overall",
     "dashboard.no_period": "Set a period on the Settings page to see available FTE.",
-    "dashboard.unconfirmed_employees": ":count unconfirmed employees are not included in these numbers.",
     "dashboard.lines.label": "Chart lines",
     "dashboard.lines.unconfirmed": "Unconfirmed",
     "dashboard.lines.confirmed": "Confirmed",
@@ -71,7 +70,7 @@ describe("Dashboard/Index", () => {
                 { abbreviation: "PMP", description: "Pumps", available_total: [1, 1], target: 5, available_hours: 16, required_hours: 40 },
                 { abbreviation: "VLV", description: "Valves", available_total: [1, 0], target: 3, available_hours: 8, required_hours: 24 },
             ],
-        });
+        }, "/dashboard?lines=total");
 
         const blocks = w.findAll('[data-testid="dashboard-block"]');
         expect(blocks).toHaveLength(3);
@@ -98,18 +97,6 @@ describe("Dashboard/Index", () => {
         const grid = w.get('[data-testid="dashboard-card-grid"]');
         expect(grid.classes()).toContain("w-full");
         expect(grid.classes()).not.toContain("md:w-1/2");
-    });
-
-    it("hides the unconfirmed notice when everyone is confirmed", () => {
-        const w = mountPage({
-            period: { start: "2026-01-05", end: "2026-01-06", fte_hours: 40 },
-            days: ["2026-01-05", "2026-01-06"],
-            overall: { available_total: [1, 1], target: 8, available_hours: 16, required_hours: 64 },
-            lines: [],
-            unconfirmedEmployeeCount: 0,
-        });
-
-        expect(w.find('[data-testid="unconfirmed-employees-notice"]').exists()).toBe(false);
     });
 
     it("links each card header to the matching filtered employees view", () => {
@@ -184,12 +171,12 @@ describe("Dashboard/Index", () => {
         ]);
     });
 
-    it("turns on total available and planned by default", () => {
+    it("turns on confirmed and planned by default", () => {
         const w = mountPage({ period, days, overall, lines: [] });
 
-        expect(checked(w)).toEqual([false, false, true, true]);
+        expect(checked(w)).toEqual([false, true, false, true]);
         expect(chartLines(w)).toEqual([
-            { key: "total", values: [1.5, 1.25], stroke: "var(--color-brand-bg)", step: false },
+            { key: "confirmed", values: [1, 1], stroke: "var(--color-badge-success-text)", step: false },
             { key: "planned", values: [0.75, 0.75], stroke: "var(--color-badge-warning-text)", step: true },
         ]);
     });
@@ -212,7 +199,7 @@ describe("Dashboard/Index", () => {
     it("switches a line on by adding it to the query string", async () => {
         const w = mountPage({ period, days, overall, lines: [] });
 
-        await toggles(w)[1].setValue(true);
+        await toggles(w)[2].setValue(true);
 
         expect(routerGet).toHaveBeenCalledWith(
             "/dashboard",
@@ -230,25 +217,16 @@ describe("Dashboard/Index", () => {
     });
 
     it("drops the query string when the toggles match the default", async () => {
-        const w = mountPage({ period, days, overall, lines: [] }, "/dashboard?lines=total");
+        const w = mountPage({ period, days, overall, lines: [] }, "/dashboard?lines=confirmed");
 
         await toggles(w)[3].setValue(true);
 
         expect(routerGet).toHaveBeenCalledWith("/dashboard", {}, { preserveScroll: true, preserveState: true });
     });
 
-    it("shows the unconfirmed notice when confirmed is the only availability line", () => {
-        const w = mountPage({ period, days, overall, lines: [], unconfirmedEmployeeCount: 3 }, "/dashboard?lines=confirmed,planned");
-
-        expect(w.text()).toContain("3 unconfirmed employees are not included in these numbers.");
-        expect(w.findAll('[data-testid="unconfirmed-employees-notice"]')).toHaveLength(1);
-    });
-
-    it("hides the unconfirmed notice when unconfirmed or total available is also on", () => {
-        const withTotal = mountPage({ period, days, overall, lines: [], unconfirmedEmployeeCount: 3 }, "/dashboard?lines=confirmed,total");
-        expect(withTotal.find('[data-testid="unconfirmed-employees-notice"]').exists()).toBe(false);
-
-        const withUnconfirmed = mountPage({ period, days, overall, lines: [], unconfirmedEmployeeCount: 3 }, "/dashboard?lines=confirmed,unconfirmed");
-        expect(withUnconfirmed.find('[data-testid="unconfirmed-employees-notice"]').exists()).toBe(false);
+    it("shows no unconfirmed-employees notice", () => {
+        const w = mountPage({ period, days, overall, lines: [] }, "/dashboard?lines=confirmed");
+        expect(w.text()).not.toContain("unconfirmed employees");
+        expect(w.find('[data-testid="unconfirmed-employees-notice"]').exists()).toBe(false);
     });
 });

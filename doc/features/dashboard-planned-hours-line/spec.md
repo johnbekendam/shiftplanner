@@ -27,13 +27,13 @@ The single-choice selector becomes a legend of four checkboxes, in this order:
 - Each checkbox is a `CheckboxInput` with its label. A line in the
   line color underlines the checkbox and label, so the row is the chart
   legend. The row uses small text with a clear gap between items.
-- The default set is Total + Planned.
+- The default set is Confirmed + Planned.
 - The query string holds the set, for example `?lines=confirmed,planned`.
   The default set gives no query string. With no `lines` parameter, the
   default set applies. An empty `lines` value turns all lines off. An
   unknown value is ignored. The old `?employees=` parameter is removed.
-- The "unconfirmed employees" notice shows when Confirmed is on and
-  Unconfirmed and Total are both off.
+- The "unconfirmed employees are not included" notice is removed. The
+  legend already shows which lines are on.
 
 ### Planned line
 

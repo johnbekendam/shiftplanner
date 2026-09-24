@@ -76,7 +76,6 @@ class DashboardTest extends TestCase
                 ->where('lines.0.available_confirmed', [1])
                 ->where('lines.0.available_unconfirmed', [0.5])
                 ->where('lines.0.available_total', [1.5])
-                ->where('unconfirmedEmployeeCount', 1)
             );
     }
 
@@ -91,6 +90,7 @@ class DashboardTest extends TestCase
         $this->get('/dashboard?employees=confirmed')->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->missing('employeeStatusFilter')
+                ->missing('unconfirmedEmployeeCount')
                 ->missing('overall.available')
                 ->missing('overall.available_hours')
                 ->missing('lines.0.available')
