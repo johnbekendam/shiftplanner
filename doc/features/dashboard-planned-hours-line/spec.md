@@ -28,9 +28,9 @@ The single-choice selector becomes four toggle buttons, in this order:
   An active button keeps the current outline treatment.
 - The default set is Total available + Planned.
 - The query string holds the set, for example `?lines=confirmed,planned`.
-  The default set gives no query string. An unknown value is ignored. A
-  query with no valid value gives the default set. The old `?employees=`
-  parameter is removed.
+  The default set gives no query string. With no `lines` parameter, the
+  default set applies. An empty `lines` value turns all lines off. An
+  unknown value is ignored. The old `?employees=` parameter is removed.
 - The "unconfirmed employees" notice shows when Confirmed is on and
   Unconfirmed and Total available are both off.
 

@@ -1,6 +1,6 @@
 <script setup>
 import { computed } from 'vue'
-import { Head, Link, router } from '@inertiajs/vue3'
+import { Head, Link, router, usePage } from '@inertiajs/vue3'
 import AppLayout from '@/layouts/AppLayout.vue'
 import Card from '@/components/ui/Card.vue'
 import ButtonSecondary from '@/components/ui/ButtonSecondary.vue'
@@ -16,49 +16,51 @@ const props = defineProps({
     days: { type: Array, default: () => [] },
     overall: { type: Object, default: null },
     lines: { type: Array, default: () => [] },
-    employeeStatusFilter: { type: String, default: 'both' },
     unconfirmedEmployeeCount: { type: Number, default: 0 },
 })
 
-const employeeFilterOptions = [
-    { value: 'unconfirmed', label: 'dashboard.employee_filter.unconfirmed', lineClass: 'bg-[var(--color-text-secondary)]' },
-    { value: 'confirmed', label: 'dashboard.employee_filter.confirmed', lineClass: 'bg-[var(--color-badge-success-text)]' },
-    { value: 'both', label: 'dashboard.employee_filter.both', lineClass: 'bg-[var(--color-brand-bg)]' },
+const page = usePage()
+
+// Toggle and paint order: the last line sits on top.
+const lineOptions = [
+    { key: 'unconfirmed', label: 'dashboard.lines.unconfirmed', series: 'available_unconfirmed', stroke: 'var(--color-text-secondary)', markerClass: 'bg-[var(--color-text-secondary)]' },
+    { key: 'confirmed', label: 'dashboard.lines.confirmed', series: 'available_confirmed', stroke: 'var(--color-badge-success-text)', markerClass: 'bg-[var(--color-badge-success-text)]' },
+    { key: 'total', label: 'dashboard.lines.total', series: 'available_total', stroke: 'var(--color-brand-bg)', markerClass: 'bg-[var(--color-brand-bg)]' },
+    { key: 'planned', label: 'dashboard.lines.planned', series: 'planned', stroke: 'var(--color-badge-warning-text)', markerClass: 'bg-[var(--color-badge-warning-text)]', step: true },
 ]
 
-const confirmedLineColor = 'var(--color-badge-success-text)'
-const unconfirmedLineColor = 'var(--color-text-secondary)'
-const stackedLineColor = 'var(--color-brand-bg)'
+const defaultLines = ['total', 'planned']
 
-const activeEmployeeFilter = computed(() =>
-    ['confirmed', 'unconfirmed', 'both'].includes(props.employeeStatusFilter) ? props.employeeStatusFilter : 'both',
+// No `lines` parameter gives the default set. An empty value turns every line off.
+const visibleLines = computed(() => {
+    const param = new URL(page.url ?? '/dashboard', 'http://localhost').searchParams.get('lines')
+    if (param === null) return defaultLines
+    const requested = param.split(',')
+    return lineOptions.map((option) => option.key).filter((key) => requested.includes(key))
+})
+
+const isVisible = (key) => visibleLines.value.includes(key)
+
+const showUnconfirmedNotice = computed(
+    () => props.unconfirmedEmployeeCount > 0 && isVisible('confirmed') && !isVisible('unconfirmed') && !isVisible('total'),
 )
 
-// Paint order: the main line last, so it sits on top.
-const chartLines = (block) =>
-    activeEmployeeFilter.value === 'both'
-        ? [
-              { key: 'confirmed', values: block.available_confirmed, stroke: confirmedLineColor },
-              { key: 'unconfirmed', values: block.available_unconfirmed, stroke: unconfirmedLineColor },
-              { key: 'total', values: block.available, stroke: stackedLineColor },
-          ]
-        : [
-              {
-                  key: activeEmployeeFilter.value,
-                  values: block.available,
-                  stroke: activeEmployeeFilter.value === 'confirmed' ? confirmedLineColor : unconfirmedLineColor,
-              },
-          ]
-
-const selectEmployeeFilter = (filter) => {
-    if (filter === activeEmployeeFilter.value) return
+const toggleLine = (key) => {
+    const next = lineOptions
+        .map((option) => option.key)
+        .filter((optionKey) => (optionKey === key ? !isVisible(optionKey) : isVisible(optionKey)))
 
     router.get(
         '/dashboard',
-        filter === 'both' ? {} : { employees: filter },
+        next.join(',') === defaultLines.join(',') ? {} : { lines: next.join(',') },
         { preserveScroll: true, preserveState: true },
     )
 }
+
+const chartLines = (block) =>
+    lineOptions
+        .filter((option) => isVisible(option.key))
+        .map((option) => ({ key: option.key, values: block[option.series], stroke: option.stroke, step: option.step === true }))
 
 const blocks = computed(() => {
     if (!props.overall) return []
@@ -68,7 +70,6 @@ const blocks = computed(() => {
             title: __('dashboard.overall'),
             lines: chartLines(props.overall),
             target: props.overall.target,
-            availableHours: props.overall.available_hours,
             requiredHours: props.overall.required_hours,
             confirmedHours: props.overall.available_hours_confirmed,
             employeesHref: '/employees',
@@ -78,7 +79,6 @@ const blocks = computed(() => {
             title: `${line.abbreviation} — ${line.description}`,
             lines: chartLines(line),
             target: line.target,
-            availableHours: line.available_hours,
             requiredHours: line.required_hours,
             confirmedHours: line.available_hours_confirmed,
             employeesHref: `/employees?business_lines[]=${line.id}`,
@@ -96,22 +96,21 @@ const blocks = computed(() => {
         </p>
 
         <div v-else data-testid="dashboard-card-grid" class="grid w-full gap-6">
-            <div class="flex flex-wrap gap-2" role="group" :aria-label="__('dashboard.employee_filter.label')">
+            <div class="flex flex-wrap gap-2" role="group" :aria-label="__('dashboard.lines.label')">
                 <component
                     :is="ButtonSecondary"
-                    v-for="option in employeeFilterOptions"
-                    :key="option.value"
+                    v-for="option in lineOptions"
+                    :key="option.key"
                     type="button"
-                    data-testid="dashboard-employee-filter"
-                    :class="option.value === activeEmployeeFilter ? 'outline outline-2 outline-offset-2 outline-[var(--color-brand-bg)]' : ''"
-                    :aria-pressed="option.value === activeEmployeeFilter"
-                    @click="selectEmployeeFilter(option.value)"
+                    data-testid="dashboard-line-toggle"
+                    :class="isVisible(option.key) ? 'outline outline-2 outline-offset-2 outline-[var(--color-brand-bg)]' : ''"
+                    :aria-pressed="isVisible(option.key)"
+                    @click="toggleLine(option.key)"
                 >
                     <span
-                        v-if="option.lineClass"
-                        data-testid="dashboard-employee-filter-line"
+                        data-testid="dashboard-line-toggle-marker"
                         class="h-0.5 w-5 shrink-0 rounded-full"
-                        :class="option.lineClass"
+                        :class="option.markerClass"
                         aria-hidden="true"
                     ></span>
                     {{ __(option.label) }}
@@ -119,7 +118,7 @@ const blocks = computed(() => {
             </div>
 
             <p
-                v-if="activeEmployeeFilter === 'confirmed' && unconfirmedEmployeeCount > 0"
+                v-if="showUnconfirmedNotice"
                 data-testid="unconfirmed-employees-notice"
                 class="text-sm text-(--color-text-secondary)"
             >
