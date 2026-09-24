@@ -37,6 +37,7 @@ const navLabels = (w) => w.findAll("nav a").map((a) => a.text());
 
 beforeEach(() => {
     state.user = null;
+    window.sessionStorage.clear();
 });
 
 describe("AppLayout navigation", () => {
@@ -67,6 +68,15 @@ describe("AppLayout navigation", () => {
         ]);
         expect(navLabels(w)).toContain("Backup");
         expect(navLabels(w)).toContain("Audit log");
+    });
+
+    it("links Planning directly to the user's stored week", () => {
+        state.user = { id: 7, role: "admin" };
+        window.sessionStorage.setItem("planning.selectedWeek.7", "2026-10-12");
+
+        const w = mount(AppLayout, { global: { stubs } });
+
+        expect(navHrefs(w)).toContain("/planning?year=2026&month=10&date=2026-10-12");
     });
 
     it("hides Backup from a manager", () => {
