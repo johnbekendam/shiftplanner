@@ -1,6 +1,6 @@
 # Dashboard — Planned Hours Line and Line Toggles — Plan
 
-Status: in progress — 4/5
+Status: done — 5/5
 
 - [x] 1. Backend planned series: `DashboardController` adds a `planned`
   weekly-FTE series to the overall block and each business-line block.
@@ -18,6 +18,6 @@ Status: in progress — 4/5
   The `?lines=` query string holds the set, and the default is Total
   available + Planned. Add the Planned color and the notice rule. Update
   `en.json` and `DashboardIndex.test.js`.
-- [ ] 5. Backend cleanup: remove the `employees` query filter,
+- [x] 5. Backend cleanup: remove the `employees` query filter,
   `employeeStatusFilter`, the filter-selected `available` series, and
   `available_hours`. Update `DashboardTest`.
