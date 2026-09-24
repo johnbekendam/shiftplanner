@@ -107,7 +107,7 @@ const blocks = computed(() => {
                     <span class="inline-flex items-center gap-1.5">
                         <span
                             data-testid="dashboard-line-toggle-marker"
-                            class="h-0.5 w-4 shrink-0 rounded-full"
+                            class="h-1 w-4 shrink-0 rounded-full"
                             :class="option.markerClass"
                             aria-hidden="true"
                         ></span>
