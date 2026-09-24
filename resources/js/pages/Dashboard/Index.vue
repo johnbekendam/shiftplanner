@@ -16,7 +16,6 @@ const props = defineProps({
     days: { type: Array, default: () => [] },
     overall: { type: Object, default: null },
     lines: { type: Array, default: () => [] },
-    unconfirmedEmployeeCount: { type: Number, default: 0 },
 })
 
 const page = usePage()
@@ -29,7 +28,7 @@ const lineOptions = [
     { key: 'planned', label: 'dashboard.lines.planned', series: 'planned', stroke: 'var(--color-badge-warning-text)', markerClass: 'bg-[var(--color-badge-warning-text)]', step: true },
 ]
 
-const defaultLines = ['total', 'planned']
+const defaultLines = ['confirmed', 'planned']
 
 // No `lines` parameter gives the default set. An empty value turns every line off.
 const visibleLines = computed(() => {
@@ -40,10 +39,6 @@ const visibleLines = computed(() => {
 })
 
 const isVisible = (key) => visibleLines.value.includes(key)
-
-const showUnconfirmedNotice = computed(
-    () => props.unconfirmedEmployeeCount > 0 && isVisible('confirmed') && !isVisible('unconfirmed') && !isVisible('total'),
-)
 
 const toggleLine = (key) => {
     const next = lineOptions
@@ -113,14 +108,6 @@ const blocks = computed(() => {
                     ></span>
                 </div>
             </div>
-
-            <p
-                v-if="showUnconfirmedNotice"
-                data-testid="unconfirmed-employees-notice"
-                class="text-sm text-(--color-text-secondary)"
-            >
-                {{ __('dashboard.unconfirmed_employees', { count: unconfirmedEmployeeCount }) }}
-            </p>
 
             <Card v-for="block in blocks" :key="block.key" data-testid="dashboard-block">
                 <template #header>

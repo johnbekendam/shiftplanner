@@ -16,12 +16,9 @@ class DashboardController extends Controller
     public function index()
     {
         $settings = PlanningSettings::current();
-        $unconfirmedEmployeeCount = Employee::query()->active()->where('confirmed', false)->count();
-
         if (! $settings->period_start || ! $settings->period_end || $settings->period_end->lt($settings->period_start)) {
             return Inertia::render('Dashboard/Index', [
                 'period' => null,
-                'unconfirmedEmployeeCount' => $unconfirmedEmployeeCount,
             ]);
         }
 
@@ -77,7 +74,6 @@ class DashboardController extends Controller
                 'available_hours_unconfirmed' => $this->availableHours($series['unconfirmed']['overall'], $dailyFteHours),
                 'required_hours' => (float) $businessLines->sum('target_fte') * $days->count() * $dailyFteHours,
             ],
-            'unconfirmedEmployeeCount' => $unconfirmedEmployeeCount,
             'lines' => $businessLines->map(function (BusinessLine $line) use ($days, $dailyFteHours, $series, $planned) {
                 $confirmed = $series['confirmed']['lines'][$line->id];
                 $unconfirmed = $series['unconfirmed']['lines'][$line->id];

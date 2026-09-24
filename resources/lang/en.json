@@ -627,7 +627,6 @@
     "dashboard.title": "Dashboard",
     "dashboard.overall": "Overall",
     "dashboard.no_period": "Set a period on the Settings page to see available FTE.",
-    "dashboard.unconfirmed_employees": ":count unconfirmed employees are not included in these numbers.",
     "dashboard.lines.label": "Chart lines",
     "dashboard.lines.unconfirmed": "Unconfirmed",
     "dashboard.lines.confirmed": "Confirmed",
