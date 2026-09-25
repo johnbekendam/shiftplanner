@@ -320,6 +320,48 @@ class EligibleEmployeeTest extends TestCase
         $this->assertSame('max_shifts_per_day', $entry['block_reason']);
     }
 
+    /** An employee holding Early on $heldDate, a member of the Late target workcenter, with a Late/Early pair rule. */
+    private function alternatingPairEntry(string $heldDate): array
+    {
+        $workcenter = Workcenter::factory()->create();
+        $otherWorkcenter = Workcenter::factory()->create();
+        $early = Shift::factory()->create(['start_time' => '06:00', 'end_time' => '14:00']);
+        $late = Shift::factory()->create(['start_time' => '14:00', 'end_time' => '22:00']);
+        $employee = Employee::factory()->create(['confirmed' => true]);
+        $employee->workcenters()->attach($workcenter);
+        RecurringAvailability::factory()->create([
+            'employee_id' => $employee->id, 'weekday' => 2, 'shift_id' => $late->id, 'level' => 'available',
+        ]);
+        ShiftAssignment::factory()->create([
+            'employee_id' => $employee->id, 'workcenter_id' => $otherWorkcenter->id,
+            'shift_id' => $early->id, 'date' => $heldDate,
+        ]);
+        PlanningRule::create([
+            'type' => 'alternating_shift_pair', 'mode' => 'hard',
+            'config' => ['first_shift_id' => $early->id, 'second_shift_id' => $late->id],
+        ]);
+
+        return collect($this->get($this->url($workcenter, $late))->json())->firstWhere('id', $employee->id);
+    }
+
+    public function test_marks_an_employee_holding_the_other_pair_shift_that_week_as_blocked(): void
+    {
+        $this->actingAsAdmin();
+
+        $entry = $this->alternatingPairEntry('2026-09-14'); // Monday of the same week
+
+        $this->assertSame('alternating_shift_pair', $entry['block_reason']);
+    }
+
+    public function test_the_other_pair_shift_in_the_previous_week_does_not_block(): void
+    {
+        $this->actingAsAdmin();
+
+        $entry = $this->alternatingPairEntry('2026-09-13'); // Sunday of the previous week
+
+        $this->assertNull($entry['block_reason']);
+    }
+
     public function test_marks_an_employee_over_the_hard_hours_cap_for_the_planning_cycle_as_blocked(): void
     {
         $this->actingAsAdmin();

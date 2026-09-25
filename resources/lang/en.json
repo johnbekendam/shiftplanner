@@ -564,6 +564,7 @@
     "scheduling.error.max_shifts_per_day": "This employee would exceed the maximum shifts allowed that day.",
     "scheduling.error.max_hours_per_week": "This employee would exceed the maximum hours allowed in the planning cycle.",
     "scheduling.error.max_hours_per_week_distribution": "This employee would exceed their weekly hours plus 4 hours in this week.",
+    "scheduling.error.alternating_shift_pair": "This employee already works the other shift of an alternating pair this week.",
     "scheduling.error.spots_below_assigned": "People are already assigned — remove someone first.",
     "scheduling.flash.assigned": "Employee assigned.",
     "scheduling.flash.updated": "Assignment updated.",

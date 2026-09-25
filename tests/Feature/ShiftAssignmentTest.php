@@ -360,6 +360,34 @@ class ShiftAssignmentTest extends TestCase
         $this->assertSame(1, ShiftAssignment::count());
     }
 
+    public function test_store_rejects_the_other_pair_shift_in_the_same_week(): void
+    {
+        $this->actingAsAdmin();
+        $employee = Employee::factory()->create(['confirmed' => true]);
+        $workcenter = Workcenter::factory()->create();
+        $otherWorkcenter = Workcenter::factory()->create();
+        $employee->workcenters()->attach($workcenter);
+        $early = Shift::factory()->create(['start_time' => '06:00', 'end_time' => '14:00']);
+        $late = Shift::factory()->create(['start_time' => '14:00', 'end_time' => '22:00']);
+        $this->setCapacity($workcenter, $late, $this->aTuesday(), 5);
+        RecurringAvailability::factory()->create([
+            'employee_id' => $employee->id, 'weekday' => 2, 'shift_id' => $late->id, 'level' => 'available',
+        ]);
+        ShiftAssignment::factory()->create([
+            'employee_id' => $employee->id, 'workcenter_id' => $otherWorkcenter->id,
+            'shift_id' => $early->id, 'date' => '2026-09-20', // Sunday of the same week
+        ]);
+        PlanningRule::create([
+            'type' => 'alternating_shift_pair', 'mode' => 'hard',
+            'config' => ['first_shift_id' => $early->id, 'second_shift_id' => $late->id],
+        ]);
+
+        $this->post('/planning/assignments', $this->validPayload($employee, $workcenter, $late))
+            ->assertSessionHasErrors(['employee_id' => __('scheduling.error.alternating_shift_pair')]);
+
+        $this->assertSame(1, ShiftAssignment::count());
+    }
+
     public function test_store_rejects_an_employee_over_the_hard_hours_cap_for_the_planning_cycle(): void
     {
         $this->actingAsAdmin();

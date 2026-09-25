@@ -56,7 +56,38 @@ class SchedulingEligibility
             return 'overlap';
         }
 
+        if ($this->combinesAlternatingPair($employee, $shift, $date)) {
+            return 'alternating_shift_pair';
+        }
+
         return $this->hardCapViolation($employee, $shift, $date);
+    }
+
+    /** True when the employee already holds the other shift of $shift's pair in the Monday–Sunday week of $date. */
+    public function combinesAlternatingPair(Employee $employee, Shift $shift, Carbon $date): bool
+    {
+        $pairedShiftIds = PlanningRule::query()
+            ->where('type', 'alternating_shift_pair')
+            ->get()
+            ->map(fn (PlanningRule $rule) => match ($shift->id) {
+                (int) $rule->config['first_shift_id'] => (int) $rule->config['second_shift_id'],
+                (int) $rule->config['second_shift_id'] => (int) $rule->config['first_shift_id'],
+                default => null,
+            })
+            ->filter();
+
+        if ($pairedShiftIds->isEmpty()) {
+            return false;
+        }
+
+        return ShiftAssignment::query()
+            ->where('employee_id', $employee->id)
+            ->whereIn('shift_id', $pairedShiftIds)
+            ->whereBetween('date', [
+                $date->copy()->startOfWeek(Carbon::MONDAY)->toDateString(),
+                $date->copy()->endOfWeek(Carbon::SUNDAY)->toDateString(),
+            ])
+            ->exists();
     }
 
     public function isOnHoliday(Employee $employee, Carbon $date): bool
