@@ -7,12 +7,14 @@ use App\Models\Competence;
 use App\Models\Employee;
 use App\Models\EmployeeHoliday;
 use App\Models\PlanningRule;
+use App\Models\PlanningSettings;
 use App\Models\RecurringAvailability;
 use App\Models\Shift;
 use App\Models\ShiftAssignment;
 use App\Models\User;
 use App\Models\Workcenter;
 use App\Models\WorkcenterShiftCapacity;
+use App\Models\WorkcenterShiftDateOverride;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -211,7 +213,8 @@ class PlanningVerificationTest extends TestCase
         $shift = Shift::factory()->create(['start_time' => '06:00', 'end_time' => '14:00', 'visible_by_default' => false]);
         $assignment = $this->assign($this->employee($shift), $shift);
 
-        $this->assertSame(['shift_hidden'], $this->codesFor($assignment));
+        // The workcenter does not run the shift, so the cell also has 0 spots.
+        $this->assertEqualsCanonicalizing(['shift_hidden', 'cell_overfilled'], $this->codesFor($assignment));
     }
 
     public function test_a_hidden_shift_the_workcenter_runs_is_allowed(): void
@@ -257,5 +260,129 @@ class PlanningVerificationTest extends TestCase
 
         $employee->update(['business_line_id' => $required->id]);
         $this->assertSame([], $this->codesFor($assignment));
+    }
+
+    // ── Group checks ────────────────────────────────────────────────────
+
+    public function test_overlapping_assignments_are_both_marked(): void
+    {
+        $early = $this->shift('06:00', '14:00');
+        $mid = $this->shift('10:00', '18:00');
+        $employee = $this->employee($early);
+        $this->makeAvailable($employee, $mid);
+        $first = $this->assign($employee, $early);
+        $second = $this->assign($employee, $mid);
+
+        $violations = $this->verify();
+
+        $this->assertSame(['overlap'], $violations[$first->id]);
+        $this->assertSame(['overlap'], $violations[$second->id]);
+    }
+
+    public function test_a_hard_daily_cap_marks_every_shift_that_day(): void
+    {
+        $early = $this->shift('06:00', '14:00');
+        $late = $this->shift('14:00', '22:00');
+        $employee = $this->employee($early);
+        $this->makeAvailable($employee, $late);
+        $first = $this->assign($employee, $early);
+        $second = $this->assign($employee, $late);
+        $other = $this->assign($employee, $early, '2026-09-16');
+        $rule = PlanningRule::create(['type' => 'max_shifts_per_day', 'mode' => 'soft', 'severity' => 5, 'config' => ['value' => 1]]);
+
+        $this->assertSame([], $this->verify(), 'a soft cap is not a violation');
+
+        $rule->update(['mode' => 'hard', 'severity' => null]);
+        $violations = $this->verify();
+
+        $this->assertSame(['max_shifts_per_day'], $violations[$first->id]);
+        $this->assertSame(['max_shifts_per_day'], $violations[$second->id]);
+        $this->assertArrayNotHasKey($other->id, $violations);
+    }
+
+    public function test_the_week_hours_cap_marks_every_shift_of_the_employee_that_week(): void
+    {
+        PlanningSettings::current()->update(['period_start' => self::WEEK_START]);
+        $shift = $this->shift('06:00', '14:00');
+        $employee = $this->employee($shift, ['weekly_hours' => 8]);
+        $first = $this->assign($employee, $shift);
+        $second = $this->assign($employee, $shift, '2026-09-16');
+        PlanningRule::create(['type' => 'max_hours_per_week', 'mode' => 'hard']);
+
+        $violations = $this->verify();
+
+        // 16h in the week is above 8h + 4h; the 16h cycle total is not above 2 x 8h.
+        $this->assertSame(['max_hours_per_week_distribution'], $violations[$first->id]);
+        $this->assertSame(['max_hours_per_week_distribution'], $violations[$second->id]);
+    }
+
+    public function test_the_cycle_hours_cap_counts_the_other_week_of_the_cycle(): void
+    {
+        PlanningSettings::current()->update(['period_start' => self::WEEK_START]);
+        $shift = $this->shift('06:00', '14:00');
+        $employee = $this->employee($shift, ['weekly_hours' => 8]);
+        $inWeek = $this->assign($employee, $shift);
+        $this->assign($employee, $shift, '2026-09-22');
+        $this->assign($employee, $shift, '2026-09-23');
+        PlanningRule::create(['type' => 'max_hours_per_week', 'mode' => 'hard']);
+
+        $violations = $this->verify();
+
+        // 24h in the cycle is above 2 x 8h; the week itself holds only 8h.
+        $this->assertSame(['max_hours_per_week'], $violations[$inWeek->id]);
+    }
+
+    public function test_hours_caps_count_shifts_in_other_workcenters(): void
+    {
+        PlanningSettings::current()->update(['period_start' => self::WEEK_START]);
+        $other = Workcenter::factory()->create();
+        $shift = $this->shift('06:00', '14:00');
+        $employee = $this->employee($shift, ['weekly_hours' => 8]);
+        $employee->workcenters()->attach($other);
+        $here = $this->assign($employee, $shift);
+        $this->assign($employee, $shift, '2026-09-16', $other);
+        PlanningRule::create(['type' => 'max_hours_per_week', 'mode' => 'hard']);
+
+        $this->assertSame(['max_hours_per_week_distribution'], $this->codesFor($here));
+    }
+
+    public function test_an_alternating_pair_in_one_week_marks_both_pair_shifts(): void
+    {
+        $early = $this->shift('06:00', '14:00');
+        $late = $this->shift('14:00', '22:00');
+        $mid = $this->shift('10:00', '18:00');
+        $employee = $this->employee($early);
+        $this->makeAvailable($employee, $late);
+        $this->makeAvailable($employee, $mid);
+        $monday = $this->assign($employee, $early, self::WEEK_START);
+        $wednesday = $this->assign($employee, $late, '2026-09-16');
+        $friday = $this->assign($employee, $mid, '2026-09-18');
+        $nextWeek = $this->assign($employee, $late, '2026-09-22');
+        PlanningRule::create([
+            'type' => 'alternating_shift_pair', 'mode' => 'hard',
+            'config' => ['first_shift_id' => $early->id, 'second_shift_id' => $late->id],
+        ]);
+
+        $violations = $this->verify();
+
+        $this->assertSame(['alternating_shift_pair'], $violations[$monday->id]);
+        $this->assertSame(['alternating_shift_pair'], $violations[$wednesday->id]);
+        $this->assertArrayNotHasKey($friday->id, $violations);
+        $this->assertArrayNotHasKey($nextWeek->id, $violations);
+    }
+
+    public function test_an_overfilled_cell_marks_every_assignment_in_it(): void
+    {
+        $shift = $this->shift();
+        $first = $this->assign($this->employee($shift), $shift);
+        $second = $this->assign($this->employee($shift), $shift);
+        WorkcenterShiftDateOverride::query()->create([
+            'workcenter_id' => $this->workcenter->id, 'shift_id' => $shift->id, 'date' => self::TUESDAY, 'spots' => 1,
+        ]);
+
+        $violations = $this->verify();
+
+        $this->assertSame(['cell_overfilled'], $violations[$first->id]);
+        $this->assertSame(['cell_overfilled'], $violations[$second->id]);
     }
 }
