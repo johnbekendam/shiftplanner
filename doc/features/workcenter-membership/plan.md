@@ -1,6 +1,6 @@
 # Workcenter Membership — Plan
 
-Status: in progress — 1/5
+Status: in progress — 2/5
 
 - [x] **Membership gates eligibility.** `SchedulingEligibility::isWorkcenterIneligible`
   and `PlanEligibility::isWorkcenterIneligible` return true when the
@@ -9,7 +9,7 @@ Status: in progress — 1/5
   `ShiftAssignmentController::store`, and the auto-planner. Update the
   eligibility tests and the planning fixtures that depend on
   "no rows = unrestricted".
-- [ ] **Each row sets shift visibility.** `Employee::effectiveShifts()` and
+- [x] **Each row sets shift visibility.** `Employee::effectiveShifts()` and
   `isShiftUnavailableForWorkcenter` count each row, not only `hard`
   rows. With no rows, the result is the `visible_by_default` shifts.
 - [ ] **Remove the workcenter-not-preferred flag.** Remove

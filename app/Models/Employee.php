@@ -104,19 +104,19 @@ class Employee extends Model
     /**
      * The shifts this employee can see and set availability for.
      *
-     * With no hard workcenter row: every shift visible by default. With one
-     * or more hard rows: the union of shifts those workcenters run,
-     * regardless of visible_by_default.
+     * With no workcenter row: every shift visible by default. With one or
+     * more rows: the union of shifts those workcenters run, regardless of
+     * visible_by_default.
      */
     public function effectiveShifts(): Collection
     {
-        $hardWorkcenterIds = $this->workcenters()->wherePivot('mode', 'hard')->pluck('workcenters.id');
+        $workcenterIds = $this->workcenters()->pluck('workcenters.id');
 
-        if ($hardWorkcenterIds->isEmpty()) {
+        if ($workcenterIds->isEmpty()) {
             return Shift::where('visible_by_default', true)->get();
         }
 
-        return Shift::whereHas('workcenters', fn ($q) => $q->whereIn('workcenters.id', $hardWorkcenterIds))->get();
+        return Shift::whereHas('workcenters', fn ($q) => $q->whereIn('workcenters.id', $workcenterIds))->get();
     }
 
     /** Availability questions the employee answered with yes. */

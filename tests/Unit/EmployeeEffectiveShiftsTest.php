@@ -21,7 +21,7 @@ class EmployeeEffectiveShiftsTest extends TestCase
         $this->assertSame([$visible->id], $employee->effectiveShifts()->pluck('id')->all());
     }
 
-    public function test_soft_only_row_returns_shifts_visible_by_default(): void
+    public function test_soft_row_returns_that_workcenters_shifts_including_a_hidden_one(): void
     {
         $employee = Employee::factory()->create();
         $workcenter = Workcenter::factory()->create();
@@ -30,7 +30,7 @@ class EmployeeEffectiveShiftsTest extends TestCase
         $workcenter->shifts()->attach([$visible->id, $hidden->id]);
         $employee->workcenters()->attach($workcenter, ['mode' => 'soft']);
 
-        $this->assertSame([$visible->id], $employee->effectiveShifts()->pluck('id')->all());
+        $this->assertSame([$visible->id, $hidden->id], $employee->effectiveShifts()->pluck('id')->sort()->values()->all());
     }
 
     public function test_hard_row_returns_that_workcenters_shifts_including_a_hidden_one(): void

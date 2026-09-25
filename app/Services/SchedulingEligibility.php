@@ -80,7 +80,6 @@ class SchedulingEligibility
 
         return ! $employee->workcenters()
             ->where('workcenters.id', $workcenter->id)
-            ->wherePivot('mode', 'hard')
             ->whereHas('shifts', fn ($q) => $q->where('shifts.id', $shift->id))
             ->exists();
     }
