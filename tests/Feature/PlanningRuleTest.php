@@ -193,7 +193,7 @@ class PlanningRuleTest extends TestCase
         $this->assertSame($workcenter->id, $rule->config['workcenter_id']);
     }
 
-    public function test_admin_creates_an_alternating_shift_pair(): void
+    public function test_admin_creates_an_alternating_shift_pair_as_a_hard_rule(): void
     {
         $this->actingAsAdmin();
         $first = Shift::factory()->create();
@@ -201,26 +201,21 @@ class PlanningRuleTest extends TestCase
 
         $this->post('/planning-rules', [
             'type' => 'alternating_shift_pair',
-            'severity' => 8,
             'first_shift_id' => $first->id,
             'second_shift_id' => $second->id,
         ])->assertRedirect()->assertSessionHasNoErrors();
 
         $rule = PlanningRule::sole();
-        $this->assertSame('soft', $rule->mode);
-        $this->assertSame(8, $rule->severity);
+        $this->assertSame('hard', $rule->mode);
+        $this->assertNull($rule->severity);
         $this->assertSame([
             'first_shift_id' => $first->id,
             'second_shift_id' => $second->id,
         ], $rule->config);
     }
 
-    public function test_admin_creates_an_alternating_shift_pair_with_the_client_sent_mode(): void
+    public function test_an_alternating_shift_pair_ignores_client_sent_mode_and_severity(): void
     {
-        // The real UI always sends `mode: 'soft'` alongside an alternating
-        // pair (PlanningRuleList.vue sets it locally for display, and
-        // PlanningRules.vue's rulePayload() forwards it as-is) — the server
-        // must accept and ignore it rather than reject it as prohibited.
         $this->actingAsAdmin();
         $first = Shift::factory()->create();
         $second = Shift::factory()->create();
@@ -233,7 +228,9 @@ class PlanningRuleTest extends TestCase
             'second_shift_id' => $second->id,
         ])->assertRedirect()->assertSessionHasNoErrors();
 
-        $this->assertSame('soft', PlanningRule::sole()->mode);
+        $rule = PlanningRule::sole();
+        $this->assertSame('hard', $rule->mode);
+        $this->assertNull($rule->severity);
     }
 
     public function test_an_alternating_shift_pair_requires_two_distinct_shifts(): void
@@ -243,7 +240,6 @@ class PlanningRuleTest extends TestCase
 
         $this->post('/planning-rules', [
             'type' => 'alternating_shift_pair',
-            'severity' => 8,
             'first_shift_id' => $shift->id,
             'second_shift_id' => $shift->id,
         ])->assertSessionHasErrors('second_shift_id');
@@ -257,27 +253,25 @@ class PlanningRuleTest extends TestCase
         $third = Shift::factory()->create();
         PlanningRule::create([
             'type' => 'alternating_shift_pair',
-            'mode' => 'soft',
-            'severity' => 5,
+            'mode' => 'hard',
+            'severity' => null,
             'config' => ['first_shift_id' => $first->id, 'second_shift_id' => $second->id],
         ]);
 
         $this->post('/planning-rules', [
             'type' => 'alternating_shift_pair',
-            'severity' => 8,
             'first_shift_id' => $second->id,
             'second_shift_id' => $first->id,
         ])->assertSessionHasErrors('first_shift_id');
 
         $this->post('/planning-rules', [
             'type' => 'alternating_shift_pair',
-            'severity' => 8,
             'first_shift_id' => $first->id,
             'second_shift_id' => $third->id,
         ])->assertSessionHasErrors('first_shift_id');
     }
 
-    public function test_update_changes_an_alternating_pair_severity_only(): void
+    public function test_update_of_an_alternating_pair_keeps_it_hard_and_fixed(): void
     {
         $this->actingAsAdmin();
         $first = Shift::factory()->create();
@@ -285,44 +279,22 @@ class PlanningRuleTest extends TestCase
         $other = Shift::factory()->create();
         $rule = PlanningRule::create([
             'type' => 'alternating_shift_pair',
-            'mode' => 'soft',
-            'severity' => 3,
+            'mode' => 'hard',
+            'severity' => null,
             'config' => ['first_shift_id' => $first->id, 'second_shift_id' => $second->id],
         ]);
 
         $this->put("/planning-rules/{$rule->id}", [
+            'mode' => 'soft',
             'severity' => 9,
             'first_shift_id' => $other->id,
             'second_shift_id' => $other->id,
         ])->assertRedirect()->assertSessionHasNoErrors();
 
         $rule->refresh();
-        $this->assertSame(9, $rule->severity);
+        $this->assertSame('hard', $rule->mode);
+        $this->assertNull($rule->severity);
         $this->assertSame(['first_shift_id' => $first->id, 'second_shift_id' => $second->id], $rule->config);
-    }
-
-    public function test_update_of_an_alternating_pair_accepts_the_client_sent_mode(): void
-    {
-        // Same real-UI shape as the create case: rulePayload() always
-        // forwards the row's `mode` ('soft') on every save, edits included.
-        $this->actingAsAdmin();
-        $first = Shift::factory()->create();
-        $second = Shift::factory()->create();
-        $rule = PlanningRule::create([
-            'type' => 'alternating_shift_pair',
-            'mode' => 'soft',
-            'severity' => 3,
-            'config' => ['first_shift_id' => $first->id, 'second_shift_id' => $second->id],
-        ]);
-
-        $this->put("/planning-rules/{$rule->id}", [
-            'mode' => 'soft',
-            'severity' => 9,
-            'first_shift_id' => $first->id,
-            'second_shift_id' => $second->id,
-        ])->assertRedirect()->assertSessionHasNoErrors();
-
-        $this->assertSame(9, $rule->refresh()->severity);
     }
 
     public function test_a_second_business_line_preference_for_the_same_workcenter_is_rejected(): void

@@ -26,6 +26,7 @@ use App\Http\Controllers\PersonalRecurringAvailabilityController;
 use App\Http\Controllers\PlanGenerationController;
 use App\Http\Controllers\PlannerOpenWeekController;
 use App\Http\Controllers\PlanningRuleController;
+use App\Http\Controllers\PlanningVerificationController;
 use App\Http\Controllers\PlanNotificationController;
 use App\Http\Controllers\PublishedWeekController;
 use App\Http\Controllers\QuestionController;
@@ -121,6 +122,7 @@ Route::middleware('auth')->group(function () {
         Route::delete('/planning/spots/{workcenter}/{shift}/{date}', [ScheduleSpotController::class, 'destroy'])
             ->where('date', '\d{4}-\d{2}-\d{2}')->name('planning.spots.destroy');
         Route::get('/planning/eligible-employees', [EligibleEmployeeController::class, 'index'])->name('planning.eligible-employees');
+        Route::get('/planning/verify', [PlanningVerificationController::class, 'index'])->name('planning.verify');
         Route::post('/planning/weeks/{weekStart}/workcenters/{workcenter}/publish', [PublishedWeekController::class, 'store'])
             ->where('weekStart', '\d{4}-\d{2}-\d{2}')->name('planning.weeks.workcenters.publish');
         Route::delete('/planning/weeks/{weekStart}/workcenters/{workcenter}/publish', [PublishedWeekController::class, 'destroy'])

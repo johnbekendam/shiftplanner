@@ -32,6 +32,9 @@ const en = {
     "planning.change_summary.moved_line": ":employee moved from :from to :to",
     "planning.change_summary.added_line": ":employee added to :cell",
     "planning.change_summary.removed_line": ":employee removed from :cell",
+    "planning.verify": "Verify planning",
+    "planning.verify_result": ":count assignments break a rule",
+    "planning.verify_ok": "No violations found",
     "calendar.reset": "Jump to today",
     "calendar.prev_month": "Previous month",
     "calendar.next_month": "Next month",
@@ -72,7 +75,12 @@ vi.mock("@inertiajs/vue3", () => ({
     }),
 }));
 
+const axiosGet = vi.hoisted(() => vi.fn());
+vi.mock("axios", () => ({ default: { get: axiosGet } }));
+
 import Scheduling from "@/pages/Scheduling.vue";
+import ShiftWeekTable from "@/components/scheduling/ShiftWeekTable.vue";
+import { flushPromises } from "@vue/test-utils";
 import WorkcenterScheduleCard from "@/components/scheduling/WorkcenterScheduleCard.vue";
 import GenerationChangeSummary from "@/components/scheduling/GenerationChangeSummary.vue";
 import ConfirmDialog from "@/components/ui/ConfirmDialog.vue";
@@ -757,4 +765,93 @@ describe("Scheduling", () => {
         }
     });
 
+    describe("Verify planning", () => {
+        beforeEach(() => {
+            axiosGet.mockReset();
+        });
+
+        it("shows nothing until the button is pressed", () => {
+            const w = mountPage();
+
+            expect(w.get('[data-testid="verify-plan-button"]').text()).toBe("Verify planning");
+            expect(w.find('[data-testid="verify-result"]').exists()).toBe(false);
+            expect(axiosGet).not.toHaveBeenCalled();
+            expect(w.findComponent(ShiftWeekTable).props("violations")).toEqual({});
+        });
+
+        it("verifies the visible week and passes the violations to the tables", async () => {
+            axiosGet.mockResolvedValue({ data: { violations: { 1: ["holiday"], 3: ["overlap"] } } });
+            const w = mountPage();
+
+            await w.get('[data-testid="verify-plan-button"]').trigger("click");
+            await flushPromises();
+
+            expect(axiosGet).toHaveBeenCalledWith("/planning/verify", { params: { week_start: "2026-09-07" } });
+            expect(w.get('[data-testid="verify-result"]').text()).toBe("2 assignments break a rule");
+            expect(w.findComponent(ShiftWeekTable).props("violations")).toEqual({ 1: ["holiday"], 3: ["overlap"] });
+        });
+
+        it("verifies again when the week cells reload after an edit", async () => {
+            axiosGet.mockResolvedValueOnce({ data: { violations: { 1: ["holiday"] } } });
+            axiosGet.mockResolvedValueOnce({ data: { violations: [] } });
+            const w = mountPage();
+            await w.get('[data-testid="verify-plan-button"]').trigger("click");
+            await flushPromises();
+
+            await w.setProps({ weekCells: baseProps.weekCells.map((cell) => ({ ...cell })) });
+            await flushPromises();
+
+            expect(axiosGet).toHaveBeenCalledTimes(2);
+            expect(w.get('[data-testid="verify-result"]').text()).toBe("No violations found");
+            expect(w.findComponent(ShiftWeekTable).props("violations")).toEqual({});
+        });
+
+        it("verifies the new week after a week change", async () => {
+            axiosGet.mockResolvedValue({ data: { violations: [] } });
+            const w = mountPage();
+            await w.get('[data-testid="verify-plan-button"]').trigger("click");
+            await flushPromises();
+
+            await w.setProps({ weekStart: "2026-09-14", weekCells: [] });
+            await flushPromises();
+
+            expect(axiosGet).toHaveBeenCalledTimes(2);
+            expect(axiosGet).toHaveBeenLastCalledWith("/planning/verify", { params: { week_start: "2026-09-14" } });
+        });
+
+        it("does not verify on a reload before the button is pressed", async () => {
+            const w = mountPage();
+
+            await w.setProps({ weekStart: "2026-09-14", weekCells: [] });
+            await flushPromises();
+
+            expect(axiosGet).not.toHaveBeenCalled();
+        });
+
+        it("ignores a slower answer for a week that is no longer shown", async () => {
+            let resolveOld;
+            axiosGet.mockImplementationOnce(() => new Promise((resolve) => { resolveOld = resolve; }));
+            axiosGet.mockResolvedValueOnce({ data: { violations: [] } });
+            axiosGet.mockResolvedValueOnce({ data: { violations: [] } });
+            const w = mountPage();
+            await w.get('[data-testid="verify-plan-button"]').trigger("click");
+            await w.setProps({ weekStart: "2026-09-14", weekCells: [] });
+            await flushPromises();
+
+            resolveOld({ data: { violations: { 1: ["holiday"] } } });
+            await flushPromises();
+
+            expect(w.get('[data-testid="verify-result"]').text()).toBe("No violations found");
+        });
+
+        it("says so when no assignment breaks a rule", async () => {
+            axiosGet.mockResolvedValue({ data: { violations: [] } });
+            const w = mountPage();
+
+            await w.get('[data-testid="verify-plan-button"]').trigger("click");
+            await flushPromises();
+
+            expect(w.get('[data-testid="verify-result"]').text()).toBe("No violations found");
+        });
+    });
 });

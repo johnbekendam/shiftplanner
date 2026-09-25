@@ -40,7 +40,13 @@ const props = defineProps({
     unfulfilled: { type: Array, default: () => [] },
     // Whether this workcenter's week is published.
     published: { type: Boolean, default: false },
+    // The last Verify planning result: { [assignment id]: [violation code] }.
+    violations: { type: Object, default: () => ({}) },
 })
+
+function violationsFor(assignment) {
+    return props.violations[assignment.id] ?? []
+}
 
 function unfulfilledFor(cell) {
     return props.unfulfilled.find(
@@ -60,6 +66,7 @@ function sortedAssignments(cell) {
 }
 
 function assignmentStatus(assignment) {
+    if (violationsFor(assignment).length) return 'bg-(--color-badge-error-bg) text-(--color-badge-error-text) border-(--color-badge-error-border)'
     if (assignment.informed) return 'bg-(--color-badge-success-bg) text-(--color-badge-success-text) border-(--color-badge-success-border)'
     if (assignment.fixed) return 'bg-(--color-badge-standard-bg) text-(--color-badge-standard-text) border-(--color-badge-standard-border)'
     return 'bg-(--color-badge-muted-bg) text-(--color-badge-muted-text) border-(--color-badge-muted-border)'
@@ -322,6 +329,14 @@ onBeforeUnmount(() => {
                                     class="pointer-events-none absolute bottom-full left-0 z-50 mb-1 hidden max-w-[calc(100vw-2rem)] whitespace-normal rounded-md border border-(--color-dropdown-panel-border) bg-(--color-dropdown-panel-bg) px-2 py-1 text-xs text-(--color-dropdown-option-text) shadow-lg group-hover:block group-focus-visible:block"
                                 >
                                     {{ assignmentTooltip(cellState(cell, row).assignment) }}
+                                    <span
+                                        v-for="code in violationsFor(cellState(cell, row).assignment)"
+                                        :key="code"
+                                        data-testid="violation-line"
+                                        class="block text-(--color-badge-error-text)"
+                                    >
+                                        {{ __(`scheduling.violation.${code}`) }}
+                                    </span>
                                 </span>
                             </button>
                         </template>
@@ -433,9 +448,6 @@ onBeforeUnmount(() => {
                         </span>
                         <span class="flex shrink-0 items-center gap-1">
                             <span v-if="employee.not_preferred" data-testid="not-preferred-icon" class="contents">
-                                <Icon name="exclamation-triangle" class="size-3 text-(--color-badge-warning-text)" />
-                            </span>
-                            <span v-if="employee.workcenter_not_preferred" data-testid="workcenter-not-preferred-icon" class="contents">
                                 <Icon name="exclamation-triangle" class="size-3 text-(--color-badge-warning-text)" />
                             </span>
                         </span>

@@ -37,7 +37,6 @@ class EligibleEmployeeController extends Controller
                 'name' => $employee->name,
                 'block_reason' => $this->eligibility->assignmentBlockReason($employee, $workcenter, $shift, $date),
                 'not_preferred' => $this->eligibility->isNotPreferred($employee, $weekday, $shift),
-                'workcenter_not_preferred' => $this->eligibility->isWorkcenterNotPreferred($employee, $workcenter),
             ])
             ->values();
 

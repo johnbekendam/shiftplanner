@@ -135,21 +135,6 @@ class HeuristicPlanGenerator implements PlanGeneratorContract
             PublishedWeek::frozenPairs($cycleStart, $cycleEnd, $workcenterIds),
         );
 
-        $previousWeekStart = $cycleStart->copy()->subDays(7);
-        $previousWeekEnd = $cycleStart->copy()->subDay();
-        $previousWeekAssignments = ShiftAssignment::query()
-            ->whereIn('workcenter_id', $workcenterIds)
-            ->whereBetween('date', [$previousWeekStart->toDateString(), $previousWeekEnd->toDateString()])
-            ->get()
-            ->map(fn (ShiftAssignment $a) => [
-                'employee_id' => $a->employee_id,
-                'workcenter_id' => $a->workcenter_id,
-                'shift_id' => $a->shift_id,
-                'date' => $a->date->toDateString(),
-            ])
-            ->values()
-            ->all();
-
         $employees = Employee::query()
             ->active()
             ->where('confirmed', true)
@@ -169,10 +154,7 @@ class HeuristicPlanGenerator implements PlanGeneratorContract
                     'shift_id' => $r->shift_id,
                     'level' => $r->level,
                 ])->values()->all(),
-                'workcenters' => $e->workcenters->map(fn (Workcenter $w) => [
-                    'workcenter_id' => $w->id,
-                    'mode' => $w->pivot->mode,
-                ])->values()->all(),
+                'workcenter_ids' => $e->workcenters->pluck('id')->values()->all(),
                 'competences' => $e->competences->pluck('id')->values()->all(),
             ])
             ->values()
@@ -193,7 +175,6 @@ class HeuristicPlanGenerator implements PlanGeneratorContract
             shifts: $shifts,
             spots: $spots,
             lockedAssignments: $lockedAssignments,
-            previousWeekAssignments: $previousWeekAssignments,
             rules: $rules,
         );
     }

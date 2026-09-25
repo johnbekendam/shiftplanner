@@ -18,8 +18,8 @@ final class PlanEligibility
     /** @var array<int, array<string, string>> employee_id => "weekday:shift_id" => level */
     private array $availability = [];
 
-    /** @var array<int, array<int, string>> employee_id => workcenter_id => mode */
-    private array $workcenterModes = [];
+    /** @var array<int, array<int, true>> employee_id => workcenter_id set */
+    private array $workcenters = [];
 
     /** @var array<int, array<int, true>> employee_id => competence_id set */
     private array $competences = [];
@@ -39,6 +39,9 @@ final class PlanEligibility
 
     private bool $hardNotPreferredShift = false;
 
+    /** @var array<int, int> shift_id => the other shift of its alternating pair */
+    private array $pairedShift = [];
+
     public function __construct(private readonly PlanProblem $problem)
     {
         foreach ($problem->employees as $employee) {
@@ -50,8 +53,8 @@ final class PlanEligibility
                 $this->availability[$id]["{$row['weekday']}:{$row['shift_id']}"] = $row['level'];
             }
 
-            foreach ($employee['workcenters'] as $row) {
-                $this->workcenterModes[$id][$row['workcenter_id']] = $row['mode'];
+            foreach ($employee['workcenter_ids'] as $workcenterId) {
+                $this->workcenters[$id][$workcenterId] = true;
             }
 
             foreach ($employee['competences'] as $competenceId) {
@@ -60,6 +63,16 @@ final class PlanEligibility
         }
 
         foreach ($problem->rules as $rule) {
+            // Always hard, whatever mode a row stores.
+            if ($rule['type'] === 'alternating_shift_pair') {
+                $first = $rule['config']['first_shift_id'];
+                $second = $rule['config']['second_shift_id'];
+                $this->pairedShift[$first] = $second;
+                $this->pairedShift[$second] = $first;
+
+                continue;
+            }
+
             if ($rule['mode'] !== 'hard') {
                 continue;
             }
@@ -87,7 +100,8 @@ final class PlanEligibility
             && $this->matchesRequiredBusinessLine($id, $workcenterId)
             && ! $current->hasOverlap($id, $date, $shiftId)
             && $this->withinMaxShiftsPerDay($current, $id, $date)
-            && $this->withinMaxHoursPerWeek($current, $employee, $shiftId, $date);
+            && $this->withinMaxHoursPerWeek($current, $employee, $shiftId, $date)
+            && ! $this->combinesPairInWeek($current, $id, $shiftId, $date);
     }
 
     /** A hard not_preferred_shift rule closes not-preferred cells like unavailable ones. */
@@ -119,12 +133,7 @@ final class PlanEligibility
     /** Matches SchedulingEligibility::isWorkcenterIneligible exactly. */
     private function isWorkcenterIneligible(int $employeeId, int $workcenterId): bool
     {
-        $modes = $this->workcenterModes[$employeeId] ?? [];
-        if (! in_array('hard', $modes, true)) {
-            return false;
-        }
-
-        return ($modes[$workcenterId] ?? null) !== 'hard';
+        return ! isset($this->workcenters[$employeeId][$workcenterId]);
     }
 
     private function holdsRequiredCompetences(int $employeeId, int $workcenterId): bool
@@ -145,6 +154,16 @@ final class PlanEligibility
         }
 
         return $this->businessLines[$employeeId] === $this->hardBusinessLinePreference[$workcenterId];
+    }
+
+    /** An employee never holds both shifts of an alternating pair in the same week. */
+    private function combinesPairInWeek(PlanAssignmentSet $current, int $employeeId, int $shiftId, string $date): bool
+    {
+        if (! isset($this->pairedShift[$shiftId])) {
+            return false;
+        }
+
+        return $current->hasShiftInWeek($employeeId, $this->pairedShift[$shiftId], $date);
     }
 
     private function withinMaxShiftsPerDay(PlanAssignmentSet $current, int $employeeId, string $date): bool

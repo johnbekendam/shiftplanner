@@ -1,5 +1,9 @@
 # Employee Workcenter Assignments — Spec
 
+> **Superseded** by `doc/features/workcenter-membership/spec.md`. The
+> hard/soft `mode` no longer exists. A row is a membership, and an
+> employee with no rows cannot be planned.
+
 Roadmap phase 3 continuation. `doc/features/workcenters/spec.md`
 deferred "competence-to-workcenter gating." `doc/roadmap.md`'s phase 3
 entry still marks "rule-based automatic planning" as needing a design

@@ -16,15 +16,11 @@ class EmployeeWorkcenterController extends Controller
 
     public function update(Request $request, Employee $employee, Workcenter $workcenter)
     {
-        $data = $request->validate([
-            'mode' => ['required', 'in:hard,soft'],
-        ]);
+        $attached = $employee->workcenters()->whereKey($workcenter->id)->exists();
+        $this->attachWorkcenter($employee, $workcenter);
 
-        $before = $employee->workcenters()->whereKey($workcenter->id)->first()?->pivot?->mode;
-        $this->attachWorkcenter($employee, $workcenter, $data['mode']);
-
-        if ($before !== $data['mode']) {
-            $this->audit->record($employee, 'workcenter_changed', 'workcenter', $workcenter->id, ['mode' => $before], ['mode' => $data['mode']], 'user', $request->user());
+        if (! $attached) {
+            $this->audit->record($employee, 'workcenter_attached', 'workcenter', $workcenter->id, ['attached' => false], ['attached' => true], 'user', $request->user());
         }
 
         return back();
@@ -32,11 +28,11 @@ class EmployeeWorkcenterController extends Controller
 
     public function destroy(Request $request, Employee $employee, Workcenter $workcenter)
     {
-        $before = $employee->workcenters()->whereKey($workcenter->id)->first()?->pivot?->mode;
+        $attached = $employee->workcenters()->whereKey($workcenter->id)->exists();
         $this->detachWorkcenter($employee, $workcenter);
 
-        if ($before !== null) {
-            $this->audit->record($employee, 'workcenter_detached', 'workcenter', $workcenter->id, ['mode' => $before], ['mode' => null], 'user', $request->user());
+        if ($attached) {
+            $this->audit->record($employee, 'workcenter_detached', 'workcenter', $workcenter->id, ['attached' => true], ['attached' => false], 'user', $request->user());
         }
 
         return back();

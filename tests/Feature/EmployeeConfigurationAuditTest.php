@@ -77,16 +77,31 @@ class EmployeeConfigurationAuditTest extends TestCase
         $this->assertSame(['attached' => true], $event->new_values);
     }
 
-    public function test_workcenter_mode_change_is_audited(): void
+    public function test_workcenter_attachment_is_audited_once(): void
     {
         $workcenter = Workcenter::factory()->create();
+        $url = "/employees/{$this->employee->id}/workcenters/{$workcenter->id}";
 
-        $this->put("/employees/{$this->employee->id}/workcenters/{$workcenter->id}", ['mode' => 'soft']);
+        $this->put($url);
+        $this->put($url);
 
         $event = EmployeeAuditEvent::sole();
-        $this->assertSame('workcenter_changed', $event->action);
-        $this->assertSame(['mode' => null], $event->old_values);
-        $this->assertSame(['mode' => 'soft'], $event->new_values);
+        $this->assertSame('workcenter_attached', $event->action);
+        $this->assertSame(['attached' => false], $event->old_values);
+        $this->assertSame(['attached' => true], $event->new_values);
+    }
+
+    public function test_workcenter_detachment_is_audited(): void
+    {
+        $workcenter = Workcenter::factory()->create();
+        $this->employee->workcenters()->attach($workcenter);
+
+        $this->delete("/employees/{$this->employee->id}/workcenters/{$workcenter->id}");
+
+        $event = EmployeeAuditEvent::sole();
+        $this->assertSame('workcenter_detached', $event->action);
+        $this->assertSame(['attached' => true], $event->old_values);
+        $this->assertSame(['attached' => false], $event->new_values);
     }
 
     public function test_question_answer_change_is_audited(): void

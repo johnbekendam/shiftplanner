@@ -21,19 +21,7 @@ class EmployeeEffectiveShiftsTest extends TestCase
         $this->assertSame([$visible->id], $employee->effectiveShifts()->pluck('id')->all());
     }
 
-    public function test_soft_only_row_returns_shifts_visible_by_default(): void
-    {
-        $employee = Employee::factory()->create();
-        $workcenter = Workcenter::factory()->create();
-        $visible = Shift::factory()->create(['visible_by_default' => true]);
-        $hidden = Shift::factory()->create(['visible_by_default' => false]);
-        $workcenter->shifts()->attach([$visible->id, $hidden->id]);
-        $employee->workcenters()->attach($workcenter, ['mode' => 'soft']);
-
-        $this->assertSame([$visible->id], $employee->effectiveShifts()->pluck('id')->all());
-    }
-
-    public function test_hard_row_returns_that_workcenters_shifts_including_a_hidden_one(): void
+    public function test_a_row_returns_that_workcenters_shifts_including_a_hidden_one(): void
     {
         $employee = Employee::factory()->create();
         $workcenter = Workcenter::factory()->create();
@@ -43,12 +31,12 @@ class EmployeeEffectiveShiftsTest extends TestCase
         $otherWorkcenterShift = Shift::factory()->create(['visible_by_default' => true]);
         $workcenter->shifts()->attach($run);
         $other->shifts()->attach($otherWorkcenterShift);
-        $employee->workcenters()->attach($workcenter, ['mode' => 'hard']);
+        $employee->workcenters()->attach($workcenter);
 
         $this->assertSame([$run->id], $employee->effectiveShifts()->pluck('id')->all());
     }
 
-    public function test_two_hard_rows_union_their_shifts_without_duplicates(): void
+    public function test_two_rows_union_their_shifts_without_duplicates(): void
     {
         $employee = Employee::factory()->create();
         $workcenterA = Workcenter::factory()->create();
@@ -58,8 +46,8 @@ class EmployeeEffectiveShiftsTest extends TestCase
         $onlyB = Shift::factory()->create(['visible_by_default' => false]);
         $workcenterA->shifts()->attach([$shared->id, $onlyA->id]);
         $workcenterB->shifts()->attach([$shared->id, $onlyB->id]);
-        $employee->workcenters()->attach($workcenterA, ['mode' => 'hard']);
-        $employee->workcenters()->attach($workcenterB, ['mode' => 'hard']);
+        $employee->workcenters()->attach($workcenterA);
+        $employee->workcenters()->attach($workcenterB);
 
         $this->assertSame(
             [$shared->id, $onlyA->id, $onlyB->id],

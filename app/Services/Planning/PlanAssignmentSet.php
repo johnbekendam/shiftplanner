@@ -99,11 +99,14 @@ final class PlanAssignmentSet
         return isset($this->byKey[self::key($employeeId, $workcenterId, $shiftId, $date)]);
     }
 
-    /** True when $employeeId holds $shiftId (any workcenter) on $date — for alternating-pair checks. */
-    public function hasShiftOnDate(int $employeeId, int $shiftId, string $date): bool
+    /** True when $employeeId holds $shiftId (any workcenter) in the Monday–Sunday week of $date — for alternating-pair checks. */
+    public function hasShiftInWeek(int $employeeId, int $shiftId, string $date): bool
     {
+        $weekStart = Carbon::parse($date)->startOfWeek(Carbon::MONDAY)->toDateString();
+        $weekEnd = Carbon::parse($date)->endOfWeek(Carbon::SUNDAY)->toDateString();
+
         foreach ($this->forEmployee($employeeId) as $a) {
-            if ($a['date'] === $date && $a['shift_id'] === $shiftId) {
+            if ($a['shift_id'] === $shiftId && $a['date'] >= $weekStart && $a['date'] <= $weekEnd) {
                 return true;
             }
         }

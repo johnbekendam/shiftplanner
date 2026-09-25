@@ -24,7 +24,7 @@ const props = defineProps({
     competenceReport: { type: Array, default: () => [] }, // { id, name, competence_names }
     // Paginated: { data: [{ id, name, business_line, weekly_hours }], links, from, to, total, last_page }
     unassignedWorkcenterReport: { type: Object, required: true },
-    // Paginated: { data: [{ id, name, mode, business_line, weekly_hours }], links, from, to, total, last_page }
+    // Paginated: { data: [{ id, name, business_line, weekly_hours }], links, from, to, total, last_page }
     workcenterReport: { type: Object, required: true },
     // Paginated: { data: [{ workcenter, date, hours }], links, from, to, total, last_page }
     plannedHoursReport: { type: Object, required: true },
@@ -35,14 +35,8 @@ const props = defineProps({
     filters: { type: Object, required: true },
 })
 
-const workcenterUnassignedColumns = [
+const workcenterColumns = [
     { key: 'name', label: 'reports.workcenter.column.name' },
-    { key: 'business_line', label: 'reports.workcenter.column.business_line' },
-    { key: 'weekly_hours', label: 'reports.workcenter.column.weekly_hours' },
-]
-const workcenterForColumns = [
-    { key: 'name', label: 'reports.workcenter.column.name' },
-    { key: 'mode', label: 'reports.workcenter.column.mode' },
     { key: 'business_line', label: 'reports.workcenter.column.business_line' },
     { key: 'weekly_hours', label: 'reports.workcenter.column.weekly_hours' },
 ]
@@ -333,7 +327,7 @@ function emailSelected() {
                 <table v-else-if="workcenterMode === 'unassigned'" class="w-full text-sm">
                     <thead>
                         <tr class="border-b border-(--color-table-header-separator) text-left text-(--color-table-header-text)">
-                            <th v-for="column in workcenterUnassignedColumns" :key="column.key" class="px-2 py-2">
+                            <th v-for="column in workcenterColumns" :key="column.key" class="px-2 py-2">
                                 <button
                                     type="button"
                                     class="flex items-center gap-1 font-medium hover:text-(--color-text-primary)"
@@ -374,7 +368,7 @@ function emailSelected() {
                 <table v-else-if="workcenterReport.total > 0" class="w-full text-sm">
                     <thead>
                         <tr class="border-b border-(--color-table-header-separator) text-left text-(--color-table-header-text)">
-                            <th v-for="column in workcenterForColumns" :key="column.key" class="px-2 py-2">
+                            <th v-for="column in workcenterColumns" :key="column.key" class="px-2 py-2">
                                 <button
                                     type="button"
                                     class="flex items-center gap-1 font-medium hover:text-(--color-text-primary)"
@@ -400,9 +394,6 @@ function emailSelected() {
                             @keydown.enter="openEmployeeWorkcenters(employee)"
                         >
                             <td class="px-2 py-2 text-(--color-table-row-text)">{{ employee.name }}</td>
-                            <td class="px-2 py-2 text-(--color-table-row-text)">
-                                {{ __(`workcenters.mode.${employee.mode}`) }}
-                            </td>
                             <td class="px-2 py-2 text-(--color-table-row-text)">
                                 {{ employee.business_line ?? __('reports.workcenter.no_business_line') }}
                             </td>

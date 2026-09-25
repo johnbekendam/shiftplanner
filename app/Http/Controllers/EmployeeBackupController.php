@@ -151,9 +151,7 @@ class EmployeeBackupController extends Controller
                 $snapshot['availability'] = $employee->recurringAvailabilities->map->toPayload()->values()->all();
                 $snapshot['competence_ids'] = $employee->competences->pluck('id')->sort()->values()->all();
                 $snapshot['question_ids'] = $employee->availabilityQuestions->pluck('id')->sort()->values()->all();
-                $snapshot['workcenters'] = $employee->workcenters
-                    ->map(fn ($workcenter) => ['id' => $workcenter->id, 'mode' => $workcenter->pivot->mode])
-                    ->sortBy('id')->values()->all();
+                $snapshot['workcenter_ids'] = $employee->workcenters->pluck('id')->sort()->values()->all();
 
                 return [$employee->id => $snapshot];
             })

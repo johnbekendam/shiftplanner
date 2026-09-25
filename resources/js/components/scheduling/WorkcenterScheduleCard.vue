@@ -21,6 +21,8 @@ const props = defineProps({
     // The viewed cycle's most recent run's unfulfilled spots, across every
     // workcenter/shift. [{ workcenter_id, shift_id, date, reason }]
     unfulfilled: { type: Array, default: () => [] },
+    // The last Verify planning result: { [assignment id]: [violation code] }.
+    violations: { type: Object, default: () => ({}) },
 })
 
 async function setPlannerOpen(open) {
@@ -75,6 +77,7 @@ async function togglePublish() {
                         :cells="entry.cells"
                         :unfulfilled="unfulfilled"
                         :published="published"
+                        :violations="violations"
                     />
                 </div>
             </template>

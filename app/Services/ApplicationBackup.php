@@ -126,7 +126,6 @@ class ApplicationBackup
                 'recurring_availabilities',
                 'competence_employee',
                 'availability_question_employee',
-                'employee_workcenter',
                 'workcenter_shift',
                 'workcenter_shift_capacities',
                 'workcenter_shift_date_overrides',
@@ -137,6 +136,9 @@ class ApplicationBackup
             ] as $table) {
                 $this->insertRows($table, $data[$table]);
             }
+
+            // Archives from before the membership change still carry `mode`.
+            $this->insertRows('employee_workcenter', $this->withoutFields($data['employee_workcenter'], ['mode']));
 
             $this->resetSequences();
         });

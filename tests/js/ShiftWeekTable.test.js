@@ -17,6 +17,8 @@ const en = {
     "scheduling.assignment_tooltip.unfixed": "Bram Bakker (unfixed)",
     "scheduling.assignment_tooltip.fixed": "Anna Jansen (fixed)",
     "scheduling.assignment_tooltip.informed": "Bram Bakker (informed)",
+    "scheduling.violation.holiday": "On holiday that day.",
+    "scheduling.violation.overlap": "Overlaps another shift that day.",
 };
 
 const { routerCalls, failUrlsRef, router } = vi.hoisted(() => {
@@ -136,6 +138,25 @@ describe("ShiftWeekTable", () => {
         const badge = cell.get('[data-testid="assignment-status-badge"]');
         expect(badge.text()).toBe("Bram Bakker");
         expect(badge.classes()).toContain("text-(--color-badge-success-text)");
+    });
+
+    it("shows a violating assignee in a red badge and lists each violation in the tooltip", () => {
+        const w = mountTable(undefined, { violations: { 2: ["holiday", "overlap"] } });
+
+        const cell = w.get('[data-testid="cell-9-2026-09-15-0"]');
+        const badge = cell.get('[data-testid="assignment-status-badge"]');
+        expect(badge.classes()).toContain("text-(--color-badge-error-text)");
+        expect(badge.classes()).toContain("bg-(--color-badge-error-bg)");
+        expect(badge.classes()).not.toContain("text-(--color-badge-standard-text)");
+
+        const lines = cell.findAll('[role="tooltip"] [data-testid="violation-line"]').map((l) => l.text());
+        expect(cell.get('[role="tooltip"]').text()).toContain("Anna Jansen (fixed)");
+        expect(lines).toEqual(["On holiday that day.", "Overlaps another shift that day."]);
+
+        // An assignment without violations keeps its state color.
+        const other = w.get('[data-testid="cell-9-2026-09-14-0"] [data-testid="assignment-status-badge"]');
+        expect(other.classes()).toContain("text-(--color-badge-muted-text)");
+        expect(w.get('[data-testid="cell-9-2026-09-14-0"]').findAll('[data-testid="violation-line"]')).toHaveLength(0);
     });
 
     it("shows full-width badges for unfixed and fixed assignees when published", () => {
@@ -327,21 +348,6 @@ describe("ShiftWeekTable", () => {
         await flushPromises();
 
         expect(list().findAll("li")).toHaveLength(1);
-        w.unmount();
-    });
-
-    it("flags a workcenter-not-preferred employee in the assign popover with a warning icon", async () => {
-        axiosGet.mockResolvedValue({
-            data: [{ id: 3, name: "Els de Vries", not_preferred: false, workcenter_not_preferred: true }],
-        });
-        const w = mountTable();
-
-        await w.get('[data-testid="cell-9-2026-09-17-0"] button').trigger("click");
-        await flushPromises();
-
-        const popover = bodyWrapper().get('[data-testid="assign-popover"]');
-        expect(popover.find('[data-testid="workcenter-not-preferred-icon"]').exists()).toBe(true);
-        expect(popover.find('[data-testid="not-preferred-icon"]').exists()).toBe(false);
         w.unmount();
     });
 
