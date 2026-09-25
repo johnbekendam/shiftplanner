@@ -18,8 +18,6 @@ const en = {
     "workcenters.employee_tab": "Workcenters",
     "workcenters.checklist_empty": "No workcenters have been set up yet.",
     "workcenters.archived_suffix": ":name (archived)",
-    "workcenters.mode.hard": "Requirement",
-    "workcenters.mode.soft": "Preference",
     "planning.tab": "Planning",
     "planning.empty": "No planned shifts yet.",
     "planning.published": "Published",
@@ -439,7 +437,7 @@ describe("Employees/Form", () => {
                 employee: { id: 3, name: "A", email: "a@b.c", weekly_hours: 24 },
                 holidays: [],
                 workcenters: [{ id: 1, name: "Assembly A", archived: false }],
-                employeeWorkcenterAssignments: [{ workcenter_id: 1, mode: "hard" }],
+                workcenterIds: [1],
             },
             global: { stubs },
         });
@@ -448,7 +446,7 @@ describe("Employees/Form", () => {
         await tab.trigger("click");
         await w.vm.$nextTick();
 
-        expect(w.findComponent(WorkcenterChecklist).props("selectedRows")).toEqual([{ workcenter_id: 1, mode: "hard" }]);
+        expect(w.findComponent(WorkcenterChecklist).props("selectedIds")).toEqual([1]);
     });
 
     it("forwards the business lines to EmployeeFields and preselects the employee's line", () => {
@@ -681,23 +679,23 @@ describe("Employees/Form", () => {
         expect(routerCalls).toContainEqual(["put", "/employees/3/competences/1", {}]);
     });
 
-    it("attaches a newly selected workcenter row with a PUT carrying its mode", async () => {
+    it("attaches a newly selected workcenter with a bodyless PUT", async () => {
         const w = mount(Form, {
             props: {
                 employee: { id: 3, first_name: "A", last_name: "B", email: "a@b.c", weekly_hours: 24 },
                 holidays: [],
                 workcenters: [{ id: 1, name: "Assembly A", archived: false }],
-                employeeWorkcenterAssignments: [],
+                workcenterIds: [],
             },
             global: { stubs },
         });
-        w.findComponent(WorkcenterChecklist).vm.$emit("update:selectedRows", [{ workcenter_id: 1, mode: "hard" }]);
+        w.findComponent(WorkcenterChecklist).vm.$emit("update:selectedIds", [1]);
         await w.vm.$nextTick();
 
         await findSaveButton(w).trigger("click");
         await flushPromises();
 
-        expect(routerCalls).toContainEqual(["put", "/employees/3/workcenters/1", { mode: "hard" }]);
+        expect(routerCalls).toContainEqual(["put", "/employees/3/workcenters/1", {}]);
     });
 
     it("detaches an unselected workcenter row with a DELETE", async () => {
@@ -706,11 +704,11 @@ describe("Employees/Form", () => {
                 employee: { id: 3, first_name: "A", last_name: "B", email: "a@b.c", weekly_hours: 24 },
                 holidays: [],
                 workcenters: [{ id: 1, name: "Assembly A", archived: false }],
-                employeeWorkcenterAssignments: [{ workcenter_id: 1, mode: "hard" }],
+                workcenterIds: [1],
             },
             global: { stubs },
         });
-        w.findComponent(WorkcenterChecklist).vm.$emit("update:selectedRows", []);
+        w.findComponent(WorkcenterChecklist).vm.$emit("update:selectedIds", []);
         await w.vm.$nextTick();
 
         await findSaveButton(w).trigger("click");
@@ -739,12 +737,12 @@ describe("Employees/Form", () => {
                 shifts: [{ id: 1, name: "Early", start_time: "06:00", end_time: "14:00" }],
                 availability: [],
                 workcenters: [{ id: 1, name: "Line 1", archived: false }],
-                employeeWorkcenterAssignments: [],
+                workcenterIds: [],
             },
             global: { stubs },
         });
 
-        w.findComponent(WorkcenterChecklist).vm.$emit("update:selectedRows", [{ workcenter_id: 1, mode: "hard" }]);
+        w.findComponent(WorkcenterChecklist).vm.$emit("update:selectedIds", [1]);
         await w.vm.$nextTick();
 
         await findSaveButton(w).trigger("click");
@@ -756,42 +754,23 @@ describe("Employees/Form", () => {
         expect(cell.classes()).toContain("bg-(--color-badge-standard-bg)");
     });
 
-    it("re-puts a workcenter row whose mode changed", async () => {
-        const w = mount(Form, {
-            props: {
-                employee: { id: 3, first_name: "A", last_name: "B", email: "a@b.c", weekly_hours: 24 },
-                holidays: [],
-                workcenters: [{ id: 1, name: "Assembly A", archived: false }],
-                employeeWorkcenterAssignments: [{ workcenter_id: 1, mode: "hard" }],
-            },
-            global: { stubs },
-        });
-        w.findComponent(WorkcenterChecklist).vm.$emit("update:selectedRows", [{ workcenter_id: 1, mode: "soft" }]);
-        await w.vm.$nextTick();
-
-        await findSaveButton(w).trigger("click");
-        await flushPromises();
-
-        expect(routerCalls).toContainEqual(["put", "/employees/3/workcenters/1", { mode: "soft" }]);
-    });
-
     it("Cancel resets pending workcenter rows to the last-saved state", async () => {
         const w = mount(Form, {
             props: {
                 employee: { id: 3, first_name: "A", last_name: "B", email: "a@b.c", weekly_hours: 24 },
                 holidays: [],
                 workcenters: [{ id: 1, name: "Assembly A", archived: false }],
-                employeeWorkcenterAssignments: [{ workcenter_id: 1, mode: "hard" }],
+                workcenterIds: [1],
             },
             global: { stubs },
         });
-        w.findComponent(WorkcenterChecklist).vm.$emit("update:selectedRows", []);
+        w.findComponent(WorkcenterChecklist).vm.$emit("update:selectedIds", []);
         await w.vm.$nextTick();
 
         await findCancelButton(w).trigger("click");
         await w.vm.$nextTick();
 
-        expect(w.findComponent(WorkcenterChecklist).props("selectedRows")).toEqual([{ workcenter_id: 1, mode: "hard" }]);
+        expect(w.findComponent(WorkcenterChecklist).props("selectedIds")).toEqual([1]);
     });
 
     it("keeps Save enabled and marks the Availability tab on a failed availability save", async () => {

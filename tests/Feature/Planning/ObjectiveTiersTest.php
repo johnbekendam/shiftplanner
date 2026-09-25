@@ -64,7 +64,7 @@ class ObjectiveTiersTest extends TestCase
         $this->openCell($tight, $shift, self::TUESDAY);
         $both = $this->eligibleEmployee($shift, self::TUESDAY);
         $roomyOnly = $this->eligibleEmployee($shift, self::TUESDAY);
-        $roomyOnly->workcenters()->attach($roomy->id, ['mode' => 'hard']);
+        $roomyOnly->workcenters()->attach($roomy->id);
 
         $run = $this->makeRun();
         $this->generator()->generate($run);
@@ -121,7 +121,7 @@ class ObjectiveTiersTest extends TestCase
         $this->openCell($second, $shift, self::TUESDAY);
         $p = $this->eligibleEmployee($shift, self::TUESDAY);
         $q = $this->eligibleEmployee($shift, self::TUESDAY);
-        $q->workcenters()->attach($first->id, ['mode' => 'hard']);
+        $q->workcenters()->attach($first->id);
         $this->hold($p, $first, $shift, self::WEDNESDAY, fixed: true);
         $this->hold($p, $first, $shift, self::THURSDAY, fixed: true);
         $this->hold($p, $first, $shift, self::TUESDAY);

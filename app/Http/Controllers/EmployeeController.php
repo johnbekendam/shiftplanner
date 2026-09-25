@@ -199,10 +199,7 @@ class EmployeeController extends Controller
                 'name' => $workcenter->name,
                 'archived' => $workcenter->archived_at !== null,
             ])->values()->all(),
-            'employeeWorkcenterAssignments' => $employee->workcenters->map(fn (Workcenter $workcenter) => [
-                'workcenter_id' => $workcenter->id,
-                'mode' => $workcenter->pivot->mode,
-            ])->values()->all(),
+            'workcenterIds' => $employee->workcenters->pluck('id')->values()->all(),
             'questions' => AvailabilityQuestion::all()->map->toPayload()->all(),
             'questionAnswers' => $employee->availabilityQuestions->pluck('id')->all(),
             'plannedShifts' => $this->plannedShifts->forEmployee($employee, publishedOnly: false),

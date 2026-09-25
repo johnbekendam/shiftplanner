@@ -50,8 +50,8 @@ final class PlanEligibility
                 $this->availability[$id]["{$row['weekday']}:{$row['shift_id']}"] = $row['level'];
             }
 
-            foreach ($employee['workcenters'] as $row) {
-                $this->workcenters[$id][$row['workcenter_id']] = true;
+            foreach ($employee['workcenter_ids'] as $workcenterId) {
+                $this->workcenters[$id][$workcenterId] = true;
             }
 
             foreach ($employee['competences'] as $competenceId) {

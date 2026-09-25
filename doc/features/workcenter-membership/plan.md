@@ -1,6 +1,6 @@
 # Workcenter Membership — Plan
 
-Status: in progress — 4/5
+Status: done — 5/5
 
 - [x] **Membership gates eligibility.** `SchedulingEligibility::isWorkcenterIneligible`
   and `PlanEligibility::isWorkcenterIneligible` return true when the
@@ -18,10 +18,10 @@ Status: in progress — 4/5
 - [x] **Remove the Reports "Mode" column.** Remove the column, the
   `mode` sort key, the `mode` field in the row payload, and
   `reports.workcenter.column.mode`.
-- [ ] **Drop `mode`.** Add a migration that drops the column. Remove
+- [x] **Drop `mode`.** Add a migration that drops the column. Remove
   `withPivot('mode')`. Make `PUT /employees/{e}/workcenters/{w}`
   bodyless. Make `WorkcenterChecklist.vue` a checkbox-only list, with
-  `EmployeeController` sending `{ workcenter_id }`. Remove `mode` from
+  `EmployeeController` sending `workcenterIds`. Remove `mode` from
   the audit entries and the employee-backup snapshot. Make
   `ApplicationBackup` import remove `mode` from old archives. Remove
   `workcenters.mode.*`. Update the test fixtures that attach with

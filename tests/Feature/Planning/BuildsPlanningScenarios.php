@@ -49,7 +49,7 @@ trait BuildsPlanningScenarios
                 continue;
             }
 
-            $employee->workcenters()->syncWithoutDetaching(array_fill_keys($all, ['mode' => 'hard']));
+            $employee->workcenters()->syncWithoutDetaching($all);
             $this->grantedWorkcenters[$employeeId] = $all;
         }
     }

@@ -12,6 +12,7 @@ use App\Models\PlanGenerationRun;
 use App\Models\RecurringAvailability;
 use App\Models\Shift;
 use App\Models\User;
+use App\Models\Workcenter;
 use App\Services\ApplicationBackup;
 use App\Services\EmployeeAuditLogger;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -422,6 +423,27 @@ class EmployeeBackupTest extends TestCase
         $this->assertDatabaseHas('shifts', ['id' => $shift->id, 'name' => 'Early']);
         $this->assertDatabaseHas('employees', ['id' => $employee->id, 'business_line_id' => $businessLine->id]);
         $this->assertDatabaseHas('users', ['id' => $user->id, 'employee_id' => $employee->id]);
+    }
+
+    public function test_the_application_import_restores_workcenter_rows_from_an_archive_with_a_mode(): void
+    {
+        $admin = $this->admin();
+        $employee = Employee::factory()->create();
+        $workcenter = Workcenter::factory()->create();
+        $employee->workcenters()->attach($workcenter);
+
+        $archive = json_decode($this->actingAs($admin)->get('/employee-backup/export')->getContent(), true, 512, JSON_THROW_ON_ERROR);
+        $archive['data']['employee_workcenter'] = array_map(
+            fn (array $row) => [...$row, 'mode' => 'soft'],
+            $archive['data']['employee_workcenter'],
+        );
+        DB::table('employee_workcenter')->delete();
+
+        $this->actingAs($admin)->post('/employee-backup/import', [
+            'file' => UploadedFile::fake()->createWithContent('backup.json', json_encode($archive, JSON_THROW_ON_ERROR)),
+        ])->assertOk();
+
+        $this->assertDatabaseHas('employee_workcenter', ['employee_id' => $employee->id, 'workcenter_id' => $workcenter->id]);
     }
 
     public function test_every_database_table_is_archived_or_explicitly_excluded(): void

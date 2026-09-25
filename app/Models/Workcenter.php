@@ -57,7 +57,7 @@ class Workcenter extends Model
 
     public function employees(): BelongsToMany
     {
-        return $this->belongsToMany(Employee::class)->withPivot('mode');
+        return $this->belongsToMany(Employee::class);
     }
 
     /** The open-spot count for one shift on one date: an override if one exists, the weekday default otherwise. */

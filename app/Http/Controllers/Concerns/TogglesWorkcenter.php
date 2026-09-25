@@ -7,10 +7,10 @@ use App\Models\Workcenter;
 
 trait TogglesWorkcenter
 {
-    /** Attach the workcenter with the given mode, or update its mode if already attached. */
-    protected function attachWorkcenter(Employee $employee, Workcenter $workcenter, string $mode): void
+    /** Make the employee a member of the workcenter. A no-op if already a member. */
+    protected function attachWorkcenter(Employee $employee, Workcenter $workcenter): void
     {
-        $employee->workcenters()->syncWithoutDetaching([$workcenter->id => ['mode' => $mode]]);
+        $employee->workcenters()->syncWithoutDetaching([$workcenter->id]);
     }
 
     /** Clear the workcenter from the employee. A no-op if it was not set. */

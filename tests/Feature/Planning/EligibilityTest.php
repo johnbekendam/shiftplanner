@@ -147,12 +147,12 @@ class EligibilityTest extends TestCase
         $this->assertSame([], $run->refresh()->unfulfilled);
     }
 
-    public function test_a_hard_workcenter_assignment_restricts_the_employee_to_those_workcenters(): void
+    public function test_a_workcenter_membership_restricts_the_employee_to_those_workcenters(): void
     {
         [$workcenter, $shift] = $this->workcenterWithOverride('2026-09-08');
         $otherWorkcenter = Workcenter::factory()->create();
         $employee = $this->eligibleEmployee($shift, '2026-09-08');
-        $employee->workcenters()->attach($otherWorkcenter->id, ['mode' => 'hard']);
+        $employee->workcenters()->attach($otherWorkcenter->id);
 
         $run = $this->makeRun();
         $this->generator()->generate($run);
@@ -160,22 +160,10 @@ class EligibilityTest extends TestCase
         $this->assertSame(0, ShiftAssignment::count());
         $this->assertSame('no_eligible_employee', $run->refresh()->unfulfilled[0]['reason']);
 
-        $employee->workcenters()->attach($workcenter->id, ['mode' => 'hard']);
+        $employee->workcenters()->attach($workcenter->id);
         $this->generator()->generate($this->makeRun());
 
         $this->assertDatabaseHas('shift_assignments', ['employee_id' => $employee->id, 'workcenter_id' => $workcenter->id]);
-    }
-
-    public function test_a_soft_workcenter_assignment_restricts_the_employee_like_a_hard_one(): void
-    {
-        [$workcenter, $shift] = $this->workcenterWithOverride('2026-09-08');
-        $otherWorkcenter = Workcenter::factory()->create();
-        $employee = $this->eligibleEmployee($shift, '2026-09-08');
-        $employee->workcenters()->attach($otherWorkcenter->id, ['mode' => 'soft']);
-
-        $this->generator()->generate($this->makeRun());
-
-        $this->assertSame(0, ShiftAssignment::count());
     }
 
     public function test_an_employee_without_workcenters_is_not_planned(): void

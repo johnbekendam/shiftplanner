@@ -169,10 +169,7 @@ class HeuristicPlanGenerator implements PlanGeneratorContract
                     'shift_id' => $r->shift_id,
                     'level' => $r->level,
                 ])->values()->all(),
-                'workcenters' => $e->workcenters->map(fn (Workcenter $w) => [
-                    'workcenter_id' => $w->id,
-                    'mode' => $w->pivot->mode,
-                ])->values()->all(),
+                'workcenter_ids' => $e->workcenters->pluck('id')->values()->all(),
                 'competences' => $e->competences->pluck('id')->values()->all(),
             ])
             ->values()

@@ -42,7 +42,7 @@ const props = defineProps({
     competences: { type: Array, default: () => [] },
     competenceIds: { type: Array, default: () => [] },
     workcenters: { type: Array, default: () => [] },
-    employeeWorkcenterAssignments: { type: Array, default: () => [] },
+    workcenterIds: { type: Array, default: () => [] },
     questions: { type: Array, default: () => [] },
     questionAnswers: { type: Array, default: () => [] },
     // [{ weekStart, weekEnd, published, assignments }] — every assignment, draft included.
@@ -292,41 +292,33 @@ if (isEdit.value && !isArchived.value) {
     })
 }
 
-// ── Workcenters: rows carry a mode, unlike the plain id-set toggles above ──
+// ── Workcenters ──
 const workcentersVersion = ref(0)
-const pendingWorkcenterRows = ref(props.employeeWorkcenterAssignments.map((row) => ({ ...row })))
-const savedWorkcenterRows = ref(props.employeeWorkcenterAssignments.map((row) => ({ ...row })))
+const pendingWorkcenterIds = ref([...props.workcenterIds])
+const savedWorkcenterIds = ref([...props.workcenterIds])
 
-function onWorkcenterRowsChange(rows) {
-    pendingWorkcenterRows.value = rows
+function onWorkcenterIdsChange(ids) {
+    pendingWorkcenterIds.value = ids
 }
 
 if (isEdit.value) {
     registry.register('workcenters', {
         isDirty: () => {
-            const before = new Map(savedWorkcenterRows.value.map((r) => [r.workcenter_id, r.mode]))
-            const after = new Map(pendingWorkcenterRows.value.map((r) => [r.workcenter_id, r.mode]))
-            if (before.size !== after.size) return true
-            return [...after].some(([id, mode]) => before.get(id) !== mode)
+            const before = new Set(savedWorkcenterIds.value)
+            const after = new Set(pendingWorkcenterIds.value)
+            return before.size !== after.size || [...after].some((id) => !before.has(id))
         },
         save: async () => {
-            const before = new Map(savedWorkcenterRows.value.map((r) => [r.workcenter_id, r.mode]))
-            const after = new Map(pendingWorkcenterRows.value.map((r) => [r.workcenter_id, r.mode]))
-            const toPut = [...after].filter(([id, mode]) => before.get(id) !== mode)
-            const toDeleteIds = [...before.keys()].filter((id) => !after.has(id))
+            const before = new Set(savedWorkcenterIds.value)
+            const after = new Set(pendingWorkcenterIds.value)
+            const toAttach = [...after].filter((id) => !before.has(id))
+            const toDetach = [...before].filter((id) => !after.has(id))
 
             const results = await Promise.allSettled([
-                ...toPut.map(([id, mode]) => putAsync(`/employees/${props.employee.id}/workcenters/${id}`, { mode })
-                    .then(() => {
-                        savedWorkcenterRows.value = [
-                            ...savedWorkcenterRows.value.filter((r) => r.workcenter_id !== id),
-                            { workcenter_id: id, mode },
-                        ]
-                    })),
-                ...toDeleteIds.map((id) => deleteAsync(`/employees/${props.employee.id}/workcenters/${id}`)
-                    .then(() => {
-                        savedWorkcenterRows.value = savedWorkcenterRows.value.filter((r) => r.workcenter_id !== id)
-                    })),
+                ...toAttach.map((id) => putAsync(`/employees/${props.employee.id}/workcenters/${id}`, {})
+                    .then(() => { savedWorkcenterIds.value = [...savedWorkcenterIds.value, id] })),
+                ...toDetach.map((id) => deleteAsync(`/employees/${props.employee.id}/workcenters/${id}`)
+                    .then(() => { savedWorkcenterIds.value = savedWorkcenterIds.value.filter((x) => x !== id) })),
             ])
 
             const ok = results.every((r) => r.status === 'fulfilled')
@@ -374,7 +366,7 @@ function onCancelClick() {
     pendingCompetenceIds.value = [...savedCompetenceIds.value]
     competencesVersion.value++
 
-    pendingWorkcenterRows.value = savedWorkcenterRows.value.map((row) => ({ ...row }))
+    pendingWorkcenterIds.value = [...savedWorkcenterIds.value]
     workcentersVersion.value++
 }
 
@@ -534,10 +526,10 @@ function restore() {
                 <WorkcenterChecklist
                     :key="workcentersVersion"
                     :items="workcenters"
-                    :selected-rows="savedWorkcenterRows"
+                    :selected-ids="savedWorkcenterIds"
                     empty-key="workcenters.checklist_empty"
                     :disabled="isArchived"
-                    @update:selected-rows="onWorkcenterRowsChange"
+                    @update:selected-ids="onWorkcenterIdsChange"
                 />
             </div>
 

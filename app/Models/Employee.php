@@ -98,7 +98,7 @@ class Employee extends Model
 
     public function workcenters(): BelongsToMany
     {
-        return $this->belongsToMany(Workcenter::class)->withPivot('mode');
+        return $this->belongsToMany(Workcenter::class);
     }
 
     /**

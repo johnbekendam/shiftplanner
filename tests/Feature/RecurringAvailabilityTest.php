@@ -77,7 +77,7 @@ class RecurringAvailabilityTest extends TestCase
         $this->assertSame(0, RecurringAvailability::count());
     }
 
-    public function test_a_shift_outside_the_hard_workcenter_rejects_writes(): void
+    public function test_a_shift_outside_the_employees_workcenters_rejects_writes(): void
     {
         $user = User::factory()->create();
         $employee = Employee::factory()->create();
@@ -88,7 +88,7 @@ class RecurringAvailabilityTest extends TestCase
         $notRun = Shift::factory()->create(['start_time' => '14:00', 'end_time' => '22:00']);
         $workcenter->shifts()->attach($run);
         $otherWorkcenter->shifts()->attach($notRun);
-        $employee->workcenters()->attach($workcenter, ['mode' => 'hard']);
+        $employee->workcenters()->attach($workcenter);
 
         $this->actingAs($user)
             ->put("/employees/{$employee->id}/availability/3/{$notRun->id}", ['level' => 'unavailable'])
@@ -100,7 +100,7 @@ class RecurringAvailabilityTest extends TestCase
         $this->assertSame(0, RecurringAvailability::count());
     }
 
-    public function test_a_hidden_by_default_shift_the_hard_workcenter_runs_accepts_writes(): void
+    public function test_a_hidden_by_default_shift_the_employees_workcenter_runs_accepts_writes(): void
     {
         $user = User::factory()->create();
         $employee = Employee::factory()->create();
@@ -108,7 +108,7 @@ class RecurringAvailabilityTest extends TestCase
         $shift = $this->shift();
         $shift->update(['visible_by_default' => false]);
         $workcenter->shifts()->attach($shift);
-        $employee->workcenters()->attach($workcenter, ['mode' => 'hard']);
+        $employee->workcenters()->attach($workcenter);
 
         $this->actingAs($user)
             ->put("/employees/{$employee->id}/availability/3/{$shift->id}", ['level' => 'unavailable'])
@@ -328,7 +328,7 @@ class RecurringAvailabilityTest extends TestCase
             );
     }
 
-    public function test_manager_and_personal_payloads_scope_shifts_to_a_hard_workcenter(): void
+    public function test_manager_and_personal_payloads_scope_shifts_to_the_employees_workcenters(): void
     {
         $user = User::factory()->create();
         $employee = Employee::factory()->create();
@@ -340,7 +340,7 @@ class RecurringAvailabilityTest extends TestCase
         $notRun = Shift::factory()->create(['name' => 'NotRun', 'start_time' => '14:00', 'end_time' => '22:00', 'visible_by_default' => true]);
         $workcenter->shifts()->attach($run);
         $otherWorkcenter->shifts()->attach($notRun);
-        $employee->workcenters()->attach($workcenter, ['mode' => 'hard']);
+        $employee->workcenters()->attach($workcenter);
 
         $employee->recurringAvailabilities()->create(['weekday' => 1, 'shift_id' => $run->id, 'level' => 'unavailable']);
         $employee->recurringAvailabilities()->create(['weekday' => 1, 'shift_id' => $notRun->id, 'level' => 'unavailable']);

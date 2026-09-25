@@ -65,7 +65,8 @@ The app does not examine or change existing `ShiftAssignment` rows.
 ### Removals
 
 - The Requirement/Preference `SelectInput` in `WorkcenterChecklist.vue`.
-  Each row is a checkbox only.
+  Each row is a checkbox only. The checklist and the Employee page use a
+  plain id set, `workcenterIds`, like `competenceIds`.
 - `mode` in the `PUT /employees/{employee}/workcenters/{workcenter}`
   request. The request has no body. It attaches the row if it does not
   exist.
@@ -73,9 +74,10 @@ The app does not examine or change existing `ShiftAssignment` rows.
   `workcenter_not_preferred` field in the eligible-employee JSON, and
   the second warning triangle in `ShiftWeekTable.vue`.
 - The "Mode" column and its sort key in the Reports workcenter table.
-- `mode` in the employee-backup snapshot and in audit entries. The
-  audit logger records `workcenter_changed` only for a new attachment.
-  It records `workcenter_detached` for a removal.
+- `mode` in the employee-backup snapshot and in audit entries. Like
+  competences, the audit logger records `workcenter_attached` for a new
+  membership and `workcenter_detached` for a removal. The
+  `workcenter_changed` label stays for old audit events.
 - The language keys `workcenters.mode.hard`, `workcenters.mode.soft`,
   and `reports.workcenter.column.mode`.
 

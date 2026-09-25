@@ -255,7 +255,7 @@ class ReportsTest extends TestCase
         ]);
         $assigned = Employee::factory()->create(['first_name' => 'Bo', 'last_name' => 'Bee']);
         $workcenter = Workcenter::factory()->create();
-        $assigned->workcenters()->attach($workcenter, ['mode' => 'hard']);
+        $assigned->workcenters()->attach($workcenter);
 
         $this->get('/reports')->assertInertia(fn ($page) => $page
             ->where('filters.workcenter_mode', 'unassigned')
@@ -278,19 +278,6 @@ class ReportsTest extends TestCase
 
         $this->get('/reports')->assertInertia(fn ($page) => $page
             ->where('unassignedWorkcenterReport.data.0.business_line', null)
-        );
-    }
-
-    public function test_unassigned_workcenter_report_excludes_an_employee_with_a_soft_row(): void
-    {
-        $this->admin();
-        $employee = Employee::factory()->create(['confirmed' => true]);
-        $workcenter = Workcenter::factory()->create();
-        $employee->workcenters()->attach($workcenter, ['mode' => 'soft']);
-
-        $this->get('/reports')->assertInertia(fn ($page) => $page
-            ->where('unassignedWorkcenterReport.data', [])
-            ->where('unassignedWorkcenterReport.total', 0)
         );
     }
 
@@ -372,9 +359,9 @@ class ReportsTest extends TestCase
         ]);
         $bo = Employee::factory()->create(['first_name' => 'Bo', 'last_name' => 'Bee', 'weekly_hours' => 16, 'confirmed' => true]);
         $cy = Employee::factory()->create(['first_name' => 'Cy', 'last_name' => 'Cat', 'confirmed' => true]);
-        $ann->workcenters()->attach($workcenterA, ['mode' => 'hard']);
-        $bo->workcenters()->attach($workcenterA, ['mode' => 'soft']);
-        $cy->workcenters()->attach($workcenterB, ['mode' => 'hard']);
+        $ann->workcenters()->attach($workcenterA);
+        $bo->workcenters()->attach($workcenterA);
+        $cy->workcenters()->attach($workcenterB);
 
         $this->get("/reports?workcenter_mode=for_workcenter&workcenter={$workcenterA->id}")
             ->assertInertia(fn ($page) => $page
@@ -398,7 +385,7 @@ class ReportsTest extends TestCase
         $this->admin();
         $workcenter = Workcenter::factory()->create();
         $employee = Employee::factory()->create(['confirmed' => false]);
-        $employee->workcenters()->attach($workcenter, ['mode' => 'hard']);
+        $employee->workcenters()->attach($workcenter);
 
         $this->get("/reports?workcenter_mode=for_workcenter&workcenter={$workcenter->id}")
             ->assertInertia(fn ($page) => $page
@@ -423,7 +410,7 @@ class ReportsTest extends TestCase
         Employee::factory()->count(16)
             ->sequence(fn ($sequence) => ['first_name' => sprintf('E%02d', $sequence->index)])
             ->create(['confirmed' => true])
-            ->each(fn (Employee $employee) => $employee->workcenters()->attach($workcenter, ['mode' => 'hard']));
+            ->each(fn (Employee $employee) => $employee->workcenters()->attach($workcenter));
 
         $this->get("/reports?workcenter_mode=for_workcenter&workcenter={$workcenter->id}")
             ->assertInertia(fn ($page) => $page

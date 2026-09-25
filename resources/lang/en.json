@@ -271,6 +271,7 @@
     "employees.audit.action.availability_changed": "Availability changed",
     "employees.audit.action.competence_attached": "Competence added",
     "employees.audit.action.competence_detached": "Competence removed",
+    "employees.audit.action.workcenter_attached": "Workcenter added",
     "employees.audit.action.workcenter_changed": "Workcenter changed",
     "employees.audit.action.workcenter_detached": "Workcenter removed",
     "employees.audit.action.question_answer_changed": "Question answer changed",
@@ -505,8 +506,6 @@
     "workcenters.employee_tab": "Workcenters",
     "workcenters.checklist_empty": "No workcenters have been set up yet.",
     "workcenters.archived_suffix": ":name (archived)",
-    "workcenters.mode.hard": "Requirement",
-    "workcenters.mode.soft": "Preference",
 
     "workcenter_shifts.title": "Schedule",
     "workcenter_shifts.column.workcenter": "Workcenter",

@@ -6,6 +6,7 @@ use App\Models\Employee;
 use App\Models\User;
 use App\Models\Workcenter;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
 class EmployeeWorkcenterTest extends TestCase
@@ -17,76 +18,45 @@ class EmployeeWorkcenterTest extends TestCase
         $employee = Employee::factory()->create();
         $workcenter = Workcenter::factory()->create();
 
-        $this->put("/employees/{$employee->id}/workcenters/{$workcenter->id}", ['mode' => 'hard'])
+        $this->put("/employees/{$employee->id}/workcenters/{$workcenter->id}")
             ->assertRedirect('/login');
 
         $this->assertDatabaseCount('employee_workcenter', 0);
     }
 
-    public function test_manager_attaches_then_detaches_a_hard_row(): void
+    public function test_the_membership_table_has_no_mode_column(): void
+    {
+        $this->assertFalse(Schema::hasColumn('employee_workcenter', 'mode'));
+    }
+
+    public function test_manager_attaches_then_detaches_a_workcenter(): void
     {
         $user = User::factory()->create();
         $employee = Employee::factory()->create();
         $workcenter = Workcenter::factory()->create();
         $base = "/employees/{$employee->id}/workcenters/{$workcenter->id}";
 
-        $this->actingAs($user)->put($base, ['mode' => 'hard'])->assertRedirect();
+        $this->actingAs($user)->put($base)->assertRedirect();
         $this->assertDatabaseHas('employee_workcenter', [
             'employee_id' => $employee->id,
             'workcenter_id' => $workcenter->id,
-            'mode' => 'hard',
         ]);
 
         $this->actingAs($user)->delete($base)->assertRedirect();
         $this->assertDatabaseCount('employee_workcenter', 0);
     }
 
-    public function test_manager_attaches_a_soft_row(): void
-    {
-        $user = User::factory()->create();
-        $employee = Employee::factory()->create();
-        $workcenter = Workcenter::factory()->create();
-
-        $this->actingAs($user)
-            ->put("/employees/{$employee->id}/workcenters/{$workcenter->id}", ['mode' => 'soft'])
-            ->assertRedirect();
-
-        $this->assertDatabaseHas('employee_workcenter', [
-            'employee_id' => $employee->id,
-            'workcenter_id' => $workcenter->id,
-            'mode' => 'soft',
-        ]);
-    }
-
-    public function test_updating_the_mode_changes_the_existing_row_instead_of_adding_one(): void
+    public function test_attaching_twice_keeps_one_row(): void
     {
         $user = User::factory()->create();
         $employee = Employee::factory()->create();
         $workcenter = Workcenter::factory()->create();
         $base = "/employees/{$employee->id}/workcenters/{$workcenter->id}";
 
-        $this->actingAs($user)->put($base, ['mode' => 'hard']);
-        $this->actingAs($user)->put($base, ['mode' => 'soft']);
+        $this->actingAs($user)->put($base);
+        $this->actingAs($user)->put($base);
 
         $this->assertDatabaseCount('employee_workcenter', 1);
-        $this->assertDatabaseHas('employee_workcenter', [
-            'employee_id' => $employee->id,
-            'workcenter_id' => $workcenter->id,
-            'mode' => 'soft',
-        ]);
-    }
-
-    public function test_an_invalid_mode_is_rejected(): void
-    {
-        $user = User::factory()->create();
-        $employee = Employee::factory()->create();
-        $workcenter = Workcenter::factory()->create();
-
-        $this->actingAs($user)
-            ->put("/employees/{$employee->id}/workcenters/{$workcenter->id}", ['mode' => 'bogus'])
-            ->assertSessionHasErrors('mode');
-
-        $this->assertDatabaseCount('employee_workcenter', 0);
     }
 
     public function test_detaching_a_workcenter_the_employee_does_not_hold_is_a_no_op(): void
@@ -108,7 +78,7 @@ class EmployeeWorkcenterTest extends TestCase
         $employee = Employee::factory()->create();
 
         $this->actingAs($user)
-            ->put("/employees/{$employee->id}/workcenters/9999", ['mode' => 'hard'])
+            ->put("/employees/{$employee->id}/workcenters/9999")
             ->assertNotFound();
     }
 
@@ -120,7 +90,7 @@ class EmployeeWorkcenterTest extends TestCase
         $b = Workcenter::factory()->create(['name' => 'B', 'position' => 2]);
         $a = Workcenter::factory()->create(['name' => 'A', 'position' => 1]);
         $archived = Workcenter::factory()->create(['name' => 'Old', 'position' => 3, 'archived_at' => now()]);
-        $employee->workcenters()->attach($b, ['mode' => 'hard']);
+        $employee->workcenters()->attach($b);
 
         $this->actingAs($user)->get("/employees/{$employee->id}/edit")->assertOk()
             ->assertInertia(fn ($page) => $page
@@ -129,9 +99,7 @@ class EmployeeWorkcenterTest extends TestCase
                 ->where('workcenters.0.name', 'A')
                 ->where('workcenters.0.archived', false)
                 ->where('workcenters.1.name', 'B')
-                ->where('employeeWorkcenterAssignments', [
-                    ['workcenter_id' => $b->id, 'mode' => 'hard'],
-                ])
+                ->where('workcenterIds', [$b->id])
             );
     }
 
@@ -140,7 +108,7 @@ class EmployeeWorkcenterTest extends TestCase
         $user = User::factory()->create();
         $employee = Employee::factory()->create();
         $archived = Workcenter::factory()->create(['name' => 'Old', 'archived_at' => now()]);
-        $employee->workcenters()->attach($archived, ['mode' => 'soft']);
+        $employee->workcenters()->attach($archived);
 
         $this->actingAs($user)->get("/employees/{$employee->id}/edit")->assertOk()
             ->assertInertia(fn ($page) => $page
