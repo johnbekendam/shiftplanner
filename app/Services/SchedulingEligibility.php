@@ -90,16 +90,10 @@ class SchedulingEligibility
         return $this->recurringLevel($employee, $weekday, $shift) === RecurringAvailability::LEVELS[0];
     }
 
-    /** True only when the employee holds at least one hard row and this workcenter is not one of them. */
+    /** True when the employee is not a member of this workcenter. No rows means ineligible everywhere. */
     public function isWorkcenterIneligible(Employee $employee, Workcenter $workcenter): bool
     {
-        $modes = $employee->workcenters()->pluck('employee_workcenter.mode', 'workcenters.id');
-
-        if (! $modes->contains('hard')) {
-            return false;
-        }
-
-        return ($modes[$workcenter->id] ?? null) !== 'hard';
+        return ! $employee->workcenters()->where('workcenters.id', $workcenter->id)->exists();
     }
 
     public function isWorkcenterNotPreferred(Employee $employee, Workcenter $workcenter): bool

@@ -166,7 +166,7 @@ class EligibilityTest extends TestCase
         $this->assertDatabaseHas('shift_assignments', ['employee_id' => $employee->id, 'workcenter_id' => $workcenter->id]);
     }
 
-    public function test_a_soft_workcenter_assignment_does_not_restrict_the_employee(): void
+    public function test_a_soft_workcenter_assignment_restricts_the_employee_like_a_hard_one(): void
     {
         [$workcenter, $shift] = $this->workcenterWithOverride('2026-09-08');
         $otherWorkcenter = Workcenter::factory()->create();
@@ -175,7 +175,20 @@ class EligibilityTest extends TestCase
 
         $this->generator()->generate($this->makeRun());
 
-        $this->assertDatabaseHas('shift_assignments', ['employee_id' => $employee->id, 'workcenter_id' => $workcenter->id]);
+        $this->assertSame(0, ShiftAssignment::count());
+    }
+
+    public function test_an_employee_without_workcenters_is_not_planned(): void
+    {
+        [, $shift] = $this->workcenterWithOverride('2026-09-08');
+        $employee = Employee::factory()->create(['confirmed' => true, 'weekly_hours' => 40]);
+        $this->makeAvailable($employee, $shift, '2026-09-08');
+
+        $run = $this->makeRun();
+        $this->generator()->generate($run);
+
+        $this->assertSame(0, ShiftAssignment::count());
+        $this->assertSame('no_eligible_employee', $run->refresh()->unfulfilled[0]['reason']);
     }
 
     public function test_an_employee_is_not_planned_on_two_overlapping_shifts(): void

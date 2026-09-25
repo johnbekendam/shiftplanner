@@ -19,9 +19,39 @@ trait BuildsPlanningScenarios
 {
     protected const CYCLE_START = '2026-09-07'; // a Monday
 
+    /** @var array<int, int[]> employee_id => workcenter ids granted by grantWorkcenters() */
+    private array $grantedWorkcenters = [];
+
     protected function generator(): HeuristicPlanGenerator
     {
+        $this->grantWorkcenters();
+
         return app(HeuristicPlanGenerator::class);
+    }
+
+    /**
+     * Makes each employee() member of every workcenter, so a scenario does
+     * not have to set up memberships. An employee whose rows the test
+     * changed itself keeps those rows.
+     */
+    private function grantWorkcenters(): void
+    {
+        $all = Workcenter::pluck('id')->sort()->values()->all();
+
+        foreach ($this->grantedWorkcenters as $employeeId => $granted) {
+            $employee = Employee::find($employeeId);
+            if ($employee === null) {
+                continue;
+            }
+
+            $current = $employee->workcenters()->pluck('workcenters.id')->sort()->values()->all();
+            if ($current !== $granted) {
+                continue;
+            }
+
+            $employee->workcenters()->syncWithoutDetaching(array_fill_keys($all, ['mode' => 'hard']));
+            $this->grantedWorkcenters[$employeeId] = $all;
+        }
     }
 
     protected function makeRun(string $cycleStart = self::CYCLE_START): PlanGenerationRun
@@ -31,7 +61,10 @@ trait BuildsPlanningScenarios
 
     protected function employee(array $overrides = []): Employee
     {
-        return Employee::factory()->create(array_merge(['confirmed' => true, 'weekly_hours' => 40], $overrides));
+        $employee = Employee::factory()->create(array_merge(['confirmed' => true, 'weekly_hours' => 40], $overrides));
+        $this->grantedWorkcenters[$employee->id] = [];
+
+        return $employee;
     }
 
     protected function makeAvailable(Employee $employee, Shift $shift, string $date, string $level = 'available'): void

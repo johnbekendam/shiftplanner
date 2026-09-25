@@ -18,8 +18,8 @@ final class PlanEligibility
     /** @var array<int, array<string, string>> employee_id => "weekday:shift_id" => level */
     private array $availability = [];
 
-    /** @var array<int, array<int, string>> employee_id => workcenter_id => mode */
-    private array $workcenterModes = [];
+    /** @var array<int, array<int, true>> employee_id => workcenter_id set */
+    private array $workcenters = [];
 
     /** @var array<int, array<int, true>> employee_id => competence_id set */
     private array $competences = [];
@@ -51,7 +51,7 @@ final class PlanEligibility
             }
 
             foreach ($employee['workcenters'] as $row) {
-                $this->workcenterModes[$id][$row['workcenter_id']] = $row['mode'];
+                $this->workcenters[$id][$row['workcenter_id']] = true;
             }
 
             foreach ($employee['competences'] as $competenceId) {
@@ -119,12 +119,7 @@ final class PlanEligibility
     /** Matches SchedulingEligibility::isWorkcenterIneligible exactly. */
     private function isWorkcenterIneligible(int $employeeId, int $workcenterId): bool
     {
-        $modes = $this->workcenterModes[$employeeId] ?? [];
-        if (! in_array('hard', $modes, true)) {
-            return false;
-        }
-
-        return ($modes[$workcenterId] ?? null) !== 'hard';
+        return ! isset($this->workcenters[$employeeId][$workcenterId]);
     }
 
     private function holdsRequiredCompetences(int $employeeId, int $workcenterId): bool
