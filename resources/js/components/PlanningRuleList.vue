@@ -21,6 +21,8 @@ const props = defineProps({
 const emit = defineEmits(['update:items'])
 
 const SINGLETON_TYPES = ['max_hours_per_week', 'max_shifts_per_day', 'not_preferred_shift', 'equal_workload']
+// Types whose mode the manager cannot choose: no mode at all, or always hard.
+const FIXED_MODE_TYPES = ['equal_workload', 'alternating_shift_pair']
 const ALL_TYPES = [...SINGLETON_TYPES, 'competence_required', 'business_line_preference', 'alternating_shift_pair']
 
 const typeOptions = computed(() => ALL_TYPES.map((t) => ({ value: t, label: __(`planning_rules.type.${t}`) })))
@@ -86,8 +88,8 @@ function configFor(type, source) {
 
 function canAdd() {
     if (!draft.type) return false
-    if (draft.type === 'alternating_shift_pair' && (!draft.first_shift_id || !draft.second_shift_id || !draft.severity)) return false
-    if (draft.type !== 'equal_workload' && draft.type !== 'alternating_shift_pair' && draft.mode === 'soft' && !draft.severity) return false
+    if (draft.type === 'alternating_shift_pair' && (!draft.first_shift_id || !draft.second_shift_id)) return false
+    if (!FIXED_MODE_TYPES.includes(draft.type) && draft.mode === 'soft' && !draft.severity) return false
     if (draft.type === 'max_shifts_per_day' && !draft.value) return false
     if (draft.type === 'competence_required' && (!draft.workcenter_id || !draft.competence_id)) return false
     if (draft.type === 'business_line_preference' && (!draft.workcenter_id || !draft.business_line_id)) return false
@@ -104,8 +106,8 @@ function add() {
             id: null,
             _key: nextLocalKey--,
             type: draft.type,
-            mode: draft.type === 'equal_workload' ? null : (draft.type === 'alternating_shift_pair' ? 'soft' : draft.mode),
-            severity: draft.type === 'equal_workload' ? null : (draft.type === 'alternating_shift_pair' ? draft.severity : (draft.mode === 'soft' ? draft.severity : null)),
+            mode: draft.type === 'equal_workload' ? null : (draft.type === 'alternating_shift_pair' ? 'hard' : draft.mode),
+            severity: FIXED_MODE_TYPES.includes(draft.type) || draft.mode !== 'soft' ? null : draft.severity,
             config: configFor(draft.type, draft),
         },
     ]
@@ -152,16 +154,20 @@ function remove(row) {
                             <p v-else-if="row.type === 'equal_workload'" class="mt-1 text-(--color-text-secondary)">
                                 {{ __('planning_rules.equal_workload_hint') }}
                             </p>
-                            <p v-else-if="row.type === 'alternating_shift_pair'" class="mt-1 text-(--color-text-secondary)">
-                                {{ shiftName(row.config.first_shift_id) }} ↔ {{ shiftName(row.config.second_shift_id) }}
-                            </p>
+                            <template v-else-if="row.type === 'alternating_shift_pair'">
+                                <p class="mt-1 text-(--color-text-secondary)">
+                                    {{ shiftName(row.config.first_shift_id) }} ↔ {{ shiftName(row.config.second_shift_id) }}
+                                </p>
+                                <p class="mt-1 text-(--color-text-secondary)">{{ __('planning_rules.alternating_shift_pair_hint') }}</p>
+                            </template>
                         </td>
                         <td class="w-px whitespace-nowrap px-3 py-3 align-top">
-                            <SelectInput v-if="row.type !== 'equal_workload' && row.type !== 'alternating_shift_pair'" v-model="row.mode" :options="modeOptions" class="w-32" />
+                            <SelectInput v-if="!FIXED_MODE_TYPES.includes(row.type)" v-model="row.mode" :options="modeOptions" class="w-32" />
+                            <span v-else-if="row.type === 'alternating_shift_pair'" class="text-(--color-text-secondary)">{{ __('planning_rules.mode.hard') }}</span>
                             <span v-else class="text-(--color-text-secondary)">-</span>
                         </td>
                         <td class="w-px whitespace-nowrap px-3 py-3 align-top">
-                            <NumberInput v-if="row.type === 'alternating_shift_pair' || row.mode === 'soft'" v-model="row.severity" :min="1" :max="10" class="w-24" />
+                            <NumberInput v-if="!FIXED_MODE_TYPES.includes(row.type) && row.mode === 'soft'" v-model="row.severity" :min="1" :max="10" class="w-24" />
                             <span v-else class="text-(--color-text-secondary)">-</span>
                         </td>
                         <td class="w-px whitespace-nowrap px-3 py-3 align-top">
@@ -243,9 +249,9 @@ function remove(row) {
             <div v-if="draft.type && draft.type !== 'equal_workload'" class="flex flex-wrap items-end gap-3">
                 <LabeledInput :label="__('planning_rules.mode')">
                     <SelectInput v-if="draft.type !== 'alternating_shift_pair'" v-model="draft.mode" :options="modeOptions" class="w-32" />
-                    <span v-else class="text-sm text-(--color-text-secondary)">{{ __('planning_rules.mode.soft') }}</span>
+                    <span v-else class="text-sm text-(--color-text-secondary)">{{ __('planning_rules.mode.hard') }}</span>
                 </LabeledInput>
-                <LabeledInput v-if="draft.mode === 'soft' || draft.type === 'alternating_shift_pair'" :label="__('planning_rules.severity')">
+                <LabeledInput v-if="draft.type !== 'alternating_shift_pair' && draft.mode === 'soft'" :label="__('planning_rules.severity')">
                     <NumberInput v-model="draft.severity" :min="1" :max="10" class="w-24" />
                 </LabeledInput>
             </div>

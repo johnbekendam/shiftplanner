@@ -17,6 +17,7 @@ const en = {
     "planning_rules.severity": "Severity (1-10)",
     "planning_rules.max_hours_per_week_hint": "Capped at each employee's own weekly hours.",
     "planning_rules.not_preferred_shift_hint": "Applies to not-preferred shifts.",
+    "planning_rules.alternating_shift_pair_hint": "An employee never works both shifts in the same week.",
     "planning_rules.select_type": "Select a rule type",
     "planning_rules.select_workcenter": "Select a workcenter",
     "planning_rules.select_shift": "Select a shift",
@@ -138,7 +139,7 @@ describe("PlanningRuleList", () => {
         });
     });
 
-    it("adds an alternating shift pair with soft severity", async () => {
+    it("adds an alternating shift pair as a hard rule without severity", async () => {
         const w = mountList();
         const addSection = w.get('[data-testid="planning-rule-add"]');
         addSection.findComponent(SelectInput).vm.$emit("update:modelValue", "alternating_shift_pair");
@@ -153,17 +154,29 @@ describe("PlanningRuleList", () => {
         selects[2].vm.$emit("update:modelValue", 11);
         await w.vm.$nextTick();
 
-        expect(addSection.findAllComponents(NumberInput)).toHaveLength(1);
-        addSection.findAllComponents(NumberInput)[0].vm.$emit("update:modelValue", 8);
-        await w.vm.$nextTick();
+        expect(addSection.findAllComponents(NumberInput)).toHaveLength(0);
+        expect(addSection.text()).toContain("Hard");
         await addSection.findAll("button").find((b) => b.text() === "Add rule").trigger("click");
 
         expect(w.emitted("update:items").at(-1)[0][0]).toMatchObject({
             type: "alternating_shift_pair",
-            mode: "soft",
-            severity: 8,
+            mode: "hard",
+            severity: null,
             config: { first_shift_id: 10, second_shift_id: 11 },
         });
+    });
+
+    it("shows a stored alternating pair as hard, with the weekly hint and no severity input", () => {
+        const w = mountList({
+            items: [{ id: 1, type: "alternating_shift_pair", mode: "hard", severity: null, config: { first_shift_id: 10, second_shift_id: 11 } }],
+        });
+
+        const row = w.get('[data-testid="planning-rule-row"]');
+        expect(row.text()).toContain("Morning ↔ Evening");
+        expect(row.text()).toContain("Hard");
+        expect(row.text()).toContain("An employee never works both shifts in the same week.");
+        expect(row.findAllComponents(NumberInput)).toHaveLength(0);
+        expect(row.findAllComponents(SelectInput)).toHaveLength(0);
     });
 
     it("uses a single business line for a workcenter", async () => {

@@ -610,6 +610,7 @@
     "planning_rules.max_hours_per_week_hint": "Capped at each employee's own weekly hours, averaged over 2-week calendar pairs. Each shift counts as its duration rounded to the nearest 4 hours (minimum 4).",
     "planning_rules.not_preferred_shift_hint": "Applies when an assignment lands on a shift the employee marked not preferred.",
     "planning_rules.equal_workload_hint": "Minimizes the highest assigned-hour total after coverage is filled.",
+    "planning_rules.alternating_shift_pair_hint": "An employee never works both shifts in the same week.",
     "planning_rules.select_type": "Select a rule type",
     "planning_rules.select_workcenter": "Select a workcenter",
     "planning_rules.select_shift": "Select a shift",
