@@ -41,7 +41,6 @@ const en = {
     "reports.workcenter.empty_unassigned": "Every employee is assigned to a workcenter.",
     "reports.workcenter.empty_results": "No employees are assigned to this workcenter.",
     "reports.workcenter.column.name": "Name",
-    "reports.workcenter.column.mode": "Requirement",
     "reports.workcenter.column.business_line": "Business line",
     "reports.workcenter.column.weekly_hours": "Weekly hours",
     "reports.workcenter.no_business_line": "—",
@@ -117,8 +116,8 @@ const unassignedWorkcenterReport = paginate([
     { id: 2, name: "Bo Bee", business_line: null, weekly_hours: 40 },
 ]);
 const workcenterReport = paginate([
-    { id: 1, name: "Ann Ant", mode: "hard", business_line: "PMP", weekly_hours: 24 },
-    { id: 2, name: "Bo Bee", mode: "soft", business_line: null, weekly_hours: 40 },
+    { id: 1, name: "Ann Ant", business_line: "PMP", weekly_hours: 24 },
+    { id: 2, name: "Bo Bee", business_line: null, weekly_hours: 40 },
 ]);
 
 const mountIndex = (props = {}) =>
@@ -492,16 +491,17 @@ describe("Reports/Index", () => {
         );
     });
 
-    it("lists workcenter report rows with their mode and opens the employee workcenters tab", async () => {
+    it("lists workcenter report rows without a mode column and opens the employee workcenters tab", async () => {
         const w = await openWorkcenterTab({
             workcenterReport,
             filters: { shift: null, business_line: null, unconfirmed: true, competence_mode: "missing", competence_id: null, workcenter_mode: "for_workcenter", workcenter_id: 20 },
         });
 
         expect(w.text()).toContain("Ann Ant");
-        expect(w.text()).toContain("Requirement");
         expect(w.text()).toContain("Bo Bee");
-        expect(w.text()).toContain("Preference");
+        expect(w.findAll("thead th")).toHaveLength(3);
+        expect(w.text()).not.toContain("Requirement");
+        expect(w.text()).not.toContain("Preference");
 
         const rows = w.findAll("tbody tr");
         expect(rows[0].text()).toContain("PMP");

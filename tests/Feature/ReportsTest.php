@@ -381,12 +381,11 @@ class ReportsTest extends TestCase
                 ->has('workcenterReport.data', 2)
                 ->where('workcenterReport.data.0.id', $ann->id)
                 ->where('workcenterReport.data.0.name', 'Ann Ant')
-                ->where('workcenterReport.data.0.mode', 'hard')
+                ->missing('workcenterReport.data.0.mode')
                 ->where('workcenterReport.data.0.business_line', 'PMP')
                 ->where('workcenterReport.data.0.weekly_hours', 32)
                 ->where('workcenterReport.data.1.id', $bo->id)
                 ->where('workcenterReport.data.1.name', 'Bo Bee')
-                ->where('workcenterReport.data.1.mode', 'soft')
                 ->where('workcenterReport.data.1.business_line', null)
                 ->where('workcenterReport.data.1.weekly_hours', 16)
                 ->where('workcenterReport.total', 2)
@@ -408,21 +407,13 @@ class ReportsTest extends TestCase
             );
     }
 
-    public function test_for_workcenter_mode_sorts_by_mode_descending(): void
+    public function test_for_workcenter_mode_ignores_a_mode_sort(): void
     {
         $this->admin();
         $workcenter = Workcenter::factory()->create();
-        $hard = Employee::factory()->create(['first_name' => 'Ann', 'last_name' => 'Ant', 'confirmed' => true]);
-        $soft = Employee::factory()->create(['first_name' => 'Bo', 'last_name' => 'Bee', 'confirmed' => true]);
-        $hard->workcenters()->attach($workcenter, ['mode' => 'hard']);
-        $soft->workcenters()->attach($workcenter, ['mode' => 'soft']);
 
-        $this->get("/reports?workcenter_mode=for_workcenter&workcenter={$workcenter->id}&workcenter_sort=mode&workcenter_direction=desc")
-            ->assertInertia(fn ($page) => $page
-                ->where('filters.workcenter_sort', 'mode')
-                ->where('workcenterReport.data.0.mode', 'soft')
-                ->where('workcenterReport.data.1.mode', 'hard')
-            );
+        $this->get("/reports?workcenter_mode=for_workcenter&workcenter={$workcenter->id}&workcenter_sort=mode")
+            ->assertInertia(fn ($page) => $page->where('filters.workcenter_sort', 'name'));
     }
 
     public function test_for_workcenter_mode_paginates_at_fifteen_per_page(): void

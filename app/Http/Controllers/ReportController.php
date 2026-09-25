@@ -25,10 +25,8 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ReportController extends Controller
 {
-    /** Sortable Workcenter-report columns. `mode` only applies to the For-workcenter table. */
+    /** Sortable Workcenter-report columns, shared by both tables. */
     private const WORKCENTER_SORT_KEYS = ['name', 'business_line', 'weekly_hours'];
-
-    private const FOR_WORKCENTER_SORT_KEYS = [...self::WORKCENTER_SORT_KEYS, 'mode'];
 
     /** Sortable Planned-hours-report columns. */
     private const PLANNED_HOURS_SORT_KEYS = ['workcenter', 'date', 'hours'];
@@ -51,9 +49,8 @@ class ReportController extends Controller
         $selectedWorkcenter = $workcenterId
             ? Workcenter::query()->whereKey($workcenterId)->first(['id', 'name'])
             : null;
-        $workcenterSortKeys = $workcenterMode === 'for_workcenter' ? self::FOR_WORKCENTER_SORT_KEYS : self::WORKCENTER_SORT_KEYS;
         $workcenterSort = $request->input('workcenter_sort');
-        $workcenterSort = in_array($workcenterSort, $workcenterSortKeys, true) ? $workcenterSort : 'name';
+        $workcenterSort = in_array($workcenterSort, self::WORKCENTER_SORT_KEYS, true) ? $workcenterSort : 'name';
         $workcenterDirection = $request->input('workcenter_direction') === 'desc' ? 'desc' : 'asc';
         [$plannedHoursFrom, $plannedHoursTo] = $this->plannedHoursRange($request);
         $plannedHoursSort = $request->input('planned_hours_sort');
@@ -230,7 +227,7 @@ class ReportController extends Controller
             ->all();
     }
 
-    /** Confirmed employees with no employee_workcenter row at all, hard or soft. 15 per page, sortable. */
+    /** Confirmed employees with no employee_workcenter row. 15 per page, sortable. */
     private function unassignedWorkcenterReport(string $sort, string $direction)
     {
         $query = Employee::query()
@@ -251,7 +248,7 @@ class ReportController extends Controller
             ]);
     }
 
-    /** Confirmed employees holding a hard or soft row for the picked workcenter. 15 per page, sortable. */
+    /** Confirmed employees who are members of the picked workcenter. 15 per page, sortable. */
     private function workcenterReport(?Workcenter $selectedWorkcenter, string $sort, string $direction)
     {
         if ($selectedWorkcenter === null) {
@@ -260,20 +257,19 @@ class ReportController extends Controller
 
         $query = $selectedWorkcenter->employees()->active()->where('confirmed', true)->with('businessLine');
 
-        $this->applyWorkcenterSort($query, in_array($sort, self::FOR_WORKCENTER_SORT_KEYS, true) ? $sort : 'name', $direction);
+        $this->applyWorkcenterSort($query, in_array($sort, self::WORKCENTER_SORT_KEYS, true) ? $sort : 'name', $direction);
 
         return $query->paginate(15, ['*'], 'workcenter_page')
             ->withQueryString()
             ->through(fn (Employee $employee) => [
                 'id' => $employee->id,
                 'name' => $employee->name,
-                'mode' => $employee->pivot->mode,
                 'business_line' => $employee->businessLine?->abbreviation,
                 'weekly_hours' => $employee->weekly_hours,
             ]);
     }
 
-    /** Shared Name/Business line/Weekly hours(/Mode) sort for both workcenter-report tables. */
+    /** Shared Name/Business line/Weekly hours sort for both workcenter-report tables. */
     private function applyWorkcenterSort($query, string $sort, string $direction): void
     {
         match ($sort) {
@@ -282,7 +278,6 @@ class ReportController extends Controller
                 $direction,
             ),
             'weekly_hours' => $query->orderBy('employees.weekly_hours', $direction),
-            'mode' => $query->orderBy('employee_workcenter.mode', $direction),
             default => $query->orderBy('employees.first_name', $direction)->orderBy('employees.last_name', $direction),
         };
 

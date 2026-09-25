@@ -103,7 +103,6 @@
     "reports.workcenter.empty_unassigned": "Every employee is assigned to a workcenter.",
     "reports.workcenter.empty_results": "No employees are assigned to this workcenter.",
     "reports.workcenter.column.name": "Name",
-    "reports.workcenter.column.mode": "Requirement",
     "reports.workcenter.column.business_line": "Business line",
     "reports.workcenter.column.weekly_hours": "Weekly hours",
     "reports.workcenter.no_business_line": "—",

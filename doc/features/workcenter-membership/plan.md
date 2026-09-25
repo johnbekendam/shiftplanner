@@ -1,6 +1,6 @@
 # Workcenter Membership — Plan
 
-Status: in progress — 3/5
+Status: in progress — 4/5
 
 - [x] **Membership gates eligibility.** `SchedulingEligibility::isWorkcenterIneligible`
   and `PlanEligibility::isWorkcenterIneligible` return true when the
@@ -15,7 +15,7 @@ Status: in progress — 3/5
 - [x] **Remove the workcenter-not-preferred flag.** Remove
   `isWorkcenterNotPreferred`, the `workcenter_not_preferred` JSON
   field, and the second triangle in `ShiftWeekTable.vue`.
-- [ ] **Remove the Reports "Mode" column.** Remove the column, the
+- [x] **Remove the Reports "Mode" column.** Remove the column, the
   `mode` sort key, the `mode` field in the row payload, and
   `reports.workcenter.column.mode`.
 - [ ] **Drop `mode`.** Add a migration that drops the column. Remove
