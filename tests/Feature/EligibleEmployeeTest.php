@@ -289,37 +289,17 @@ class EligibleEmployeeTest extends TestCase
         $this->assertSame('workcenter_ineligible', $entry['block_reason']);
     }
 
-    public function test_flags_a_soft_assigned_employee_as_workcenter_not_preferred(): void
+    public function test_does_not_send_a_workcenter_not_preferred_flag(): void
     {
         $this->actingAsAdmin();
         $workcenter = Workcenter::factory()->create();
         $shift = Shift::factory()->create();
         $employee = Employee::factory()->create(['confirmed' => true]);
         $employee->workcenters()->attach($workcenter, ['mode' => 'soft']);
-        RecurringAvailability::factory()->create([
-            'employee_id' => $employee->id, 'weekday' => 2, 'shift_id' => $shift->id, 'level' => 'available',
-        ]);
 
         $entry = collect($this->get($this->url($workcenter, $shift))->json())->firstWhere('id', $employee->id);
 
-        $this->assertNotNull($entry);
-        $this->assertTrue($entry['workcenter_not_preferred']);
-    }
-
-    public function test_does_not_flag_an_unrestricted_employee_as_workcenter_not_preferred(): void
-    {
-        $this->actingAsAdmin();
-        $workcenter = Workcenter::factory()->create();
-        $shift = Shift::factory()->create();
-        $employee = Employee::factory()->create(['confirmed' => true]);
-        RecurringAvailability::factory()->create([
-            'employee_id' => $employee->id, 'weekday' => 2, 'shift_id' => $shift->id, 'level' => 'available',
-        ]);
-
-        $entry = collect($this->get($this->url($workcenter, $shift))->json())->firstWhere('id', $employee->id);
-
-        $this->assertNotNull($entry);
-        $this->assertFalse($entry['workcenter_not_preferred']);
+        $this->assertArrayNotHasKey('workcenter_not_preferred', $entry);
     }
 
     public function test_excludes_an_unconfirmed_employee(): void

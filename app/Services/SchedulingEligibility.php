@@ -95,14 +95,6 @@ class SchedulingEligibility
         return ! $employee->workcenters()->where('workcenters.id', $workcenter->id)->exists();
     }
 
-    public function isWorkcenterNotPreferred(Employee $employee, Workcenter $workcenter): bool
-    {
-        return $employee->workcenters()
-            ->where('workcenters.id', $workcenter->id)
-            ->wherePivot('mode', 'soft')
-            ->exists();
-    }
-
     private function recurringLevel(Employee $employee, int $weekday, Shift $shift): ?string
     {
         return RecurringAvailability::query()

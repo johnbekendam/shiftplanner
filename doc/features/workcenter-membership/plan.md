@@ -1,6 +1,6 @@
 # Workcenter Membership — Plan
 
-Status: in progress — 2/5
+Status: in progress — 3/5
 
 - [x] **Membership gates eligibility.** `SchedulingEligibility::isWorkcenterIneligible`
   and `PlanEligibility::isWorkcenterIneligible` return true when the
@@ -12,7 +12,7 @@ Status: in progress — 2/5
 - [x] **Each row sets shift visibility.** `Employee::effectiveShifts()` and
   `isShiftUnavailableForWorkcenter` count each row, not only `hard`
   rows. With no rows, the result is the `visible_by_default` shifts.
-- [ ] **Remove the workcenter-not-preferred flag.** Remove
+- [x] **Remove the workcenter-not-preferred flag.** Remove
   `isWorkcenterNotPreferred`, the `workcenter_not_preferred` JSON
   field, and the second triangle in `ShiftWeekTable.vue`.
 - [ ] **Remove the Reports "Mode" column.** Remove the column, the

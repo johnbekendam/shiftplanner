@@ -435,9 +435,6 @@ onBeforeUnmount(() => {
                             <span v-if="employee.not_preferred" data-testid="not-preferred-icon" class="contents">
                                 <Icon name="exclamation-triangle" class="size-3 text-(--color-badge-warning-text)" />
                             </span>
-                            <span v-if="employee.workcenter_not_preferred" data-testid="workcenter-not-preferred-icon" class="contents">
-                                <Icon name="exclamation-triangle" class="size-3 text-(--color-badge-warning-text)" />
-                            </span>
                         </span>
                     </button>
                 </li>
