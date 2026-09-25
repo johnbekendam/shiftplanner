@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, watch, onBeforeUnmount, onMounted } from 'vue'
 import { Head, router, usePage } from '@inertiajs/vue3'
+import axios from 'axios'
 import AppLayout from '@/layouts/AppLayout.vue'
 import Card from '@/components/ui/Card.vue'
 import Calendar from '@/components/ui/Calendar.vue'
@@ -89,6 +90,22 @@ const generationErrorMessage = computed(() => {
     let message = __('planning.generation_failed', { error: status.firstError })
     if (status.failedCount > 1) message += __('planning.generation_failed_more', { count: status.failedCount - 1 })
     return message
+})
+
+// Verify planning: null until the button is first pressed, then
+// { [assignment id]: [violation code] } for the visible week.
+const violations = ref(null)
+
+async function verifyPlanning() {
+    const { data } = await axios.get('/planning/verify', { params: { week_start: props.weekStart } })
+    // An empty PHP array arrives as [], not {}.
+    violations.value = Array.isArray(data.violations) ? {} : data.violations
+}
+
+const verifyResult = computed(() => {
+    if (violations.value === null) return null
+    const count = Object.keys(violations.value).length
+    return count ? __('planning.verify_result', { count }) : __('planning.verify_ok')
 })
 
 let pollTimer = null
@@ -442,6 +459,22 @@ const visibleWorkcenters = computed(() =>
                 >
                     {{ __('planning.send') }}
                 </ButtonPrimary>
+                <ButtonSecondary
+                    type="button"
+                    icon="check-circle"
+                    data-testid="verify-plan-button"
+                    @click="verifyPlanning"
+                >
+                    {{ __('planning.verify') }}
+                </ButtonSecondary>
+                <span
+                    v-if="verifyResult"
+                    data-testid="verify-result"
+                    class="text-sm"
+                    :class="Object.keys(violations).length ? 'text-(--color-badge-error-text)' : 'text-(--color-text-secondary)'"
+                >
+                    {{ verifyResult }}
+                </span>
                 <span
                     v-if="generationErrorMessage"
                     data-testid="generation-error"
@@ -496,6 +529,7 @@ const visibleWorkcenters = computed(() =>
                     :published="isWorkcenterWeekPublished(workcenter.id, weekStart)"
                     :planner-open="isPlannerOpen(workcenter.id, weekStart)"
                     :unfulfilled="generationRun?.status === 'done' ? generationRun.unfulfilled : []"
+                    :violations="violations ?? {}"
                 />
             </div>
         </div>
