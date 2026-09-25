@@ -87,11 +87,12 @@ class PlanningRuleController extends Controller
             'mode' => $type === 'equal_workload' || $type === 'alternating_shift_pair'
                 ? ['nullable', Rule::in(['hard', 'soft'])]
                 : ['required', Rule::in(['hard', 'soft'])],
-            'severity' => $type === 'equal_workload'
-                ? ['nullable', 'prohibited']
-                : ($type === 'alternating_shift_pair'
-                    ? ['required', 'integer', 'between:1,10']
-                    : ['required_if:mode,soft', 'prohibited_unless:mode,soft', 'nullable', 'integer', 'between:1,10']),
+            'severity' => match ($type) {
+                'equal_workload' => ['nullable', 'prohibited'],
+                // Always hard; a client-sent severity is accepted and ignored.
+                'alternating_shift_pair' => ['nullable'],
+                default => ['required_if:mode,soft', 'prohibited_unless:mode,soft', 'nullable', 'integer', 'between:1,10'],
+            },
             'value' => ['required_if:type,max_shifts_per_day', 'integer', 'min:1'],
             'workcenter_id' => [
                 'required_if:type,competence_required,business_line_preference',
@@ -169,8 +170,14 @@ class PlanningRuleController extends Controller
     {
         return [
             'type' => $data['type'],
-            'mode' => $data['type'] === 'equal_workload' ? null : ($data['type'] === 'alternating_shift_pair' ? 'soft' : $data['mode']),
-            'severity' => $data['type'] === 'equal_workload' ? null : ($data['type'] === 'alternating_shift_pair' ? $data['severity'] : ($data['mode'] === 'soft' ? $data['severity'] : null)),
+            'mode' => match ($data['type']) {
+                'equal_workload' => null,
+                'alternating_shift_pair' => 'hard',
+                default => $data['mode'],
+            },
+            'severity' => in_array($data['type'], ['equal_workload', 'alternating_shift_pair'], true) || $data['mode'] !== 'soft'
+                ? null
+                : $data['severity'],
             'config' => match ($data['type']) {
                 'max_shifts_per_day' => ['value' => $data['value']],
                 'competence_required' => [
