@@ -16,9 +16,6 @@ final class PlanSoftRules
     /** @var array{severity: int}|null */
     public ?array $notPreferredShift = null;
 
-    /** @var array<int, array{first_shift_id: int, second_shift_id: int, severity: int}> */
-    public array $alternatingPairs = [];
-
     /** @var array<int, array{workcenter_id: int, competence_id: int, severity: int}> */
     public array $competenceRequired = [];
 
@@ -36,17 +33,6 @@ final class PlanSoftRules
         foreach ($rules as $rule) {
             if ($rule['type'] === 'equal_workload') {
                 $this->equalWorkload = true;
-
-                continue;
-            }
-
-            if ($rule['type'] === 'alternating_shift_pair') {
-                // Always soft — no mode to check, matches the data model.
-                $this->alternatingPairs[] = [
-                    'first_shift_id' => $rule['config']['first_shift_id'],
-                    'second_shift_id' => $rule['config']['second_shift_id'],
-                    'severity' => $rule['severity'],
-                ];
 
                 continue;
             }

@@ -71,8 +71,6 @@ final class PlanScorer
             $cost += $this->businessLineCost($a);
         }
 
-        $cost += $this->alternatingPairCost($assignments);
-
         foreach ($this->problem->employees as $employee) {
             $cost += $this->maxShiftsPerDayCost($assignments, $employee);
             $cost += $this->maxHoursPerWeekCost($assignments, $employee);
@@ -134,65 +132,6 @@ final class PlanScorer
         }
 
         return $cost;
-    }
-
-    private function alternatingPairCost(PlanAssignmentSet $assignments): float
-    {
-        if ($this->softRules->alternatingPairs === []) {
-            return 0.0;
-        }
-
-        $cost = 0.0;
-        foreach ($this->problem->employees as $employee) {
-            foreach ($this->softRules->alternatingPairs as $pair) {
-                $cost += $this->alternatingPairCostFor($assignments, $employee['id'], $pair);
-            }
-        }
-
-        return $cost;
-    }
-
-    private function alternatingPairCostFor(PlanAssignmentSet $assignments, int $employeeId, array $pair): float
-    {
-        $cost = 0.0;
-
-        for ($offset = 0; $offset < 14; $offset++) {
-            $date = $this->problem->cycleStart->copy()->addDays($offset);
-            $earlierDate = $date->copy()->subDays(7)->toDateString();
-
-            $earlierHasFirst = $this->hasShiftOn($assignments, $employeeId, $pair['first_shift_id'], $earlierDate);
-            $earlierHasSecond = $this->hasShiftOn($assignments, $employeeId, $pair['second_shift_id'], $earlierDate);
-
-            if ($earlierHasFirst === $earlierHasSecond) {
-                continue; // 0 or 2 members that day: no preference
-            }
-
-            $repeated = $earlierHasFirst ? $pair['first_shift_id'] : $pair['second_shift_id'];
-            $opposite = $earlierHasFirst ? $pair['second_shift_id'] : $pair['first_shift_id'];
-            $dateStr = $date->toDateString();
-
-            if ($assignments->hasShiftOnDate($employeeId, $repeated, $dateStr) && ! $assignments->hasShiftOnDate($employeeId, $opposite, $dateStr)) {
-                $cost += $pair['severity'];
-            }
-        }
-
-        return $cost;
-    }
-
-    /** $date may fall before the cycle (previous_week_assignments, read-only) or within it (the working assignment set). */
-    private function hasShiftOn(PlanAssignmentSet $assignments, int $employeeId, int $shiftId, string $date): bool
-    {
-        if ($date < $this->problem->cycleStart->toDateString()) {
-            foreach ($this->problem->previousWeekAssignments as $a) {
-                if ($a['employee_id'] === $employeeId && $a['shift_id'] === $shiftId && $a['date'] === $date) {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        return $assignments->hasShiftOnDate($employeeId, $shiftId, $date);
     }
 
     private function maxShiftsPerDayCost(PlanAssignmentSet $assignments, array $employee): float

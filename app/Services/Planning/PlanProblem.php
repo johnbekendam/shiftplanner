@@ -23,8 +23,6 @@ final readonly class PlanProblem
         public array $spots,
         /** @var array<int, array{employee_id: int, workcenter_id: int, shift_id: int, date: string}> */
         public array $lockedAssignments,
-        /** @var array<int, array{employee_id: int, workcenter_id: int, shift_id: int, date: string}> */
-        public array $previousWeekAssignments,
         /** @var array<int, array{type: string, mode: ?string, severity: ?int, config: array}> */
         public array $rules,
     ) {}
