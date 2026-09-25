@@ -95,12 +95,35 @@ const generationErrorMessage = computed(() => {
 // Verify planning: null until the button is first pressed, then
 // { [assignment id]: [violation code] } for the visible week.
 const violations = ref(null)
+// Set by the first press, before any answer arrives, so a week change
+// during that first request still verifies the new week.
+const verificationOn = ref(false)
+
+function startVerification() {
+    verificationOn.value = true
+    verifyPlanning().catch(() => {})
+}
+
+// Only the latest request may set the result, so a slow answer for a week
+// that is no longer shown cannot overwrite the current one.
+let verifyRequest = 0
 
 async function verifyPlanning() {
+    const request = ++verifyRequest
     const { data } = await axios.get('/planning/verify', { params: { week_start: props.weekStart } })
+    if (request !== verifyRequest) return
     // An empty PHP array arrives as [], not {}.
     violations.value = Array.isArray(data.violations) ? {} : data.violations
 }
+
+// Once verified, stay verified until a full reload: an edit reloads the
+// week cells, and a week change loads new ones.
+watch(
+    () => [props.weekStart, props.weekCells],
+    () => {
+        if (verificationOn.value) verifyPlanning().catch(() => {})
+    },
+)
 
 const verifyResult = computed(() => {
     if (violations.value === null) return null
@@ -463,7 +486,7 @@ const visibleWorkcenters = computed(() =>
                     type="button"
                     icon="check-circle"
                     data-testid="verify-plan-button"
-                    @click="verifyPlanning"
+                    @click="startVerification"
                 >
                     {{ __('planning.verify') }}
                 </ButtonSecondary>
