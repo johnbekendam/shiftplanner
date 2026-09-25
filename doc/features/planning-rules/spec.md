@@ -52,9 +52,11 @@ Three scoped, multi-instance rule types:
 6. **Business-line preference for a workcenter.** A manager picks a
   workcenter and one business line; filling that workcenter is expected
   to prefer employees from that line.
-7. **Alternating shift pair.** A manager picks two distinct shifts and
-   a severity. The rule is always soft and applies across workcenters.
-   A shift can belong to only one pair. The unordered pair is fixed after
+7. **Alternating shift pair.** A manager picks two distinct shifts. The
+   rule is always hard and applies across workcenters. An employee never
+   holds both shifts in the same Monday–Sunday week
+   (`alternating-shift-weekly-exclusion`). A shift can belong to only
+   one pair. The unordered pair is fixed after
    creation. To change either shift, delete the rule and create a new one.
 
 Adding another rule type later is application code — a new entry in
@@ -68,7 +70,7 @@ The solver uses this objective order:
 1. Apply hard eligibility and assignment constraints.
 2. Maximize filled shift capacity.
 3. Apply the equal-workload rule when it exists.
-4. Optimize alternating shifts and other soft preferences.
+4. Optimize the soft preferences.
 
 The equal-workload rule compares absolute assigned hours. It does not
 compare assigned hours as a percentage of `weekly_hours`. The
@@ -87,17 +89,9 @@ For example, a start date in ISO week 2 produces cycles for weeks 2-3,
 4-5, and so on. A later change to `period_start` changes future cycle
 boundaries. It does not change existing assignments.
 
-For an alternating shift pair, the solver compares the same weekday
-exactly 7 days earlier. If the earlier day contains exactly one member
-of the pair, the opposite shift is preferred. Unrelated shifts do not
-affect the comparison. If the earlier day contains both pair members,
-or neither member, the rule has no preference.
-
-The opposite shift satisfies the rule even when the repeated shift is
-also present. This lets coverage and fairness take priority. When the
-solver generates both weeks together, the second week compares with the
-generated first week. The first week compares with stored assignments
-from the preceding week.
+An alternating shift pair is a hard eligibility rule. The planner never
+gives an employee one pair shift in a week in which the employee holds
+the other. Manual planning applies the same check.
 
 ### Data
 
@@ -131,12 +125,12 @@ business-line preference is for), is fixed once created — the
 application ignores client-supplied identity fields on update. Only
 `mode`, `severity`, and a type's own mutable data (`max_shifts_per_day`'s
 `value`, `business_line_preference`'s `business_line_id`) change in
-place. An alternating pair only permits a severity change. Anything
+place. An alternating pair permits no change. Anything
 else means deleting the row and adding a new one.
 
 The `mode` and `severity` columns are null for `equal_workload`. The
-`mode` is `soft` for `alternating_shift_pair`, and its severity is
-required. Other rule types keep the standard hard/soft behavior.
+`mode` is `hard` for `alternating_shift_pair`, and its severity is
+null. Other rule types keep the standard hard/soft behavior.
 
 ### Page — `/planning-rules`
 
@@ -150,7 +144,7 @@ reasoning `workcenter-shift-assignments/spec.md` gave for
 One table of rules, regardless of type, each showing its type, its
 target (for a scoped type), its mutable field, and applicable controls.
 The equal-workload row has no controls. An alternating-pair row shows
-both shift names and an editable severity. An add section below picks a type
+both shift names, `Hard`, and a hint. It has no controls except delete. An add section below picks a type
 first — a singleton type already present is not offered — then
 reveals only the fields that type needs, mirroring the row layout
 above. Same explicit-save model as the rest of the app
@@ -183,7 +177,8 @@ Save/Cancel pair, nothing written until Save.
   not to gate today's manual planning.
 - **Hard/soft applies to the original five rule types.** Equal workload
   is presence-only because it has a fixed objective tier. Alternating
-  pairs are always soft because coverage and fairness take priority.
+  pairs are always hard: two pair shifts in one week is never allowed
+  (`alternating-shift-weekly-exclusion`).
 - **Severity is a unitless 1-10 score**, not a raw solver weight.
   Phase 5 decides how to turn it into an objective-function coefficient;
   this feature does not guess that shape.

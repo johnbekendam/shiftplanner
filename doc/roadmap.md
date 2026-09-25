@@ -252,7 +252,7 @@ rules/`, built after this phase started. Workload fairness: the
 `weekly_hours`. Wish fairness: resolved as minimize-total-only — landing
 an employee on a `not_preferred` cell stays an ordinary severity-weighted
 soft penalty (the `not_preferred_shift` rule), summed and minimized like
-`alternating_shift_pair`, with no per-employee spread guarantee. No new
+the other soft rules, with no per-employee spread guarantee. No new
 rule type or table was needed for either. What phase 5 owned from here —
 the severity-to-objective-coefficient mapping and the planner's own
 problem/solution shape — is resolved too; see that phase's section.
