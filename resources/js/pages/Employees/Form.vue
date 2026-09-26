@@ -455,7 +455,7 @@ function restore() {
     <AppLayout>
         <Head :title="isEdit ? __('employees.form.edit_title') : __('employees.form.create_title')" />
 
-        <Card :class="tab === 'availability' ? 'max-w-5xl' : 'max-w-2xl'">
+        <Card class="max-w-2xl">
             <template v-if="isEdit" #header>
                 <Tabs v-model="tab" :tabs="tabs" />
             </template>
@@ -496,7 +496,7 @@ function restore() {
             </div>
 
             <div v-if="isEdit" v-show="tab === 'availability'" data-testid="panel-availability" class="@container p-6">
-                <section class="mb-6 grid gap-6 @3xl:grid-cols-2">
+                <section class="mb-6 grid gap-6 @xl:grid-cols-2">
                     <LabeledInput :label="__('availability.start_date.label')" :error="form.errors.available_from">
                         <DateInput
                             v-model="form.available_from"
@@ -534,7 +534,7 @@ function restore() {
 
                 <CardSeparator />
 
-                <div class="grid gap-6 @3xl:grid-cols-2">
+                <div class="space-y-6">
                     <section class="min-w-0 space-y-3" data-testid="availability-calendar-section">
                         <AvailabilityCalendar
                             v-model:default-week-selected="defaultWeekSelected"

@@ -944,7 +944,7 @@ describe("Employees/Form", () => {
         expect(w.getComponent(DateInput).props("disabled")).toBe(true);
     });
 
-    it("puts the calendar left and shows the whole default week only after the weekday header is picked", async () => {
+    it("puts the calendar above the card and shows the whole default week only after the weekday header is picked", async () => {
         const w = mount(Form, { props: { employee: { id: 3, first_name: "A", last_name: "B", email: "a@b.c", weekly_hours: 24 }, holidays: [], shifts: [{ id: 1, name: "Day", start_time: "08:00", end_time: "12:00", weekdays: [1, 2, 3, 4, 5] }] }, global: { stubs } });
         const panel = w.get('[data-testid="panel-availability"]');
         const sections = panel.findAll('[data-testid="availability-calendar-section"], [data-testid="default-week-section"]');

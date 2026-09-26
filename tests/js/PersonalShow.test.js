@@ -749,7 +749,7 @@ describe("Personal/Show", () => {
         expect(findSaveButton(w).attributes("disabled")).toBeUndefined();
     });
 
-    it("puts the calendar left and shows the whole default week only after the weekday header is picked", async () => {
+    it("puts the calendar above the card and shows the whole default week only after the weekday header is picked", async () => {
         const w = mountShow([], { shifts: [{ id: 1, name: "Day", start_time: "08:00", end_time: "12:00", weekdays: [1, 2, 3, 4, 5] }] });
         const panel = w.get('[data-testid="panel-availability"]');
         const sections = panel.findAll('[data-testid="availability-calendar-section"], [data-testid="default-week-section"]');

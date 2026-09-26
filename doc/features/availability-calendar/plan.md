@@ -1,4 +1,4 @@
-Status: complete — 19/19
+Status: complete — 20/20
 
 - [x] 1. Add the `EmployeeAvailability` resolver for weekly defaults and
   holidays. Build it from loaded relations and from `PlanProblem`
@@ -95,3 +95,7 @@ Status: complete — 19/19
   pages. Competences and Questions are separate sections with a
   separator between them. `?tab=questions` opens the Competences tab.
   Vitest.
+
+- [x] 20. Put the availability card below the calendar, in one column.
+  Both pages return to their normal width, and `CenteredLayout` drops
+  the `wide` width. Vitest.

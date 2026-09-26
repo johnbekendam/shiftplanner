@@ -1,5 +1,4 @@
 <script setup>
-import { computed } from 'vue'
 import { usePage } from '@inertiajs/vue3'
 import Layout from '@/layouts/Layout.vue'
 import AppLogo from '@/components/AppLogo.vue'
@@ -22,11 +21,11 @@ const props = defineProps({
     width: {
         type: String,
         default: 'md',
-        validator: (v) => ['md', 'lg', 'xl', 'wide'].includes(v),
+        validator: (v) => ['md', 'lg', 'xl'].includes(v),
     },
 })
 
-const widthClass = computed(() => ({ md: 'max-w-md', lg: 'max-w-xl', xl: 'max-w-2xl', wide: 'max-w-5xl' })[props.width])
+const widthClass = { md: 'max-w-md', lg: 'max-w-xl', xl: 'max-w-2xl' }[props.width]
 </script>
 
 <template>

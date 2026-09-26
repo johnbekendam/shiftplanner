@@ -379,7 +379,7 @@ const withdrawDialogOpen = ref(false)
 </script>
 
 <template>
-    <CenteredLayout align="top" :width="tab === 'availability' ? 'wide' : 'xl'">
+    <CenteredLayout align="top" width="xl">
         <Head :title="__('personal.title')" />
 
         <template #header>
@@ -408,7 +408,7 @@ const withdrawDialogOpen = ref(false)
         </div>
 
         <div v-show="tab === 'availability'" data-testid="panel-availability" class="@container">
-            <section class="mb-6 grid gap-6 @3xl:grid-cols-2">
+            <section class="mb-6 grid gap-6 @xl:grid-cols-2">
                 <LabeledInput :label="__('availability.start_date.label')" :error="form.errors.available_from">
                     <DateInput
                         v-model="form.available_from"
@@ -446,7 +446,7 @@ const withdrawDialogOpen = ref(false)
 
             <CardSeparator />
 
-            <div class="grid gap-6 @3xl:grid-cols-2">
+            <div class="space-y-6">
                 <section class="min-w-0 space-y-3" data-testid="availability-calendar-section">
                     <AvailabilityCalendar
                         v-model:default-week-selected="defaultWeekSelected"

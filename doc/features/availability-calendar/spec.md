@@ -102,11 +102,11 @@ effect. Each change goes straight into the pending edits.
 Both pages use the same Availability tab layout:
 
 1. Top row: start date, weekly hours, the hours warning.
-2. Two columns on wide screens. Left: the calendar with its legend.
-   Right: a card with the default week or the schedule of one date.
-   The schedule note sits in the same card, below a separator. The
-   card header shows "Default availability" or the date. Without a
-   selection, the card shows only a hint.
+2. The calendar with its legend, and below it a card with the default
+   week or the schedule of one date. The schedule note sits in the same
+   card, below a separator. The card header shows "Default
+   availability" or the date. Without a selection, the card shows only
+   a hint.
 3. Holidays, full width.
 
 A click on any weekday letter in the calendar header selects the whole
@@ -122,7 +122,8 @@ date, never both. Picking the default week clears the selected date,
 and picking a date clears the default week. With nothing selected, a
 hint tells the user to click the weekday letters or a date.
 
-On narrow screens every part stacks in this order. The questions are on
+The top row puts the start date and weekly hours side by side when the
+card is wide enough, and stacks them otherwise. The questions are on
 the Competences tab, in their own section below the competences. The
 section shows only when one or more questions exist. An old
 `?tab=questions` link opens the Competences tab.
