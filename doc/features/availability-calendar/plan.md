@@ -1,4 +1,4 @@
-Status: complete — 21/21
+Status: complete — 22/22
 
 - [x] 1. Add the `EmployeeAvailability` resolver for weekly defaults and
   holidays. Build it from loaded relations and from `PlanProblem`
@@ -104,3 +104,9 @@ Status: complete — 21/21
   does not stretch across the tab. The `Calendar.vue` legend gets
   `w-0 min-w-full`, so it wraps to the day grid's width instead of
   setting the calendar's width. Vitest.
+
+- [x] 22. Move the hint, the legend and the schedule note into an info
+  card to the right of the calendar. The card takes the remaining width.
+  The availability card shows only with a selection. The legend moves to
+  `CalendarLegend.vue`, and the class maps to `calendarClasses.js`, both
+  shared with `Calendar.vue`. Vitest.

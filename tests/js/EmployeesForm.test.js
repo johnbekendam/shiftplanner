@@ -944,24 +944,26 @@ describe("Employees/Form", () => {
         expect(w.getComponent(DateInput).props("disabled")).toBe(true);
     });
 
-    it("puts the calendar above the card and shows the whole default week only after the weekday header is picked", async () => {
+    it("shows the availability card below the calendar only while the default week is picked", async () => {
         const w = mount(Form, { props: { employee: { id: 3, first_name: "A", last_name: "B", email: "a@b.c", weekly_hours: 24 }, holidays: [], shifts: [{ id: 1, name: "Day", start_time: "08:00", end_time: "12:00", weekdays: [1, 2, 3, 4, 5] }] }, global: { stubs } });
         const panel = w.get('[data-testid="panel-availability"]');
-        const sections = panel.findAll('[data-testid="availability-calendar-section"], [data-testid="default-week-section"]');
-        expect(sections.map((x) => x.attributes("data-testid"))).toEqual(["availability-calendar-section", "default-week-section"]);
+        expect(panel.find('[data-testid="default-week-section"]').exists()).toBe(false);
         expect(panel.findComponent(AvailabilityGrid).exists()).toBe(false);
-        expect(panel.find('[data-testid="default-week-hint"]').exists()).toBe(true);
+        expect(panel.get('[data-testid="availability-info-card"]').find('[data-testid="default-week-hint"]').exists()).toBe(true);
 
         await selectDefaultWeek(w);
+
+        const sections = panel.findAll('[data-testid="availability-calendar-section"], [data-testid="default-week-section"]');
+        expect(sections.map((x) => x.attributes("data-testid"))).toEqual(["availability-calendar-section", "default-week-section"]);
 
         expect(panel.getComponent(AvailabilityCalendar).props("defaultWeekSelected")).toBe(true);
         expect(panel.findAll('[data-testid^="cell-"]').map((c) => c.attributes("data-testid"))).toEqual([
             "cell-1-1", "cell-2-1", "cell-3-1", "cell-4-1", "cell-5-1",
         ]);
-        expect(panel.find('[data-testid="default-week-hint"]').exists()).toBe(false);
+        expect(panel.find('[data-testid="default-week-hint"]').exists()).toBe(true);
 
         await selectDefaultWeek(w, false);
-        expect(panel.findComponent(AvailabilityGrid).exists()).toBe(false);
+        expect(panel.find('[data-testid="default-week-section"]').exists()).toBe(false);
     });
 
     it("keeps a pending default edit visible after hiding and showing the default week", async () => {

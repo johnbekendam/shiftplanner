@@ -1,6 +1,9 @@
 <script setup>
 import { computed, ref } from 'vue'
 import Calendar from '@/components/ui/Calendar.vue'
+import CalendarLegend from '@/components/ui/CalendarLegend.vue'
+import Card from '@/components/ui/Card.vue'
+import CardSeparator from '@/components/ui/CardSeparator.vue'
 import { dateString, monthStates } from '@/utils/availabilityCalendar'
 import { useI18n } from '@/composables/useI18n'
 
@@ -76,20 +79,35 @@ const ringDay = computed(() => {
 </script>
 
 <template>
-    <Calendar
-        class="w-fit"
-        :year="year"
-        :month="month"
-        :day-states="states.dayStates"
-        :day-borders="states.dayBorders"
-        :legenda="legenda"
-        :border-legenda="borderLegenda"
-        :date-range-start="availableFrom || null"
-        :weekday-header-selected="defaultWeekSelected"
-        :ring-day="ringDay"
-        :highlight-selection="false"
-        @change="onChange"
-        @day-click="onDayClick"
-        @weekday-click="onWeekdayClick"
-    />
+    <!-- The calendar keeps its content width; the info card takes the rest. -->
+    <div class="flex flex-col gap-6 sm:flex-row sm:items-start">
+        <Calendar
+            class="w-fit shrink-0"
+            :year="year"
+            :month="month"
+            :day-states="states.dayStates"
+            :day-borders="states.dayBorders"
+            :date-range-start="availableFrom || null"
+            :weekday-header-selected="defaultWeekSelected"
+            :ring-day="ringDay"
+            :highlight-selection="false"
+            @change="onChange"
+            @day-click="onDayClick"
+            @weekday-click="onWeekdayClick"
+        />
+
+        <Card class="min-w-0 flex-1" data-testid="availability-info-card">
+            <div class="px-6 py-4">
+                <p data-testid="default-week-hint" class="text-sm text-(--color-text-secondary)">
+                    {{ __('availability.default_week.hint') }}
+                </p>
+                <CardSeparator />
+                <CalendarLegend :legenda="legenda" :border-legenda="borderLegenda" />
+                <template v-if="$slots.default">
+                    <CardSeparator />
+                    <slot />
+                </template>
+            </div>
+        </Card>
+    </div>
 </template>

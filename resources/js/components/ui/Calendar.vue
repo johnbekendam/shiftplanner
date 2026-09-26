@@ -83,40 +83,15 @@
         </div>
 
         <!-- Footer: legenda + optional actions slot -->
-        <template v-if="legendaEntries.length || borderLegendaEntries.length || $slots.footer" #footer>
+        <template v-if="hasLegend || $slots.footer" #footer>
             <!-- w-0 min-w-full: the legend wraps to the calendar's width instead of
                  widening it, so a w-fit calendar stays as wide as its day grid. -->
-            <div
-                v-if="legendaEntries.length || borderLegendaEntries.length"
-                data-testid="calendar-legend"
-                class="flex w-0 min-w-full flex-wrap items-center gap-4 px-3 py-2"
-            >
-                <div v-for="entry in legendaEntries" :key="entry.color" class="flex items-center gap-2">
-                    <div
-                        :class="[
-                            'm-1 h-6 w-6 shrink-0 rounded-md border-2 border-transparent text-center text-sm font-semibold',
-                            colorBg(entry.color),
-                        ]"
-                    >
-                        x
-                    </div>
-                    <span class="text-xs text-(--color-text-muted)">{{ entry.text }}</span>
-                </div>
-                <div
-                    v-for="entry in borderLegendaEntries"
-                    :key="entry.style"
-                    :data-testid="'calendar-border-legend-' + entry.style"
-                    class="flex items-center gap-2"
-                >
-                    <div
-                        :class="[
-                            'm-1 h-6 w-6 shrink-0 rounded-md border-2 border-(--color-tab-active-border)',
-                            BORDER_STYLE_CLASS[entry.style],
-                        ]"
-                    ></div>
-                    <span class="text-xs text-(--color-text-muted)">{{ entry.text }}</span>
-                </div>
-            </div>
+            <CalendarLegend
+                v-if="hasLegend"
+                :legenda="legenda"
+                :border-legenda="borderLegenda"
+                class="w-0 min-w-full px-3 py-2"
+            />
             <slot name="footer" />
         </template>
     </Card>
@@ -127,30 +102,14 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { usePage } from '@inertiajs/vue3'
 import Card from '@/components/ui/Card.vue'
 import ButtonSecondary from '@/components/ui/ButtonSecondary.vue'
+import CalendarLegend from '@/components/ui/CalendarLegend.vue'
+import { BORDER_STYLE_CLASS, COLOR_CLASS } from '@/components/ui/calendarClasses'
 import { useI18n } from '@/composables/useI18n'
 
 const page = usePage()
 const __ = useI18n()
 
 // ── Color class maps (full strings so Tailwind includes them) ─────────────────
-// Each family aliases the existing badge tokens (ThemeTokens::COLOR_DEFAULTS).
-// There is no badge hover-state token in this app's theme system, so unlike
-// the source component, hover feedback here comes only from the border.
-const COLOR_CLASS = {
-    success: 'bg-(--color-badge-success-bg) text-(--color-badge-success-text)',
-    custom: 'bg-(--color-badge-custom-bg) text-(--color-badge-custom-text)',
-    error: 'bg-(--color-badge-error-bg) text-(--color-badge-error-text)',
-    warning: 'bg-(--color-badge-warning-bg) text-(--color-badge-warning-text)',
-    standard: 'bg-(--color-badge-standard-bg) text-(--color-badge-standard-text)',
-    muted: 'bg-(--color-badge-muted-bg) text-(--color-badge-muted-text)',
-}
-
-// Day border styles for dayBorders; the color is always the active-tab border token.
-const BORDER_STYLE_CLASS = {
-    solid: '',
-    dashed: 'border-dashed',
-}
-
 // A narrow week-number column, then the seven days.
 const GRID_COLUMNS = 'grid-cols-[1.75rem_repeat(7,minmax(0,1fr))]'
 
@@ -236,16 +195,10 @@ const firstDayOffset = computed(() => {
     return (dow + 6) % 7 // JS getDay: Sun=0, Mon=1 → convert to Mon=0
 })
 
-const legendaEntries = computed(() =>
-    Object.entries(props.legenda)
-        .filter(([, text]) => text)
-        .map(([color, text]) => ({ color, text })),
-)
-
-const borderLegendaEntries = computed(() =>
-    Object.entries(props.borderLegenda)
-        .filter(([style, text]) => text && style in BORDER_STYLE_CLASS)
-        .map(([style, text]) => ({ style, text })),
+// Only non-empty entries render, as in CalendarLegend.
+const hasLegend = computed(() =>
+    Object.values(props.legenda).some(Boolean)
+    || Object.entries(props.borderLegenda).some(([style, text]) => text && style in BORDER_STYLE_CLASS),
 )
 
 // Day cells chunked into week-rows (7 per row), the first row's leading
@@ -350,9 +303,6 @@ function weekRowClass(week) {
         : 'border-transparent'
 }
 
-function colorBg(color) {
-    return COLOR_CLASS[color] ?? ''
-}
 
 // ── Actions ───────────────────────────────────────────────────────────────────
 

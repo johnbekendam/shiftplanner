@@ -19,6 +19,7 @@ vi.mock("@/composables/useI18n", () => ({
 
 import AvailabilityCalendar from "@/components/AvailabilityCalendar.vue";
 import Calendar from "@/components/ui/Calendar.vue";
+import CalendarLegend from "@/components/ui/CalendarLegend.vue";
 
 const early = { id: 10, name: "Early", start_time: "06:00", end_time: "14:00", weekdays: [1, 2, 3, 4, 5] };
 
@@ -46,8 +47,32 @@ describe("AvailabilityCalendar", () => {
         expect(calendar.props("dayStates")[5]).toBe("success");
         expect(calendar.props("dayStates")[6]).toBe("error");
         expect(calendar.props("dayBorders")).toEqual({ 7: "solid", 12: "dashed", 13: "dashed" });
-        expect(calendar.props("legenda")).toEqual({ success: "Available", warning: "Only not preferred", error: "Not available" });
-        expect(calendar.props("borderLegenda")).toEqual({ solid: "Changed", dashed: "Holiday" });
+        expect(calendar.props("legenda")).toEqual({});
+        expect(calendar.props("borderLegenda")).toEqual({});
+    });
+
+    it("shows the hint, the legend and the slot content in an info card next to the calendar", () => {
+        const w = mount(AvailabilityCalendar, {
+            props: { shifts: [early] },
+            slots: { default: '<p data-testid="slot-note">Note</p>' },
+        });
+        const card = w.get('[data-testid="availability-info-card"]');
+
+        expect(card.classes()).toContain("flex-1");
+        expect(w.getComponent(Calendar).classes()).toEqual(expect.arrayContaining(["w-fit", "shrink-0"]));
+        expect(card.find('[data-testid="default-week-hint"]').exists()).toBe(true);
+        expect(card.getComponent(CalendarLegend).props()).toEqual({
+            legenda: { success: "Available", warning: "Only not preferred", error: "Not available" },
+            borderLegenda: { solid: "Changed", dashed: "Holiday" },
+        });
+        expect(card.find('[data-testid="slot-note"]').exists()).toBe(true);
+        expect(card.findAll("hr")).toHaveLength(2);
+    });
+
+    it("leaves out the slot separator without slot content", () => {
+        const w = mountCalendar();
+
+        expect(w.get('[data-testid="availability-info-card"]').findAll("hr")).toHaveLength(1);
     });
 
     it("follows the calendar to another month", async () => {

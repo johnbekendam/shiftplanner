@@ -544,12 +544,14 @@ function restore() {
                             :overrides="overrides"
                             :holidays="currentHolidayRows"
                             :available-from="form.available_from || null"
-                        />
+                        >
+                            <ShiftNote v-if="scheduleNoteHtml" :html="scheduleNoteHtml" data-testid="availability-card-note" />
+                        </AvailabilityCalendar>
                     </section>
 
-                    <section class="min-w-0 space-y-3" data-testid="default-week-section">
+                    <section v-if="defaultWeekSelected || selectedDay" class="min-w-0" data-testid="default-week-section">
                         <Card>
-                            <template v-if="defaultWeekSelected || selectedDay" #header>
+                            <template #header>
                                 <div data-testid="availability-card-header" class="flex h-12 items-center px-6 text-md font-semibold">
                                     <template v-if="defaultWeekSelected">{{ __('availability.default_week.heading') }}</template>
                                     <template v-else>
@@ -577,13 +579,6 @@ function restore() {
                                     :disabled="isArchived"
                                     @apply-day="onApplyDay"
                                 />
-                                <p v-else data-testid="default-week-hint" class="text-sm text-(--color-text-secondary)">
-                                    {{ __('availability.default_week.hint') }}
-                                </p>
-                                <template v-if="scheduleNoteHtml">
-                                    <CardSeparator />
-                                    <ShiftNote :html="scheduleNoteHtml" data-testid="availability-card-note" />
-                                </template>
                             </div>
                         </Card>
                     </section>
@@ -603,7 +598,6 @@ function restore() {
                     />
                 </section>
             </div>
-
 
             <div v-if="isEdit" v-show="tab === 'competences'" data-testid="panel-competences" class="p-6">
                 <section data-testid="competences-section" class="space-y-3">

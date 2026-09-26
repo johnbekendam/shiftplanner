@@ -749,24 +749,26 @@ describe("Personal/Show", () => {
         expect(findSaveButton(w).attributes("disabled")).toBeUndefined();
     });
 
-    it("puts the calendar above the card and shows the whole default week only after the weekday header is picked", async () => {
+    it("shows the availability card below the calendar only while the default week is picked", async () => {
         const w = mountShow([], { shifts: [{ id: 1, name: "Day", start_time: "08:00", end_time: "12:00", weekdays: [1, 2, 3, 4, 5] }] });
         const panel = w.get('[data-testid="panel-availability"]');
-        const sections = panel.findAll('[data-testid="availability-calendar-section"], [data-testid="default-week-section"]');
-        expect(sections.map((x) => x.attributes("data-testid"))).toEqual(["availability-calendar-section", "default-week-section"]);
+        expect(panel.find('[data-testid="default-week-section"]').exists()).toBe(false);
         expect(panel.findComponent(AvailabilityGrid).exists()).toBe(false);
-        expect(panel.find('[data-testid="default-week-hint"]').exists()).toBe(true);
+        expect(panel.get('[data-testid="availability-info-card"]').find('[data-testid="default-week-hint"]').exists()).toBe(true);
 
         await selectDefaultWeek(w);
+
+        const sections = panel.findAll('[data-testid="availability-calendar-section"], [data-testid="default-week-section"]');
+        expect(sections.map((x) => x.attributes("data-testid"))).toEqual(["availability-calendar-section", "default-week-section"]);
 
         expect(panel.getComponent(AvailabilityCalendar).props("defaultWeekSelected")).toBe(true);
         expect(panel.findAll('[data-testid^="cell-"]').map((c) => c.attributes("data-testid"))).toEqual([
             "cell-1-1", "cell-2-1", "cell-3-1", "cell-4-1", "cell-5-1",
         ]);
-        expect(panel.find('[data-testid="default-week-hint"]').exists()).toBe(false);
+        expect(panel.find('[data-testid="default-week-hint"]').exists()).toBe(true);
 
         await selectDefaultWeek(w, false);
-        expect(panel.findComponent(AvailabilityGrid).exists()).toBe(false);
+        expect(panel.find('[data-testid="default-week-section"]').exists()).toBe(false);
     });
 
     it("keeps a pending default edit visible after hiding and showing the default week", async () => {
@@ -809,8 +811,7 @@ describe("Personal/Show", () => {
         const w = mountShow([], { shifts: [{ id: 1, name: "Day", start_time: "08:00", end_time: "12:00", weekdays: [1, 2, 3, 4, 5] }] });
         const section = () => w.get('[data-testid="default-week-section"]');
 
-        expect(section().find('[data-testid="availability-card-header"]').exists()).toBe(false);
-        expect(section().get('[data-testid="default-week-hint"]').exists()).toBe(true);
+        expect(w.find('[data-testid="default-week-section"]').exists()).toBe(false);
 
         await selectDefaultWeek(w);
         expect(section().get('[data-testid="availability-card-header"]').text()).toBe("Default availability");
@@ -821,13 +822,14 @@ describe("Personal/Show", () => {
         expect(section().get('[data-testid="availability-card-header"]').text()).toBe("Monday 05-10-2026");
     });
 
-    it("shows the schedule note inside the availability card, below a separator", async () => {
+    it("shows the hint, the legend and the schedule note in the info card next to the calendar", async () => {
         const w = mountShow([], { scheduleNoteHtml: "<p>Early starts at six.</p>" });
-        const card = w.get('[data-testid="default-week-section"]');
-
-        expect(card.findAll("hr")).toHaveLength(1);
+        const card = w.get('[data-testid="availability-info-card"]');
         const html = card.html();
-        expect(html.indexOf("<hr")).toBeLessThan(html.indexOf("Early starts at six."));
+
+        expect(card.findAll("hr")).toHaveLength(2);
+        expect(html.indexOf('data-testid="default-week-hint"')).toBeLessThan(html.indexOf('data-testid="calendar-legend"'));
+        expect(html.indexOf('data-testid="calendar-legend"')).toBeLessThan(html.indexOf("Early starts at six."));
         expect(card.findAllComponents(ShiftNote)).toHaveLength(1);
     });
 });
