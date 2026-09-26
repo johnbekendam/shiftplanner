@@ -28,7 +28,7 @@ class EligibleEmployeeController extends Controller
         $employees = Employee::query()
             ->active()
             ->where('confirmed', true)
-            ->with(['holidays', 'recurringAvailabilities'])
+            ->with(['holidays', 'recurringAvailabilities', 'availabilityOverrides'])
             ->orderBy('first_name')
             ->orderBy('last_name')
             ->get()

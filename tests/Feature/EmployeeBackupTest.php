@@ -446,6 +446,45 @@ class EmployeeBackupTest extends TestCase
         $this->assertDatabaseHas('employee_workcenter', ['employee_id' => $employee->id, 'workcenter_id' => $workcenter->id]);
     }
 
+    public function test_the_application_archive_restores_the_start_date_and_date_overrides(): void
+    {
+        $admin = $this->admin();
+        $employee = Employee::factory()->create(['available_from' => '2026-11-02']);
+        $shift = Shift::factory()->create();
+        $employee->availabilityOverrides()->create(['date' => '2026-11-09', 'shift_id' => null, 'level' => 'unavailable']);
+        $employee->availabilityOverrides()->create(['date' => '2026-11-10', 'shift_id' => $shift->id, 'level' => 'available']);
+
+        $archive = json_decode($this->actingAs($admin)->get('/employee-backup/export')->getContent(), true, 512, JSON_THROW_ON_ERROR);
+        DB::table('availability_overrides')->delete();
+        $employee->update(['available_from' => null]);
+
+        $this->actingAs($admin)->post('/employee-backup/import', [
+            'file' => UploadedFile::fake()->createWithContent('backup.json', json_encode($archive, JSON_THROW_ON_ERROR)),
+        ])->assertOk();
+
+        $this->assertSame('2026-11-02', $employee->fresh()->available_from->toDateString());
+        $this->assertSame([
+            ['date' => '2026-11-09', 'shift_id' => null, 'level' => 'unavailable'],
+            ['date' => '2026-11-10', 'shift_id' => $shift->id, 'level' => 'available'],
+        ], $employee->availabilityOverrides()->get()->map->toPayload()->all());
+    }
+
+    public function test_an_archive_from_before_date_overrides_still_imports(): void
+    {
+        $admin = $this->admin();
+        $employee = Employee::factory()->create();
+        $employee->availabilityOverrides()->create(['date' => '2026-11-09', 'shift_id' => null, 'level' => 'unavailable']);
+
+        $archive = json_decode($this->actingAs($admin)->get('/employee-backup/export')->getContent(), true, 512, JSON_THROW_ON_ERROR);
+        unset($archive['data']['availability_overrides']);
+
+        $this->actingAs($admin)->post('/employee-backup/import', [
+            'file' => UploadedFile::fake()->createWithContent('backup.json', json_encode($archive, JSON_THROW_ON_ERROR)),
+        ])->assertOk();
+
+        $this->assertSame(0, DB::table('availability_overrides')->count());
+    }
+
     public function test_every_database_table_is_archived_or_explicitly_excluded(): void
     {
         $tables = collect(Schema::getTables())->pluck('name')->sort()->values()->all();

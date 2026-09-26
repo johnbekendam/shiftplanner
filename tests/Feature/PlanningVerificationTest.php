@@ -171,6 +171,16 @@ class PlanningVerificationTest extends TestCase
         $this->assertSame(['not_started'], $this->codesFor($assignment));
     }
 
+    public function test_a_whole_day_block_on_the_assignment_date(): void
+    {
+        $shift = $this->shift();
+        $employee = $this->employee($shift);
+        $employee->availabilityOverrides()->create(['date' => self::TUESDAY, 'shift_id' => null, 'level' => 'unavailable']);
+        $assignment = $this->assign($employee, $shift);
+
+        $this->assertSame(['unavailable'], $this->codesFor($assignment));
+    }
+
     public function test_an_unavailable_cell(): void
     {
         $shift = $this->shift();

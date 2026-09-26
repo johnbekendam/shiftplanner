@@ -10,6 +10,7 @@ use App\Http\Controllers\EligibleEmployeeController;
 use App\Http\Controllers\EmployeeAuditController;
 use App\Http\Controllers\EmployeeBackupController;
 use App\Http\Controllers\EmployeeCompetenceController;
+use App\Http\Controllers\DateAvailabilityController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\EmployeeHolidayController;
 use App\Http\Controllers\EmployeeQuestionController;
@@ -18,6 +19,7 @@ use App\Http\Controllers\LivePlanningController;
 use App\Http\Controllers\MailboxController;
 use App\Http\Controllers\PeriodController;
 use App\Http\Controllers\PersonalCompetenceController;
+use App\Http\Controllers\PersonalDateAvailabilityController;
 use App\Http\Controllers\PersonalHolidayController;
 use App\Http\Controllers\PersonalLinkController;
 use App\Http\Controllers\PersonalPageController;
@@ -177,6 +179,9 @@ Route::middleware('auth')->group(function () {
     Route::put('/employees/{employee}/availability/{weekday}/{shift}', [RecurringAvailabilityController::class, 'update'])
         ->where(['weekday' => '[1-5]', 'shift' => '[0-9]+'])
         ->middleware('employee.active')->name('employees.availability.update');
+    Route::put('/employees/{employee}/availability/dates/{date}', [DateAvailabilityController::class, 'update'])
+        ->where(['date' => '\d{4}-\d{2}-\d{2}'])
+        ->middleware('employee.active')->name('employees.availability.dates.update');
     Route::put('/employees/{employee}/competences/{competence}', [EmployeeCompetenceController::class, 'update'])->middleware('employee.active')->name('employees.competences.update');
     Route::delete('/employees/{employee}/competences/{competence}', [EmployeeCompetenceController::class, 'destroy'])->middleware('employee.active')->name('employees.competences.destroy');
     Route::put('/employees/{employee}/workcenters/{workcenter}', [EmployeeWorkcenterController::class, 'update'])->middleware('employee.active')->name('employees.workcenters.update');
@@ -198,6 +203,9 @@ Route::middleware(['employee.changes', 'employee.active'])->group(function () {
     Route::put('/personal/{token}/availability/{weekday}/{shift}', [PersonalRecurringAvailabilityController::class, 'update'])
         ->where(['weekday' => '[1-5]', 'shift' => '[0-9]+'])
         ->name('personal.availability.update');
+    Route::put('/personal/{token}/availability/dates/{date}', [PersonalDateAvailabilityController::class, 'update'])
+        ->where(['date' => '\d{4}-\d{2}-\d{2}'])
+        ->name('personal.availability.dates.update');
     Route::put('/personal/{token}/competences/{competence}', [PersonalCompetenceController::class, 'update'])->name('personal.competences.update');
     Route::delete('/personal/{token}/competences/{competence}', [PersonalCompetenceController::class, 'destroy'])->name('personal.competences.destroy');
     Route::put('/personal/{token}/questions/{question}', [PersonalQuestionController::class, 'update'])->name('personal.questions.update');

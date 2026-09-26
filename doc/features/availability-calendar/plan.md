@@ -1,4 +1,4 @@
-Status: in progress — 2/11
+Status: in progress — 3/11
 
 - [x] 1. Add the `EmployeeAvailability` resolver for weekly defaults and
   holidays. Build it from loaded relations and from `PlanProblem`
@@ -12,12 +12,13 @@ Status: in progress — 2/11
   personal update endpoints accept the field. Both page payloads
   include it. Feature tests for each.
 
-- [ ] 3. Add date overrides to the back end. Migration and
+- [x] 3. Add date overrides to the back end. Migration and
   `AvailabilityOverride` model. The resolver applies whole-day blocks
   and shift overrides. Add `PUT .../availability/dates/{date}` on the
   admin and personal routes. It replaces the rows of the date, audits
   the change and respects the change lock. Both page payloads include
-  all overrides. Feature tests.
+  all overrides. The application archive includes the new table. An
+  older archive without it restores it empty. Feature tests.
 
 - [ ] 4. Add shifts per weekday. `Employee::shiftWeekdays()` returns the
   ISO weekdays each effective shift runs on. The weekday routes accept
@@ -25,7 +26,8 @@ Status: in progress — 2/11
   run that day. Both page payloads include the map. Tests.
 
 - [ ] 5. Include `available_from` and the date overrides in the employee
-  backup export and restore. Tests.
+  configuration archive (`EmployeeBackupController`) export and import.
+  Accept weekdays 1–7 there. Tests.
 
 - [ ] 6. Show Monday to Sunday in `AvailabilityGrid`. Show a cell only
   where the shift runs. Hide a weekday column without running shifts.

@@ -139,7 +139,15 @@ class HeuristicPlanGenerator implements PlanGeneratorContract
             ->active()
             ->where('confirmed', true)
             ->where('weekly_hours', '>', 0)
-            ->with(['holidays', 'recurringAvailabilities', 'workcenters', 'competences'])
+            ->with([
+                'holidays',
+                'recurringAvailabilities',
+                'availabilityOverrides' => fn ($q) => $q
+                    ->whereDate('date', '>=', $cycleStart)
+                    ->whereDate('date', '<=', $cycleEnd),
+                'workcenters',
+                'competences',
+            ])
             ->get()
             ->map(fn (Employee $e) => [
                 'id' => $e->id,
@@ -155,6 +163,7 @@ class HeuristicPlanGenerator implements PlanGeneratorContract
                     'shift_id' => $r->shift_id,
                     'level' => $r->level,
                 ])->values()->all(),
+                'availability_overrides' => $e->availabilityOverrides->map->toPayload()->values()->all(),
                 'workcenter_ids' => $e->workcenters->pluck('id')->values()->all(),
                 'competences' => $e->competences->pluck('id')->values()->all(),
             ])

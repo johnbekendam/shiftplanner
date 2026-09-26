@@ -51,6 +51,31 @@ class EmployeeAvailabilityTest extends TestCase
         $this->assertSame('holiday', $availability->status('2026-10-06', 7));
     }
 
+    public function test_a_shift_override_replaces_the_weekly_row_on_its_date_only(): void
+    {
+        $availability = new EmployeeAvailability(
+            holidays: [],
+            weekly: ['1:7' => 'available'],
+            overrides: ['2026-10-05:7' => 'unavailable'],
+        );
+
+        $this->assertSame('unavailable', $availability->status('2026-10-05', 7));
+        $this->assertSame('available', $availability->status('2026-10-12', 7));
+    }
+
+    public function test_a_whole_day_block_wins_over_shift_overrides_but_not_over_a_holiday(): void
+    {
+        $availability = new EmployeeAvailability(
+            holidays: [['start' => '2026-10-12', 'end' => '2026-10-12']],
+            weekly: ['1:7' => 'available'],
+            dayBlocks: ['2026-10-05' => true, '2026-10-12' => true],
+            overrides: ['2026-10-05:7' => 'available'],
+        );
+
+        $this->assertSame('unavailable', $availability->status('2026-10-05', 7));
+        $this->assertSame('holiday', $availability->status('2026-10-12', 7));
+    }
+
     public function test_is_assignable_accepts_available_and_not_preferred_only(): void
     {
         $this->assertTrue(EmployeeAvailability::isAssignable('available'));

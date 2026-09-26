@@ -40,6 +40,7 @@ class PlanningVerifier
                 'workcenter.shifts',
                 'employee.holidays',
                 'employee.recurringAvailabilities',
+                'employee.availabilityOverrides',
                 'employee.workcenters',
                 'employee.competences',
             ])

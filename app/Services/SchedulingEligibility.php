@@ -111,7 +111,7 @@ class SchedulingEligibility
 
     private function availabilityStatus(Employee $employee, Carbon $date, Shift $shift): string
     {
-        $employee->loadMissing(['holidays', 'recurringAvailabilities']);
+        $employee->loadMissing(['holidays', 'recurringAvailabilities', 'availabilityOverrides']);
 
         return EmployeeAvailability::fromEmployee($employee)->status($date->toDateString(), $shift->id);
     }

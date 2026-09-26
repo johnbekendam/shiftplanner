@@ -193,6 +193,7 @@ class EmployeeController extends Controller
             'availability' => $employee->recurringAvailabilities
                 ->whereIn('shift_id', $visibleShifts->pluck('id'))
                 ->map->toPayload()->values()->all(),
+            'availabilityOverrides' => $employee->availabilityOverrides->map->toPayload()->values()->all(),
             'competences' => Competence::all()->map->toPayload()->all(),
             'competenceIds' => $employee->competences->pluck('id')->all(),
             'workcenters' => $workcenters->map(fn (Workcenter $workcenter) => [

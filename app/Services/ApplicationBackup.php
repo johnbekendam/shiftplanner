@@ -26,6 +26,7 @@ class ApplicationBackup
         'employee_personal_links',
         'employee_holidays',
         'recurring_availabilities',
+        'availability_overrides',
         'competence_employee',
         'availability_question_employee',
         'employee_workcenter',
@@ -57,6 +58,9 @@ class ApplicationBackup
         'plan_generation_runs',
         'sessions',
     ];
+
+    /** Tables added after version 2 archives were first written. An archive without one restores it empty. */
+    private const OPTIONAL_TABLES = ['availability_overrides'];
 
     /** Excluded tables that an import empties, so no stale rows survive a restore. */
     private const CLEARED_ON_IMPORT = ['plan_generation_runs'];
@@ -137,6 +141,10 @@ class ApplicationBackup
                 $this->insertRows($table, $data[$table]);
             }
 
+            foreach (self::OPTIONAL_TABLES as $table) {
+                $this->insertRows($table, $data[$table] ?? []);
+            }
+
             // Archives from before the membership change still carry `mode`.
             $this->insertRows('employee_workcenter', $this->withoutFields($data['employee_workcenter'], ['mode']));
 
@@ -162,6 +170,10 @@ class ApplicationBackup
 
         $errors = [];
         foreach (self::TABLES as $table) {
+            if (in_array($table, self::OPTIONAL_TABLES, true) && ! array_key_exists($table, $archive['data'])) {
+                continue;
+            }
+
             if (! array_key_exists($table, $archive['data']) || ! is_array($archive['data'][$table])) {
                 $errors[] = "The archive is missing the {$table} table.";
             }

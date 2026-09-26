@@ -22,15 +22,21 @@ final class EmployeeAvailability
     /**
      * @param  array<int, array{start: string, end: string}>  $holidays  inclusive Y-m-d ranges
      * @param  array<string, string>  $weekly  "isoWeekday:shift_id" => level
+     * @param  array<string, true>  $dayBlocks  Y-m-d => true, whole-day blocks
+     * @param  array<string, string>  $overrides  "Y-m-d:shift_id" => level
      */
     public function __construct(
         private readonly array $holidays,
         private readonly array $weekly,
         private readonly ?string $availableFrom = null,
+        private readonly array $dayBlocks = [],
+        private readonly array $overrides = [],
     ) {}
 
     public static function fromEmployee(Employee $employee): self
     {
+        [$dayBlocks, $overrides] = self::splitOverrides($employee->availabilityOverrides->map->toPayload()->all());
+
         return new self(
             holidays: $employee->holidays
                 ->map(fn ($h) => ['start' => $h->start_date->toDateString(), 'end' => $h->end_date->toDateString()])
@@ -39,12 +45,15 @@ final class EmployeeAvailability
                 ->mapWithKeys(fn ($r) => ["{$r->weekday}:{$r->shift_id}" => $r->level])
                 ->all(),
             availableFrom: $employee->available_from?->toDateString(),
+            dayBlocks: $dayBlocks,
+            overrides: $overrides,
         );
     }
 
-    /** @param  array{holidays: array, recurring_availability: array, available_from?: ?string}  $employee  a PlanProblem employee */
+    /** @param  array{holidays: array, recurring_availability: array, available_from?: ?string, availability_overrides?: array}  $employee  a PlanProblem employee */
     public static function fromPlanEmployee(array $employee): self
     {
+        [$dayBlocks, $overrides] = self::splitOverrides($employee['availability_overrides'] ?? []);
         $weekly = [];
         foreach ($employee['recurring_availability'] as $row) {
             $weekly["{$row['weekday']}:{$row['shift_id']}"] = $row['level'];
@@ -54,7 +63,28 @@ final class EmployeeAvailability
             holidays: $employee['holidays'],
             weekly: $weekly,
             availableFrom: $employee['available_from'] ?? null,
+            dayBlocks: $dayBlocks,
+            overrides: $overrides,
         );
+    }
+
+    /**
+     * @param  array<int, array{date: string, shift_id: ?int, level: string}>  $rows
+     * @return array{0: array<string, true>, 1: array<string, string>} whole-day blocks, shift overrides
+     */
+    private static function splitOverrides(array $rows): array
+    {
+        $dayBlocks = [];
+        $overrides = [];
+        foreach ($rows as $row) {
+            if ($row['shift_id'] === null) {
+                $dayBlocks[$row['date']] = true;
+            } else {
+                $overrides["{$row['date']}:{$row['shift_id']}"] = $row['level'];
+            }
+        }
+
+        return [$dayBlocks, $overrides];
     }
 
     public static function isAssignable(string $status): bool
@@ -69,8 +99,9 @@ final class EmployeeAvailability
     }
 
     /**
-     * The first match wins: before the start date, holiday, then the
-     * weekly default. A missing weekly row is unavailable, not available.
+     * The first match wins: before the start date, holiday, whole-day
+     * block, shift override, then the weekly default. A missing weekly row
+     * is unavailable, not available.
      */
     public function status(string $date, int $shiftId): string
     {
@@ -80,6 +111,14 @@ final class EmployeeAvailability
 
         if ($this->isOnHoliday($date)) {
             return 'holiday';
+        }
+
+        if (isset($this->dayBlocks[$date])) {
+            return 'unavailable';
+        }
+
+        if (isset($this->overrides["{$date}:{$shiftId}"])) {
+            return $this->overrides["{$date}:{$shiftId}"];
         }
 
         $weekday = Carbon::parse($date)->isoWeekday();

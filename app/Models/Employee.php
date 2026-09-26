@@ -78,6 +78,12 @@ class Employee extends Model
         return $this->hasMany(EmployeeHoliday::class)->orderBy('start_date');
     }
 
+    /** Date-specific availability, oldest date first. */
+    public function availabilityOverrides(): HasMany
+    {
+        return $this->hasMany(AvailabilityOverride::class)->orderBy('date')->orderBy('shift_id');
+    }
+
     public function recurringAvailabilities(): HasMany
     {
         return $this->hasMany(RecurringAvailability::class);
