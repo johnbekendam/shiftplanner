@@ -105,7 +105,7 @@ Both pages use the same Availability tab layout:
 2. Two columns on wide screens. Left: the calendar with its legend.
    Right: a card with the default week or the schedule of one date.
    The schedule note sits in the same card, below a separator. The card header shows "Default
-   week" or the date. Without a selection, the card shows only a hint.
+   availability" or the date. Without a selection, the card shows only a hint.
 3. Holidays, full width.
 
 A click on any weekday letter in the calendar header selects the whole

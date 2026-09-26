@@ -34,7 +34,7 @@ const en = {
     "availability.tab.availability": "Availability",
     "availability.tab.questions": "Questions",
     "availability.day.title": ":weekday :date",
-    "availability.default_week.heading": "Default week",
+    "availability.default_week.heading": "Default availability",
     "availability.weekday_long.1": "Monday",
     "availability.tab.settings": "Settings",
     "availability.info.empty": "No information has been provided yet.",
@@ -809,7 +809,7 @@ describe("Personal/Show", () => {
         expect(section().get('[data-testid="default-week-hint"]').exists()).toBe(true);
 
         await selectDefaultWeek(w);
-        expect(section().get('[data-testid="availability-card-header"]').text()).toBe("Default week");
+        expect(section().get('[data-testid="availability-card-header"]').text()).toBe("Default availability");
 
         w.getComponent(AvailabilityCalendar).vm.$emit("update:defaultWeekSelected", false);
         w.getComponent(AvailabilityCalendar).vm.$emit("update:selectedDate", "2026-10-05");
