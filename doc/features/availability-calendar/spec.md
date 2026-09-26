@@ -102,15 +102,14 @@ effect. Each change goes straight into the pending edits.
 Both pages use the same Availability tab layout:
 
 1. Top row: start date, weekly hours, the hours warning.
-2. The hint, as plain text on the page.
-3. A row with the calendar, as wide as its content, and an info card
+2. A row with the calendar, as wide as its content, and an info card
    that takes the remaining width. The info card holds the legend and
    the schedule note, with a separator between them. On narrow screens
    the two cards stack.
-4. Below the row, a card with the default week or the schedule of one
-   date. It shows only when one of the two is selected. The card header
-   shows "Default availability" or the date.
-5. Holidays, full width.
+3. Below the row, one card. With nothing selected it shows only the
+   hint. With the default week or a date selected, it shows that
+   instead, with "Default availability" or the date in its header.
+4. Holidays, full width.
 
 A click on any weekday letter in the calendar header selects the whole
 header row. A border goes around the row, and the card shows
@@ -122,8 +121,8 @@ A day shows its own hover border. The week row of the day does not.
 
 The card shows either the default week or the schedule of a
 date, never both. Picking the default week clears the selected date,
-and picking a date clears the default week. The hint above the calendar
-always tells the user to click the weekday letters or a date.
+and picking a date clears the default week. With nothing selected, the card
+below the calendar shows the hint: click the weekday letters or a date.
 
 The top row puts the start date and weekly hours side by side when the
 card is wide enough, and stacks them otherwise. The questions are on

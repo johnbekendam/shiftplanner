@@ -357,7 +357,7 @@
     "availability.start_date.label": "Available from",
     "availability.start_date.hint": "Leave empty when you can start right away. You are not planned before this date.",
     "availability.default_week.heading": "Default availability",
-    "availability.default_week.hint": "Click the weekday letters above the calendar to set your default availability, or click a date to change that date only.",
+    "availability.default_week.hint": "Click the weekday letters at the top of the calendar to set your default availability, or click a date to change that date only.",
     "availability.calendar.legend.available": "Available",
     "availability.calendar.legend.not_preferred": "Only not preferred",
     "availability.calendar.legend.unavailable": "Not available",

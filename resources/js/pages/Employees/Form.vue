@@ -549,9 +549,9 @@ function restore() {
                         </AvailabilityCalendar>
                     </section>
 
-                    <section v-if="defaultWeekSelected || selectedDay" class="min-w-0" data-testid="default-week-section">
+                    <section class="min-w-0" data-testid="default-week-section">
                         <Card>
-                            <template #header>
+                            <template v-if="defaultWeekSelected || selectedDay" #header>
                                 <div data-testid="availability-card-header" class="flex h-12 items-center px-6 text-md font-semibold">
                                     <template v-if="defaultWeekSelected">{{ __('availability.default_week.heading') }}</template>
                                     <template v-else>
@@ -579,6 +579,9 @@ function restore() {
                                     :disabled="isArchived"
                                     @apply-day="onApplyDay"
                                 />
+                                <p v-else data-testid="default-week-hint" class="text-sm text-(--color-text-secondary)">
+                                    {{ __('availability.default_week.hint') }}
+                                </p>
                             </div>
                         </Card>
                     </section>

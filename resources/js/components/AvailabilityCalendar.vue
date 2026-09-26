@@ -79,37 +79,31 @@ const ringDay = computed(() => {
 </script>
 
 <template>
-    <div class="space-y-3">
-        <p data-testid="default-week-hint" class="text-sm text-(--color-text-secondary)">
-            {{ __('availability.default_week.hint') }}
-        </p>
+    <!-- The calendar keeps its content width; the info card takes the rest. -->
+    <div class="flex flex-col gap-6 sm:flex-row sm:items-start">
+        <Calendar
+            class="w-fit shrink-0"
+            :year="year"
+            :month="month"
+            :day-states="states.dayStates"
+            :day-borders="states.dayBorders"
+            :date-range-start="availableFrom || null"
+            :weekday-header-selected="defaultWeekSelected"
+            :ring-day="ringDay"
+            :highlight-selection="false"
+            @change="onChange"
+            @day-click="onDayClick"
+            @weekday-click="onWeekdayClick"
+        />
 
-        <!-- The calendar keeps its content width; the info card takes the rest. -->
-        <div class="flex flex-col gap-6 sm:flex-row sm:items-start">
-            <Calendar
-                class="w-fit shrink-0"
-                :year="year"
-                :month="month"
-                :day-states="states.dayStates"
-                :day-borders="states.dayBorders"
-                :date-range-start="availableFrom || null"
-                :weekday-header-selected="defaultWeekSelected"
-                :ring-day="ringDay"
-                :highlight-selection="false"
-                @change="onChange"
-                @day-click="onDayClick"
-                @weekday-click="onWeekdayClick"
-            />
-
-            <Card class="min-w-0 flex-1" data-testid="availability-info-card">
-                <div class="px-6 py-4">
-                    <CalendarLegend :legenda="legenda" :border-legenda="borderLegenda" />
-                    <template v-if="$slots.default">
-                        <CardSeparator />
-                        <slot />
-                    </template>
-                </div>
-            </Card>
-        </div>
+        <Card class="min-w-0 flex-1" data-testid="availability-info-card">
+            <div class="px-6 py-4">
+                <CalendarLegend :legenda="legenda" :border-legenda="borderLegenda" />
+                <template v-if="$slots.default">
+                    <CardSeparator />
+                    <slot />
+                </template>
+            </div>
+        </Card>
     </div>
 </template>
