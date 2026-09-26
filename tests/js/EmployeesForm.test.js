@@ -6,7 +6,8 @@ const en = {
     "availability.tab.information": "Information",
     "availability.tab.details": "Details",
     "availability.tab.availability": "Availability",
-    "availability.tab.questions": "Questions",
+    "availability.questions.heading": "Questions",
+    "competences.heading": "Competences",
     "availability.tab.settings": "Settings",
     "availability.info.empty": "No information has been provided yet.",
     "availability.info.cta": "Please update your details, availability and competences on the different tabs.",
@@ -386,7 +387,7 @@ describe("Employees/Form", () => {
         expect(form.post).toHaveBeenCalledWith("/employees");
     });
 
-    it("shows the questions checklist on its own tab, after Availability", () => {
+    it("shows the questions in their own section on the Competences tab, below the competences", () => {
         const w = mount(Form, {
             props: {
                 employee: { id: 3, name: "A", email: "a@b.c", weekly_hours: 24 },
@@ -400,20 +401,23 @@ describe("Employees/Form", () => {
         const checklist = w.findComponent(QuestionChecklist);
         expect(checklist.exists()).toBe(true);
         expect(checklist.props("answeredIds")).toEqual([5]);
-        expect(w.get('[data-testid="panel-questions"]').findComponent(QuestionChecklist).exists()).toBe(true);
-        expect(w.get('[data-testid="panel-availability"]').findComponent(QuestionChecklist).exists()).toBe(false);
-        const tabs = w.findAll("button").map((button) => button.text());
-        expect(tabs.indexOf("Questions")).toBe(tabs.indexOf("Availability") + 1);
+        const panel = w.get('[data-testid="panel-competences"]');
+        expect(panel.get('[data-testid="questions-section"]').findComponent(QuestionChecklist).exists()).toBe(true);
+        expect(panel.get('[data-testid="competences-section"]').text()).toContain("Competences");
+        expect(panel.get('[data-testid="questions-section"]').text()).toContain("Questions");
+        const html = panel.html();
+        expect(html.indexOf('data-testid="competences-section"')).toBeLessThan(html.indexOf('data-testid="questions-section"'));
+        expect(w.findAll("button").map((button) => button.text())).not.toContain("Questions");
     });
 
-    it("omits the questions tab when no question is configured", () => {
+    it("omits the questions section when no question is configured", () => {
         const w = mount(Form, {
             props: { employee: { id: 3, name: "A", email: "a@b.c", weekly_hours: 24 }, holidays: [] },
             global: { stubs },
         });
         expect(w.findComponent(QuestionChecklist).exists()).toBe(false);
-        expect(w.find('[data-testid="panel-questions"]').exists()).toBe(false);
-        expect(w.findAll("button").map((button) => button.text())).not.toContain("Questions");
+        expect(w.find('[data-testid="questions-section"]').exists()).toBe(false);
+        expect(w.get('[data-testid="panel-competences"]').text()).not.toContain("Questions");
     });
 
     it("shows a Competences tab with the competence checklist", async () => {
@@ -970,4 +974,14 @@ describe("Employees/Form", () => {
         expect(w.get('[data-testid="cell-1-1"]').classes()).toContain("bg-(--color-badge-error-bg)");
     });
 
+
+    it("opens the Competences tab for an old ?tab=questions link", () => {
+        window.history.replaceState({}, "", "/employees/3/edit?tab=questions");
+        const w = mount(Form, {
+            props: { employee: { id: 3, first_name: "A", last_name: "B", email: "a@b.c", weekly_hours: 24 }, holidays: [] },
+            global: { stubs },
+        });
+
+        expect((w.get('[data-testid="panel-competences"]').attributes("style") ?? "")).not.toContain("display: none");
+    });
 });

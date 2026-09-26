@@ -82,8 +82,10 @@ const plannedAssignments = computed(() => props.plannedShifts.flatMap((week) => 
 const publishedAssignments = computed(() => plannedAssignments.value.filter((a) => a.published))
 const draftAssignments = computed(() => plannedAssignments.value.filter((a) => !a.published))
 
-const employeeTabs = ['settings', 'details', 'availability', 'questions', 'competences', 'workcenters', 'planning']
-const requestedTab = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('tab') : null
+const employeeTabs = ['settings', 'details', 'availability', 'competences', 'workcenters', 'planning']
+const rawRequestedTab = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('tab') : null
+// The questions moved onto the Competences tab; old links still land there.
+const requestedTab = rawRequestedTab === 'questions' ? 'competences' : rawRequestedTab
 const tab = ref(isEdit.value && employeeTabs.includes(requestedTab) ? requestedTab : 'settings')
 const tabs = computed(() => [
     { value: 'settings', label: __('availability.tab.settings'), hasError: registry.hasError('personal') },
@@ -94,10 +96,11 @@ const tabs = computed(() => [
         hasError: registry.hasError('personal') || registry.hasError('availability')
             || registry.hasError('holidays') || registry.hasError('dates'),
     },
-    ...(props.questions.length
-        ? [{ value: 'questions', label: __('availability.tab.questions'), hasError: registry.hasError('questions') }]
-        : []),
-    { value: 'competences', label: __('competences.tab'), hasError: registry.hasError('competences') },
+    {
+        value: 'competences',
+        label: __('competences.tab'),
+        hasError: registry.hasError('competences') || registry.hasError('questions'),
+    },
     { value: 'workcenters', label: __('workcenters.employee_tab'), hasError: registry.hasError('workcenters') },
     { value: 'planning', label: __('planning.tab') },
 ])
@@ -601,34 +604,43 @@ function restore() {
                 </section>
             </div>
 
-            <div v-if="isEdit && questions.length" v-show="tab === 'questions'" data-testid="panel-questions" class="p-6">
-                <QuestionChecklist
-                    :key="questionsVersion"
-                    :items="questions"
-                    :answered-ids="savedAnsweredIds"
-                    :disabled="isArchived"
-                    @update:answered-ids="onAnsweredIdsChange"
-                />
-            </div>
 
             <div v-if="isEdit" v-show="tab === 'competences'" data-testid="panel-competences" class="p-6">
-                <TagChecklist
-                    :key="competencesVersion"
-                    :items="editableCompetences"
-                    :selected-ids="savedCompetenceIds.filter((id) => editableCompetences.some((item) => item.id === id))"
-                    empty-key="competences.checklist_empty"
-                    :disabled="isArchived"
-                    @update:selected-ids="onSelectedCompetenceIdsChange($event, editableCompetences)"
-                />
-                <template v-if="readOnlyCompetences.length">
-                    <CardSeparator />
+                <section data-testid="competences-section" class="space-y-3">
+                    <h3 class="text-sm font-semibold text-(--color-text-primary)">{{ __('competences.heading') }}</h3>
                     <TagChecklist
-                        :items="readOnlyCompetences"
-                        :selected-ids="savedCompetenceIds.filter((id) => readOnlyCompetences.some((item) => item.id === id))"
+                        :key="competencesVersion"
+                        :items="editableCompetences"
+                        :selected-ids="savedCompetenceIds.filter((id) => editableCompetences.some((item) => item.id === id))"
                         empty-key="competences.checklist_empty"
                         :disabled="isArchived"
-                        @update:selected-ids="onSelectedCompetenceIdsChange($event, readOnlyCompetences)"
+                        @update:selected-ids="onSelectedCompetenceIdsChange($event, editableCompetences)"
                     />
+                    <template v-if="readOnlyCompetences.length">
+                        <CardSeparator />
+                        <TagChecklist
+                            :items="readOnlyCompetences"
+                            :selected-ids="savedCompetenceIds.filter((id) => readOnlyCompetences.some((item) => item.id === id))"
+                            empty-key="competences.checklist_empty"
+                            :disabled="isArchived"
+                            @update:selected-ids="onSelectedCompetenceIdsChange($event, readOnlyCompetences)"
+                        />
+                    </template>
+                </section>
+
+                <template v-if="questions.length">
+                    <CardSeparator />
+
+                    <section data-testid="questions-section" class="space-y-3">
+                        <h3 class="text-sm font-semibold text-(--color-text-primary)">{{ __('availability.questions.heading') }}</h3>
+                        <QuestionChecklist
+                            :key="questionsVersion"
+                            :items="questions"
+                            :answered-ids="savedAnsweredIds"
+                            :disabled="isArchived"
+                            @update:answered-ids="onAnsweredIdsChange"
+                        />
+                    </section>
                 </template>
             </div>
 

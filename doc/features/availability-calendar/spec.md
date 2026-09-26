@@ -122,9 +122,10 @@ date, never both. Picking the default week clears the selected date,
 and picking a date clears the default week. With nothing selected, a
 hint tells the user to click the weekday letters or a date.
 
-On narrow screens every part stacks in this order. The questions have
-their own Questions tab, after the Availability tab. The tab shows only
-when one or more questions exist.
+On narrow screens every part stacks in this order. The questions are on
+the Competences tab, in their own section below the competences. The
+section shows only when one or more questions exist. An old
+`?tab=questions` link opens the Competences tab.
 
 ### Saving
 

@@ -89,10 +89,11 @@ const tabs = computed(() => [
         hasError: registry.hasError('personal') || registry.hasError('availability')
             || registry.hasError('holidays') || registry.hasError('dates'),
     },
-    ...(props.questions.length
-        ? [{ value: 'questions', label: __('availability.tab.questions'), hasError: registry.hasError('questions') }]
-        : []),
-    { value: 'competences', label: __('competences.tab'), hasError: registry.hasError('competences') },
+    {
+        value: 'competences',
+        label: __('competences.tab'),
+        hasError: registry.hasError('competences') || registry.hasError('questions'),
+    },
     { value: 'planning', label: __('planning.tab') },
 ])
 
@@ -514,33 +515,42 @@ const withdrawDialogOpen = ref(false)
             </section>
         </div>
 
-        <div v-if="questions.length" v-show="tab === 'questions'" data-testid="panel-questions">
-            <QuestionChecklist
-                :key="questionsVersion"
-                :items="questions"
-                :answered-ids="savedAnsweredIds"
-                :disabled="!editable"
-                @update:answered-ids="onAnsweredIdsChange"
-            />
-        </div>
 
         <div v-show="tab === 'competences'" data-testid="panel-competences">
-            <TagChecklist
-                :key="competencesVersion"
-                :items="editableCompetences"
-                :selected-ids="savedCompetenceIds.filter((id) => editableCompetences.some((item) => item.id === id))"
-                empty-key="competences.checklist_empty"
-                :disabled="!editable"
-                @update:selected-ids="onSelectedCompetenceIdsChange($event, editableCompetences)"
-            />
-            <template v-if="readOnlyCompetences.length">
-                <CardSeparator />
+            <section data-testid="competences-section" class="space-y-3">
+                <h3 class="text-sm font-semibold text-(--color-text-primary)">{{ __('competences.heading') }}</h3>
                 <TagChecklist
-                    :items="readOnlyCompetences"
-                    :selected-ids="savedCompetenceIds.filter((id) => readOnlyCompetences.some((item) => item.id === id))"
+                    :key="competencesVersion"
+                    :items="editableCompetences"
+                    :selected-ids="savedCompetenceIds.filter((id) => editableCompetences.some((item) => item.id === id))"
                     empty-key="competences.checklist_empty"
-                    disabled
+                    :disabled="!editable"
+                    @update:selected-ids="onSelectedCompetenceIdsChange($event, editableCompetences)"
                 />
+                <template v-if="readOnlyCompetences.length">
+                    <CardSeparator />
+                    <TagChecklist
+                        :items="readOnlyCompetences"
+                        :selected-ids="savedCompetenceIds.filter((id) => readOnlyCompetences.some((item) => item.id === id))"
+                        empty-key="competences.checklist_empty"
+                        disabled
+                    />
+                </template>
+            </section>
+
+            <template v-if="questions.length">
+                <CardSeparator />
+
+                <section data-testid="questions-section" class="space-y-3">
+                    <h3 class="text-sm font-semibold text-(--color-text-primary)">{{ __('availability.questions.heading') }}</h3>
+                    <QuestionChecklist
+                        :key="questionsVersion"
+                        :items="questions"
+                        :answered-ids="savedAnsweredIds"
+                        :disabled="!editable"
+                        @update:answered-ids="onAnsweredIdsChange"
+                    />
+                </section>
             </template>
         </div>
 

@@ -1,4 +1,4 @@
-Status: complete — 18/18
+Status: complete — 19/19
 
 - [x] 1. Add the `EmployeeAvailability` resolver for weekly defaults and
   holidays. Build it from loaded relations and from `PlanProblem`
@@ -90,3 +90,8 @@ Status: complete — 18/18
 
 - [x] 18. Move the schedule note into the availability card, below a
   separator. Vitest.
+
+- [x] 19. Merge the Questions tab into the Competences tab, on both
+  pages. Competences and Questions are separate sections with a
+  separator between them. `?tab=questions` opens the Competences tab.
+  Vitest.
