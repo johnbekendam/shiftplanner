@@ -105,8 +105,10 @@ function reset() {
             </tbody>
         </table>
 
-        <ButtonSecondary v-if="day.changed && !disabled" type="button" @click="reset">
-            {{ __('availability.day.reset') }}
-        </ButtonSecondary>
+        <div v-if="day.changed && !disabled" data-testid="reset-row" class="flex justify-end">
+            <ButtonSecondary type="button" @click="reset">
+                {{ __('availability.day.reset') }}
+            </ButtonSecondary>
+        </div>
     </div>
 </template>

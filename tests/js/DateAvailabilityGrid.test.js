@@ -142,4 +142,12 @@ describe("DateAvailabilityGrid", () => {
         expect(w.find("hr").exists()).toBe(false);
     });
 
+
+    it("right-aligns the reset button", () => {
+        const w = mountGrid();
+
+        const row = w.get('[data-testid="reset-row"]');
+        expect(row.classes()).toEqual(expect.arrayContaining(["flex", "justify-end"]));
+        expect(row.text()).toBe("Reset to default");
+    });
 });
