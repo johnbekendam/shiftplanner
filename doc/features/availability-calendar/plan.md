@@ -1,4 +1,4 @@
-Status: in progress — 4/11
+Status: in progress — 5/11
 
 - [x] 1. Add the `EmployeeAvailability` resolver for weekly defaults and
   holidays. Build it from loaded relations and from `PlanProblem`
@@ -26,9 +26,10 @@ Status: in progress — 4/11
   run that day. Each shift in both page payloads has a `weekdays` list.
   Tests.
 
-- [ ] 5. Include `available_from` and the date overrides in the employee
-  configuration archive (`EmployeeBackupController`) export and import.
-  Accept weekdays 1–7 there. Tests.
+- [x] 5. Record `available_from` and the date overrides in the backup
+  import audit snapshot, so an import that changes them is audited. The
+  legacy employee-configuration format is import-only and has no such
+  data, so it stays as it is. Tests.
 
 - [ ] 6. Show Monday to Sunday in `AvailabilityGrid`. Show a cell only
   where the shift runs. Hide a weekday column without running shifts.

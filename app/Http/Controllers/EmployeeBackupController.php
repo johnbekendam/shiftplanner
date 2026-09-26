@@ -142,13 +142,15 @@ class EmployeeBackupController extends Controller
     private function auditSnapshots(): array
     {
         return Employee::query()
-            ->with(['holidays', 'recurringAvailabilities', 'competences', 'availabilityQuestions', 'workcenters'])
+            ->with(['holidays', 'recurringAvailabilities', 'availabilityOverrides', 'competences', 'availabilityQuestions', 'workcenters'])
             ->get()
             ->mapWithKeys(function (Employee $employee): array {
                 $snapshot = $employee->only(EmployeeAuditLogger::EMPLOYEE_FIELDS);
                 $snapshot['archived_at'] = $employee->archived_at?->toIso8601String();
+                $snapshot['available_from'] = $employee->available_from?->toDateString();
                 $snapshot['holidays'] = $employee->holidays->map->toPayload()->values()->all();
                 $snapshot['availability'] = $employee->recurringAvailabilities->map->toPayload()->values()->all();
+                $snapshot['availability_overrides'] = $employee->availabilityOverrides->map->toPayload()->values()->all();
                 $snapshot['competence_ids'] = $employee->competences->pluck('id')->sort()->values()->all();
                 $snapshot['question_ids'] = $employee->availabilityQuestions->pluck('id')->sort()->values()->all();
                 $snapshot['workcenter_ids'] = $employee->workcenters->pluck('id')->sort()->values()->all();
