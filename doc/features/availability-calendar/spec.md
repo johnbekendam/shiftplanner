@@ -97,11 +97,13 @@ overrides stay stored, but have no effect.
 Both pages use the same Availability tab layout:
 
 1. Top row: start date, weekly hours, the hours warning.
-2. Two columns on wide screens. Left: the default week grid, the
-   schedule note, the questions. Right: the calendar with its legend.
+2. Two columns on wide screens. Left: the default week grid and the
+   schedule note. Right: the calendar with its legend.
 3. Holidays, full width.
 
-On narrow screens every part stacks in this order.
+On narrow screens every part stacks in this order. The questions have
+their own Questions tab, after the Availability tab. The tab shows only
+when one or more questions exist.
 
 ### Saving
 
@@ -144,4 +146,5 @@ of these writes.
 - Changes to the hours warning. It still uses only the weekly defaults.
 - Changes to the reports that read the weekly grid (shift coverage,
   missing availability).
-- Changes to the questions and to the schedule note.
+- Changes to the questions themselves and to the schedule note. Only
+  their place changes.

@@ -80,7 +80,7 @@ const plannedAssignments = computed(() => props.plannedShifts.flatMap((week) => 
 const publishedAssignments = computed(() => plannedAssignments.value.filter((a) => a.published))
 const draftAssignments = computed(() => plannedAssignments.value.filter((a) => !a.published))
 
-const employeeTabs = ['settings', 'details', 'availability', 'competences', 'workcenters', 'planning']
+const employeeTabs = ['settings', 'details', 'availability', 'questions', 'competences', 'workcenters', 'planning']
 const requestedTab = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('tab') : null
 const tab = ref(isEdit.value && employeeTabs.includes(requestedTab) ? requestedTab : 'settings')
 const tabs = computed(() => [
@@ -90,8 +90,11 @@ const tabs = computed(() => [
         value: 'availability',
         label: __('availability.tab.availability'),
         hasError: registry.hasError('personal') || registry.hasError('availability')
-            || registry.hasError('holidays') || registry.hasError('questions') || registry.hasError('dates'),
+            || registry.hasError('holidays') || registry.hasError('dates'),
     },
+    ...(props.questions.length
+        ? [{ value: 'questions', label: __('availability.tab.questions'), hasError: registry.hasError('questions') }]
+        : []),
     { value: 'competences', label: __('competences.tab'), hasError: registry.hasError('competences') },
     { value: 'workcenters', label: __('workcenters.employee_tab'), hasError: registry.hasError('workcenters') },
     { value: 'planning', label: __('planning.tab') },
@@ -528,18 +531,6 @@ function restore() {
                             <ShiftNote v-if="scheduleNoteHtml" :html="scheduleNoteHtml" />
                         </section>
 
-                        <section v-if="questions.length" class="space-y-3">
-                            <h3 class="text-sm font-semibold text-(--color-text-primary)">
-                                {{ __('availability.questions.heading') }}
-                            </h3>
-                            <QuestionChecklist
-                                :key="questionsVersion"
-                                :items="questions"
-                                :answered-ids="savedAnsweredIds"
-                                :disabled="isArchived"
-                                @update:answered-ids="onAnsweredIdsChange"
-                            />
-                        </section>
                     </div>
 
                     <section class="min-w-0 space-y-3" data-testid="availability-calendar-section">
@@ -571,6 +562,16 @@ function restore() {
                         @update:holidays="onHolidaysChange"
                     />
                 </section>
+            </div>
+
+            <div v-if="isEdit && questions.length" v-show="tab === 'questions'" data-testid="panel-questions" class="p-6">
+                <QuestionChecklist
+                    :key="questionsVersion"
+                    :items="questions"
+                    :answered-ids="savedAnsweredIds"
+                    :disabled="isArchived"
+                    @update:answered-ids="onAnsweredIdsChange"
+                />
             </div>
 
             <div v-if="isEdit" v-show="tab === 'competences'" data-testid="panel-competences" class="p-6">

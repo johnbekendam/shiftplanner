@@ -32,6 +32,7 @@ const en = {
     "availability.tab.information": "Information",
     "availability.tab.details": "Details",
     "availability.tab.availability": "Availability",
+    "availability.tab.questions": "Questions",
     "availability.tab.settings": "Settings",
     "availability.info.empty": "No information has been provided yet.",
     "availability.info.cta": "Please update your details, availability and competences on the different tabs.",
@@ -576,7 +577,7 @@ describe("Personal/Show", () => {
         expect(lists[1].props("disabled")).toBe(true);
     });
 
-    it("shows the questions checklist on the Availability tab", () => {
+    it("shows the questions checklist on its own tab, after Availability", () => {
         const w = mountShow([], {
             questions: [{ id: 5, text: "Can we contact you to work in the weekend?" }],
             questionAnswers: [5],
@@ -585,13 +586,17 @@ describe("Personal/Show", () => {
         const checklist = w.findComponent(QuestionChecklist);
         expect(checklist.exists()).toBe(true);
         expect(checklist.props("answeredIds")).toEqual([5]);
-        expect(w.get('[data-testid="panel-availability"]').text()).toContain("Questions");
+        expect(w.get('[data-testid="panel-questions"]').findComponent(QuestionChecklist).exists()).toBe(true);
+        expect(w.get('[data-testid="panel-availability"]').findComponent(QuestionChecklist).exists()).toBe(false);
+        const tabs = w.findAll("button").map((button) => button.text());
+        expect(tabs.indexOf("Questions")).toBe(tabs.indexOf("Availability") + 1);
     });
 
-    it("omits the questions section when no question is configured", () => {
+    it("omits the questions tab when no question is configured", () => {
         const w = mountShow();
         expect(w.findComponent(QuestionChecklist).exists()).toBe(false);
-        expect(w.get('[data-testid="panel-availability"]').text()).not.toContain("Questions");
+        expect(w.find('[data-testid="panel-questions"]').exists()).toBe(false);
+        expect(w.findAll("button").map((button) => button.text())).not.toContain("Questions");
     });
 
     it("is fully editable by default: no lock notice, controls enabled", () => {

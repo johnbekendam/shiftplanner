@@ -1,4 +1,4 @@
-Status: complete — 11/11
+Status: complete — 12/12
 
 - [x] 1. Add the `EmployeeAvailability` resolver for weekly defaults and
   holidays. Build it from loaded relations and from `PlanProblem`
@@ -56,4 +56,8 @@ Status: complete — 11/11
 
 - [x] 11. Integrate the same layout, start date and `dates` save entry in
   the admin employee page. The card widens on the Availability tab.
+  Vitest.
+
+- [x] 12. Move the questions from the Availability tab to a Questions
+  tab after it, on both pages. Show the tab only when questions exist.
   Vitest.

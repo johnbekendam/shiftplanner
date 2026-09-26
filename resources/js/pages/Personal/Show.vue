@@ -84,8 +84,11 @@ const tabs = computed(() => [
         value: 'availability',
         label: __('availability.tab.availability'),
         hasError: registry.hasError('personal') || registry.hasError('availability')
-            || registry.hasError('holidays') || registry.hasError('questions') || registry.hasError('dates'),
+            || registry.hasError('holidays') || registry.hasError('dates'),
     },
+    ...(props.questions.length
+        ? [{ value: 'questions', label: __('availability.tab.questions'), hasError: registry.hasError('questions') }]
+        : []),
     { value: 'competences', label: __('competences.tab'), hasError: registry.hasError('competences') },
     { value: 'planning', label: __('planning.tab') },
 ])
@@ -440,18 +443,6 @@ const withdrawDialogOpen = ref(false)
                         <ShiftNote v-if="scheduleNoteHtml" :html="scheduleNoteHtml" />
                     </section>
 
-                    <section v-if="questions.length" class="space-y-3">
-                        <h3 class="text-sm font-semibold text-(--color-text-primary)">
-                            {{ __('availability.questions.heading') }}
-                        </h3>
-                        <QuestionChecklist
-                            :key="questionsVersion"
-                            :items="questions"
-                            :answered-ids="savedAnsweredIds"
-                            :disabled="!editable"
-                            @update:answered-ids="onAnsweredIdsChange"
-                        />
-                    </section>
                 </div>
 
                 <section class="min-w-0 space-y-3" data-testid="availability-calendar-section">
@@ -483,6 +474,16 @@ const withdrawDialogOpen = ref(false)
                     @update:holidays="onHolidaysChange"
                 />
             </section>
+        </div>
+
+        <div v-if="questions.length" v-show="tab === 'questions'" data-testid="panel-questions">
+            <QuestionChecklist
+                :key="questionsVersion"
+                :items="questions"
+                :answered-ids="savedAnsweredIds"
+                :disabled="!editable"
+                @update:answered-ids="onAnsweredIdsChange"
+            />
         </div>
 
         <div v-show="tab === 'competences'" data-testid="panel-competences">
