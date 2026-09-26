@@ -78,7 +78,7 @@ describe("availabilityCalendar", () => {
         expect(dayAvailability("2026-10-11", blocked)).toMatchObject({ blocked: true, changed: true, border: "solid" });
     });
 
-    it("gives a holiday a dashed border that wins over the changed border", () => {
+    it("fills a holiday with the custom color and no border, whatever its overrides", () => {
         const day = dayAvailability(
             "2026-10-05",
             context({
@@ -87,7 +87,7 @@ describe("availabilityCalendar", () => {
             }),
         );
 
-        expect(day).toMatchObject({ holiday: true, changed: true, fill: "error", border: "dashed" });
+        expect(day).toMatchObject({ holiday: true, changed: true, fill: "custom", border: null });
         expect(day.shifts.every((s) => s.status === "holiday")).toBe(true);
     });
 
@@ -111,6 +111,7 @@ describe("availabilityCalendar", () => {
         expect(Object.keys(dayStates)).toHaveLength(31);
         expect(dayStates[5]).toBe("success");
         expect(dayStates[7]).toBe("success");
-        expect(dayBorders).toEqual({ 7: "solid", 12: "dashed" });
+        expect(dayStates[12]).toBe("custom");
+        expect(dayBorders).toEqual({ 7: "solid" });
     });
 });

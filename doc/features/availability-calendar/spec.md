@@ -72,26 +72,25 @@ that does not run on that weekday.
 `Calendar.vue` shows the month. The day fill shows the result of the
 resolver for the shifts that run that day:
 
-- One or more shifts `available`: success.
+- A holiday: custom.
+- Else one or more shifts `available`: success.
 - Else one or more shifts `not_preferred`: warning.
 - Else: error. A day without running shifts is error.
 
-Two borders sit on top of the fill. Both use the existing
-`--color-tab-active-border` token:
-
-- Solid: the day has one or more overrides.
-- Dashed: the day is in a holiday.
+A day with one or more overrides gets a border in the border token of
+its own color family, for example a green border on a success day. A
+holiday gets no border: its overrides have no effect.
 
 Days before the start date are disabled. The availability calendar does
-not show the selected-day border, so the borders only carry these two
-meanings. The legend explains the three fills and the two borders.
+not show the selected-day border, so a border on a day only means
+"changed". The legend explains the four fills and the border.
 
 A click on an enabled day selects that date. The calendar marks it with
 a ring. The card below the calendar then shows the schedule of that date, in the
 same table and cell style as the default week. Each shift cell
 opens a menu with: default (shows the default level), available, not
-preferred, unavailable. A cell with an override has the same solid
-border as a changed day. Above the table is a "Block the whole day"
+preferred, unavailable. A cell with an override has a thicker border
+in its own badge color, as a changed day has. Above the table is a "Block the whole day"
 checkbox with a separator below it, and below the table a "Reset to
 default" button. On a holiday the
 card shows only the notice "This day is a holiday.", without the
@@ -151,8 +150,11 @@ of these writes.
   holidays, but the holiday list still manages them.
 - **The start date is a hard block that both roles edit.** The employee
   knows when they can start.
-- **Outcome colors, with borders for the reason.** The fill answers "can
-  I work this day". The border answers "why does this day differ".
+- **Outcome colors, with a border for a change.** The fill answers "can
+  I work this day". A holiday has its own fill. The border, in the
+  day's own badge color, shows that the day differs from the default.
+  It does not use the selection color, so it is not mistaken for a
+  selected day.
 - **Any date is editable.** Earlier planning is already done, so a
   "future only" rule adds complexity without value.
 - **Weekend-ready through capacity.** Weekend shifts appear by

@@ -51,12 +51,13 @@ export function dayAvailability(date, ctx) {
             return { shift, defaultLevel, override: shiftOverride, status }
         })
 
-    const fill = shifts.some((s) => s.status === 'available')
+    let fill = shifts.some((s) => s.status === 'available')
         ? 'success'
         : shifts.some((s) => s.status === 'not_preferred') ? 'warning' : 'error'
+    if (holiday) fill = 'custom'
 
-    let border = null
-    if (!notStarted) border = holiday ? 'dashed' : changed ? 'solid' : null
+    // A holiday has its own fill; its overrides have no effect, so no border.
+    const border = !notStarted && !holiday && changed ? 'solid' : null
 
     return { date, notStarted, holiday, blocked: override.blocked, changed, shifts, fill, border }
 }

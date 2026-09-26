@@ -62,9 +62,10 @@ describe("DateAvailabilityGrid", () => {
         expect(w.findAll("thead th").map((th) => th.text())).toEqual(["Shift", "Mon"]);
         expect(w.text()).toContain("Early");
         expect(cell(w, 10).classes()).toContain("bg-(--color-badge-success-bg)");
-        expect(cell(w, 10).classes()).not.toContain("border-(--color-tab-active-border)");
+        expect(cell(w, 10).classes()).not.toContain("border-2");
         expect(cell(w, 20).classes()).toContain("bg-(--color-badge-warning-bg)");
-        expect(cell(w, 20).classes()).toContain("border-(--color-tab-active-border)");
+        expect(cell(w, 20).classes()).toEqual(expect.arrayContaining(["border-2", "border-(--color-badge-warning-border)"]));
+        expect(cell(w, 20).classes()).not.toContain("border-(--color-tab-active-border)");
     });
 
     it("offers the default as the first menu entry and emits the whole day on a choice", async () => {

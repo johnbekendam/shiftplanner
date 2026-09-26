@@ -299,16 +299,16 @@ describe("Calendar", () => {
         expect(header.findAll("button")).toHaveLength(7);
     });
 
-    it("draws a solid or dashed day border from dayBorders", () => {
-        const w = mount(Calendar, { props: { year: 2026, month: 10, dayBorders: { 5: "solid", 12: "dashed" } } });
+    it("draws a dayBorders border in the day's own badge border color", () => {
+        const w = mount(Calendar, { props: { year: 2026, month: 10, dayStates: { 5: "success", 6: "warning" }, dayBorders: { 5: "solid", 6: "solid" } } });
         const day = (n) => w.findAll("button").find((b) => b.text() === String(n))
 
-        expect(day(5).classes()).toContain("border-(--color-tab-active-border)");
-        expect(day(5).classes()).not.toContain("border-dashed");
-        expect(day(12).classes()).toContain("border-(--color-tab-active-border)");
-        expect(day(12).classes()).toContain("border-dashed");
-        expect(day(6).classes()).toContain("border-transparent");
+        expect(day(5).classes()).toContain("border-(--color-badge-success-border)");
+        expect(day(6).classes()).toContain("border-(--color-badge-warning-border)");
+        expect(day(5).classes()).not.toContain("border-(--color-tab-active-border)");
+        expect(day(7).classes()).toContain("border-transparent");
     });
+
 
     it("draws no selected-week border when highlightSelection is false", async () => {
         const w = mount(Calendar, { props: { year: 2026, month: 9, highlightSelection: false } });
@@ -320,17 +320,14 @@ describe("Calendar", () => {
         expect(w.emitted("change").at(-1)[0]).toMatchObject({ day: 10 });
     });
 
-    it("renders a legend entry per border style", () => {
-        const w = mount(Calendar, {
-            props: { year: 2026, month: 9, borderLegenda: { solid: "Changed", dashed: "Holiday" } },
-        });
+    it("renders a legend entry for the changed border", () => {
+        const w = mount(Calendar, { props: { year: 2026, month: 9, borderLegenda: { solid: "Changed" } } });
 
         const solid = w.get('[data-testid="calendar-border-legend-solid"]');
-        const dashed = w.get('[data-testid="calendar-border-legend-dashed"]');
         expect(solid.text()).toContain("Changed");
-        expect(dashed.text()).toContain("Holiday");
-        expect(dashed.find("div").classes()).toContain("border-dashed");
+        expect(solid.find("div").classes()).toContain("border-(--color-badge-success-border)");
     });
+
 
     it("emits day-click with the date only when a day button is clicked", async () => {
         const w = mount(Calendar, { props: { year: 2026, month: 10 } });
@@ -383,13 +380,13 @@ describe("Calendar", () => {
     });
 
     it("hovers a single day, not its week row, when highlightSelection is false", () => {
-        const w = mount(Calendar, { props: { year: 2026, month: 10, highlightSelection: false, dayBorders: { 7: "solid" } } });
+        const w = mount(Calendar, { props: { year: 2026, month: 10, highlightSelection: false, dayStates: { 7: "success" }, dayBorders: { 7: "solid" } } });
         const day = (n) => w.findAll("button").find((b) => b.text() === String(n));
 
         expect(weekRow(day(14)).className).not.toContain("hover:border-(--color-tab-hover-border)");
         expect(weekRow(day(14)).className).not.toContain("cursor-pointer");
         expect(day(14).classes()).toContain("hover:border-(--color-tab-hover-border)");
-        expect(day(7).classes()).toContain("border-(--color-tab-active-border)");
+        expect(day(7).classes()).toContain("border-(--color-badge-success-border)");
     });
 
     it("keeps the week-row hover by default", () => {

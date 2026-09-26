@@ -1,11 +1,11 @@
 <script setup>
 import { computed } from 'vue'
-import { BORDER_STYLE_CLASS, COLOR_CLASS } from '@/components/ui/calendarClasses'
+import { BORDER_COLOR_CLASS, BORDER_STYLES, COLOR_CLASS } from '@/components/ui/calendarClasses'
 
 const props = defineProps({
     // { color: text } — one swatch per day color.
     legenda: { type: Object, default: () => ({}) },
-    // { solid?: text, dashed?: text } — one swatch per day border style.
+    // { solid?: text } — a swatch for the marked-day border, shown on a success day.
     borderLegenda: { type: Object, default: () => ({}) },
 })
 
@@ -17,7 +17,7 @@ const legendaEntries = computed(() =>
 
 const borderLegendaEntries = computed(() =>
     Object.entries(props.borderLegenda)
-        .filter(([style, text]) => text && style in BORDER_STYLE_CLASS)
+        .filter(([style, text]) => text && BORDER_STYLES.includes(style))
         .map(([style, text]) => ({ style, text })),
 )
 </script>
@@ -43,8 +43,9 @@ const borderLegendaEntries = computed(() =>
         >
             <div
                 :class="[
-                    'm-1 h-6 w-6 shrink-0 rounded-md border-2 border-(--color-tab-active-border)',
-                    BORDER_STYLE_CLASS[entry.style],
+                    'm-1 h-6 w-6 shrink-0 rounded-md border-2',
+                    COLOR_CLASS.success,
+                    BORDER_COLOR_CLASS.success,
                 ]"
             ></div>
             <span class="text-xs text-(--color-text-muted)">{{ entry.text }}</span>

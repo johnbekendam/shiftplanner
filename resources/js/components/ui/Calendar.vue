@@ -103,7 +103,7 @@ import { usePage } from '@inertiajs/vue3'
 import Card from '@/components/ui/Card.vue'
 import ButtonSecondary from '@/components/ui/ButtonSecondary.vue'
 import CalendarLegend from '@/components/ui/CalendarLegend.vue'
-import { BORDER_STYLE_CLASS, COLOR_CLASS } from '@/components/ui/calendarClasses'
+import { BORDER_COLOR_CLASS, BORDER_STYLES, COLOR_CLASS } from '@/components/ui/calendarClasses'
 import { useI18n } from '@/composables/useI18n'
 
 const page = usePage()
@@ -127,9 +127,9 @@ const props = defineProps({
     // { [day]: true } — marks the whole week-row containing that day.
     weekMarkerDays: { type: Object, default: () => ({}) },
     weekMarkerColor: { type: String, default: 'custom' },
-    // { [day]: 'solid' | 'dashed' } — a border on that day, on top of its color.
+    // { [day]: 'solid' } — a border on that day in its own color's border token.
     dayBorders: { type: Object, default: () => ({}) },
-    // { solid?: text, dashed?: text } — legend entries for the day borders.
+    // { solid?: text } — the legend entry for the day border.
     borderLegenda: { type: Object, default: () => ({}) },
     // False: selecting a day still emits change, but draws no week border.
     highlightSelection: { type: Boolean, default: true },
@@ -198,7 +198,7 @@ const firstDayOffset = computed(() => {
 // Only non-empty entries render, as in CalendarLegend.
 const hasLegend = computed(() =>
     Object.values(props.legenda).some(Boolean)
-    || Object.entries(props.borderLegenda).some(([style, text]) => text && style in BORDER_STYLE_CLASS),
+    || Object.entries(props.borderLegenda).some(([style, text]) => text && BORDER_STYLES.includes(style)),
 )
 
 // Day cells chunked into week-rows (7 per row), the first row's leading
@@ -277,9 +277,11 @@ function isDisabled(day) {
 
 function dayClass(color, selected, today, disabled, hoverable = true, borderStyle = null) {
     const base = 'border-2 text-center rounded-md text-sm font-semibold m-1 h-8 w-8 cursor-pointer'
-    const border = selected || borderStyle
-        ? `border-(--color-tab-active-border) ${BORDER_STYLE_CLASS[borderStyle] ?? ''}`
-        : hoverable
+    const border = selected
+        ? 'border-(--color-tab-active-border)'
+        : borderStyle && BORDER_COLOR_CLASS[color]
+          ? BORDER_COLOR_CLASS[color]
+          : hoverable
           ? 'border-transparent hover:border-(--color-tab-hover-border)'
           : 'border-transparent'
 

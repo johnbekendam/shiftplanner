@@ -9,7 +9,7 @@ const props = defineProps({
     options: { type: Array, required: true },
     // The option value that is currently chosen; the menu marks it.
     selected: { type: String, default: null },
-    // Draws the changed-day border, the same one the calendar uses.
+    // Marks a changed cell with a thicker border in its own badge color, as the calendar marks a changed day.
     changed: { type: Boolean, default: false },
     disabled: { type: Boolean, default: false },
     ariaLabel: { type: String, default: null },
@@ -111,7 +111,7 @@ onBeforeUnmount(() => {
         :aria-expanded="open"
         :aria-label="ariaLabel"
         class="flex h-8 w-full items-center justify-center rounded transition-colors disabled:cursor-not-allowed disabled:opacity-60"
-        :class="[LEVEL_CLASS[level], changed ? 'border-2 border-(--color-tab-active-border)' : 'border']"
+        :class="[LEVEL_CLASS[level], changed ? 'border-2' : 'border']"
         @click="toggleMenu"
     >
         <Icon :name="LEVEL_ICON[level]" class="size-4" />

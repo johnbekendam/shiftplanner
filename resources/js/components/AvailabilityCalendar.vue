@@ -58,11 +58,11 @@ const legenda = computed(() => ({
     success: __('availability.calendar.legend.available'),
     warning: __('availability.calendar.legend.not_preferred'),
     error: __('availability.calendar.legend.unavailable'),
+    custom: __('availability.calendar.legend.holiday'),
 }))
 
 const borderLegenda = computed(() => ({
     solid: __('availability.calendar.legend.changed'),
-    dashed: __('availability.calendar.legend.holiday'),
 }))
 
 function onChange(event) {

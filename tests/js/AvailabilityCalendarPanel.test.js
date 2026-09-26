@@ -46,7 +46,8 @@ describe("AvailabilityCalendar", () => {
         expect(calendar.props()).toMatchObject({ year: 2026, month: 10, dateRangeStart: "2026-10-02", highlightSelection: false });
         expect(calendar.props("dayStates")[5]).toBe("success");
         expect(calendar.props("dayStates")[6]).toBe("error");
-        expect(calendar.props("dayBorders")).toEqual({ 7: "solid", 12: "dashed", 13: "dashed" });
+        expect(calendar.props("dayStates")[12]).toBe("custom");
+        expect(calendar.props("dayBorders")).toEqual({ 7: "solid" });
         expect(calendar.props("legenda")).toEqual({});
         expect(calendar.props("borderLegenda")).toEqual({});
     });
@@ -62,8 +63,8 @@ describe("AvailabilityCalendar", () => {
         expect(w.getComponent(Calendar).classes()).toEqual(expect.arrayContaining(["w-fit", "shrink-0"]));
         expect(w.find('[data-testid="default-week-hint"]').exists()).toBe(false);
         expect(card.getComponent(CalendarLegend).props()).toEqual({
-            legenda: { success: "Available", warning: "Only not preferred", error: "Not available" },
-            borderLegenda: { solid: "Changed", dashed: "Holiday" },
+            legenda: { success: "Available", warning: "Only not preferred", error: "Not available", custom: "Holiday" },
+            borderLegenda: { solid: "Changed" },
         });
         expect(card.find('[data-testid="slot-note"]').exists()).toBe(true);
         expect(card.findAll("hr")).toHaveLength(1);

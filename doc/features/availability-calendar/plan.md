@@ -1,4 +1,4 @@
-Status: complete — 25/25
+Status: complete — 26/26
 
 - [x] 1. Add the `EmployeeAvailability` resolver for weekly defaults and
   holidays. Build it from loaded relations and from `PlanProblem`
@@ -120,3 +120,9 @@ Status: complete — 25/25
 
 - [x] 25. On a holiday the date card shows only the holiday notice, not
   the block checkbox, the shift table or the reset button. Vitest.
+
+- [x] 26. A holiday day gets the custom badge fill instead of a dashed
+  border. A changed day gets a border in its own badge border color, not
+  the selection color. A changed cell in the date table gets a thicker
+  border in its own badge color. `calendarClasses.js` replaces the
+  border style map with a border color map. Vitest.
