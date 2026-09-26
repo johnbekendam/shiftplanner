@@ -39,6 +39,18 @@ class EmployeeAvailabilityTest extends TestCase
         $this->assertSame('available', $availability->status('2026-10-07', 7));
     }
 
+    public function test_a_start_date_blocks_the_days_before_it_and_wins_over_a_holiday(): void
+    {
+        $availability = new EmployeeAvailability(
+            holidays: [['start' => '2026-10-01', 'end' => '2026-10-31']],
+            weekly: ['1:7' => 'available', '2:7' => 'available'],
+            availableFrom: '2026-10-06',
+        );
+
+        $this->assertSame('not_started', $availability->status('2026-10-05', 7));
+        $this->assertSame('holiday', $availability->status('2026-10-06', 7));
+    }
+
     public function test_is_assignable_accepts_available_and_not_preferred_only(): void
     {
         $this->assertTrue(EmployeeAvailability::isAssignable('available'));

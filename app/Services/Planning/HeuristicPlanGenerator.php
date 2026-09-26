@@ -145,6 +145,7 @@ class HeuristicPlanGenerator implements PlanGeneratorContract
                 'id' => $e->id,
                 'weekly_hours' => $e->weekly_hours,
                 'business_line_id' => $e->business_line_id,
+                'available_from' => $e->available_from?->toDateString(),
                 'holidays' => $e->holidays->map(fn ($h) => [
                     'start' => $h->start_date->toDateString(),
                     'end' => $h->end_date->toDateString(),

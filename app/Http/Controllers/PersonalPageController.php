@@ -53,6 +53,7 @@ class PersonalPageController extends Controller
                 'email' => $employee->email,
                 'weekly_hours' => $employee->weekly_hours,
                 'business_line_id' => $employee->business_line_id,
+                'available_from' => $employee->available_from?->toDateString(),
             ],
             'weeklyHoursMinimum' => $employee->effectiveWeeklyHoursMinimum(),
             'businessLines' => BusinessLine::all()->map->toPayload()->all(),
@@ -82,6 +83,7 @@ class PersonalPageController extends Controller
         $data = $request->validate([
             'weekly_hours' => ['required', 'integer', 'min:0', 'max:48'],
             'business_line_id' => ['nullable', 'integer', 'exists:business_lines,id'],
+            'available_from' => ['sometimes', 'nullable', 'date_format:Y-m-d'],
         ]);
 
         $before = $employee->only(array_keys($data));

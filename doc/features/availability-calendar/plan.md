@@ -1,4 +1,4 @@
-Status: in progress — 1/11
+Status: in progress — 2/11
 
 - [x] 1. Add the `EmployeeAvailability` resolver for weekly defaults and
   holidays. Build it from loaded relations and from `PlanProblem`
@@ -6,7 +6,7 @@ Status: in progress — 1/11
   and `PlanningVerifier` to it. Unit tests for the resolver. The existing
   suite stays green.
 
-- [ ] 2. Add the start date. Migration for `employees.available_from`.
+- [x] 2. Add the start date. Migration for `employees.available_from`.
   The resolver returns `not_started` before it. `not_started` becomes a
   block reason, a verification code and a planner block. The admin and
   personal update endpoints accept the field. Both page payloads

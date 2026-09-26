@@ -163,6 +163,14 @@ class PlanningVerificationTest extends TestCase
         $this->assertSame(['holiday'], $this->codesFor($assignment));
     }
 
+    public function test_an_employee_before_their_start_date(): void
+    {
+        $shift = $this->shift();
+        $assignment = $this->assign($this->employee($shift, ['available_from' => '2026-09-16']), $shift);
+
+        $this->assertSame(['not_started'], $this->codesFor($assignment));
+    }
+
     public function test_an_unavailable_cell(): void
     {
         $shift = $this->shift();

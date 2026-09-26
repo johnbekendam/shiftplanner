@@ -175,6 +175,7 @@ class EmployeeController extends Controller
         return Inertia::render('Employees/Form', [
             'employee' => [
                 ...$employee->only(['id', 'first_name', 'last_name', 'email', 'weekly_hours', 'weekly_hours_minimum', 'business_line_id']),
+                'available_from' => $employee->available_from?->toDateString(),
                 'archived' => $employee->archived_at !== null,
                 'link_sent' => $employee->email !== null && Message::query()
                     ->where('type', MessageType::PersonalPageLink)
@@ -403,6 +404,7 @@ class EmployeeController extends Controller
         if ($employee !== null) {
             $rules += [
                 'weekly_hours_minimum' => ['nullable', 'integer', 'min:1', 'max:48'],
+                'available_from' => ['sometimes', 'nullable', 'date_format:Y-m-d'],
             ];
         }
 

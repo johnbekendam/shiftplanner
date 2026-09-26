@@ -41,7 +41,7 @@ class SchedulingEligibility
 
         $status = $this->availabilityStatus($employee, $date, $shift);
         if (! EmployeeAvailability::isAssignable($status)) {
-            return $status === 'holiday' ? 'holiday' : 'unavailable';
+            return EmployeeAvailability::blockReason($status);
         }
 
         if ($this->isWorkcenterIneligible($employee, $workcenter)) {

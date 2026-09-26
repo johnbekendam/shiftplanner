@@ -36,6 +36,7 @@ class Employee extends Model
         'business_line_id',
         'confirmed',
         'archived_at',
+        'available_from',
     ];
 
     protected function casts(): array
@@ -45,6 +46,7 @@ class Employee extends Model
             'weekly_hours_minimum' => 'integer',
             'confirmed' => 'boolean',
             'archived_at' => 'datetime',
+            'available_from' => 'date:Y-m-d',
         ];
     }
 

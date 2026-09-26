@@ -170,7 +170,7 @@ class PlanningVerifier
 
         $status = EmployeeAvailability::fromEmployee($employee)->status($date, $assignment->shift_id);
         if (! EmployeeAvailability::isAssignable($status)) {
-            $this->flag($assignment, $status === 'holiday' ? 'holiday' : 'unavailable');
+            $this->flag($assignment, EmployeeAvailability::blockReason($status));
         }
         if ($status === 'not_preferred' && $rules->contains('type', 'not_preferred_shift')) {
             $this->flag($assignment, 'not_preferred');
