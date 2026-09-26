@@ -407,4 +407,10 @@ describe("Calendar", () => {
 
         expect(w.emitted("weekday-click")).toEqual([[{ weekday: 1 }]]);
     });
+
+    it("keeps the legend from widening the calendar", () => {
+        const w = mount(Calendar, { props: { year: 2026, month: 10, legenda: { success: "Available" } } });
+
+        expect(w.get('[data-testid="calendar-legend"]').classes()).toEqual(expect.arrayContaining(["w-0", "min-w-full", "flex-wrap"]));
+    });
 });

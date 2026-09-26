@@ -101,4 +101,6 @@ Status: complete — 21/21
   the `wide` width. Vitest.
 
 - [x] 21. Size the availability calendar to its content (`w-fit`), so it
-  does not stretch across the tab. Vitest.
+  does not stretch across the tab. The `Calendar.vue` legend gets
+  `w-0 min-w-full`, so it wraps to the day grid's width instead of
+  setting the calendar's width. Vitest.

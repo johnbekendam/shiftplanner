@@ -84,7 +84,13 @@
 
         <!-- Footer: legenda + optional actions slot -->
         <template v-if="legendaEntries.length || borderLegendaEntries.length || $slots.footer" #footer>
-            <div v-if="legendaEntries.length || borderLegendaEntries.length" class="flex flex-wrap items-center gap-4 px-3 py-2">
+            <!-- w-0 min-w-full: the legend wraps to the calendar's width instead of
+                 widening it, so a w-fit calendar stays as wide as its day grid. -->
+            <div
+                v-if="legendaEntries.length || borderLegendaEntries.length"
+                data-testid="calendar-legend"
+                class="flex w-0 min-w-full flex-wrap items-center gap-4 px-3 py-2"
+            >
                 <div v-for="entry in legendaEntries" :key="entry.color" class="flex items-center gap-2">
                     <div
                         :class="[
