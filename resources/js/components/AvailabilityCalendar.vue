@@ -3,7 +3,6 @@ import { computed, ref } from 'vue'
 import Calendar from '@/components/ui/Calendar.vue'
 import CalendarLegend from '@/components/ui/CalendarLegend.vue'
 import Card from '@/components/ui/Card.vue'
-import CardSeparator from '@/components/ui/CardSeparator.vue'
 import { dateString, monthStates } from '@/utils/availabilityCalendar'
 import { useI18n } from '@/composables/useI18n'
 
@@ -98,11 +97,7 @@ const ringDay = computed(() => {
 
         <Card class="min-w-0 flex-1" data-testid="availability-info-card">
             <div class="px-6 py-4">
-                <CalendarLegend :legenda="legenda" :border-legenda="borderLegenda" />
-                <template v-if="$slots.default">
-                    <CardSeparator />
-                    <slot />
-                </template>
+                <CalendarLegend :legenda="legenda" :border-legenda="borderLegenda" vertical />
             </div>
         </Card>
     </div>

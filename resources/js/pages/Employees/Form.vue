@@ -545,9 +545,7 @@ function restore() {
                             :overrides="overrides"
                             :holidays="currentHolidayRows"
                             :available-from="form.available_from || null"
-                        >
-                            <ShiftNote v-if="scheduleNoteHtml" :html="scheduleNoteHtml" data-testid="availability-card-note" />
-                        </AvailabilityCalendar>
+                        />
                     </section>
 
                     <section class="min-w-0" data-testid="default-week-section">
@@ -591,6 +589,10 @@ function restore() {
                                 <p v-else data-testid="default-week-hint" class="text-sm text-(--color-text-secondary)">
                                     {{ __('availability.default_week.hint') }}
                                 </p>
+                                <template v-if="scheduleNoteHtml">
+                                    <CardSeparator />
+                                    <ShiftNote :html="scheduleNoteHtml" data-testid="availability-card-note" />
+                                </template>
                             </div>
                         </Card>
                     </section>

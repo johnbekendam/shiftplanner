@@ -7,6 +7,8 @@ const props = defineProps({
     legenda: { type: Object, default: () => ({}) },
     // { solid?: text } — a swatch for the marked-day border, shown on a success day.
     borderLegenda: { type: Object, default: () => ({}) },
+    // One entry per row instead of a wrapping row of entries.
+    vertical: { type: Boolean, default: false },
 })
 
 const legendaEntries = computed(() =>
@@ -23,7 +25,10 @@ const borderLegendaEntries = computed(() =>
 </script>
 
 <template>
-    <div data-testid="calendar-legend" class="flex flex-wrap items-center gap-4">
+    <div
+        data-testid="calendar-legend"
+        :class="vertical ? 'flex flex-col items-start gap-1' : 'flex flex-wrap items-center gap-4'"
+    >
         <div v-for="entry in legendaEntries" :key="entry.color" class="flex items-center gap-2">
             <div
                 :class="[

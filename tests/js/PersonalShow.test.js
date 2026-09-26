@@ -825,16 +825,30 @@ describe("Personal/Show", () => {
         expect(section().get('[data-testid="availability-card-header"] span').text()).toBe("Monday 05-10-2026");
     });
 
-    it("shows the legend and the schedule note in the info card next to the calendar", async () => {
-        const w = mountShow([], { scheduleNoteHtml: "<p>Early starts at six.</p>" });
-        const card = w.get('[data-testid="availability-info-card"]');
-        const html = card.html();
+    it("shows the schedule note in the card below the calendar, below a separator, in every state", async () => {
+        const w = mountShow([], {
+            scheduleNoteHtml: "<p>Early starts at six.</p>",
+            shifts: [{ id: 1, name: "Day", start_time: "08:00", end_time: "12:00", weekdays: [1, 2, 3, 4, 5] }],
+        });
+        const card = () => w.get('[data-testid="default-week-section"]');
+        const noteBelowSeparator = () => {
+            const html = card().html();
+            return html.indexOf("<hr") > -1 && html.indexOf("<hr") < html.indexOf("Early starts at six.");
+        };
 
-        expect(card.find('[data-testid="default-week-hint"]').exists()).toBe(false);
-        expect(card.findAll("hr")).toHaveLength(1);
-        expect(html.indexOf('data-testid="calendar-legend"')).toBeLessThan(html.indexOf("Early starts at six."));
-        expect(card.findAllComponents(ShiftNote)).toHaveLength(1);
+        expect(w.get('[data-testid="availability-info-card"]').text()).not.toContain("Early starts at six.");
+        expect(noteBelowSeparator()).toBe(true);
+
+        await selectDefaultWeek(w);
+        expect(noteBelowSeparator()).toBe(true);
+
+        w.getComponent(AvailabilityCalendar).vm.$emit("update:defaultWeekSelected", false);
+        w.getComponent(AvailabilityCalendar).vm.$emit("update:selectedDate", "2026-10-05");
+        await w.vm.$nextTick();
+        expect(noteBelowSeparator()).toBe(true);
+        expect(card().findAllComponents(ShiftNote)).toHaveLength(1);
     });
+
 
     it("puts the block toggle right-aligned in the date card header, not for the default week or a holiday", async () => {
         const w = mountShow([], {

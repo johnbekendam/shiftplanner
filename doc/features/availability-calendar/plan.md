@@ -1,4 +1,4 @@
-Status: complete — 28/28
+Status: complete — 29/29
 
 - [x] 1. Add the `EmployeeAvailability` resolver for weekly defaults and
   holidays. Build it from loaded relations and from `PlanProblem`
@@ -134,3 +134,7 @@ Status: complete — 28/28
 
 - [x] 28. Draw a changed day's border in its badge text color instead of
   its badge border color. Vitest.
+
+- [x] 29. Show the legend in the info card as a vertical list
+  (`CalendarLegend` `vertical` prop). Move the schedule note to the card
+  below the calendar, below a separator. Vitest.

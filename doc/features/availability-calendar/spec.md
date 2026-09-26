@@ -104,12 +104,12 @@ Both pages use the same Availability tab layout:
 
 1. Top row: start date, weekly hours, the hours warning.
 2. A row with the calendar, as wide as its content, and an info card
-   that takes the remaining width. The info card holds the legend and
-   the schedule note, with a separator between them. On narrow screens
-   the two cards stack.
-3. Below the row, one card. With nothing selected it shows only the
-   hint. With the default week or a date selected, it shows that
-   instead, with "Default availability" or the date in its header.
+   that takes the remaining width. The info card holds the legend, one
+   entry per row. On narrow screens the two cards stack.
+3. Below the row, one card. With nothing selected it shows the hint.
+   With the default week or a date selected, it shows that instead,
+   with "Default availability" or the date in its header. The schedule
+   note sits at the bottom of this card, below a separator.
 4. Holidays, full width.
 
 A click on any weekday letter in the calendar header selects the whole
