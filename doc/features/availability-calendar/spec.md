@@ -87,7 +87,7 @@ not show the selected-day border, so the borders only carry these two
 meanings. The legend explains the three fills and the two borders.
 
 A click on an enabled day selects that date. The calendar marks it with
-a ring. The right column then shows the schedule of that date, in the
+a ring. The card below the calendar then shows the schedule of that date, in the
 same table and cell style as the default week. Each shift cell
 opens a menu with: default (shows the default level), available, not
 preferred, unavailable. A cell with an override has the same solid
@@ -110,14 +110,14 @@ Both pages use the same Availability tab layout:
 3. Holidays, full width.
 
 A click on any weekday letter in the calendar header selects the whole
-header row. A border goes around the row, and the right column shows
+header row. A border goes around the row, and the card shows
 the default week: the full Monday–Sunday grid. A second click on a
 weekday letter deselects it. The hover border also goes around the whole
 header row, and a click anywhere on the row selects it.
 
 A day shows its own hover border. The week row of the day does not.
 
-The right column shows either the default week or the schedule of a
+The card shows either the default week or the schedule of a
 date, never both. Picking the default week clears the selected date,
 and picking a date clears the default week. With nothing selected, a
 hint tells the user to click the weekday letters or a date.
