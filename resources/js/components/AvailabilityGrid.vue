@@ -15,6 +15,8 @@ const props = defineProps({
     showAddHint: { type: Boolean, default: false },
     // Read-only: cells render but do not cycle (employee change lock).
     disabled: { type: Boolean, default: false },
+    // ISO weekday (1–7): show only that day and the shifts that run on it.
+    weekday: { type: Number, default: null },
 })
 
 const emit = defineEmits(['update:availability'])
@@ -30,7 +32,12 @@ const key = (weekday, shiftId) => `${weekday}-${shiftId}`
 
 const runs = (shift, weekday) => (shift.weekdays ?? []).includes(weekday)
 
-const visibleWeekdays = computed(() => WEEKDAYS.filter((weekday) => props.shifts.some((shift) => runs(shift, weekday))))
+const visibleShifts = computed(() => props.weekday === null
+    ? props.shifts
+    : props.shifts.filter((shift) => runs(shift, props.weekday)))
+
+const visibleWeekdays = computed(() => (props.weekday === null ? WEEKDAYS : [props.weekday])
+    .filter((weekday) => visibleShifts.value.some((shift) => runs(shift, weekday))))
 
 // Local, edit-until-Save state, seeded once from props. The parent forces a
 // fresh seed by remounting this component (a :key bump) after its own
@@ -147,7 +154,7 @@ onBeforeUnmount(() => {
     </p>
 
     <p v-else-if="!visibleWeekdays.length" class="text-sm text-(--color-text-secondary)">
-        {{ __('availability.grid.no_running_days') }}
+        {{ weekday === null ? __('availability.grid.no_running_days') : __('availability.grid.no_shifts_on_day') }}
     </p>
 
     <div v-else class="space-y-3">
@@ -163,7 +170,7 @@ onBeforeUnmount(() => {
                 </tr>
             </thead>
             <tbody>
-                <tr v-for="shift in shifts" :key="shift.id">
+                <tr v-for="shift in visibleShifts" :key="shift.id">
                     <th class="py-1 pr-3 text-left font-medium text-(--color-table-row-text)">
                         <span class="block">{{ shift.name }}</span>
                         <span class="block text-xs font-normal text-(--color-text-secondary)">

@@ -342,4 +342,28 @@ describe("Calendar", () => {
         await w.findAll("button").find((b) => b.text() === "14").trigger("click");
         expect(w.emitted("day-click")).toEqual([[{ year: 2026, month: 10, day: 14 }]]);
     });
+
+    it("emits weekday-click with the ISO weekday when a weekday header is clicked", async () => {
+        const w = mount(Calendar, { props: { year: 2026, month: 10 } });
+        const headers = w.get('[data-testid="calendar-weekday-header"]').findAll("button");
+
+        await headers[0].trigger("click");
+        await headers[6].trigger("click");
+
+        expect(w.emitted("weekday-click")).toEqual([[{ weekday: 1 }], [{ weekday: 7 }]]);
+    });
+
+    it("highlights the header of a controlled selectedWeekday only", async () => {
+        const w = mount(Calendar, { props: { year: 2026, month: 10, selectedWeekday: 3 } });
+        const header = (i) => w.get('[data-testid="calendar-weekday-header"]').findAll("button")[i];
+
+        expect(header(2).classes()).toContain("border-(--color-tab-active-border)");
+        expect(header(0).classes()).not.toContain("border-(--color-tab-active-border)");
+
+        await w.findAll("button").find((b) => b.text() === "14").trigger("click");
+        expect(header(2).classes()).toContain("border-(--color-tab-active-border)");
+
+        await w.setProps({ selectedWeekday: null });
+        expect(header(2).classes()).not.toContain("border-(--color-tab-active-border)");
+    });
 });

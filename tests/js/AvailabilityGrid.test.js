@@ -14,6 +14,7 @@ const en = {
     "availability.weekday.6": "Sat",
     "availability.weekday.7": "Sun",
     "availability.grid.no_running_days": "None of these shifts is scheduled on any day yet.",
+    "availability.grid.no_shifts_on_day": "No shift runs on this day.",
     "availability.state.available": "Available",
     "availability.state.not_set": "Not set",
     "availability.state.not_preferred": "Not preferred",
@@ -145,5 +146,26 @@ describe("AvailabilityGrid", () => {
     it("adds the Settings hint to the empty state on the manager surface", () => {
         const w = mountGrid({ shifts: [], showAddHint: true });
         expect(w.text()).toContain("Add them on the Settings page.");
+    });
+
+    it("shows only the given weekday and the shifts that run on it", () => {
+        const w = mountGrid({
+            weekday: 6,
+            shifts: [
+                { id: 10, name: "Early", start_time: "06:00", end_time: "14:00", weekdays: [1, 6] },
+                { id: 20, name: "Late", start_time: "14:00", end_time: "22:00", weekdays: [1] },
+            ],
+        });
+
+        expect(w.findAll("thead th").map((th) => th.text())).toEqual(["Shift", "Sat"]);
+        expect(w.findAll('[data-testid^="cell-"]').map((c) => c.attributes("data-testid"))).toEqual(["cell-6-10"]);
+        expect(w.text()).not.toContain("Late");
+    });
+
+    it("says so when no shift runs on the given weekday", () => {
+        const w = mountGrid({ weekday: 7 });
+
+        expect(w.find("table").exists()).toBe(false);
+        expect(w.text()).toContain("No shift runs on this day.");
     });
 });

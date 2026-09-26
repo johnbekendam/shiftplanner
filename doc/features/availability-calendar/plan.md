@@ -1,4 +1,4 @@
-Status: complete — 12/12
+Status: complete — 13/13
 
 - [x] 1. Add the `EmployeeAvailability` resolver for weekly defaults and
   holidays. Build it from loaded relations and from `PlanProblem`
@@ -61,3 +61,9 @@ Status: complete — 12/12
 - [x] 12. Move the questions from the Availability tab to a Questions
   tab after it, on both pages. Show the tab only when questions exist.
   Vitest.
+
+- [x] 13. Put the calendar in the left column. Show the default of one
+  weekday in the right column only after a click on that weekday in the
+  calendar header. A second click hides it. `Calendar.vue` emits
+  `weekday-click` and takes a `selectedWeekday` prop. `AvailabilityGrid`
+  takes a `weekday` prop. Vitest.

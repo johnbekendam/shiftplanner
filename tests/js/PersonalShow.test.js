@@ -180,6 +180,12 @@ const findSaveButton = (w) => w.findAll("button").find((b) => ["Save", "Savingâ€
 const findCancelButton = (w) => w.findAll("button").find((b) => b.text() === "Cancel");
 const findWithdrawButton = (w) => w.findAll("button").find((b) => b.text() === "Withdraw");
 
+// The Default week grid only mounts once a weekday is picked in the calendar.
+const selectWeekday = async (w, weekday = 1) => {
+    w.getComponent(AvailabilityCalendar).vm.$emit("update:selectedWeekday", weekday);
+    await w.vm.$nextTick();
+};
+
 beforeEach(() => {
     routerCalls.length = 0;
     failUrlsRef.current = [];
@@ -228,6 +234,7 @@ describe("Personal/Show", () => {
             ],
             employee: { first_name: "J", last_name: "L", email: "j@l.c", weekly_hours: 20, business_line_id: null },
         });
+        await selectWeekday(w);
 
         w.findComponent(AvailabilityGrid).vm.$emit("update:availability", {
             weekday: 1,
@@ -325,6 +332,7 @@ describe("Personal/Show", () => {
 
     it("Cancel discards a pending availability-grid change", async () => {
         const w = mountShow([], { shifts: [{ id: 1, name: "Day", start_time: "08:00", end_time: "12:00", weekdays: [1, 2, 3, 4, 5] }] });
+        await selectWeekday(w);
         w.findComponent(AvailabilityGrid).vm.$emit("update:availability", { weekday: 1, shiftId: 1, level: "unavailable" });
         await w.vm.$nextTick();
         expect(findSaveButton(w).attributes("disabled")).toBeUndefined();
@@ -358,6 +366,7 @@ describe("Personal/Show", () => {
         const w = mountShow([], {
             shifts: [{ id: 1, name: "Day", start_time: "08:00", end_time: "12:00", weekdays: [1, 2, 3, 4, 5] }],
         });
+        await selectWeekday(w);
         w.findComponent(AvailabilityGrid).vm.$emit("update:availability", { weekday: 1, shiftId: 1, level: "unavailable" });
         await w.vm.$nextTick();
 
@@ -419,6 +428,7 @@ describe("Personal/Show", () => {
     it("keeps Save enabled and marks the Availability tab on a failed availability save", async () => {
         failUrlsRef.current = ["/personal/tok-1/availability/1/1"];
         const w = mountShow([], { shifts: [{ id: 1, name: "Day", start_time: "08:00", end_time: "12:00", weekdays: [1, 2, 3, 4, 5] }] });
+        await selectWeekday(w);
         w.findComponent(AvailabilityGrid).vm.$emit("update:availability", { weekday: 1, shiftId: 1, level: "unavailable" });
         await w.vm.$nextTick();
 
@@ -598,15 +608,16 @@ describe("Personal/Show", () => {
         expect(w.findAll("button").map((button) => button.text())).not.toContain("Questions");
     });
 
-    it("is fully editable by default: no lock notice, controls enabled", () => {
+    it("is fully editable by default: no lock notice, controls enabled", async () => {
         const w = mountShow();
+        await selectWeekday(w);
         expect(w.find('[data-testid="locked-notice"]').exists()).toBe(false);
         expect(w.findComponent(AvailabilityGrid).props("disabled")).toBe(false);
         expect(w.findComponent(HolidayList).props("disabled")).toBe(false);
         expect(w.findComponent(EmployeeFields).props("disabled")).toBe(false);
     });
 
-    it("shows the lock notice and disables every control when editable is false", () => {
+    it("shows the lock notice and disables every control when editable is false", async () => {
         const w = mountShow([], {
             editable: false,
             competences: [{ id: 1, name: "Forklift" }],
@@ -614,6 +625,7 @@ describe("Personal/Show", () => {
             questions: [{ id: 5, text: "Weekend?" }],
             questionAnswers: [],
         });
+        await selectWeekday(w);
 
         expect(w.get('[data-testid="locked-notice"]').text()).toContain("closed by your planner");
         expect(w.findComponent(AvailabilityGrid).props("disabled")).toBe(true);
@@ -719,5 +731,33 @@ describe("Personal/Show", () => {
         await flushPromises();
 
         expect(findSaveButton(w).attributes("disabled")).toBeUndefined();
+    });
+
+    it("puts the calendar left and shows the default of a weekday only after it is picked", async () => {
+        const w = mountShow([], { shifts: [{ id: 1, name: "Day", start_time: "08:00", end_time: "12:00", weekdays: [1, 2, 3, 4, 5] }] });
+        const panel = w.get('[data-testid="panel-availability"]');
+        const sections = panel.findAll('[data-testid="availability-calendar-section"], [data-testid="default-week-section"]');
+        expect(sections.map((x) => x.attributes("data-testid"))).toEqual(["availability-calendar-section", "default-week-section"]);
+        expect(panel.findComponent(AvailabilityGrid).exists()).toBe(false);
+        expect(panel.find('[data-testid="default-week-hint"]').exists()).toBe(true);
+
+        await selectWeekday(w, 3);
+
+        expect(panel.getComponent(AvailabilityGrid).props("weekday")).toBe(3);
+        expect(panel.getComponent(AvailabilityCalendar).props("selectedWeekday")).toBe(3);
+        expect(panel.find('[data-testid="default-week-hint"]').exists()).toBe(false);
+
+        await selectWeekday(w, null);
+        expect(panel.findComponent(AvailabilityGrid).exists()).toBe(false);
+    });
+
+    it("keeps a pending default edit visible when switching weekdays", async () => {
+        const w = mountShow([], { shifts: [{ id: 1, name: "Day", start_time: "08:00", end_time: "12:00", weekdays: [1, 2, 3, 4, 5] }] });
+        await selectWeekday(w, 1);
+        w.getComponent(AvailabilityGrid).vm.$emit("update:availability", { weekday: 1, shiftId: 1, level: "unavailable" });
+        await selectWeekday(w, 2);
+        await selectWeekday(w, 1);
+
+        expect(w.get('[data-testid="cell-1-1"]').classes()).toContain("bg-(--color-badge-error-bg)");
     });
 });

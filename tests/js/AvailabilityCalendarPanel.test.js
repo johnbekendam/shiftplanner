@@ -82,4 +82,20 @@ describe("AvailabilityCalendar", () => {
 
         expect(w.getComponent(DayAvailabilityDialog).props("disabled")).toBe(true);
     });
+
+    it("selects a weekday from the header and deselects it on a second click", async () => {
+        const w = mountCalendar({ selectedWeekday: null });
+        const calendar = w.getComponent(Calendar);
+        expect(calendar.props("enableWeekDaySelection")).toBe(true);
+        expect(calendar.props("selectedWeekday")).toBeNull();
+
+        await calendar.vm.$emit("weekday-click", { weekday: 2 });
+        expect(w.emitted("update:selectedWeekday")).toEqual([[2]]);
+
+        await w.setProps({ selectedWeekday: 2 });
+        expect(calendar.props("selectedWeekday")).toBe(2);
+        await calendar.vm.$emit("weekday-click", { weekday: 2 });
+        await calendar.vm.$emit("weekday-click", { weekday: 5 });
+        expect(w.emitted("update:selectedWeekday").slice(1)).toEqual([[null], [5]]);
+    });
 });

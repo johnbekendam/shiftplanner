@@ -19,9 +19,16 @@ const props = defineProps({
     availableFrom: { type: String, default: null },
     // Read-only (employee change lock): the dialog opens but cannot apply.
     disabled: { type: Boolean, default: false },
+    // The ISO weekday (1–7) whose default is being edited, or null.
+    selectedWeekday: { type: Number, default: null },
 })
 
-const emit = defineEmits(['apply-day'])
+const emit = defineEmits(['apply-day', 'update:selectedWeekday'])
+
+// A weekday header click selects that weekday; a second click deselects it.
+function onWeekdayClick({ weekday }) {
+    emit('update:selectedWeekday', props.selectedWeekday === weekday ? null : weekday)
+}
 
 const today = new Date()
 const year = ref(today.getFullYear())
@@ -78,10 +85,11 @@ function onApply(payload) {
             :legenda="legenda"
             :border-legenda="borderLegenda"
             :date-range-start="availableFrom || null"
-            :enable-week-day-selection="false"
+            :selected-weekday="selectedWeekday"
             :highlight-selection="false"
             @change="onChange"
             @day-click="onDayClick"
+            @weekday-click="onWeekdayClick"
         />
 
         <DayAvailabilityDialog

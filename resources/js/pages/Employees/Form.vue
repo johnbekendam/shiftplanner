@@ -188,6 +188,9 @@ const availabilityWarning = computed(() => {
     return availabilityHours.value.available >= form.weekly_hours ? 'not_preferred' : 'insufficient'
 })
 
+// The weekday whose default the Default week section edits; null hides it.
+const selectedWeekday = ref(null)
+
 // ── Date overrides: one PUT per changed date, replacing that date ──────
 // { [date]: { blocked, shifts } } — a date without overrides has no key.
 const committedOverrides = ref(groupOverrides(props.availabilityOverrides))
@@ -515,29 +518,12 @@ function restore() {
                 <CardSeparator />
 
                 <div class="grid gap-6 @3xl:grid-cols-2">
-                    <div class="min-w-0 space-y-6">
-                        <section class="space-y-3">
-                            <h3 class="text-sm font-semibold text-(--color-text-primary)">
-                                {{ __('availability.default_week.heading') }}
-                            </h3>
-                            <AvailabilityGrid
-                                :key="availabilityVersion"
-                                :shifts="shifts"
-                                :availability="committedAvailability"
-                                :disabled="isArchived"
-                                show-add-hint
-                                @update:availability="onAvailabilityChange"
-                            />
-                            <ShiftNote v-if="scheduleNoteHtml" :html="scheduleNoteHtml" />
-                        </section>
-
-                    </div>
-
                     <section class="min-w-0 space-y-3" data-testid="availability-calendar-section">
                         <h3 class="text-sm font-semibold text-(--color-text-primary)">
                             {{ __('availability.calendar.heading') }}
                         </h3>
                         <AvailabilityCalendar
+                            v-model:selected-weekday="selectedWeekday"
                             :shifts="shifts"
                             :defaults="availability"
                             :overrides="overrides"
@@ -546,6 +532,27 @@ function restore() {
                             :disabled="isArchived"
                             @apply-day="onApplyDay"
                         />
+                    </section>
+
+                    <section class="min-w-0 space-y-3" data-testid="default-week-section">
+                        <template v-if="selectedWeekday">
+                            <h3 class="text-sm font-semibold text-(--color-text-primary)">
+                                {{ __('availability.default_week.heading', { weekday: __(`availability.weekday_long.${selectedWeekday}`) }) }}
+                            </h3>
+                            <AvailabilityGrid
+                                :key="`${availabilityVersion}-${selectedWeekday}`"
+                                :shifts="shifts"
+                                :availability="availability"
+                                :weekday="selectedWeekday"
+                                :disabled="isArchived"
+                                show-add-hint
+                                @update:availability="onAvailabilityChange"
+                            />
+                        </template>
+                        <p v-else data-testid="default-week-hint" class="text-sm text-(--color-text-secondary)">
+                            {{ __('availability.default_week.hint') }}
+                        </p>
+                        <ShiftNote v-if="scheduleNoteHtml" :html="scheduleNoteHtml" />
                     </section>
                 </div>
 

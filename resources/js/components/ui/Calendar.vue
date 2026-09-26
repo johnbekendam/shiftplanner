@@ -28,7 +28,7 @@
                     :class="
                         dayClass(
                             weekDayStates[i] ?? null,
-                            selectedDay === null && selectedDayOfWeek === i,
+                            isWeekdayHighlighted(i),
                             false,
                             false,
                         )
@@ -159,9 +159,12 @@ const props = defineProps({
     borderLegenda: { type: Object, default: () => ({}) },
     // False: selecting a day still emits change, but draws no week border.
     highlightSelection: { type: Boolean, default: true },
+    // ISO weekday (1–7) whose header is highlighted, or null for none. Left
+    // undefined, the header of the last clicked weekday is highlighted.
+    selectedWeekday: { type: Number, default: undefined },
 })
 
-const emit = defineEmits(['change', 'day-click'])
+const emit = defineEmits(['change', 'day-click', 'weekday-click'])
 
 // ── Today ─────────────────────────────────────────────────────────────────────
 
@@ -374,6 +377,13 @@ function selectWeekday(i) {
     selectedDayOfWeek.value = i
     selectedWeekStart.value = null
     emitChange()
+    emit('weekday-click', { weekday: i + 1 })
+}
+
+// i: Mon=0 … Sun=6
+function isWeekdayHighlighted(i) {
+    if (props.selectedWeekday !== undefined) return props.selectedWeekday === i + 1
+    return selectedDay.value === null && selectedDayOfWeek.value === i
 }
 
 // Anywhere in a week row that is not a day button (the week number, the gaps, the

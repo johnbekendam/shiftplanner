@@ -62,7 +62,7 @@ An employee without a workcenter uses the capacity of any workcenter.
 Only effective shifts count (`Employee::effectiveShifts()`). Date
 overrides of workcenter capacity are not used.
 
-The default grid shows Monday to Sunday. A cell shows only where the
+The default grid supports Monday to Sunday. A cell shows only where the
 shift runs. A weekday column where no shift runs is hidden. The weekday
 routes accept 1–7. The write paths reject a cell or override for a shift
 that does not run on that weekday.
@@ -97,9 +97,15 @@ overrides stay stored, but have no effect.
 Both pages use the same Availability tab layout:
 
 1. Top row: start date, weekly hours, the hours warning.
-2. Two columns on wide screens. Left: the default week grid and the
-   schedule note. Right: the calendar with its legend.
+2. Two columns on wide screens. Left: the calendar with its legend.
+   Right: the default of one weekday, and the schedule note.
 3. Holidays, full width.
+
+The default section shows only after a click on a weekday letter in the
+calendar header. It then shows the shifts that run on that weekday, each
+with its default level. A click on another weekday shows that weekday.
+A second click on the same weekday hides the section. Without a selected
+weekday, a hint tells the user to click a weekday letter.
 
 On narrow screens every part stacks in this order. The questions have
 their own Questions tab, after the Availability tab. The tab shows only
@@ -133,6 +139,9 @@ of these writes.
   themselves when a workcenter gets weekend capacity.
 - **One resolver before the new rules.** Four copies of the same rule
   would drift apart.
+- **The default week opens from the calendar.** The calendar is the
+  main view. The default of one weekday shows only when the user picks
+  that weekday, so the tab stays short.
 - **Load all overrides at once, not per month.** An employee has few
   rows. This removes a month endpoint and keeps pending edits simple.
 - **Existing assignments are not removed.** A new start date or override
