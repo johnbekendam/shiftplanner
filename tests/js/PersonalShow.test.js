@@ -90,6 +90,7 @@ const form = reactive({
     email: "",
     weekly_hours: null,
     business_line_id: null,
+    available_from: "",
     errors: {},
     processing: false,
     recentlySuccessful: false,
@@ -97,14 +98,20 @@ const form = reactive({
     _transform: null,
     get isDirty() {
         return this.weekly_hours !== this._defaults.weekly_hours
-            || this.business_line_id !== this._defaults.business_line_id;
+            || this.business_line_id !== this._defaults.business_line_id
+            || this.available_from !== this._defaults.available_from;
     },
     defaults() {
-        this._defaults = { weekly_hours: this.weekly_hours, business_line_id: this.business_line_id };
+        this._defaults = {
+            weekly_hours: this.weekly_hours,
+            business_line_id: this.business_line_id,
+            available_from: this.available_from,
+        };
     },
     reset() {
         this.weekly_hours = this._defaults.weekly_hours;
         this.business_line_id = this._defaults.business_line_id;
+        this.available_from = this._defaults.available_from;
     },
     clearErrors() {
         this.errors = {};
@@ -114,7 +121,11 @@ const form = reactive({
         return this;
     },
     put(url, opts) {
-        const data = { weekly_hours: this.weekly_hours, business_line_id: this.business_line_id };
+        const data = {
+            weekly_hours: this.weekly_hours,
+            business_line_id: this.business_line_id,
+            available_from: this.available_from,
+        };
         form.lastPut = { url, opts, data: this._transform ? this._transform(data) : data };
         if (failUrlsRef.current.includes(`FORM:${url}`)) opts.onError();
         else opts.onSuccess();
@@ -136,6 +147,8 @@ import ShiftNote from "@/components/ShiftNote.vue";
 import TagChecklist from "@/components/TagChecklist.vue";
 import QuestionChecklist from "@/components/QuestionChecklist.vue";
 import SelectInput from "@/components/ui/Input/Select.vue";
+import DateInput from "@/components/ui/Input/Date.vue";
+import AvailabilityCalendar from "@/components/AvailabilityCalendar.vue";
 
 const mountShow = (holidays = [], extra = {}) =>
     mount(Show, {
@@ -285,7 +298,7 @@ describe("Personal/Show", () => {
         await flushPromises();
 
         expect(form.lastPut.url).toBe("/personal/tok-1");
-        expect(form.lastPut.data).toEqual({ weekly_hours: 40, business_line_id: null });
+        expect(form.lastPut.data).toEqual({ weekly_hours: 40, business_line_id: null, available_from: null });
         expect(findSaveButton(w).attributes("disabled")).toBeDefined();
     });
 
@@ -338,7 +351,7 @@ describe("Personal/Show", () => {
         await findSaveButton(w).trigger("click");
         await flushPromises();
 
-        expect(form.lastPut.data).toEqual({ weekly_hours: 24, business_line_id: 5 });
+        expect(form.lastPut.data).toEqual({ available_from: null, weekly_hours: 24, business_line_id: 5 });
     });
 
     it("saves an availability-grid change with one PUT per changed cell", async () => {
@@ -614,5 +627,93 @@ describe("Personal/Show", () => {
 
         expect(hidden(w, '[data-testid="panel-availability"]')).toBe(false);
         expect(hidden(w, '[data-testid="panel-information"]')).toBe(true);
+    });
+
+    it("saves the start date with the personal endpoint and passes it to the calendar", async () => {
+        const w = mountShow([], {
+            employee: { first_name: "J", last_name: "L", email: "j@l.c", weekly_hours: 24, business_line_id: null, available_from: "2026-11-02" },
+        });
+        const panel = w.get('[data-testid="panel-availability"]');
+        expect(panel.getComponent(DateInput).props("modelValue")).toBe("2026-11-02");
+        expect(panel.getComponent(AvailabilityCalendar).props("availableFrom")).toBe("2026-11-02");
+
+        panel.getComponent(DateInput).vm.$emit("update:modelValue", "2026-12-01");
+        await w.vm.$nextTick();
+        await findSaveButton(w).trigger("click");
+        await flushPromises();
+
+        expect(form.lastPut.data).toEqual({ weekly_hours: 24, business_line_id: null, available_from: "2026-12-01" });
+    });
+
+    it("sends an empty start date as null", async () => {
+        const w = mountShow([], {
+            employee: { first_name: "J", last_name: "L", email: "j@l.c", weekly_hours: 24, business_line_id: null, available_from: "2026-11-02" },
+        });
+
+        w.getComponent(DateInput).vm.$emit("update:modelValue", "");
+        await w.vm.$nextTick();
+        await findSaveButton(w).trigger("click");
+        await flushPromises();
+
+        expect(form.lastPut.data.available_from).toBeNull();
+    });
+
+    it("gives the calendar the grouped overrides and saves an applied day with one PUT per date", async () => {
+        const w = mountShow([], {
+            availabilityOverrides: [{ date: "2026-10-05", shift_id: null, level: "unavailable" }],
+        });
+        const calendar = w.getComponent(AvailabilityCalendar);
+        expect(calendar.props("overrides")).toEqual({ "2026-10-05": { blocked: true, shifts: {} } });
+
+        calendar.vm.$emit("apply-day", { date: "2026-10-06", blocked: false, shifts: { 1: "available" } });
+        calendar.vm.$emit("apply-day", { date: "2026-10-05", blocked: false, shifts: {} });
+        await w.vm.$nextTick();
+
+        expect(calendar.props("overrides")).toEqual({ "2026-10-06": { blocked: false, shifts: { 1: "available" } } });
+        expect(findSaveButton(w).attributes("disabled")).toBeUndefined();
+
+        await findSaveButton(w).trigger("click");
+        await flushPromises();
+
+        expect(routerCalls).toEqual([
+            ["put", "/personal/tok-1/availability/dates/2026-10-06", { blocked: false, shifts: { 1: "available" } }],
+            ["put", "/personal/tok-1/availability/dates/2026-10-05", { blocked: false, shifts: {} }],
+        ]);
+        expect(findSaveButton(w).attributes("disabled")).toBeDefined();
+    });
+
+    it("drops a day change that returns to the saved state", async () => {
+        const w = mountShow([], { availabilityOverrides: [{ date: "2026-10-05", shift_id: null, level: "unavailable" }] });
+        const calendar = w.getComponent(AvailabilityCalendar);
+
+        calendar.vm.$emit("apply-day", { date: "2026-10-05", blocked: false, shifts: {} });
+        calendar.vm.$emit("apply-day", { date: "2026-10-05", blocked: true, shifts: {} });
+        await w.vm.$nextTick();
+
+        expect(findSaveButton(w).attributes("disabled")).toBeDefined();
+    });
+
+    it("Cancel discards a pending day change", async () => {
+        const w = mountShow();
+        const calendar = w.getComponent(AvailabilityCalendar);
+
+        calendar.vm.$emit("apply-day", { date: "2026-10-06", blocked: true, shifts: {} });
+        await w.vm.$nextTick();
+        await findCancelButton(w).trigger("click");
+
+        expect(calendar.props("overrides")).toEqual({});
+        expect(findSaveButton(w).attributes("disabled")).toBeDefined();
+    });
+
+    it("keeps a failed day change pending and marks the Availability tab", async () => {
+        failUrlsRef.current = ["/personal/tok-1/availability/dates/2026-10-06"];
+        const w = mountShow();
+
+        w.getComponent(AvailabilityCalendar).vm.$emit("apply-day", { date: "2026-10-06", blocked: true, shifts: {} });
+        await w.vm.$nextTick();
+        await findSaveButton(w).trigger("click");
+        await flushPromises();
+
+        expect(findSaveButton(w).attributes("disabled")).toBeUndefined();
     });
 });

@@ -331,4 +331,15 @@ describe("Calendar", () => {
         expect(dashed.text()).toContain("Holiday");
         expect(dashed.find("div").classes()).toContain("border-dashed");
     });
+
+    it("emits day-click with the date only when a day button is clicked", async () => {
+        const w = mount(Calendar, { props: { year: 2026, month: 10 } });
+
+        await w.get('[aria-label="Next month"]').trigger("click");
+        await w.get('[data-testid="calendar-week-number-1"]').trigger("click");
+        expect(w.emitted("day-click")).toBeUndefined();
+
+        await w.findAll("button").find((b) => b.text() === "14").trigger("click");
+        expect(w.emitted("day-click")).toEqual([[{ year: 2026, month: 10, day: 14 }]]);
+    });
 });

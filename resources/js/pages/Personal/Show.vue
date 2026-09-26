@@ -7,6 +7,9 @@ import Tabs from '@/components/ui/Tabs.vue'
 import EmployeeFields from '@/components/EmployeeFields.vue'
 import WeeklyHoursField from '@/components/WeeklyHoursField.vue'
 import AvailabilityGrid from '@/components/AvailabilityGrid.vue'
+import AvailabilityCalendar from '@/components/AvailabilityCalendar.vue'
+import LabeledInput from '@/components/LabeledInput.vue'
+import { DateInput } from '@/components/ui/Input'
 import ShiftNote from '@/components/ShiftNote.vue'
 import HolidayList from '@/components/HolidayList.vue'
 import QuestionChecklist from '@/components/QuestionChecklist.vue'
@@ -21,6 +24,7 @@ import { useSaveRegistry } from '@/composables/useSaveRegistry'
 import { useUnsavedChangesGuard } from '@/composables/useUnsavedChangesGuard'
 import { putAsync, postAsync, deleteAsync } from '@/utils/inertiaAsync'
 import { calculateAvailabilityHours } from '@/utils/availabilityHours'
+import { groupOverrides } from '@/utils/availabilityCalendar'
 
 const __ = useI18n()
 
@@ -36,6 +40,8 @@ const props = defineProps({
     // { name } of the employee's business line responsible, or null.
     businessLineResponsible: { type: Object, default: null },
     availability: { type: Array, default: () => [] },
+    // [{ date, shift_id, level }] — every date override of the employee.
+    availabilityOverrides: { type: Array, default: () => [] },
     competences: { type: Array, default: () => [] },
     competenceIds: { type: Array, default: () => [] },
     questions: { type: Array, default: () => [] },
@@ -56,6 +62,7 @@ const form = useForm({
     email: props.employee.email,
     weekly_hours: props.employee.weekly_hours,
     business_line_id: props.employee.business_line_id,
+    available_from: props.employee.available_from ?? '',
 })
 
 const plannedAssignments = computed(() => props.plannedShifts.flatMap((week) => week.assignments))
@@ -77,7 +84,7 @@ const tabs = computed(() => [
         value: 'availability',
         label: __('availability.tab.availability'),
         hasError: registry.hasError('personal') || registry.hasError('availability')
-            || registry.hasError('holidays') || registry.hasError('questions'),
+            || registry.hasError('holidays') || registry.hasError('questions') || registry.hasError('dates'),
     },
     { value: 'competences', label: __('competences.tab'), hasError: registry.hasError('competences') },
     { value: 'planning', label: __('planning.tab') },
@@ -88,7 +95,11 @@ registry.register('personal', {
     isDirty: () => form.isDirty,
     save: () => new Promise((resolve) => {
         form
-            .transform((data) => ({ weekly_hours: data.weekly_hours, business_line_id: data.business_line_id }))
+            .transform((data) => ({
+                weekly_hours: data.weekly_hours,
+                business_line_id: data.business_line_id,
+                available_from: data.available_from || null,
+            }))
             .put(`/personal/${props.token}`, {
                 preserveScroll: true,
                 preserveState: true,
@@ -162,6 +173,39 @@ const availabilityWarning = computed(() => {
     if (!form.weekly_hours || availabilityHours.value.preferred >= form.weekly_hours) return null
 
     return availabilityHours.value.available >= form.weekly_hours ? 'not_preferred' : 'insufficient'
+})
+
+// ── Date overrides: one PUT per changed date, replacing that date ──────
+// { [date]: { blocked, shifts } } — a date without overrides has no key.
+const committedOverrides = ref(groupOverrides(props.availabilityOverrides))
+const overrides = ref({ ...committedOverrides.value })
+const pendingDates = reactive({})
+
+function onApplyDay({ date, blocked, shifts }) {
+    const next = { ...overrides.value }
+    if (blocked || Object.keys(shifts).length) next[date] = { blocked, shifts }
+    else delete next[date]
+    overrides.value = next
+
+    const committed = committedOverrides.value[date] ?? { blocked: false, shifts: {} }
+    if (JSON.stringify(committed) === JSON.stringify({ blocked, shifts })) delete pendingDates[date]
+    else pendingDates[date] = { blocked, shifts }
+}
+
+registry.register('dates', {
+    isDirty: () => Object.keys(pendingDates).length > 0,
+    save: async () => {
+        const results = await Promise.allSettled(Object.entries(pendingDates).map(([date, day]) =>
+            putAsync(`/personal/${props.token}/availability/dates/${date}`, day)
+                .then(() => {
+                    delete pendingDates[date]
+                    const next = { ...committedOverrides.value }
+                    if (day.blocked || Object.keys(day.shifts).length) next[date] = day
+                    else delete next[date]
+                    committedOverrides.value = next
+                })))
+        return results.every((r) => r.status === 'fulfilled')
+    },
 })
 
 // ── Holidays: POST is not idempotent, so a failed save leaves the whole
@@ -298,6 +342,9 @@ function onCancelClick() {
     currentHolidayRows.value = committedHolidays.value
     holidaysVersion.value++
 
+    for (const date of Object.keys(pendingDates)) delete pendingDates[date]
+    overrides.value = { ...committedOverrides.value }
+
     pendingAnsweredIds.value = [...savedAnsweredIds.value]
     questionsVersion.value++
 
@@ -310,7 +357,7 @@ const withdrawDialogOpen = ref(false)
 </script>
 
 <template>
-    <CenteredLayout align="top" width="xl">
+    <CenteredLayout align="top" :width="tab === 'availability' ? 'wide' : 'xl'">
         <Head :title="__('personal.title')" />
 
         <template #header>
@@ -338,8 +385,17 @@ const withdrawDialogOpen = ref(false)
             <EmployeeFields :form="form" :business-lines="businessLines" readonly-identity :disabled="!editable" />
         </div>
 
-        <div v-show="tab === 'availability'" data-testid="panel-availability">
-            <section class="mb-6">
+        <div v-show="tab === 'availability'" data-testid="panel-availability" class="@container">
+            <section class="mb-6 grid gap-6 @3xl:grid-cols-2">
+                <LabeledInput :label="__('availability.start_date.label')" :error="form.errors.available_from">
+                    <DateInput
+                        v-model="form.available_from"
+                        :disabled="!editable"
+                        data-testid="available-from"
+                        class="w-40"
+                    />
+                    <p class="mt-1 text-xs text-(--color-text-secondary)">{{ __('availability.start_date.hint') }}</p>
+                </LabeledInput>
                 <WeeklyHoursField
                     :model-value="form.weekly_hours"
                     :minimum="weeklyHoursMinimum"
@@ -368,33 +424,51 @@ const withdrawDialogOpen = ref(false)
 
             <CardSeparator />
 
-            <section class="space-y-3">
-                <AvailabilityGrid
-                    :key="availabilityVersion"
-                    :shifts="shifts"
-                    :availability="committedAvailability"
-                    :disabled="!editable"
-                    @update:availability="onAvailabilityChange"
-                />
-                <ShiftNote v-if="scheduleNoteHtml" :html="scheduleNoteHtml" />
-            </section>
+            <div class="grid gap-6 @3xl:grid-cols-2">
+                <div class="min-w-0 space-y-6">
+                    <section class="space-y-3">
+                        <h3 class="text-sm font-semibold text-(--color-text-primary)">
+                            {{ __('availability.default_week.heading') }}
+                        </h3>
+                        <AvailabilityGrid
+                            :key="availabilityVersion"
+                            :shifts="shifts"
+                            :availability="committedAvailability"
+                            :disabled="!editable"
+                            @update:availability="onAvailabilityChange"
+                        />
+                        <ShiftNote v-if="scheduleNoteHtml" :html="scheduleNoteHtml" />
+                    </section>
 
-            <template v-if="questions.length">
-                <CardSeparator />
+                    <section v-if="questions.length" class="space-y-3">
+                        <h3 class="text-sm font-semibold text-(--color-text-primary)">
+                            {{ __('availability.questions.heading') }}
+                        </h3>
+                        <QuestionChecklist
+                            :key="questionsVersion"
+                            :items="questions"
+                            :answered-ids="savedAnsweredIds"
+                            :disabled="!editable"
+                            @update:answered-ids="onAnsweredIdsChange"
+                        />
+                    </section>
+                </div>
 
-                <section class="space-y-3">
+                <section class="min-w-0 space-y-3" data-testid="availability-calendar-section">
                     <h3 class="text-sm font-semibold text-(--color-text-primary)">
-                        {{ __('availability.questions.heading') }}
+                        {{ __('availability.calendar.heading') }}
                     </h3>
-                    <QuestionChecklist
-                        :key="questionsVersion"
-                        :items="questions"
-                        :answered-ids="savedAnsweredIds"
+                    <AvailabilityCalendar
+                        :shifts="shifts"
+                        :defaults="availability"
+                        :overrides="overrides"
+                        :holidays="currentHolidayRows"
+                        :available-from="form.available_from || null"
                         :disabled="!editable"
-                        @update:answered-ids="onAnsweredIdsChange"
+                        @apply-day="onApplyDay"
                     />
                 </section>
-            </template>
+            </div>
 
             <CardSeparator />
 

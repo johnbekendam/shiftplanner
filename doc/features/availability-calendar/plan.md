@@ -1,4 +1,4 @@
-Status: in progress — 9/11
+Status: in progress — 10/11
 
 - [x] 1. Add the `EmployeeAvailability` resolver for weekly defaults and
   holidays. Build it from loaded relations and from `PlanProblem`
@@ -46,9 +46,13 @@ Status: in progress — 9/11
 - [x] 9. Add `DayAvailabilityDialog.vue`. It edits the shift levels, the
   whole-day block and the reset of one date. Vitest.
 
-- [ ] 10. Add `AvailabilityCalendar.vue`: the calendar, legend and day
-  dialog. Integrate it in the personal page with the start date field,
-  the two-column layout and a `dates` save registry entry. Vitest.
+- [x] 10. Add `AvailabilityCalendar.vue`: the calendar, legend and day
+  dialog. `Calendar.vue` emits `day-click` for a day button only.
+  Integrate it in the personal page with the start date field, the
+  two-column layout and a `dates` save registry entry. The personal
+  card uses a new `wide` `CenteredLayout` width on the Availability tab.
+  The columns use a container query, so they stack in a narrow card.
+  Vitest.
 
 - [ ] 11. Integrate the same layout, start date and `dates` save entry in
   the admin employee page. Vitest.

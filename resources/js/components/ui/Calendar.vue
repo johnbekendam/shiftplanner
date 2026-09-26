@@ -64,7 +64,7 @@
                             v-else
                             :class="dayClass(colorForDay(cell.day), false, isToday(cell.day), isDisabled(cell.day), false, dayBorders[cell.day])"
                             :disabled="isDisabled(cell.day)"
-                            @click="!isDisabled(cell.day) && enableDaySelection && selectDay(cell.day)"
+                            @click="onDayClick(cell.day)"
                         >
                             {{ cell.day }}
                         </button>
@@ -161,7 +161,7 @@ const props = defineProps({
     highlightSelection: { type: Boolean, default: true },
 })
 
-const emit = defineEmits(['change'])
+const emit = defineEmits(['change', 'day-click'])
 
 // ── Today ─────────────────────────────────────────────────────────────────────
 
@@ -382,6 +382,13 @@ function onWeekRowClick(event, week) {
     if (!props.enableDaySelection || event.target.closest('button')) return
     const first = week.find((cell) => cell.type === 'day' && !isDisabled(cell.day))
     if (first) selectDay(first.day)
+}
+
+// A click on a day button (not a week row or navigation) also emits day-click.
+function onDayClick(day) {
+    if (isDisabled(day) || !props.enableDaySelection) return
+    selectDay(day)
+    emit('day-click', { year: props.year, month: props.month, day })
 }
 
 function selectDay(day) {
