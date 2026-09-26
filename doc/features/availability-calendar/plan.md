@@ -1,4 +1,4 @@
-Status: complete — 24/24
+Status: complete — 25/25
 
 - [x] 1. Add the `EmployeeAvailability` resolver for weekly defaults and
   holidays. Build it from loaded relations and from `PlanProblem`
@@ -117,3 +117,6 @@ Status: complete — 24/24
 - [x] 24. Show the hint in the card below the calendar while nothing is
   selected. A selection replaces it with the default week or the date.
   Vitest.
+
+- [x] 25. On a holiday the date card shows only the holiday notice, not
+  the block checkbox, the shift table or the reset button. Vitest.

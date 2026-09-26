@@ -367,7 +367,7 @@
     "availability.day.block": "Block the whole day",
     "availability.day.default": "Default (:level)",
     "availability.day.no_shifts": "No shift runs on this day.",
-    "availability.day.holiday_notice": "This day is a holiday. Changes here have no effect until the holiday is removed.",
+    "availability.day.holiday_notice": "This day is a holiday.",
     "availability.day.reset": "Reset to default",
     "availability.weekday.1": "Mon",
     "availability.weekday.2": "Tue",

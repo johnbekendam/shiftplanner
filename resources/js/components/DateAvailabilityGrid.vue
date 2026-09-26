@@ -61,14 +61,16 @@ function reset() {
 </script>
 
 <template>
-    <div class="space-y-3">
-        <p
-            v-if="day.holiday"
-            class="rounded-md border border-(--color-badge-warning-border) bg-(--color-badge-warning-bg) px-3 py-2 text-sm text-(--color-badge-warning-text)"
-        >
-            {{ __('availability.day.holiday_notice') }}
-        </p>
+    <!-- A holiday blocks the day outright; its settings would have no effect. -->
+    <p
+        v-if="day.holiday"
+        data-testid="holiday-notice"
+        class="rounded-md border border-(--color-badge-warning-border) bg-(--color-badge-warning-bg) px-3 py-2 text-sm text-(--color-badge-warning-text)"
+    >
+        {{ __('availability.day.holiday_notice') }}
+    </p>
 
+    <div v-else class="space-y-3">
         <CheckboxInput :model-value="day.blocked" :disabled="disabled" @update:model-value="setBlocked">
             {{ __('availability.day.block') }}
         </CheckboxInput>

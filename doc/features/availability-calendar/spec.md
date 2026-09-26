@@ -93,9 +93,10 @@ opens a menu with: default (shows the default level), available, not
 preferred, unavailable. A cell with an override has the same solid
 border as a changed day. Above the table is a "Block the whole day"
 checkbox with a separator below it, and below the table a "Reset to
-default" button. On a holiday a
-notice shows above the table. The overrides stay stored, but have no
-effect. Each change goes straight into the pending edits.
+default" button. On a holiday the
+card shows only the notice "This day is a holiday.", without the
+checkbox, the table or the reset button. Earlier overrides of that date
+stay stored, but have no effect. Each change goes straight into the pending edits.
 
 ### Layout
 

@@ -115,13 +115,22 @@ describe("DateAvailabilityGrid", () => {
         expect(w.findAll("button").some((b) => b.text() === "Reset to default")).toBe(false);
     });
 
-    it("shows the holiday notice, and the no-shift text with the block still available", () => {
-        const w = mountGrid({ day: day({ holiday: true, shifts: [] }) });
+    it("shows only the holiday notice on a holiday", () => {
+        const w = mountGrid({ day: day({ holiday: true }) });
 
-        expect(w.text()).toContain("This day is a holiday.");
+        expect(w.text()).toBe("This day is a holiday.");
+        expect(w.findComponent(CheckboxInput).exists()).toBe(false);
+        expect(w.find("table").exists()).toBe(false);
+        expect(w.find("hr").exists()).toBe(false);
+    });
+
+    it("keeps the block checkbox on a day without shifts", () => {
+        const w = mountGrid({ day: day({ shifts: [] }) });
+
         expect(w.text()).toContain("No shift runs on this day.");
         expect(w.findComponent(CheckboxInput).exists()).toBe(true);
     });
+
 
     it("is read-only when disabled", () => {
         const w = mountGrid({ disabled: true });
