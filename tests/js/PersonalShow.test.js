@@ -206,7 +206,7 @@ describe("Personal/Show", () => {
 
     it("updates the availability-hours warning after an availability-grid change", async () => {
         const w = mountShow([], {
-            shifts: [{ id: 1, name: "Day", start_time: "08:00", end_time: "12:00" }],
+            shifts: [{ id: 1, name: "Day", start_time: "08:00", end_time: "12:00", weekdays: [1, 2, 3, 4, 5] }],
             availability: [
                 { weekday: 2, shift_id: 1, level: "available" },
                 { weekday: 3, shift_id: 1, level: "available" },
@@ -311,7 +311,7 @@ describe("Personal/Show", () => {
     });
 
     it("Cancel discards a pending availability-grid change", async () => {
-        const w = mountShow([], { shifts: [{ id: 1, name: "Day", start_time: "08:00", end_time: "12:00" }] });
+        const w = mountShow([], { shifts: [{ id: 1, name: "Day", start_time: "08:00", end_time: "12:00", weekdays: [1, 2, 3, 4, 5] }] });
         w.findComponent(AvailabilityGrid).vm.$emit("update:availability", { weekday: 1, shiftId: 1, level: "unavailable" });
         await w.vm.$nextTick();
         expect(findSaveButton(w).attributes("disabled")).toBeUndefined();
@@ -343,7 +343,7 @@ describe("Personal/Show", () => {
 
     it("saves an availability-grid change with one PUT per changed cell", async () => {
         const w = mountShow([], {
-            shifts: [{ id: 1, name: "Day", start_time: "08:00", end_time: "12:00" }],
+            shifts: [{ id: 1, name: "Day", start_time: "08:00", end_time: "12:00", weekdays: [1, 2, 3, 4, 5] }],
         });
         w.findComponent(AvailabilityGrid).vm.$emit("update:availability", { weekday: 1, shiftId: 1, level: "unavailable" });
         await w.vm.$nextTick();
@@ -405,7 +405,7 @@ describe("Personal/Show", () => {
 
     it("keeps Save enabled and marks the Availability tab on a failed availability save", async () => {
         failUrlsRef.current = ["/personal/tok-1/availability/1/1"];
-        const w = mountShow([], { shifts: [{ id: 1, name: "Day", start_time: "08:00", end_time: "12:00" }] });
+        const w = mountShow([], { shifts: [{ id: 1, name: "Day", start_time: "08:00", end_time: "12:00", weekdays: [1, 2, 3, 4, 5] }] });
         w.findComponent(AvailabilityGrid).vm.$emit("update:availability", { weekday: 1, shiftId: 1, level: "unavailable" });
         await w.vm.$nextTick();
 

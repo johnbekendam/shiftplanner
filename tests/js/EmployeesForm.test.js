@@ -298,6 +298,7 @@ describe("Employees/Form", () => {
             start_time: "20:00",
             end_time: "23:00",
             visible_by_default: false,
+            weekdays: [1, 2, 3, 4, 5],
         };
         const w = mount(Form, {
             props: {
@@ -481,7 +482,7 @@ describe("Employees/Form", () => {
         const w = mount(Form, {
             props: {
                 employee: { id: 3, first_name: "A", last_name: "B", email: "a@b.c", weekly_hours: 20 },
-                shifts: [{ id: 1, name: "Day", start_time: "08:00", end_time: "12:00" }],
+                shifts: [{ id: 1, name: "Day", start_time: "08:00", end_time: "12:00", weekdays: [1, 2, 3, 4, 5] }],
                 availability: [
                     { weekday: 2, shift_id: 1, level: "available" },
                     { weekday: 3, shift_id: 1, level: "available" },
@@ -537,7 +538,7 @@ describe("Employees/Form", () => {
         const w = mount(Form, {
             props: {
                 employee: { id: 3, first_name: "A", last_name: "B", email: "a@b.c", weekly_hours: 24 },
-                shifts: [{ id: 1, name: "Day", start_time: "08:00", end_time: "12:00" }],
+                shifts: [{ id: 1, name: "Day", start_time: "08:00", end_time: "12:00", weekdays: [1, 2, 3, 4, 5] }],
                 holidays: [],
             },
             global: { stubs },
@@ -602,7 +603,7 @@ describe("Employees/Form", () => {
         const w = mount(Form, {
             props: {
                 employee: { id: 3, first_name: "A", last_name: "B", email: "a@b.c", weekly_hours: 24 },
-                shifts: [{ id: 1, name: "Day", start_time: "08:00", end_time: "12:00" }],
+                shifts: [{ id: 1, name: "Day", start_time: "08:00", end_time: "12:00", weekdays: [1, 2, 3, 4, 5] }],
                 holidays: [],
             },
             global: { stubs },
@@ -722,8 +723,8 @@ describe("Employees/Form", () => {
         router.put = async (url, data, opts) => {
             await w.setProps({
                 shifts: [
-                    { id: 1, name: "Early", start_time: "06:00", end_time: "14:00" },
-                    { id: 2, name: "Night", start_time: "22:00", end_time: "06:00" },
+                    { id: 1, name: "Early", start_time: "06:00", end_time: "14:00", weekdays: [1, 2, 3, 4, 5] },
+                    { id: 2, name: "Night", start_time: "22:00", end_time: "06:00", weekdays: [1, 2, 3, 4, 5] },
                 ],
                 availability: [],
             });
@@ -734,7 +735,7 @@ describe("Employees/Form", () => {
             props: {
                 employee: { id: 3, first_name: "A", last_name: "B", email: "a@b.c", weekly_hours: 24 },
                 holidays: [],
-                shifts: [{ id: 1, name: "Early", start_time: "06:00", end_time: "14:00" }],
+                shifts: [{ id: 1, name: "Early", start_time: "06:00", end_time: "14:00", weekdays: [1, 2, 3, 4, 5] }],
                 availability: [],
                 workcenters: [{ id: 1, name: "Line 1", archived: false }],
                 workcenterIds: [],
@@ -778,7 +779,7 @@ describe("Employees/Form", () => {
         const w = mount(Form, {
             props: {
                 employee: { id: 3, first_name: "A", last_name: "B", email: "a@b.c", weekly_hours: 24 },
-                shifts: [{ id: 1, name: "Day", start_time: "08:00", end_time: "12:00" }],
+                shifts: [{ id: 1, name: "Day", start_time: "08:00", end_time: "12:00", weekdays: [1, 2, 3, 4, 5] }],
                 holidays: [],
             },
             global: { stubs },

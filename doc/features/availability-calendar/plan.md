@@ -1,4 +1,4 @@
-Status: in progress — 5/11
+Status: in progress — 6/11
 
 - [x] 1. Add the `EmployeeAvailability` resolver for weekly defaults and
   holidays. Build it from loaded relations and from `PlanProblem`
@@ -31,7 +31,7 @@ Status: in progress — 5/11
   legacy employee-configuration format is import-only and has no such
   data, so it stays as it is. Tests.
 
-- [ ] 6. Show Monday to Sunday in `AvailabilityGrid`. Show a cell only
+- [x] 6. Show Monday to Sunday in `AvailabilityGrid`. Show a cell only
   where the shift runs. Hide a weekday column without running shifts.
   Vitest.
 

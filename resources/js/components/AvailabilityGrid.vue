@@ -1,12 +1,13 @@
 <script setup>
-import { reactive, ref, nextTick, onBeforeUnmount } from 'vue'
+import { computed, reactive, ref, nextTick, onBeforeUnmount } from 'vue'
 import Icon from '@/components/ui/Icon.vue'
 import { useI18n } from '@/composables/useI18n'
 
 const __ = useI18n()
 
 const props = defineProps({
-    // Defined shifts, in display order: { id, name, start_time, end_time }.
+    // Defined shifts, in display order: { id, name, start_time, end_time, weekdays }.
+    // `weekdays` lists the ISO days (1–7) the shift runs on for this employee.
     shifts: { type: Array, default: () => [] },
     // Array of { weekday, shift_id, level } for cells with an explicit level.
     availability: { type: Array, default: () => [] },
@@ -18,14 +19,18 @@ const props = defineProps({
 
 const emit = defineEmits(['update:availability'])
 
-// Monday–Friday. The team runs no weekend shifts; a weekend need is a
-// configurable question instead.
-const WEEKDAYS = [1, 2, 3, 4, 5]
+// Monday–Sunday. A column shows only when a shift runs that day, so the
+// weekend appears once a workcenter staffs a weekend shift.
+const WEEKDAYS = [1, 2, 3, 4, 5, 6, 7]
 // The menu only offers explicit states — "not set" is the unclicked default,
 // not a choice a person picks back into once they've set something.
 const MENU_STATES = ['available', 'not_preferred', 'unavailable']
 
 const key = (weekday, shiftId) => `${weekday}-${shiftId}`
+
+const runs = (shift, weekday) => (shift.weekdays ?? []).includes(weekday)
+
+const visibleWeekdays = computed(() => WEEKDAYS.filter((weekday) => props.shifts.some((shift) => runs(shift, weekday))))
 
 // Local, edit-until-Save state, seeded once from props. The parent forces a
 // fresh seed by remounting this component (a :key bump) after its own
@@ -141,6 +146,10 @@ onBeforeUnmount(() => {
         {{ showAddHint ? __('availability.grid.no_shifts_manager') : __('availability.grid.no_shifts') }}
     </p>
 
+    <p v-else-if="!visibleWeekdays.length" class="text-sm text-(--color-text-secondary)">
+        {{ __('availability.grid.no_running_days') }}
+    </p>
+
     <div v-else class="space-y-3">
         <table class="w-full table-fixed text-sm">
             <thead>
@@ -148,7 +157,7 @@ onBeforeUnmount(() => {
                     <th class="w-32 py-2 text-left font-medium">
                         {{ __('availability.grid.shift_column') }}
                     </th>
-                    <th v-for="weekday in WEEKDAYS" :key="weekday" class="py-2 text-center font-medium">
+                    <th v-for="weekday in visibleWeekdays" :key="weekday" class="py-2 text-center font-medium">
                         {{ __(`availability.weekday.${weekday}`) }}
                     </th>
                 </tr>
@@ -161,8 +170,16 @@ onBeforeUnmount(() => {
                             {{ shift.start_time }} – {{ shift.end_time }}
                         </span>
                     </th>
-                    <td v-for="weekday in WEEKDAYS" :key="weekday" class="p-1">
+                    <td v-for="weekday in visibleWeekdays" :key="weekday" class="p-1">
+                        <span
+                            v-if="!runs(shift, weekday)"
+                            :data-testid="`no-cell-${weekday}-${shift.id}`"
+                            class="flex h-8 w-full items-center justify-center text-(--color-text-muted)"
+                        >
+                            –
+                        </span>
                         <button
+                            v-else
                             type="button"
                             :disabled="disabled"
                             :data-testid="`cell-${weekday}-${shift.id}`"
