@@ -366,4 +366,12 @@ describe("Calendar", () => {
         await w.setProps({ selectedWeekday: null });
         expect(header(2).classes()).not.toContain("border-(--color-tab-active-border)");
     });
+
+    it("draws a ring around ringDay only", () => {
+        const w = mount(Calendar, { props: { year: 2026, month: 10, ringDay: 14 } });
+        const day = (n) => w.findAll("button").find((b) => b.text() === String(n));
+
+        expect(day(14).classes()).toContain("ring-2");
+        expect(day(15).classes()).not.toContain("ring-2");
+    });
 });

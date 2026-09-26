@@ -86,11 +86,15 @@ Days before the start date are disabled. The availability calendar does
 not show the selected-day border, so the borders only carry these two
 meanings. The legend explains the three fills and the two borders.
 
-A click on an enabled day opens a dialog. For each shift that runs that
-day, the dialog offers: default (shows the default level), available,
-not preferred, unavailable. It also has a "Block whole day" toggle and a
-"Reset to default" action. On a holiday the dialog shows a notice. The
-overrides stay stored, but have no effect.
+A click on an enabled day selects that date. The calendar marks it with
+a ring. The right column then shows the schedule of that date, in the
+same table and cell style as the default of a weekday. Each shift cell
+opens a menu with: default (shows the default level), available, not
+preferred, unavailable. A cell with an override has the same solid
+border as a changed day. Above the table is a "Block the whole day"
+checkbox, and below it a "Reset to default" button. On a holiday a
+notice shows above the table. The overrides stay stored, but have no
+effect. Each change goes straight into the pending edits.
 
 ### Layout
 
@@ -101,8 +105,10 @@ Both pages use the same Availability tab layout:
    Right: the default of one weekday, and the schedule note.
 3. Holidays, full width.
 
-The default section shows only after a click on a weekday letter in the
-calendar header. It then shows the shifts that run on that weekday, each
+The right column shows either the default of a weekday or the schedule
+of a date, never both. Picking a weekday clears the selected date, and
+picking a date clears the selected weekday. The default section shows
+only after a click on a weekday letter in the calendar header. It then shows the shifts that run on that weekday, each
 with its default level. A click on another weekday shows that weekday.
 A second click on the same weekday hides the section. Without a selected
 weekday, a hint tells the user to click a weekday letter.
@@ -114,7 +120,7 @@ when one or more questions exist.
 ### Saving
 
 The explicit page Save writes the start date, the default grid and the
-date overrides together. Day dialog edits stay in a local pending set,
+date overrides together. Date edits stay in a local pending set,
 keyed by date. The calendar shows pending edits. The page loads all
 overrides of the employee at once, so pending edits survive month
 navigation. One `PUT .../availability/dates/{date}` per changed date

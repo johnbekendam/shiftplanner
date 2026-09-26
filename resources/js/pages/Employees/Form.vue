@@ -10,6 +10,7 @@ import WeeklyHoursField from '@/components/WeeklyHoursField.vue'
 import EmployeePlanningSettings from '@/components/EmployeePlanningSettings.vue'
 import AvailabilityGrid from '@/components/AvailabilityGrid.vue'
 import AvailabilityCalendar from '@/components/AvailabilityCalendar.vue'
+import DateAvailabilityGrid from '@/components/DateAvailabilityGrid.vue'
 import LabeledInput from '@/components/LabeledInput.vue'
 import { DateInput } from '@/components/ui/Input'
 import ShiftNote from '@/components/ShiftNote.vue'
@@ -28,7 +29,8 @@ import { useSaveRegistry } from '@/composables/useSaveRegistry'
 import { useUnsavedChangesGuard } from '@/composables/useUnsavedChangesGuard'
 import { putAsync, postAsync, deleteAsync } from '@/utils/inertiaAsync'
 import { calculateAvailabilityHours } from '@/utils/availabilityHours'
-import { groupOverrides } from '@/utils/availabilityCalendar'
+import { dayAvailability, groupOverrides, isoWeekday as isoWeekdayOf } from '@/utils/availabilityCalendar'
+import { formatDate } from '@/utils/date'
 
 const __ = useI18n()
 const { user: currentUser } = useAuth()
@@ -188,14 +190,26 @@ const availabilityWarning = computed(() => {
     return availabilityHours.value.available >= form.weekly_hours ? 'not_preferred' : 'insufficient'
 })
 
-// The weekday whose default the Default week section edits; null hides it.
+// The weekday whose default, or the date whose availability, the right
+// column edits. The calendar keeps at most one of the two set.
 const selectedWeekday = ref(null)
+const selectedDate = ref(null)
 
 // ── Date overrides: one PUT per changed date, replacing that date ──────
 // { [date]: { blocked, shifts } } — a date without overrides has no key.
 const committedOverrides = ref(groupOverrides(props.availabilityOverrides))
 const overrides = ref({ ...committedOverrides.value })
 const pendingDates = reactive({})
+
+const selectedDay = computed(() => selectedDate.value
+    ? dayAvailability(selectedDate.value, {
+        shifts: props.shifts,
+        availableFrom: form.available_from || null,
+        holidays: currentHolidayRows.value,
+        defaults: availability.value,
+        overrides: overrides.value,
+    })
+    : null)
 
 function onApplyDay({ date, blocked, shifts }) {
     const next = { ...overrides.value }
@@ -524,13 +538,12 @@ function restore() {
                         </h3>
                         <AvailabilityCalendar
                             v-model:selected-weekday="selectedWeekday"
+                            v-model:selected-date="selectedDate"
                             :shifts="shifts"
                             :defaults="availability"
                             :overrides="overrides"
                             :holidays="currentHolidayRows"
                             :available-from="form.available_from || null"
-                            :disabled="isArchived"
-                            @apply-day="onApplyDay"
                         />
                     </section>
 
@@ -548,6 +561,15 @@ function restore() {
                                 show-add-hint
                                 @update:availability="onAvailabilityChange"
                             />
+                        </template>
+                        <template v-else-if="selectedDay">
+                            <h3 class="text-sm font-semibold text-(--color-text-primary)">
+                                {{ __('availability.day.title', {
+                                    weekday: __(`availability.weekday_long.${isoWeekdayOf(selectedDay.date)}`),
+                                    date: formatDate(selectedDay.date),
+                                }) }}
+                            </h3>
+                            <DateAvailabilityGrid :day="selectedDay" :disabled="isArchived" @apply-day="onApplyDay" />
                         </template>
                         <p v-else data-testid="default-week-hint" class="text-sm text-(--color-text-secondary)">
                             {{ __('availability.default_week.hint') }}

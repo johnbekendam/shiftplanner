@@ -1,4 +1,4 @@
-Status: complete — 13/13
+Status: complete — 14/14
 
 - [x] 1. Add the `EmployeeAvailability` resolver for weekly defaults and
   holidays. Build it from loaded relations and from `PlanProblem`
@@ -67,3 +67,9 @@ Status: complete — 13/13
   calendar header. A second click hides it. `Calendar.vue` emits
   `weekday-click` and takes a `selectedWeekday` prop. `AvailabilityGrid`
   takes a `weekday` prop. Vitest.
+
+- [x] 14. Replace the day dialog with a date schedule in the right
+  column, in the default grid style. Move the level cell and its menu to
+  `AvailabilityLevelCell.vue`, shared by `AvailabilityGrid` and the new
+  `DateAvailabilityGrid`. `Calendar.vue` takes a `ringDay` prop for the
+  selected date. Remove `DayAvailabilityDialog`. Vitest.

@@ -62,7 +62,10 @@
                         <div v-if="cell.type === 'pad'"></div>
                         <button
                             v-else
-                            :class="dayClass(colorForDay(cell.day), false, isToday(cell.day), isDisabled(cell.day), false, dayBorders[cell.day])"
+                            :class="[
+                                dayClass(colorForDay(cell.day), false, isToday(cell.day), isDisabled(cell.day), false, dayBorders[cell.day]),
+                                cell.day === ringDay ? 'ring-2 ring-(--color-input-focus-border)' : '',
+                            ]"
                             :disabled="isDisabled(cell.day)"
                             @click="onDayClick(cell.day)"
                         >
@@ -162,6 +165,8 @@ const props = defineProps({
     // ISO weekday (1–7) whose header is highlighted, or null for none. Left
     // undefined, the header of the last clicked weekday is highlighted.
     selectedWeekday: { type: Number, default: undefined },
+    // A day of this month to mark with a ring (a selected date), or null.
+    ringDay: { type: Number, default: null },
 })
 
 const emit = defineEmits(['change', 'day-click', 'weekday-click'])

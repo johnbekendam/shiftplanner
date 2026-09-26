@@ -108,6 +108,7 @@ import QuestionChecklist from "@/components/QuestionChecklist.vue";
 import EmployeePlanningSettings from "@/components/EmployeePlanningSettings.vue";
 import { NumberInput, DateInput } from "@/components/ui/Input";
 import AvailabilityCalendar from "@/components/AvailabilityCalendar.vue";
+import DateAvailabilityGrid from "@/components/DateAvailabilityGrid.vue";
 
 const stubs = { AppLayout: { template: "<div><slot /></div>" }, teleport: true };
 const findSaveButton = (w) => w.findAll("button").find((b) => ["Save", "Saving…", "Saved"].includes(b.text()));
@@ -117,6 +118,14 @@ const findDeleteButton = (w) => w.findAll("button").find((b) => b.text() === "De
 // The Default week grid only mounts once a weekday is picked in the calendar.
 const selectWeekday = async (w, weekday = 1) => {
     w.getComponent(AvailabilityCalendar).vm.$emit("update:selectedWeekday", weekday);
+    await w.vm.$nextTick();
+};
+
+// Picks the date in the calendar, then applies a change from the date grid.
+const applyDay = async (w, day) => {
+    w.getComponent(AvailabilityCalendar).vm.$emit("update:selectedDate", day.date);
+    await w.vm.$nextTick();
+    w.getComponent(DateAvailabilityGrid).vm.$emit("apply-day", day);
     await w.vm.$nextTick();
 };
 
@@ -901,7 +910,7 @@ describe("Employees/Form", () => {
         const calendar = w.getComponent(AvailabilityCalendar);
         expect(calendar.props("overrides")).toEqual({ "2026-10-05": { blocked: false, shifts: { 1: "available" } } });
 
-        calendar.vm.$emit("apply-day", { date: "2026-10-07", blocked: true, shifts: {} });
+        await applyDay(w, { date: "2026-10-07", blocked: true, shifts: {} });
         await w.vm.$nextTick();
         await findSaveButton(w).trigger("click");
         await flushPromises();
@@ -914,7 +923,7 @@ describe("Employees/Form", () => {
         const w = mountEdit();
         const calendar = w.getComponent(AvailabilityCalendar);
 
-        calendar.vm.$emit("apply-day", { date: "2026-10-07", blocked: true, shifts: {} });
+        await applyDay(w, { date: "2026-10-07", blocked: true, shifts: {} });
         await w.vm.$nextTick();
         await findCancelButton(w).trigger("click");
 
@@ -922,10 +931,12 @@ describe("Employees/Form", () => {
         expect(findSaveButton(w).attributes("disabled")).toBeDefined();
     });
 
-    it("makes the calendar read-only for an archived employee", () => {
+    it("makes the date grid read-only for an archived employee", async () => {
         const w = mountEdit({ employee: { id: 3, first_name: "A", last_name: "B", email: "a@b.c", weekly_hours: 24, archived: true } });
 
-        expect(w.getComponent(AvailabilityCalendar).props("disabled")).toBe(true);
+        w.getComponent(AvailabilityCalendar).vm.$emit("update:selectedDate", "2026-10-05");
+        await w.vm.$nextTick();
+        expect(w.getComponent(DateAvailabilityGrid).props("disabled")).toBe(true);
         expect(w.getComponent(DateInput).props("disabled")).toBe(true);
     });
 

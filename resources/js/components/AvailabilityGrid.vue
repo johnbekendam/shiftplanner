@@ -1,6 +1,6 @@
 <script setup>
-import { computed, reactive, ref, nextTick, onBeforeUnmount } from 'vue'
-import Icon from '@/components/ui/Icon.vue'
+import { computed, reactive } from 'vue'
+import AvailabilityLevelCell from '@/components/AvailabilityLevelCell.vue'
 import { useI18n } from '@/composables/useI18n'
 
 const __ = useI18n()
@@ -54,98 +54,12 @@ for (const row of props.availability) {
     if (k in cells) cells[k] = row.level
 }
 
-// Theme-builder badge tokens: Success / Warning / Error.
-const LEVEL_CLASS = {
-    not_set: 'bg-(--color-badge-standard-bg) text-(--color-badge-standard-text) border-(--color-badge-standard-border)',
-    available: 'bg-(--color-badge-success-bg) text-(--color-badge-success-text) border-(--color-badge-success-border)',
-    not_preferred: 'bg-(--color-badge-warning-bg) text-(--color-badge-warning-text) border-(--color-badge-warning-border)',
-    unavailable: 'bg-(--color-badge-error-bg) text-(--color-badge-error-text) border-(--color-badge-error-border)',
+const menuOptions = MENU_STATES.map((level) => ({ value: level, level, label: __(`availability.state.${level}`) }))
+
+function choose(weekday, shiftId, level) {
+    cells[key(weekday, shiftId)] = level
+    emit('update:availability', { weekday, shiftId, level })
 }
-
-const LEVEL_ICON = {
-    available: 'check-circle',
-    not_preferred: 'exclamation-triangle',
-    unavailable: 'x-circle',
-}
-
-// ── Selection menu ──────────────────────────────────────────────────────
-// The cell button opens a small menu anchored to it; picking a state is
-// what writes. Teleported to body so the table's overflow can't clip it.
-const menu = ref(null) // { weekday, shiftId } while open
-const menuRef = ref(null)
-const menuStyle = ref({})
-let anchor = null
-
-function positionMenu() {
-    if (!anchor) return
-    const r = anchor.getBoundingClientRect()
-    menuStyle.value = {
-        top: `${r.bottom + 4}px`,
-        left: `${r.left}px`,
-        minWidth: `${r.width}px`,
-    }
-}
-
-function openMenu(weekday, shiftId, event) {
-    if (props.disabled) return
-    if (menu.value && menu.value.weekday === weekday && menu.value.shiftId === shiftId) {
-        closeMenu()
-        return
-    }
-    anchor = event.currentTarget
-    positionMenu()
-    menu.value = { weekday, shiftId }
-    nextTick(() => menuRef.value?.querySelector('[data-menu-item]')?.focus())
-}
-
-function closeMenu() {
-    menu.value = null
-    anchor?.focus?.()
-    anchor = null
-}
-
-function choose(level) {
-    if (!menu.value) return
-    const { weekday, shiftId } = menu.value
-    const k = key(weekday, shiftId)
-    if (cells[k] !== level) {
-        cells[k] = level
-        emit('update:availability', { weekday, shiftId, level })
-    }
-    closeMenu()
-}
-
-function isOpenFor(weekday, shiftId) {
-    return !!menu.value && menu.value.weekday === weekday && menu.value.shiftId === shiftId
-}
-
-function moveMenuFocus(delta) {
-    const items = [...(menuRef.value?.querySelectorAll('[data-menu-item]') || [])]
-    if (!items.length) return
-    const i = items.indexOf(document.activeElement)
-    items[(i + delta + items.length) % items.length].focus()
-}
-
-function onClickOutside(e) {
-    if (!menu.value) return
-    if (menuRef.value?.contains(e.target) || anchor?.contains(e.target)) return
-    menu.value = null
-    anchor = null
-}
-
-function onReposition() {
-    if (menu.value) positionMenu()
-}
-
-document.addEventListener('mousedown', onClickOutside)
-document.addEventListener('scroll', onReposition, true)
-window.addEventListener('resize', onReposition)
-
-onBeforeUnmount(() => {
-    document.removeEventListener('mousedown', onClickOutside)
-    document.removeEventListener('scroll', onReposition, true)
-    window.removeEventListener('resize', onReposition)
-})
 </script>
 
 <template>
@@ -185,72 +99,24 @@ onBeforeUnmount(() => {
                         >
                             –
                         </span>
-                        <button
+                        <AvailabilityLevelCell
                             v-else
-                            type="button"
-                            :disabled="disabled"
                             :data-testid="`cell-${weekday}-${shift.id}`"
-                            aria-haspopup="menu"
-                            :aria-expanded="isOpenFor(weekday, shift.id)"
+                            :level="cells[key(weekday, shift.id)]"
+                            :selected="cells[key(weekday, shift.id)]"
+                            :options="menuOptions"
+                            :disabled="disabled"
                             :aria-label="__('availability.grid.cell', {
                                 shift: shift.name,
                                 day: __(`availability.weekday.${weekday}`),
-                                state: __(`availability.state.${cells[`${weekday}-${shift.id}`]}`),
+                                state: __(`availability.state.${cells[key(weekday, shift.id)]}`),
                             })"
-                            class="flex h-8 w-full items-center justify-center rounded border transition-colors disabled:cursor-not-allowed disabled:opacity-60"
-                            :class="LEVEL_CLASS[cells[`${weekday}-${shift.id}`]]"
-                            @click="openMenu(weekday, shift.id, $event)"
-                        >
-                            <Icon :name="LEVEL_ICON[cells[`${weekday}-${shift.id}`]]" class="size-4" />
-                        </button>
+                            @choose="choose(weekday, shift.id, $event)"
+                        />
                     </td>
                 </tr>
             </tbody>
         </table>
 
-        <Teleport to="body">
-            <Transition
-                enter-active-class="transition ease-out duration-100"
-                enter-from-class="opacity-0 scale-95"
-                enter-to-class="opacity-100 scale-100"
-                leave-active-class="transition ease-in duration-75"
-                leave-from-class="opacity-100 scale-100"
-                leave-to-class="opacity-0 scale-95"
-            >
-                <ul
-                    v-if="menu"
-                    ref="menuRef"
-                    role="menu"
-                    data-testid="availability-menu"
-                    :style="menuStyle"
-                    class="fixed z-50 min-w-44 rounded-md py-1 shadow-lg outline outline-1 bg-(--color-dropdown-panel-bg) outline-(--color-dropdown-panel-border)"
-                    @keydown.escape.stop="closeMenu"
-                    @keydown.arrow-down.prevent="moveMenuFocus(1)"
-                    @keydown.arrow-up.prevent="moveMenuFocus(-1)"
-                >
-                    <li v-for="level in MENU_STATES" :key="level">
-                        <button
-                            type="button"
-                            data-menu-item
-                            :data-testid="`availability-menu-${level}`"
-                            role="menuitemradio"
-                            :aria-checked="cells[key(menu.weekday, menu.shiftId)] === level"
-                            class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-(--color-dropdown-option-text) hover:bg-(--color-dropdown-option-hover-bg) hover:text-(--color-dropdown-option-hover-text)"
-                            @click="choose(level)"
-                        >
-                            <span
-                                class="flex size-5 shrink-0 items-center justify-center rounded border"
-                                :class="LEVEL_CLASS[level]"
-                            >
-                                <Icon :name="LEVEL_ICON[level]" class="size-3.5" />
-                            </span>
-                            <span :class="cells[key(menu.weekday, menu.shiftId)] === level ? 'font-semibold' : 'font-normal'">
-                                {{ __(`availability.state.${level}`) }}
-                            </span>
-                        </button>
-                    </li>
-                </ul>
-            </Transition>
-        </Teleport>
     </div>
 </template>

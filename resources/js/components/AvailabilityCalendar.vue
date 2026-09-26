@@ -1,8 +1,7 @@
 <script setup>
 import { computed, ref } from 'vue'
 import Calendar from '@/components/ui/Calendar.vue'
-import DayAvailabilityDialog from '@/components/DayAvailabilityDialog.vue'
-import { dateString, dayAvailability, monthStates } from '@/utils/availabilityCalendar'
+import { dateString, monthStates } from '@/utils/availabilityCalendar'
 import { useI18n } from '@/composables/useI18n'
 
 const __ = useI18n()
@@ -17,17 +16,24 @@ const props = defineProps({
     // [{ start_date, end_date }]
     holidays: { type: Array, default: () => [] },
     availableFrom: { type: String, default: null },
-    // Read-only (employee change lock): the dialog opens but cannot apply.
-    disabled: { type: Boolean, default: false },
     // The ISO weekday (1–7) whose default is being edited, or null.
     selectedWeekday: { type: Number, default: null },
+    // The 'Y-m-d' date whose availability is being edited, or null.
+    selectedDate: { type: String, default: null },
 })
 
-const emit = defineEmits(['apply-day', 'update:selectedWeekday'])
+// Picking a weekday or a date clears the other; a second click deselects.
+const emit = defineEmits(['update:selectedWeekday', 'update:selectedDate'])
 
-// A weekday header click selects that weekday; a second click deselects it.
 function onWeekdayClick({ weekday }) {
     emit('update:selectedWeekday', props.selectedWeekday === weekday ? null : weekday)
+    emit('update:selectedDate', null)
+}
+
+function onDayClick({ year: y, month: m, day }) {
+    const date = dateString(y, m, day)
+    emit('update:selectedDate', props.selectedDate === date ? null : date)
+    emit('update:selectedWeekday', null)
 }
 
 const today = new Date()
@@ -60,44 +66,28 @@ function onChange(event) {
     month.value = event.month
 }
 
-// The open dialog's date. The day state is derived, so it follows the
-// current props while the dialog is open.
-const openDate = ref(null)
-const openDay = computed(() => openDate.value ? dayAvailability(openDate.value, context.value) : null)
-
-function onDayClick({ year: y, month: m, day }) {
-    openDate.value = dateString(y, m, day)
-}
-
-function onApply(payload) {
-    emit('apply-day', payload)
-    openDate.value = null
-}
+// The selected date's day number, when it falls in the shown month.
+const ringDay = computed(() => {
+    if (!props.selectedDate) return null
+    const [y, m, d] = props.selectedDate.split('-').map(Number)
+    return y === year.value && m === month.value ? d : null
+})
 </script>
 
 <template>
-    <div>
-        <Calendar
-            :year="year"
-            :month="month"
-            :day-states="states.dayStates"
-            :day-borders="states.dayBorders"
-            :legenda="legenda"
-            :border-legenda="borderLegenda"
-            :date-range-start="availableFrom || null"
-            :selected-weekday="selectedWeekday"
-            :highlight-selection="false"
-            @change="onChange"
-            @day-click="onDayClick"
-            @weekday-click="onWeekdayClick"
-        />
-
-        <DayAvailabilityDialog
-            :open="openDate !== null"
-            :day="openDay"
-            :disabled="disabled"
-            @close="openDate = null"
-            @apply="onApply"
-        />
-    </div>
+    <Calendar
+        :year="year"
+        :month="month"
+        :day-states="states.dayStates"
+        :day-borders="states.dayBorders"
+        :legenda="legenda"
+        :border-legenda="borderLegenda"
+        :date-range-start="availableFrom || null"
+        :selected-weekday="selectedWeekday"
+        :ring-day="ringDay"
+        :highlight-selection="false"
+        @change="onChange"
+        @day-click="onDayClick"
+        @weekday-click="onWeekdayClick"
+    />
 </template>

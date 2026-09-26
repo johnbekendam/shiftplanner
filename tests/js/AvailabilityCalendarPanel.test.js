@@ -19,7 +19,6 @@ vi.mock("@/composables/useI18n", () => ({
 
 import AvailabilityCalendar from "@/components/AvailabilityCalendar.vue";
 import Calendar from "@/components/ui/Calendar.vue";
-import DayAvailabilityDialog from "@/components/DayAvailabilityDialog.vue";
 
 const early = { id: 10, name: "Early", start_time: "06:00", end_time: "14:00", weekdays: [1, 2, 3, 4, 5] };
 
@@ -33,7 +32,6 @@ const mountCalendar = (props = {}) =>
             availableFrom: "2026-10-02",
             ...props,
         },
-        global: { stubs: { teleport: true, transition: false } },
     });
 
 afterEach(() => vi.useRealTimers());
@@ -61,38 +59,39 @@ describe("AvailabilityCalendar", () => {
         expect(w.getComponent(Calendar).props("month")).toBe(11);
     });
 
-    it("opens the day dialog on a day click and re-emits its apply as apply-day", async () => {
-        const w = mountCalendar();
-
-        await w.getComponent(Calendar).vm.$emit("day-click", { year: 2026, month: 10, day: 5 });
-        const dialog = w.getComponent(DayAvailabilityDialog);
-        expect(dialog.props("open")).toBe(true);
-        expect(dialog.props("day")).toMatchObject({ date: "2026-10-05", blocked: false });
-
-        await dialog.vm.$emit("apply", { date: "2026-10-05", blocked: true, shifts: {} });
-
-        expect(w.emitted("apply-day")).toEqual([[{ date: "2026-10-05", blocked: true, shifts: {} }]]);
-        expect(w.getComponent(DayAvailabilityDialog).props("open")).toBe(false);
-    });
-
-    it("passes disabled to the dialog", async () => {
-        const w = mountCalendar({ disabled: true });
-
-        await w.getComponent(Calendar).vm.$emit("day-click", { year: 2026, month: 10, day: 5 });
-
-        expect(w.getComponent(DayAvailabilityDialog).props("disabled")).toBe(true);
-    });
-
-    it("selects a weekday from the header and deselects it on a second click", async () => {
-        const w = mountCalendar({ selectedWeekday: null });
+    it("selects a date on a day click, clears the weekday, and deselects on a second click", async () => {
+        const w = mountCalendar({ selectedWeekday: 2 });
         const calendar = w.getComponent(Calendar);
-        expect(calendar.props("enableWeekDaySelection")).toBe(true);
+
+        await calendar.vm.$emit("day-click", { year: 2026, month: 10, day: 5 });
+        expect(w.emitted("update:selectedDate")).toEqual([["2026-10-05"]]);
+        expect(w.emitted("update:selectedWeekday")).toEqual([[null]]);
+
+        await w.setProps({ selectedWeekday: null, selectedDate: "2026-10-05" });
+        await calendar.vm.$emit("day-click", { year: 2026, month: 10, day: 5 });
+        expect(w.emitted("update:selectedDate").at(-1)).toEqual([null]);
+    });
+
+    it("rings the selected date only in its own month", async () => {
+        const w = mountCalendar({ selectedDate: "2026-11-03" });
+        const calendar = w.getComponent(Calendar);
+
+        await calendar.vm.$emit("change", { year: 2026, month: 10, day: 1 });
+        expect(calendar.props("ringDay")).toBeNull();
+        await calendar.vm.$emit("change", { year: 2026, month: 11, day: 1 });
+        expect(calendar.props("ringDay")).toBe(3);
+    });
+
+    it("selects a weekday from the header, clears the date, and deselects on a second click", async () => {
+        const w = mountCalendar({ selectedDate: "2026-10-05" });
+        const calendar = w.getComponent(Calendar);
         expect(calendar.props("selectedWeekday")).toBeNull();
 
         await calendar.vm.$emit("weekday-click", { weekday: 2 });
         expect(w.emitted("update:selectedWeekday")).toEqual([[2]]);
+        expect(w.emitted("update:selectedDate")).toEqual([[null]]);
 
-        await w.setProps({ selectedWeekday: 2 });
+        await w.setProps({ selectedWeekday: 2, selectedDate: null });
         expect(calendar.props("selectedWeekday")).toBe(2);
         await calendar.vm.$emit("weekday-click", { weekday: 2 });
         await calendar.vm.$emit("weekday-click", { weekday: 5 });

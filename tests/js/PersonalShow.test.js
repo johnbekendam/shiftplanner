@@ -33,6 +33,7 @@ const en = {
     "availability.tab.details": "Details",
     "availability.tab.availability": "Availability",
     "availability.tab.questions": "Questions",
+    "availability.day.title": ":weekday :date",
     "availability.tab.settings": "Settings",
     "availability.info.empty": "No information has been provided yet.",
     "availability.info.cta": "Please update your details, availability and competences on the different tabs.",
@@ -149,6 +150,7 @@ import QuestionChecklist from "@/components/QuestionChecklist.vue";
 import SelectInput from "@/components/ui/Input/Select.vue";
 import DateInput from "@/components/ui/Input/Date.vue";
 import AvailabilityCalendar from "@/components/AvailabilityCalendar.vue";
+import DateAvailabilityGrid from "@/components/DateAvailabilityGrid.vue";
 
 const mountShow = (holidays = [], extra = {}) =>
     mount(Show, {
@@ -183,6 +185,14 @@ const findWithdrawButton = (w) => w.findAll("button").find((b) => b.text() === "
 // The Default week grid only mounts once a weekday is picked in the calendar.
 const selectWeekday = async (w, weekday = 1) => {
     w.getComponent(AvailabilityCalendar).vm.$emit("update:selectedWeekday", weekday);
+    await w.vm.$nextTick();
+};
+
+// Picks the date in the calendar, then applies a change from the date grid.
+const applyDay = async (w, day) => {
+    w.getComponent(AvailabilityCalendar).vm.$emit("update:selectedDate", day.date);
+    await w.vm.$nextTick();
+    w.getComponent(DateAvailabilityGrid).vm.$emit("apply-day", day);
     await w.vm.$nextTick();
 };
 
@@ -681,8 +691,8 @@ describe("Personal/Show", () => {
         const calendar = w.getComponent(AvailabilityCalendar);
         expect(calendar.props("overrides")).toEqual({ "2026-10-05": { blocked: true, shifts: {} } });
 
-        calendar.vm.$emit("apply-day", { date: "2026-10-06", blocked: false, shifts: { 1: "available" } });
-        calendar.vm.$emit("apply-day", { date: "2026-10-05", blocked: false, shifts: {} });
+        await applyDay(w, { date: "2026-10-06", blocked: false, shifts: { 1: "available" } });
+        await applyDay(w, { date: "2026-10-05", blocked: false, shifts: {} });
         await w.vm.$nextTick();
 
         expect(calendar.props("overrides")).toEqual({ "2026-10-06": { blocked: false, shifts: { 1: "available" } } });
@@ -702,8 +712,8 @@ describe("Personal/Show", () => {
         const w = mountShow([], { availabilityOverrides: [{ date: "2026-10-05", shift_id: null, level: "unavailable" }] });
         const calendar = w.getComponent(AvailabilityCalendar);
 
-        calendar.vm.$emit("apply-day", { date: "2026-10-05", blocked: false, shifts: {} });
-        calendar.vm.$emit("apply-day", { date: "2026-10-05", blocked: true, shifts: {} });
+        await applyDay(w, { date: "2026-10-05", blocked: false, shifts: {} });
+        await applyDay(w, { date: "2026-10-05", blocked: true, shifts: {} });
         await w.vm.$nextTick();
 
         expect(findSaveButton(w).attributes("disabled")).toBeDefined();
@@ -713,7 +723,7 @@ describe("Personal/Show", () => {
         const w = mountShow();
         const calendar = w.getComponent(AvailabilityCalendar);
 
-        calendar.vm.$emit("apply-day", { date: "2026-10-06", blocked: true, shifts: {} });
+        await applyDay(w, { date: "2026-10-06", blocked: true, shifts: {} });
         await w.vm.$nextTick();
         await findCancelButton(w).trigger("click");
 
@@ -725,7 +735,7 @@ describe("Personal/Show", () => {
         failUrlsRef.current = ["/personal/tok-1/availability/dates/2026-10-06"];
         const w = mountShow();
 
-        w.getComponent(AvailabilityCalendar).vm.$emit("apply-day", { date: "2026-10-06", blocked: true, shifts: {} });
+        await applyDay(w, { date: "2026-10-06", blocked: true, shifts: {} });
         await w.vm.$nextTick();
         await findSaveButton(w).trigger("click");
         await flushPromises();
@@ -759,5 +769,30 @@ describe("Personal/Show", () => {
         await selectWeekday(w, 1);
 
         expect(w.get('[data-testid="cell-1-1"]').classes()).toContain("bg-(--color-badge-error-bg)");
+    });
+
+    it("replaces the weekday default with the schedule of a clicked date, and back", async () => {
+        const w = mountShow([], {
+            shifts: [{ id: 1, name: "Day", start_time: "08:00", end_time: "12:00", weekdays: [1, 2, 3, 4, 5] }],
+            availability: [{ weekday: 1, shift_id: 1, level: "available" }],
+            availabilityOverrides: [{ date: "2026-10-05", shift_id: 1, level: "unavailable" }],
+        });
+        const calendar = w.getComponent(AvailabilityCalendar);
+
+        await selectWeekday(w, 1);
+        expect(w.findComponent(AvailabilityGrid).exists()).toBe(true);
+
+        calendar.vm.$emit("update:selectedDate", "2026-10-05");
+        calendar.vm.$emit("update:selectedWeekday", null);
+        await w.vm.$nextTick();
+
+        expect(w.findComponent(AvailabilityGrid).exists()).toBe(false);
+        const grid = w.getComponent(DateAvailabilityGrid);
+        expect(grid.props("day")).toMatchObject({ date: "2026-10-05", changed: true });
+        expect(grid.props("day").shifts[0]).toMatchObject({ defaultLevel: "available", override: "unavailable" });
+        expect(w.get('[data-testid="default-week-section"]').text()).toContain("05-10-2026");
+
+        await applyDay(w, { date: "2026-10-05", blocked: false, shifts: {} });
+        expect(w.getComponent(DateAvailabilityGrid).props("day").changed).toBe(false);
     });
 });
