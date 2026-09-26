@@ -392,7 +392,6 @@
     "availability.flash.holiday_removed": "Holiday removed.",
     "availability.error.shift_hidden": "This shift is not available for this employee.",
     "availability.error.shift_not_running": "This shift does not run on that day.",
-    "availability.questions.heading": "Questions",
 
     "account.title": "Account",
     "account.email.label": "Email address",

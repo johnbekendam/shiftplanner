@@ -13,7 +13,6 @@ const en = {
     "availability.hours_warning.not_preferred": "You will be planned on not-preferred hours.",
     "availability.hours_warning.insufficient": "Your available time totals :available hours per week, below your target of :target hours.",
     "availability.holidays.empty": "No holidays yet.",
-    "availability.questions.heading": "Questions",
     "competences.tab": "Competences",
     "competences.checklist_empty": "No competences have been set up yet.",
     "workcenters.employee_tab": "Workcenters",
