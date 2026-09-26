@@ -11,6 +11,7 @@ import EmployeePlanningSettings from '@/components/EmployeePlanningSettings.vue'
 import AvailabilityGrid from '@/components/AvailabilityGrid.vue'
 import AvailabilityCalendar from '@/components/AvailabilityCalendar.vue'
 import DateAvailabilityGrid from '@/components/DateAvailabilityGrid.vue'
+import DayBlockToggle from '@/components/DayBlockToggle.vue'
 import LabeledInput from '@/components/LabeledInput.vue'
 import { DateInput } from '@/components/ui/Input'
 import ShiftNote from '@/components/ShiftNote.vue'
@@ -552,14 +553,22 @@ function restore() {
                     <section class="min-w-0" data-testid="default-week-section">
                         <Card>
                             <template v-if="defaultWeekSelected || selectedDay" #header>
-                                <div data-testid="availability-card-header" class="flex h-12 items-center px-6 text-md font-semibold">
-                                    <template v-if="defaultWeekSelected">{{ __('availability.default_week.heading') }}</template>
-                                    <template v-else>
-                                        {{ __('availability.day.title', {
-                                            weekday: __(`availability.weekday_long.${isoWeekdayOf(selectedDay.date)}`),
-                                            date: formatDate(selectedDay.date),
-                                        }) }}
-                                    </template>
+                                <div data-testid="availability-card-header" class="flex h-12 items-center justify-between gap-4 px-6">
+                                    <span class="text-md font-semibold">
+                                        <template v-if="defaultWeekSelected">{{ __('availability.default_week.heading') }}</template>
+                                        <template v-else>
+                                            {{ __('availability.day.title', {
+                                                weekday: __(`availability.weekday_long.${isoWeekdayOf(selectedDay.date)}`),
+                                                date: formatDate(selectedDay.date),
+                                            }) }}
+                                        </template>
+                                    </span>
+                                    <DayBlockToggle
+                                        v-if="!defaultWeekSelected && selectedDay && !selectedDay.holiday"
+                                        :day="selectedDay"
+                                        :disabled="isArchived"
+                                        @apply-day="onApplyDay"
+                                    />
                                 </div>
                             </template>
 

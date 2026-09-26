@@ -1,4 +1,4 @@
-Status: complete — 26/26
+Status: complete — 27/27
 
 - [x] 1. Add the `EmployeeAvailability` resolver for weekly defaults and
   holidays. Build it from loaded relations and from `PlanProblem`
@@ -126,3 +126,8 @@ Status: complete — 26/26
   the selection color. A changed cell in the date table gets a thicker
   border in its own badge color. `calendarClasses.js` replaces the
   border style map with a border color map. Vitest.
+
+- [x] 27. Move the "Block the whole day" checkbox into the card header,
+  right-aligned, as `DayBlockToggle.vue`. Remove it and its separator
+  from `DateAvailabilityGrid`, and the unused `flushTop` from
+  `CardSeparator`. Vitest.

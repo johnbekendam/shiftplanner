@@ -154,6 +154,7 @@ import SelectInput from "@/components/ui/Input/Select.vue";
 import DateInput from "@/components/ui/Input/Date.vue";
 import AvailabilityCalendar from "@/components/AvailabilityCalendar.vue";
 import DateAvailabilityGrid from "@/components/DateAvailabilityGrid.vue";
+import DayBlockToggle from "@/components/DayBlockToggle.vue";
 
 const mountShow = (holidays = [], extra = {}) =>
     mount(Show, {
@@ -816,12 +817,12 @@ describe("Personal/Show", () => {
         expect(section().find('[data-testid="availability-card-header"]').exists()).toBe(false);
 
         await selectDefaultWeek(w);
-        expect(section().get('[data-testid="availability-card-header"]').text()).toBe("Default availability");
+        expect(section().get('[data-testid="availability-card-header"] span').text()).toBe("Default availability");
 
         w.getComponent(AvailabilityCalendar).vm.$emit("update:defaultWeekSelected", false);
         w.getComponent(AvailabilityCalendar).vm.$emit("update:selectedDate", "2026-10-05");
         await w.vm.$nextTick();
-        expect(section().get('[data-testid="availability-card-header"]').text()).toBe("Monday 05-10-2026");
+        expect(section().get('[data-testid="availability-card-header"] span').text()).toBe("Monday 05-10-2026");
     });
 
     it("shows the legend and the schedule note in the info card next to the calendar", async () => {
@@ -833,5 +834,30 @@ describe("Personal/Show", () => {
         expect(card.findAll("hr")).toHaveLength(1);
         expect(html.indexOf('data-testid="calendar-legend"')).toBeLessThan(html.indexOf("Early starts at six."));
         expect(card.findAllComponents(ShiftNote)).toHaveLength(1);
+    });
+
+    it("puts the block toggle right-aligned in the date card header, not for the default week or a holiday", async () => {
+        const w = mountShow([], {
+            shifts: [{ id: 1, name: "Day", start_time: "08:00", end_time: "12:00", weekdays: [1, 2, 3, 4, 5] }],
+            holidays: [{ id: 9, start_date: "2026-10-06", end_date: "2026-10-06", note: null }],
+        });
+        const calendar = w.getComponent(AvailabilityCalendar);
+        const header = () => w.get('[data-testid="availability-card-header"]');
+
+        calendar.vm.$emit("update:selectedDate", "2026-10-05");
+        await w.vm.$nextTick();
+        expect(header().classes()).toContain("justify-between");
+        expect(header().getComponent(DayBlockToggle).props("day")).toMatchObject({ date: "2026-10-05" });
+
+        header().getComponent(DayBlockToggle).vm.$emit("apply-day", { date: "2026-10-05", blocked: true, shifts: {} });
+        await w.vm.$nextTick();
+        expect(calendar.props("overrides")).toEqual({ "2026-10-05": { blocked: true, shifts: {} } });
+
+        calendar.vm.$emit("update:selectedDate", "2026-10-06");
+        await w.vm.$nextTick();
+        expect(header().findComponent(DayBlockToggle).exists()).toBe(false);
+
+        await selectDefaultWeek(w);
+        expect(header().findComponent(DayBlockToggle).exists()).toBe(false);
     });
 });

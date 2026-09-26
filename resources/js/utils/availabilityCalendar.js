@@ -62,6 +62,11 @@ export function dayAvailability(date, ctx) {
     return { date, notStarted, holiday, blocked: override.blocked, changed, shifts, fill, border }
 }
 
+// The shift overrides of a dayAvailability() result: { [shiftId]: level }.
+export function dayOverrides(day) {
+    return Object.fromEntries(day.shifts.filter((s) => s.override).map((s) => [s.shift.id, s.override]))
+}
+
 // Calendar.vue's dayStates and dayBorders for one month, keyed by day number.
 export function monthStates(year, month, ctx) {
     const dayStates = {}

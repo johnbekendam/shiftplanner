@@ -90,11 +90,11 @@ a ring. The card below the calendar then shows the schedule of that date, in the
 same table and cell style as the default week. Each shift cell
 opens a menu with: default (shows the default level), available, not
 preferred, unavailable. A cell with an override has a thicker border
-in its own badge color, as a changed day has. Above the table is a "Block the whole day"
-checkbox with a separator below it, and below the table a "Reset to
-default" button. On a holiday the
+in its own badge color, as a changed day has. The "Block the whole day" checkbox sits
+right-aligned in the card header, next to the date. Below the table is
+a "Reset to default" button. On a holiday the
 card shows only the notice "This day is a holiday.", without the
-checkbox, the table or the reset button. Earlier overrides of that date
+header checkbox, the table or the reset button. Earlier overrides of that date
 stay stored, but have no effect. Each change goes straight into the pending edits.
 
 ### Layout

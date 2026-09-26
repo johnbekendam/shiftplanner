@@ -91,16 +91,13 @@ describe("DateAvailabilityGrid", () => {
         expect(w.emitted("apply-day")[0][0]).toEqual({ date: "2026-10-05", blocked: false, shifts: {} });
     });
 
-    it("blocks the whole day, shows every shift unavailable and locks the cells", async () => {
-        const w = mountGrid();
+    it("shows every shift unavailable and locks the cells on a blocked day", () => {
+        const w = mountGrid({ day: day({ blocked: true }) });
 
-        await w.getComponent(CheckboxInput).vm.$emit("update:modelValue", true);
-        expect(w.emitted("apply-day")[0][0]).toEqual({ date: "2026-10-05", blocked: true, shifts: { 20: "not_preferred" } });
-
-        await w.setProps({ day: day({ blocked: true }) });
         expect(cell(w, 10).classes()).toContain("bg-(--color-badge-error-bg)");
         expect(cell(w, 10).attributes("disabled")).toBeDefined();
     });
+
 
     it("resets the day to the default", async () => {
         const w = mountGrid();
@@ -120,34 +117,29 @@ describe("DateAvailabilityGrid", () => {
         const w = mountGrid({ day: day({ holiday: true }) });
 
         expect(w.text()).toBe("This day is a holiday.");
-        expect(w.findComponent(CheckboxInput).exists()).toBe(false);
         expect(w.find("table").exists()).toBe(false);
-        expect(w.find("hr").exists()).toBe(false);
     });
 
-    it("keeps the block checkbox on a day without shifts", () => {
+    it("says so on a day without shifts", () => {
         const w = mountGrid({ day: day({ shifts: [] }) });
 
         expect(w.text()).toContain("No shift runs on this day.");
-        expect(w.findComponent(CheckboxInput).exists()).toBe(true);
     });
+
 
 
     it("is read-only when disabled", () => {
         const w = mountGrid({ disabled: true });
 
         expect(cell(w, 10).attributes("disabled")).toBeDefined();
-        expect(w.getComponent(CheckboxInput).props("disabled")).toBe(true);
         expect(w.findAll("button").some((b) => b.text() === "Reset to default")).toBe(false);
     });
 
-    it("places a separator right below the block checkbox", () => {
+    it("has no block checkbox or separator of its own; the card header holds the checkbox", () => {
         const w = mountGrid();
-        const html = w.html();
 
-        expect(w.getComponent(CardSeparator).props("flushTop")).toBe(true);
-        expect(w.get("hr").classes()).toContain("mt-0");
-        expect(html.indexOf("Block the whole day")).toBeLessThan(html.indexOf("<hr"));
-        expect(html.indexOf("<hr")).toBeLessThan(html.indexOf("<table"));
+        expect(w.findComponent(CheckboxInput).exists()).toBe(false);
+        expect(w.find("hr").exists()).toBe(false);
     });
+
 });

@@ -2,9 +2,7 @@
 import { computed } from 'vue'
 import AvailabilityLevelCell from '@/components/AvailabilityLevelCell.vue'
 import ButtonSecondary from '@/components/ui/ButtonSecondary.vue'
-import CardSeparator from '@/components/ui/CardSeparator.vue'
-import { CheckboxInput } from '@/components/ui/Input'
-import { isoWeekday } from '@/utils/availabilityCalendar'
+import { dayOverrides, isoWeekday } from '@/utils/availabilityCalendar'
 import { useI18n } from '@/composables/useI18n'
 
 const __ = useI18n()
@@ -17,15 +15,12 @@ const props = defineProps({
 })
 
 // Every change emits the whole day, so the parent replaces that date's overrides.
+// The whole-day block is DayBlockToggle, in the card header.
 const emit = defineEmits(['apply-day'])
 
 const LEVELS = ['available', 'not_preferred', 'unavailable']
 
 const weekday = computed(() => isoWeekday(props.day.date))
-
-function overrides() {
-    return Object.fromEntries(props.day.shifts.filter((s) => s.override).map((s) => [s.shift.id, s.override]))
-}
 
 function optionsFor(entry) {
     return [
@@ -45,14 +40,10 @@ function shownLevel(entry) {
 }
 
 function choose(shiftId, value) {
-    const shifts = overrides()
+    const shifts = dayOverrides(props.day)
     if (value === 'default') delete shifts[shiftId]
     else shifts[shiftId] = value
     emit('apply-day', { date: props.day.date, blocked: props.day.blocked, shifts })
-}
-
-function setBlocked(blocked) {
-    emit('apply-day', { date: props.day.date, blocked, shifts: overrides() })
 }
 
 function reset() {
@@ -71,12 +62,6 @@ function reset() {
     </p>
 
     <div v-else class="space-y-3">
-        <CheckboxInput :model-value="day.blocked" :disabled="disabled" @update:model-value="setBlocked">
-            {{ __('availability.day.block') }}
-        </CheckboxInput>
-
-        <CardSeparator flush-top />
-
         <p v-if="!day.shifts.length" class="text-sm text-(--color-text-secondary)">
             {{ __('availability.grid.no_shifts_on_day') }}
         </p>
