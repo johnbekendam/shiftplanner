@@ -109,7 +109,10 @@ Both pages use the same Availability tab layout:
 A click on any weekday letter in the calendar header selects the whole
 header row. A border goes around the row, and the right column shows
 the default week: the full Monday–Sunday grid. A second click on a
-weekday letter deselects it.
+weekday letter deselects it. The hover border also goes around the whole
+header row, and a click anywhere on the row selects it.
+
+A day shows its own hover border. The week row of the day does not.
 
 The right column shows either the default week or the schedule of a
 date, never both. Picking the default week clears the selected date,

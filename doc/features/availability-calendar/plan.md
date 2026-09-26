@@ -1,4 +1,4 @@
-Status: complete — 15/15
+Status: complete — 16/16
 
 - [x] 1. Add the `EmployeeAvailability` resolver for weekly defaults and
   holidays. Build it from loaded relations and from `PlanProblem`
@@ -79,3 +79,7 @@ Status: complete — 15/15
   `Calendar.vue` takes a `weekdayHeaderSelected` prop in place of
   `selectedWeekday`. `AvailabilityGrid` drops its `weekday` prop.
   Vitest.
+
+- [x] 16. Hover borders: the whole weekday header row in header-selection
+  mode, and one day (not its week row) when `highlightSelection` is
+  false. A click anywhere on the header row selects it. Vitest.

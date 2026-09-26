@@ -373,4 +373,38 @@ describe("Calendar", () => {
         expect(header.classes()).toContain("border-(--color-tab-active-border)");
         expect(header.findAll("button").every((b) => !b.classes().includes("border-(--color-tab-active-border)"))).toBe(true);
     });
+
+    it("shows the hover border on the whole weekday header, not on single letters, in header-selection mode", () => {
+        const w = mount(Calendar, { props: { year: 2026, month: 10, weekdayHeaderSelected: false } });
+        const header = w.get('[data-testid="calendar-weekday-header"]');
+
+        expect(header.classes()).toContain("hover:border-(--color-tab-hover-border)");
+        expect(header.findAll("button").every((b) => !b.classes().includes("hover:border-(--color-tab-hover-border)"))).toBe(true);
+    });
+
+    it("hovers a single day, not its week row, when highlightSelection is false", () => {
+        const w = mount(Calendar, { props: { year: 2026, month: 10, highlightSelection: false, dayBorders: { 7: "solid" } } });
+        const day = (n) => w.findAll("button").find((b) => b.text() === String(n));
+
+        expect(weekRow(day(14)).className).not.toContain("hover:border-(--color-tab-hover-border)");
+        expect(weekRow(day(14)).className).not.toContain("cursor-pointer");
+        expect(day(14).classes()).toContain("hover:border-(--color-tab-hover-border)");
+        expect(day(7).classes()).toContain("border-(--color-tab-active-border)");
+    });
+
+    it("keeps the week-row hover by default", () => {
+        const w = mount(Calendar, { props: { year: 2026, month: 10 } });
+        const day14 = w.findAll("button").find((b) => b.text() === "14");
+
+        expect(weekRow(day14).className).toContain("hover:border-(--color-tab-hover-border)");
+        expect(day14.classes()).not.toContain("hover:border-(--color-tab-hover-border)");
+    });
+
+    it("selects the weekday header from anywhere on the row in header-selection mode", async () => {
+        const w = mount(Calendar, { props: { year: 2026, month: 10, weekdayHeaderSelected: false } });
+
+        await w.get('[data-testid="calendar-week-label"]').trigger("click");
+
+        expect(w.emitted("weekday-click")).toEqual([[{ weekday: 1 }]]);
+    });
 });

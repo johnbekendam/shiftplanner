@@ -17,11 +17,10 @@
             <!-- Weekday headers -->
             <div
                 data-testid="calendar-weekday-header"
+                @click="onWeekdayHeaderClick"
                 :class="[
                     'mb-4 grid justify-items-center gap-x-0 gap-y-1',
-                    weekdayHeaderSelected
-                        ? 'rounded-md border-2 border-(--color-tab-active-border)'
-                        : 'border-b border-(--color-card-border)',
+                    weekdayHeaderClass,
                     GRID_COLUMNS,
                 ]"
             >
@@ -37,6 +36,7 @@
                             isWeekdayHighlighted(i),
                             false,
                             false,
+                            weekdayHeaderSelected === undefined,
                         )
                     "
                     :disabled="!enableWeekDaySelection"
@@ -69,7 +69,7 @@
                         <button
                             v-else
                             :class="[
-                                dayClass(colorForDay(cell.day), false, isToday(cell.day), isDisabled(cell.day), false, dayBorders[cell.day]),
+                                dayClass(colorForDay(cell.day), false, isToday(cell.day), isDisabled(cell.day), !highlightSelection && enableDaySelection, dayBorders[cell.day]),
                                 cell.day === ringDay ? 'ring-2 ring-(--color-input-focus-border)' : '',
                             ]"
                             :disabled="isDisabled(cell.day)"
@@ -334,8 +334,11 @@ function dayClass(color, selected, today, disabled, hoverable = true, borderStyl
 }
 
 // The border of a week row: active when selected, hoverable when a click can select it.
+// Without selection highlighting, the week row has no border or hover:
+// each day carries its own hover border instead.
 function weekRowClass(week) {
-    if (props.highlightSelection && isWeekSelected(week)) return 'border-(--color-tab-active-border)'
+    if (!props.highlightSelection) return 'border-transparent'
+    if (isWeekSelected(week)) return 'border-(--color-tab-active-border)'
     return props.enableDaySelection
         ? 'border-transparent hover:border-(--color-tab-hover-border) cursor-pointer'
         : 'border-transparent'
@@ -389,6 +392,22 @@ function selectWeekday(i) {
     selectedWeekStart.value = null
     emitChange()
     emit('weekday-click', { weekday: i + 1 })
+}
+
+// In header-selection mode the header row is one target: it carries the
+// selected and hover borders for all seven letters together.
+const weekdayHeaderClass = computed(() => {
+    if (props.weekdayHeaderSelected === undefined) return 'border-b border-(--color-card-border)'
+    if (props.weekdayHeaderSelected) return 'rounded-md border-2 border-(--color-tab-active-border)'
+    return 'rounded-md border-2 border-transparent border-b-(--color-card-border) hover:border-(--color-tab-hover-border) cursor-pointer'
+})
+
+// In header-selection mode a click on the row outside the letters (the
+// week label, the gaps) selects the header as a letter click does.
+function onWeekdayHeaderClick(event) {
+    if (props.weekdayHeaderSelected === undefined || !props.enableWeekDaySelection) return
+    if (event.target.closest('button')) return
+    selectWeekday(0)
 }
 
 // i: Mon=0 … Sun=6
