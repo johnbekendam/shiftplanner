@@ -1,0 +1,49 @@
+Status: not started — 0/11
+
+- [ ] 1. Add the `EmployeeAvailability` resolver for weekly defaults and
+  holidays. Build it from loaded relations and from `PlanProblem`
+  arrays. Switch `SchedulingEligibility`, `PlanEligibility`, `PlanScorer`
+  and `PlanningVerifier` to it. Unit tests for the resolver. The existing
+  suite stays green.
+
+- [ ] 2. Add the start date. Migration for `employees.available_from`.
+  The resolver returns `not_started` before it. `not_started` becomes a
+  block reason, a verification code and a planner block. The admin and
+  personal update endpoints accept the field. Both page payloads
+  include it. Feature tests for each.
+
+- [ ] 3. Add date overrides to the back end. Migration and
+  `AvailabilityOverride` model. The resolver applies whole-day blocks
+  and shift overrides. Add `PUT .../availability/dates/{date}` on the
+  admin and personal routes. It replaces the rows of the date, audits
+  the change and respects the change lock. Both page payloads include
+  all overrides. Feature tests.
+
+- [ ] 4. Add shifts per weekday. `Employee::shiftWeekdays()` returns the
+  ISO weekdays each effective shift runs on. The weekday routes accept
+  1–7. The weekday and date write paths reject a shift that does not
+  run that day. Both page payloads include the map. Tests.
+
+- [ ] 5. Include `available_from` and the date overrides in the employee
+  backup export and restore. Tests.
+
+- [ ] 6. Show Monday to Sunday in `AvailabilityGrid`. Show a cell only
+  where the shift runs. Hide a weekday column without running shifts.
+  Vitest.
+
+- [ ] 7. Add a `dayBorders` prop (solid or dashed per day) and a
+  `highlightSelection` prop to `Calendar.vue`. Vitest.
+
+- [ ] 8. Add `utils/availabilityCalendar.js`. It gives the day status,
+  fill and border from the start date, holidays, defaults, overrides and
+  shifts per weekday. It mirrors the resolver order. Vitest.
+
+- [ ] 9. Add `DayAvailabilityDialog.vue`. It edits the shift levels, the
+  whole-day block and the reset of one date. Vitest.
+
+- [ ] 10. Add `AvailabilityCalendar.vue`: the calendar, legend and day
+  dialog. Integrate it in the personal page with the start date field,
+  the two-column layout and a `dates` save registry entry. Vitest.
+
+- [ ] 11. Integrate the same layout, start date and `dates` save entry in
+  the admin employee page. Vitest.
