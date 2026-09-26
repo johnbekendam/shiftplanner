@@ -96,4 +96,10 @@ describe("AvailabilityCalendar", () => {
         await calendar.vm.$emit("weekday-click", { weekday: 5 });
         expect(w.emitted("update:defaultWeekSelected").at(-1)).toEqual([false]);
     });
+
+    it("sizes the calendar to its content instead of stretching", () => {
+        const w = mountCalendar();
+
+        expect(w.getComponent(Calendar).classes()).toContain("w-fit");
+    });
 });

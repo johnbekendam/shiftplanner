@@ -1,4 +1,4 @@
-Status: complete — 20/20
+Status: complete — 21/21
 
 - [x] 1. Add the `EmployeeAvailability` resolver for weekly defaults and
   holidays. Build it from loaded relations and from `PlanProblem`
@@ -99,3 +99,6 @@ Status: complete — 20/20
 - [x] 20. Put the availability card below the calendar, in one column.
   Both pages return to their normal width, and `CenteredLayout` drops
   the `wide` width. Vitest.
+
+- [x] 21. Size the availability calendar to its content (`w-fit`), so it
+  does not stretch across the tab. Vitest.

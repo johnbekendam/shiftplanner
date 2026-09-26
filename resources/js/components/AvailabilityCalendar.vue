@@ -77,6 +77,7 @@ const ringDay = computed(() => {
 
 <template>
     <Calendar
+        class="w-fit"
         :year="year"
         :month="month"
         :day-states="states.dayStates"

@@ -102,7 +102,7 @@ effect. Each change goes straight into the pending edits.
 Both pages use the same Availability tab layout:
 
 1. Top row: start date, weekly hours, the hours warning.
-2. The calendar with its legend, and below it a card with the default
+2. The calendar with its legend, as wide as its content, and below it a card with the default
    week or the schedule of one date. The schedule note sits in the same
    card, below a separator. The card header shows "Default
    availability" or the date. Without a selection, the card shows only
