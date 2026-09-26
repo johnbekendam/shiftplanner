@@ -168,18 +168,11 @@ class PlanningVerifier
             $this->flag($assignment, 'archived');
         }
 
-        if ($employee->holidays->contains(fn ($h) => $h->start_date->toDateString() <= $date && $h->end_date->toDateString() >= $date)) {
-            $this->flag($assignment, 'holiday');
+        $status = EmployeeAvailability::fromEmployee($employee)->status($date, $assignment->shift_id);
+        if (! EmployeeAvailability::isAssignable($status)) {
+            $this->flag($assignment, $status === 'holiday' ? 'holiday' : 'unavailable');
         }
-
-        // Matches SchedulingEligibility: a missing cell is unavailable, not available.
-        $level = $employee->recurringAvailabilities
-            ->first(fn ($r) => $r->weekday === $assignment->date->isoWeekday() && $r->shift_id === $assignment->shift_id)
-            ?->level;
-        if (! in_array($level, ['available', 'not_preferred'], true)) {
-            $this->flag($assignment, 'unavailable');
-        }
-        if ($level === 'not_preferred' && $rules->contains('type', 'not_preferred_shift')) {
+        if ($status === 'not_preferred' && $rules->contains('type', 'not_preferred_shift')) {
             $this->flag($assignment, 'not_preferred');
         }
 

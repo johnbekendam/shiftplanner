@@ -4,7 +4,6 @@ namespace App\Services;
 
 use App\Models\Employee;
 use App\Models\PlanningRule;
-use App\Models\RecurringAvailability;
 use App\Models\Shift;
 use App\Models\ShiftAssignment;
 use App\Models\Workcenter;
@@ -40,12 +39,9 @@ class SchedulingEligibility
             return 'shift_hidden';
         }
 
-        if ($this->isOnHoliday($employee, $date)) {
-            return 'holiday';
-        }
-
-        if ($this->isUnavailable($employee, $date->isoWeekday(), $shift)) {
-            return 'unavailable';
+        $status = $this->availabilityStatus($employee, $date, $shift);
+        if (! EmployeeAvailability::isAssignable($status)) {
+            return $status === 'holiday' ? 'holiday' : 'unavailable';
         }
 
         if ($this->isWorkcenterIneligible($employee, $workcenter)) {
@@ -90,19 +86,6 @@ class SchedulingEligibility
             ->exists();
     }
 
-    public function isOnHoliday(Employee $employee, Carbon $date): bool
-    {
-        return $employee->holidays()
-            ->whereDate('start_date', '<=', $date)
-            ->whereDate('end_date', '>=', $date)
-            ->exists();
-    }
-
-    public function isUnavailable(Employee $employee, int $weekday, Shift $shift): bool
-    {
-        return ! in_array($this->recurringLevel($employee, $weekday, $shift), ['available', 'not_preferred'], true);
-    }
-
     public function isShiftUnavailableForWorkcenter(Employee $employee, Workcenter $workcenter, Shift $shift): bool
     {
         if ($shift->visible_by_default) {
@@ -115,9 +98,9 @@ class SchedulingEligibility
             ->exists();
     }
 
-    public function isNotPreferred(Employee $employee, int $weekday, Shift $shift): bool
+    public function isNotPreferred(Employee $employee, Carbon $date, Shift $shift): bool
     {
-        return $this->recurringLevel($employee, $weekday, $shift) === RecurringAvailability::LEVELS[0];
+        return $this->availabilityStatus($employee, $date, $shift) === 'not_preferred';
     }
 
     /** True when the employee is not a member of this workcenter. No rows means ineligible everywhere. */
@@ -126,13 +109,11 @@ class SchedulingEligibility
         return ! $employee->workcenters()->where('workcenters.id', $workcenter->id)->exists();
     }
 
-    private function recurringLevel(Employee $employee, int $weekday, Shift $shift): ?string
+    private function availabilityStatus(Employee $employee, Carbon $date, Shift $shift): string
     {
-        return RecurringAvailability::query()
-            ->where('employee_id', $employee->id)
-            ->where('weekday', $weekday)
-            ->where('shift_id', $shift->id)
-            ->value('level');
+        $employee->loadMissing(['holidays', 'recurringAvailabilities']);
+
+        return EmployeeAvailability::fromEmployee($employee)->status($date->toDateString(), $shift->id);
     }
 
     /** Any other same-date assignment for this employee whose shift's clock range intersects this one's. */

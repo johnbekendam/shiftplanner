@@ -2,7 +2,7 @@
 
 namespace App\Services\Planning;
 
-use Carbon\Carbon;
+use App\Services\EmployeeAvailability;
 
 /**
  * Collapses the three lexicographic tiers `planning-rules` defined
@@ -20,6 +20,9 @@ final class PlanScorer
     /** @var array<int, array> employee_id => employee row, for O(1) lookups in hot loops. */
     private array $employeesById;
 
+    /** @var array<int, EmployeeAvailability> employee_id => availability */
+    private array $availabilityById = [];
+
     public function __construct(
         private readonly PlanProblem $problem,
         private readonly PlanSoftRules $softRules,
@@ -27,6 +30,7 @@ final class PlanScorer
         $this->employeesById = [];
         foreach ($problem->employees as $employee) {
             $this->employeesById[$employee['id']] = $employee;
+            $this->availabilityById[$employee['id']] = EmployeeAvailability::fromPlanEmployee($employee);
         }
     }
 
@@ -85,16 +89,9 @@ final class PlanScorer
             return 0.0;
         }
 
-        $employee = $this->employeesById[$a['employee_id']] ?? null;
-        if (! $employee) {
-            return 0.0;
-        }
-
-        $weekday = Carbon::parse($a['date'])->isoWeekday();
-        foreach ($employee['recurring_availability'] as $row) {
-            if ($row['weekday'] === $weekday && $row['shift_id'] === $a['shift_id'] && $row['level'] === 'not_preferred') {
-                return (float) $this->softRules->notPreferredShift['severity'];
-            }
+        $availability = $this->availabilityById[$a['employee_id']] ?? null;
+        if ($availability?->status($a['date'], $a['shift_id']) === 'not_preferred') {
+            return (float) $this->softRules->notPreferredShift['severity'];
         }
 
         return 0.0;

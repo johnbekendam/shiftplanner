@@ -1,6 +1,6 @@
-Status: not started — 0/11
+Status: in progress — 1/11
 
-- [ ] 1. Add the `EmployeeAvailability` resolver for weekly defaults and
+- [x] 1. Add the `EmployeeAvailability` resolver for weekly defaults and
   holidays. Build it from loaded relations and from `PlanProblem`
   arrays. Switch `SchedulingEligibility`, `PlanEligibility`, `PlanScorer`
   and `PlanningVerifier` to it. Unit tests for the resolver. The existing

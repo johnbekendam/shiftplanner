@@ -2,7 +2,7 @@
 
 namespace App\Services\Planning;
 
-use Carbon\Carbon;
+use App\Services\EmployeeAvailability;
 
 /**
  * Hard-eligibility rules, precomputed once per run from a {@see PlanProblem}
@@ -12,10 +12,7 @@ use Carbon\Carbon;
  */
 final class PlanEligibility
 {
-    /** @var array<int, array<int, array{start: string, end: string}>> employee_id => holiday ranges */
-    private array $holidays = [];
-
-    /** @var array<int, array<string, string>> employee_id => "weekday:shift_id" => level */
+    /** @var array<int, EmployeeAvailability> employee_id => availability */
     private array $availability = [];
 
     /** @var array<int, array<int, true>> employee_id => workcenter_id set */
@@ -46,12 +43,8 @@ final class PlanEligibility
     {
         foreach ($problem->employees as $employee) {
             $id = $employee['id'];
-            $this->holidays[$id] = $employee['holidays'];
+            $this->availability[$id] = EmployeeAvailability::fromPlanEmployee($employee);
             $this->businessLines[$id] = $employee['business_line_id'];
-
-            foreach ($employee['recurring_availability'] as $row) {
-                $this->availability[$id]["{$row['weekday']}:{$row['shift_id']}"] = $row['level'];
-            }
 
             foreach ($employee['workcenter_ids'] as $workcenterId) {
                 $this->workcenters[$id][$workcenterId] = true;
@@ -93,8 +86,7 @@ final class PlanEligibility
     {
         $id = $employee['id'];
 
-        return ! $this->isOnHoliday($id, $date)
-            && $this->isAssignableLevel($this->recurringLevel($id, $date, $shiftId))
+        return $this->isAssignableStatus($this->availability[$id]->status($date, $shiftId))
             && ! $this->isWorkcenterIneligible($id, $workcenterId)
             && $this->holdsRequiredCompetences($id, $workcenterId)
             && $this->matchesRequiredBusinessLine($id, $workcenterId)
@@ -105,29 +97,9 @@ final class PlanEligibility
     }
 
     /** A hard not_preferred_shift rule closes not-preferred cells like unavailable ones. */
-    private function isAssignableLevel(string $level): bool
+    private function isAssignableStatus(string $status): bool
     {
-        return $level === 'available' || ($level === 'not_preferred' && ! $this->hardNotPreferredShift);
-    }
-
-    private function isOnHoliday(int $employeeId, string $date): bool
-    {
-        foreach ($this->holidays[$employeeId] ?? [] as $range) {
-            if ($date >= $range['start'] && $date <= $range['end']) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /** Matches SchedulingEligibility: a missing cell is unavailable, not available. */
-    private function recurringLevel(int $employeeId, string $date, int $shiftId): ?string
-    {
-        $weekday = Carbon::parse($date)->isoWeekday();
-        $level = $this->availability[$employeeId]["{$weekday}:{$shiftId}"] ?? null;
-
-        return $level ?? 'unavailable';
+        return EmployeeAvailability::isAssignable($status) && ! ($status === 'not_preferred' && $this->hardNotPreferredShift);
     }
 
     /** Matches SchedulingEligibility::isWorkcenterIneligible exactly. */
