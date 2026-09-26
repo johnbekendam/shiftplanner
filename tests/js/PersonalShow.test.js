@@ -754,7 +754,7 @@ describe("Personal/Show", () => {
         const panel = w.get('[data-testid="panel-availability"]');
         expect(panel.find('[data-testid="default-week-section"]').exists()).toBe(false);
         expect(panel.findComponent(AvailabilityGrid).exists()).toBe(false);
-        expect(panel.get('[data-testid="availability-info-card"]').find('[data-testid="default-week-hint"]').exists()).toBe(true);
+        expect(panel.find('[data-testid="default-week-hint"]').exists()).toBe(true);
 
         await selectDefaultWeek(w);
 
@@ -822,13 +822,13 @@ describe("Personal/Show", () => {
         expect(section().get('[data-testid="availability-card-header"]').text()).toBe("Monday 05-10-2026");
     });
 
-    it("shows the hint, the legend and the schedule note in the info card next to the calendar", async () => {
+    it("shows the legend and the schedule note in the info card next to the calendar, the hint above it", async () => {
         const w = mountShow([], { scheduleNoteHtml: "<p>Early starts at six.</p>" });
         const card = w.get('[data-testid="availability-info-card"]');
         const html = card.html();
 
-        expect(card.findAll("hr")).toHaveLength(2);
-        expect(html.indexOf('data-testid="default-week-hint"')).toBeLessThan(html.indexOf('data-testid="calendar-legend"'));
+        expect(card.find('[data-testid="default-week-hint"]').exists()).toBe(false);
+        expect(card.findAll("hr")).toHaveLength(1);
         expect(html.indexOf('data-testid="calendar-legend"')).toBeLessThan(html.indexOf("Early starts at six."));
         expect(card.findAllComponents(ShiftNote)).toHaveLength(1);
     });

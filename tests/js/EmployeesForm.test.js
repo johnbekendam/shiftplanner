@@ -949,7 +949,7 @@ describe("Employees/Form", () => {
         const panel = w.get('[data-testid="panel-availability"]');
         expect(panel.find('[data-testid="default-week-section"]').exists()).toBe(false);
         expect(panel.findComponent(AvailabilityGrid).exists()).toBe(false);
-        expect(panel.get('[data-testid="availability-info-card"]').find('[data-testid="default-week-hint"]').exists()).toBe(true);
+        expect(panel.find('[data-testid="default-week-hint"]').exists()).toBe(true);
 
         await selectDefaultWeek(w);
 

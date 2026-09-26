@@ -51,7 +51,7 @@ describe("AvailabilityCalendar", () => {
         expect(calendar.props("borderLegenda")).toEqual({});
     });
 
-    it("shows the hint, the legend and the slot content in an info card next to the calendar", () => {
+    it("shows the hint above the calendar, and the legend and slot content in an info card next to it", () => {
         const w = mount(AvailabilityCalendar, {
             props: { shifts: [early] },
             slots: { default: '<p data-testid="slot-note">Note</p>' },
@@ -60,19 +60,21 @@ describe("AvailabilityCalendar", () => {
 
         expect(card.classes()).toContain("flex-1");
         expect(w.getComponent(Calendar).classes()).toEqual(expect.arrayContaining(["w-fit", "shrink-0"]));
-        expect(card.find('[data-testid="default-week-hint"]').exists()).toBe(true);
+        expect(card.find('[data-testid="default-week-hint"]').exists()).toBe(false);
+        const html = w.html();
+        expect(html.indexOf('data-testid="default-week-hint"')).toBeLessThan(html.indexOf("calendar-weekday-header"));
         expect(card.getComponent(CalendarLegend).props()).toEqual({
             legenda: { success: "Available", warning: "Only not preferred", error: "Not available" },
             borderLegenda: { solid: "Changed", dashed: "Holiday" },
         });
         expect(card.find('[data-testid="slot-note"]').exists()).toBe(true);
-        expect(card.findAll("hr")).toHaveLength(2);
+        expect(card.findAll("hr")).toHaveLength(1);
     });
 
     it("leaves out the slot separator without slot content", () => {
         const w = mountCalendar();
 
-        expect(w.get('[data-testid="availability-info-card"]').findAll("hr")).toHaveLength(1);
+        expect(w.get('[data-testid="availability-info-card"]').findAll("hr")).toHaveLength(0);
     });
 
     it("follows the calendar to another month", async () => {

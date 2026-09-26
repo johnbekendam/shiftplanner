@@ -1,4 +1,4 @@
-Status: complete — 22/22
+Status: complete — 23/23
 
 - [x] 1. Add the `EmployeeAvailability` resolver for weekly defaults and
   holidays. Build it from loaded relations and from `PlanProblem`
@@ -110,3 +110,6 @@ Status: complete — 22/22
   The availability card shows only with a selection. The legend moves to
   `CalendarLegend.vue`, and the class maps to `calendarClasses.js`, both
   shared with `Calendar.vue`. Vitest.
+
+- [x] 23. Move the hint out of the info card to plain text above the
+  calendar. Vitest.
