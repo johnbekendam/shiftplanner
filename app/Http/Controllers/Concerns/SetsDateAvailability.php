@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Concerns;
 
 use App\Models\AvailabilityOverride;
 use App\Models\Employee;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -29,6 +30,14 @@ trait SetsDateAvailability
         $effectiveIds = $employee->effectiveShifts()->pluck('id')->all();
         if (array_diff($shiftIds, $effectiveIds) !== []) {
             throw ValidationException::withMessages(['shifts' => __('availability.error.shift_hidden')]);
+        }
+
+        $weekday = Carbon::parse($date)->isoWeekday();
+        $shiftWeekdays = $employee->shiftWeekdays();
+        foreach ($shiftIds as $shiftId) {
+            if (! in_array($weekday, $shiftWeekdays[$shiftId], true)) {
+                throw ValidationException::withMessages(['shifts' => __('availability.error.shift_not_running')]);
+            }
         }
 
         $before = $this->dateState($employee, $date);

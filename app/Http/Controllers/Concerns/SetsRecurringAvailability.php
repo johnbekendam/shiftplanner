@@ -22,6 +22,10 @@ trait SetsRecurringAvailability
             throw ValidationException::withMessages(['shift' => __('availability.error.shift_hidden')]);
         }
 
+        if (! in_array($weekday, $employee->shiftWeekdays()[$shift->id], true)) {
+            throw ValidationException::withMessages(['shift' => __('availability.error.shift_not_running')]);
+        }
+
         if ($level === 'not_set') {
             $employee->recurringAvailabilities()
                 ->where('weekday', $weekday)

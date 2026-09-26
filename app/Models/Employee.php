@@ -127,6 +127,45 @@ class Employee extends Model
         return Shift::whereHas('workcenters', fn ($q) => $q->whereIn('workcenters.id', $workcenterIds))->get();
     }
 
+    /**
+     * The ISO weekdays (1-7) each effective shift runs on for this
+     * employee: a day where one of their workcenters has spots for it. An
+     * employee without a workcenter counts every active workcenter.
+     *
+     * @return array<int, int[]> shift_id => sorted weekdays
+     */
+    public function shiftWeekdays(): array
+    {
+        $shiftIds = $this->effectiveShifts()->pluck('id');
+        $workcenterIds = $this->workcenters()->pluck('workcenters.id');
+
+        $weekdays = WorkcenterShiftCapacity::query()
+            ->whereIn('shift_id', $shiftIds)
+            ->where('spots', '>', 0)
+            ->when(
+                $workcenterIds->isNotEmpty(),
+                fn ($q) => $q->whereIn('workcenter_id', $workcenterIds),
+                fn ($q) => $q->whereHas('workcenter', fn ($w) => $w->whereNull('archived_at')),
+            )
+            ->get(['shift_id', 'weekday'])
+            ->groupBy('shift_id');
+
+        return $shiftIds->mapWithKeys(fn (int $id) => [
+            $id => $weekdays->get($id, collect())->pluck('weekday')->map(fn ($d) => (int) $d)->unique()->sort()->values()->all(),
+        ])->all();
+    }
+
+    /** The availability pages' shift list: each shift's payload plus the weekdays it runs on. */
+    public function availabilityShiftsPayload(Collection $shifts): array
+    {
+        $weekdays = $this->shiftWeekdays();
+
+        return $shifts
+            ->map(fn (Shift $shift) => [...$shift->toPayload(), 'weekdays' => $weekdays[$shift->id] ?? []])
+            ->values()
+            ->all();
+    }
+
     /** Availability questions the employee answered with yes. */
     public function availabilityQuestions(): BelongsToMany
     {

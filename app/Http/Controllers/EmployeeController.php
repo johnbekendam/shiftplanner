@@ -187,7 +187,7 @@ class EmployeeController extends Controller
             'globalWeeklyHoursMinimum' => PlanningSettings::current()->weekly_hours_minimum,
             'businessLines' => BusinessLine::all()->map->toPayload()->all(),
             'holidays' => $employee->holidays->map->toPayload()->all(),
-            'shifts' => $visibleShifts->map->toPayload()->values()->all(),
+            'shifts' => $employee->availabilityShiftsPayload($visibleShifts),
             'shiftNoteHtml' => PlanningSettings::current()->shiftNoteHtml($employee->first_name),
             'scheduleNoteHtml' => PlanningSettings::current()->scheduleNoteHtml($employee->first_name),
             'availability' => $employee->recurringAvailabilities

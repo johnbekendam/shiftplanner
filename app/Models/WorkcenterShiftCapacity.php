@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class WorkcenterShiftCapacity extends Model
 {
@@ -19,5 +20,10 @@ class WorkcenterShiftCapacity extends Model
             'weekday' => 'integer',
             'spots' => 'integer',
         ];
+    }
+
+    public function workcenter(): BelongsTo
+    {
+        return $this->belongsTo(Workcenter::class);
     }
 }

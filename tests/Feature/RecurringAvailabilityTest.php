@@ -7,6 +7,7 @@ use App\Models\RecurringAvailability;
 use App\Models\Shift;
 use App\Models\User;
 use App\Models\Workcenter;
+use App\Models\WorkcenterShiftCapacity;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -21,11 +22,25 @@ class RecurringAvailabilityTest extends TestCase
 
     private function shift(string $name = 'Early'): Shift
     {
-        return Shift::factory()->create([
+        $shift = Shift::factory()->create([
             'name' => $name,
             'start_time' => '06:00',
             'end_time' => '14:00',
         ]);
+        $this->staff($shift, Workcenter::factory()->create());
+
+        return $shift;
+    }
+
+    /** Opens spots for $shift on every weekday, so availability can be set for each day. */
+    private function staff(Shift $shift, Workcenter $workcenter): void
+    {
+        $workcenter->shifts()->syncWithoutDetaching($shift);
+        foreach (range(1, 7) as $weekday) {
+            WorkcenterShiftCapacity::query()->create([
+                'workcenter_id' => $workcenter->id, 'shift_id' => $shift->id, 'weekday' => $weekday, 'spots' => 1,
+            ]);
+        }
     }
 
     // ── Manager route ──────────────────────────────────────────────────────
@@ -107,7 +122,7 @@ class RecurringAvailabilityTest extends TestCase
         $workcenter = Workcenter::factory()->create();
         $shift = $this->shift();
         $shift->update(['visible_by_default' => false]);
-        $workcenter->shifts()->attach($shift);
+        $this->staff($shift, $workcenter);
         $employee->workcenters()->attach($workcenter);
 
         $this->actingAs($user)
@@ -243,20 +258,18 @@ class RecurringAvailabilityTest extends TestCase
         $this->assertSame(0, RecurringAvailability::count());
     }
 
-    public function test_the_weekend_is_out_of_range(): void
+    public function test_the_weekend_is_in_range_when_the_shift_runs(): void
     {
         $user = User::factory()->create();
         $employee = Employee::factory()->create();
         $shift = $this->shift();
 
-        $this->actingAs($user)->put("/employees/{$employee->id}/availability/6/{$shift->id}", ['level' => 'unavailable'])->assertNotFound();
-        $this->actingAs($user)->put("/employees/{$employee->id}/availability/7/{$shift->id}", ['level' => 'unavailable'])->assertNotFound();
+        $this->actingAs($user)->put("/employees/{$employee->id}/availability/6/{$shift->id}", ['level' => 'unavailable'])->assertRedirect();
 
         $token = $this->token($employee);
-        $this->put("/personal/{$token}/availability/6/{$shift->id}", ['level' => 'unavailable'])->assertNotFound();
-        $this->put("/personal/{$token}/availability/7/{$shift->id}", ['level' => 'unavailable'])->assertNotFound();
+        $this->put("/personal/{$token}/availability/7/{$shift->id}", ['level' => 'unavailable'])->assertRedirect("/personal/{$token}");
 
-        $this->assertSame(0, RecurringAvailability::count());
+        $this->assertSame(2, RecurringAvailability::count());
     }
 
     public function test_edit_payload_lists_shifts_and_availability(): void

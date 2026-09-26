@@ -1,4 +1,4 @@
-Status: in progress — 3/11
+Status: in progress — 4/11
 
 - [x] 1. Add the `EmployeeAvailability` resolver for weekly defaults and
   holidays. Build it from loaded relations and from `PlanProblem`
@@ -20,10 +20,11 @@ Status: in progress — 3/11
   all overrides. The application archive includes the new table. An
   older archive without it restores it empty. Feature tests.
 
-- [ ] 4. Add shifts per weekday. `Employee::shiftWeekdays()` returns the
+- [x] 4. Add shifts per weekday. `Employee::shiftWeekdays()` returns the
   ISO weekdays each effective shift runs on. The weekday routes accept
   1–7. The weekday and date write paths reject a shift that does not
-  run that day. Both page payloads include the map. Tests.
+  run that day. Each shift in both page payloads has a `weekdays` list.
+  Tests.
 
 - [ ] 5. Include `available_from` and the date overrides in the employee
   configuration archive (`EmployeeBackupController`) export and import.

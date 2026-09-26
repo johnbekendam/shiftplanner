@@ -28,6 +28,15 @@ class AvailabilityOverrideTest extends TestCase
         return [$employee, $link->token];
     }
 
+    /** Opens spots for $shift on Mondays, the weekday of MONDAY. */
+    private function staffOnMonday(Shift ...$shifts): void
+    {
+        $workcenter = Workcenter::factory()->create();
+        foreach ($shifts as $shift) {
+            WorkcenterShiftCapacity::query()->create(['workcenter_id' => $workcenter->id, 'shift_id' => $shift->id, 'weekday' => 1, 'spots' => 1]);
+        }
+    }
+
     private function adminUrl(Employee $employee, string $date = self::MONDAY): string
     {
         return "/employees/{$employee->id}/availability/dates/{$date}";
@@ -44,6 +53,7 @@ class AvailabilityOverrideTest extends TestCase
         $employee = Employee::factory()->create();
         $early = Shift::factory()->create(['visible_by_default' => true]);
         $late = Shift::factory()->create(['visible_by_default' => true]);
+        $this->staffOnMonday($early, $late);
 
         $this->put($this->adminUrl($employee), [
             'blocked' => false,
@@ -112,6 +122,7 @@ class AvailabilityOverrideTest extends TestCase
     {
         [$employee, $token] = $this->linkedEmployee();
         $shift = Shift::factory()->create(['visible_by_default' => true]);
+        $this->staffOnMonday($shift);
 
         $this->put("/personal/{$token}/availability/dates/".self::MONDAY, [
             'blocked' => false, 'shifts' => [$shift->id => 'unavailable'],
