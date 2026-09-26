@@ -816,4 +816,14 @@ describe("Personal/Show", () => {
         await w.vm.$nextTick();
         expect(section().get('[data-testid="availability-card-header"]').text()).toBe("Monday 05-10-2026");
     });
+
+    it("shows the schedule note inside the availability card, below a separator", async () => {
+        const w = mountShow([], { scheduleNoteHtml: "<p>Early starts at six.</p>" });
+        const card = w.get('[data-testid="default-week-section"]');
+
+        expect(card.findAll("hr")).toHaveLength(1);
+        const html = card.html();
+        expect(html.indexOf("<hr")).toBeLessThan(html.indexOf("Early starts at six."));
+        expect(card.findAllComponents(ShiftNote)).toHaveLength(1);
+    });
 });

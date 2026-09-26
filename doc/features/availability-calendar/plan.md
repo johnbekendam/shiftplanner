@@ -1,4 +1,4 @@
-Status: complete — 17/17
+Status: complete — 18/18
 
 - [x] 1. Add the `EmployeeAvailability` resolver for weekly defaults and
   holidays. Build it from loaded relations and from `PlanProblem`
@@ -87,3 +87,6 @@ Status: complete — 17/17
 - [x] 17. Put the right column in a card. The card header shows
   "Default week" or the date. Add a separator below the block checkbox.
   Remove the "Calendar" heading, so both cards align at the top. Vitest.
+
+- [x] 18. Move the schedule note into the availability card, below a
+  separator. Vitest.
