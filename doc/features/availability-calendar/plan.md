@@ -1,4 +1,4 @@
-Status: in progress — 8/11
+Status: in progress — 9/11
 
 - [x] 1. Add the `EmployeeAvailability` resolver for weekly defaults and
   holidays. Build it from loaded relations and from `PlanProblem`
@@ -43,7 +43,7 @@ Status: in progress — 8/11
   fill and border from the start date, holidays, defaults, overrides and
   shifts per weekday. It mirrors the resolver order. Vitest.
 
-- [ ] 9. Add `DayAvailabilityDialog.vue`. It edits the shift levels, the
+- [x] 9. Add `DayAvailabilityDialog.vue`. It edits the shift levels, the
   whole-day block and the reset of one date. Vitest.
 
 - [ ] 10. Add `AvailabilityCalendar.vue`: the calendar, legend and day
