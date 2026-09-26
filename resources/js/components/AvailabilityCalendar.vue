@@ -16,24 +16,25 @@ const props = defineProps({
     // [{ start_date, end_date }]
     holidays: { type: Array, default: () => [] },
     availableFrom: { type: String, default: null },
-    // The ISO weekday (1–7) whose default is being edited, or null.
-    selectedWeekday: { type: Number, default: null },
+    // True while the default week is being edited (the weekday header is selected).
+    defaultWeekSelected: { type: Boolean, default: false },
     // The 'Y-m-d' date whose availability is being edited, or null.
     selectedDate: { type: String, default: null },
 })
 
-// Picking a weekday or a date clears the other; a second click deselects.
-const emit = defineEmits(['update:selectedWeekday', 'update:selectedDate'])
+// Picking the default week or a date clears the other; a second click deselects.
+const emit = defineEmits(['update:defaultWeekSelected', 'update:selectedDate'])
 
-function onWeekdayClick({ weekday }) {
-    emit('update:selectedWeekday', props.selectedWeekday === weekday ? null : weekday)
+// Any weekday letter selects the whole header: the default week.
+function onWeekdayClick() {
+    emit('update:defaultWeekSelected', !props.defaultWeekSelected)
     emit('update:selectedDate', null)
 }
 
 function onDayClick({ year: y, month: m, day }) {
     const date = dateString(y, m, day)
     emit('update:selectedDate', props.selectedDate === date ? null : date)
-    emit('update:selectedWeekday', null)
+    emit('update:defaultWeekSelected', false)
 }
 
 const today = new Date()
@@ -83,7 +84,7 @@ const ringDay = computed(() => {
         :legenda="legenda"
         :border-legenda="borderLegenda"
         :date-range-start="availableFrom || null"
-        :selected-weekday="selectedWeekday"
+        :weekday-header-selected="defaultWeekSelected"
         :ring-day="ringDay"
         :highlight-selection="false"
         @change="onChange"

@@ -88,7 +88,7 @@ meanings. The legend explains the three fills and the two borders.
 
 A click on an enabled day selects that date. The calendar marks it with
 a ring. The right column then shows the schedule of that date, in the
-same table and cell style as the default of a weekday. Each shift cell
+same table and cell style as the default week. Each shift cell
 opens a menu with: default (shows the default level), available, not
 preferred, unavailable. A cell with an override has the same solid
 border as a changed day. Above the table is a "Block the whole day"
@@ -102,16 +102,19 @@ Both pages use the same Availability tab layout:
 
 1. Top row: start date, weekly hours, the hours warning.
 2. Two columns on wide screens. Left: the calendar with its legend.
-   Right: the default of one weekday, and the schedule note.
+   Right: the default week or the schedule of one date, and the
+   schedule note.
 3. Holidays, full width.
 
-The right column shows either the default of a weekday or the schedule
-of a date, never both. Picking a weekday clears the selected date, and
-picking a date clears the selected weekday. The default section shows
-only after a click on a weekday letter in the calendar header. It then shows the shifts that run on that weekday, each
-with its default level. A click on another weekday shows that weekday.
-A second click on the same weekday hides the section. Without a selected
-weekday, a hint tells the user to click a weekday letter.
+A click on any weekday letter in the calendar header selects the whole
+header row. A border goes around the row, and the right column shows
+the default week: the full Monday–Sunday grid. A second click on a
+weekday letter deselects it.
+
+The right column shows either the default week or the schedule of a
+date, never both. Picking the default week clears the selected date,
+and picking a date clears the default week. With nothing selected, a
+hint tells the user to click the weekday letters or a date.
 
 On narrow screens every part stacks in this order. The questions have
 their own Questions tab, after the Availability tab. The tab shows only
@@ -146,8 +149,8 @@ of these writes.
 - **One resolver before the new rules.** Four copies of the same rule
   would drift apart.
 - **The default week opens from the calendar.** The calendar is the
-  main view. The default of one weekday shows only when the user picks
-  that weekday, so the tab stays short.
+  main view. The default week shows only when the user picks the
+  weekday header, so the tab stays short.
 - **Load all overrides at once, not per month.** An employee has few
   rows. This removes a month endpoint and keeps pending edits simple.
 - **Existing assignments are not removed.** A new start date or override

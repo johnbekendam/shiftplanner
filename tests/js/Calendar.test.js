@@ -353,25 +353,24 @@ describe("Calendar", () => {
         expect(w.emitted("weekday-click")).toEqual([[{ weekday: 1 }], [{ weekday: 7 }]]);
     });
 
-    it("highlights the header of a controlled selectedWeekday only", async () => {
-        const w = mount(Calendar, { props: { year: 2026, month: 10, selectedWeekday: 3 } });
-        const header = (i) => w.get('[data-testid="calendar-weekday-header"]').findAll("button")[i];
-
-        expect(header(2).classes()).toContain("border-(--color-tab-active-border)");
-        expect(header(0).classes()).not.toContain("border-(--color-tab-active-border)");
-
-        await w.findAll("button").find((b) => b.text() === "14").trigger("click");
-        expect(header(2).classes()).toContain("border-(--color-tab-active-border)");
-
-        await w.setProps({ selectedWeekday: null });
-        expect(header(2).classes()).not.toContain("border-(--color-tab-active-border)");
-    });
-
     it("draws a ring around ringDay only", () => {
         const w = mount(Calendar, { props: { year: 2026, month: 10, ringDay: 14 } });
         const day = (n) => w.findAll("button").find((b) => b.text() === String(n));
 
         expect(day(14).classes()).toContain("ring-2");
         expect(day(15).classes()).not.toContain("ring-2");
+    });
+
+    it("draws one border around the whole weekday header when weekdayHeaderSelected is set", async () => {
+        const w = mount(Calendar, { props: { year: 2026, month: 10, weekdayHeaderSelected: false } });
+        const header = w.get('[data-testid="calendar-weekday-header"]');
+        expect(header.classes()).not.toContain("border-(--color-tab-active-border)");
+
+        await header.findAll("button")[2].trigger("click");
+        expect(header.findAll("button").every((b) => !b.classes().includes("border-(--color-tab-active-border)"))).toBe(true);
+
+        await w.setProps({ weekdayHeaderSelected: true });
+        expect(header.classes()).toContain("border-(--color-tab-active-border)");
+        expect(header.findAll("button").every((b) => !b.classes().includes("border-(--color-tab-active-border)"))).toBe(true);
     });
 });

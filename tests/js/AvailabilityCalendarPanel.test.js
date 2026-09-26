@@ -59,15 +59,15 @@ describe("AvailabilityCalendar", () => {
         expect(w.getComponent(Calendar).props("month")).toBe(11);
     });
 
-    it("selects a date on a day click, clears the weekday, and deselects on a second click", async () => {
-        const w = mountCalendar({ selectedWeekday: 2 });
+    it("selects a date on a day click, clears the default week, and deselects on a second click", async () => {
+        const w = mountCalendar({ defaultWeekSelected: true });
         const calendar = w.getComponent(Calendar);
 
         await calendar.vm.$emit("day-click", { year: 2026, month: 10, day: 5 });
         expect(w.emitted("update:selectedDate")).toEqual([["2026-10-05"]]);
-        expect(w.emitted("update:selectedWeekday")).toEqual([[null]]);
+        expect(w.emitted("update:defaultWeekSelected")).toEqual([[false]]);
 
-        await w.setProps({ selectedWeekday: null, selectedDate: "2026-10-05" });
+        await w.setProps({ defaultWeekSelected: false, selectedDate: "2026-10-05" });
         await calendar.vm.$emit("day-click", { year: 2026, month: 10, day: 5 });
         expect(w.emitted("update:selectedDate").at(-1)).toEqual([null]);
     });
@@ -82,19 +82,18 @@ describe("AvailabilityCalendar", () => {
         expect(calendar.props("ringDay")).toBe(3);
     });
 
-    it("selects a weekday from the header, clears the date, and deselects on a second click", async () => {
+    it("selects the default week from any weekday letter, clears the date, and deselects on a second click", async () => {
         const w = mountCalendar({ selectedDate: "2026-10-05" });
         const calendar = w.getComponent(Calendar);
-        expect(calendar.props("selectedWeekday")).toBeNull();
+        expect(calendar.props("weekdayHeaderSelected")).toBe(false);
 
         await calendar.vm.$emit("weekday-click", { weekday: 2 });
-        expect(w.emitted("update:selectedWeekday")).toEqual([[2]]);
+        expect(w.emitted("update:defaultWeekSelected")).toEqual([[true]]);
         expect(w.emitted("update:selectedDate")).toEqual([[null]]);
 
-        await w.setProps({ selectedWeekday: 2, selectedDate: null });
-        expect(calendar.props("selectedWeekday")).toBe(2);
-        await calendar.vm.$emit("weekday-click", { weekday: 2 });
+        await w.setProps({ defaultWeekSelected: true, selectedDate: null });
+        expect(calendar.props("weekdayHeaderSelected")).toBe(true);
         await calendar.vm.$emit("weekday-click", { weekday: 5 });
-        expect(w.emitted("update:selectedWeekday").slice(1)).toEqual([[null], [5]]);
+        expect(w.emitted("update:defaultWeekSelected").at(-1)).toEqual([false]);
     });
 });

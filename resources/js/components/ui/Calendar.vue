@@ -17,7 +17,13 @@
             <!-- Weekday headers -->
             <div
                 data-testid="calendar-weekday-header"
-                :class="['mb-4 grid justify-items-center gap-x-0 gap-y-1 border-b border-(--color-card-border)', GRID_COLUMNS]"
+                :class="[
+                    'mb-4 grid justify-items-center gap-x-0 gap-y-1',
+                    weekdayHeaderSelected
+                        ? 'rounded-md border-2 border-(--color-tab-active-border)'
+                        : 'border-b border-(--color-card-border)',
+                    GRID_COLUMNS,
+                ]"
             >
                 <span data-testid="calendar-week-label" class="self-center text-xs text-(--color-text-muted)">
                     {{ __('calendar.week_abbr') }}
@@ -162,9 +168,9 @@ const props = defineProps({
     borderLegenda: { type: Object, default: () => ({}) },
     // False: selecting a day still emits change, but draws no week border.
     highlightSelection: { type: Boolean, default: true },
-    // ISO weekday (1–7) whose header is highlighted, or null for none. Left
-    // undefined, the header of the last clicked weekday is highlighted.
-    selectedWeekday: { type: Number, default: undefined },
+    // Set (true or false): the header row is one selection, drawn as a
+    // border around the whole row; single weekday letters are not highlighted.
+    weekdayHeaderSelected: { type: Boolean, default: undefined },
     // A day of this month to mark with a ring (a selected date), or null.
     ringDay: { type: Number, default: null },
 })
@@ -387,7 +393,7 @@ function selectWeekday(i) {
 
 // i: Mon=0 … Sun=6
 function isWeekdayHighlighted(i) {
-    if (props.selectedWeekday !== undefined) return props.selectedWeekday === i + 1
+    if (props.weekdayHeaderSelected !== undefined) return false
     return selectedDay.value === null && selectedDayOfWeek.value === i
 }
 

@@ -190,9 +190,9 @@ const availabilityWarning = computed(() => {
     return availabilityHours.value.available >= form.weekly_hours ? 'not_preferred' : 'insufficient'
 })
 
-// The weekday whose default, or the date whose availability, the right
-// column edits. The calendar keeps at most one of the two set.
-const selectedWeekday = ref(null)
+// The right column edits the default week or one date's availability.
+// The calendar keeps at most one of the two selected.
+const defaultWeekSelected = ref(false)
 const selectedDate = ref(null)
 
 // ── Date overrides: one PUT per changed date, replacing that date ──────
@@ -537,7 +537,7 @@ function restore() {
                             {{ __('availability.calendar.heading') }}
                         </h3>
                         <AvailabilityCalendar
-                            v-model:selected-weekday="selectedWeekday"
+                            v-model:default-week-selected="defaultWeekSelected"
                             v-model:selected-date="selectedDate"
                             :shifts="shifts"
                             :defaults="availability"
@@ -548,15 +548,14 @@ function restore() {
                     </section>
 
                     <section class="min-w-0 space-y-3" data-testid="default-week-section">
-                        <template v-if="selectedWeekday">
+                        <template v-if="defaultWeekSelected">
                             <h3 class="text-sm font-semibold text-(--color-text-primary)">
-                                {{ __('availability.default_week.heading', { weekday: __(`availability.weekday_long.${selectedWeekday}`) }) }}
+                                {{ __('availability.default_week.heading') }}
                             </h3>
                             <AvailabilityGrid
-                                :key="`${availabilityVersion}-${selectedWeekday}`"
+                                :key="availabilityVersion"
                                 :shifts="shifts"
                                 :availability="availability"
-                                :weekday="selectedWeekday"
                                 :disabled="isArchived"
                                 show-add-hint
                                 @update:availability="onAvailabilityChange"

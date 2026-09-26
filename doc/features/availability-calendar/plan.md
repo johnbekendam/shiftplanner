@@ -1,4 +1,4 @@
-Status: complete — 14/14
+Status: complete — 15/15
 
 - [x] 1. Add the `EmployeeAvailability` resolver for weekly defaults and
   holidays. Build it from loaded relations and from `PlanProblem`
@@ -73,3 +73,9 @@ Status: complete — 14/14
   `AvailabilityLevelCell.vue`, shared by `AvailabilityGrid` and the new
   `DateAvailabilityGrid`. `Calendar.vue` takes a `ringDay` prop for the
   selected date. Remove `DayAvailabilityDialog`. Vitest.
+
+- [x] 15. A weekday letter selects the whole weekday header: a border
+  around the row, and the full default week in the right column.
+  `Calendar.vue` takes a `weekdayHeaderSelected` prop in place of
+  `selectedWeekday`. `AvailabilityGrid` drops its `weekday` prop.
+  Vitest.
