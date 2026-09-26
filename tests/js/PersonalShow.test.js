@@ -34,6 +34,8 @@ const en = {
     "availability.tab.availability": "Availability",
     "availability.tab.questions": "Questions",
     "availability.day.title": ":weekday :date",
+    "availability.default_week.heading": "Default week",
+    "availability.weekday_long.1": "Monday",
     "availability.tab.settings": "Settings",
     "availability.info.empty": "No information has been provided yet.",
     "availability.info.cta": "Please update your details, availability and competences on the different tabs.",
@@ -797,5 +799,21 @@ describe("Personal/Show", () => {
 
         await applyDay(w, { date: "2026-10-05", blocked: false, shifts: {} });
         expect(w.getComponent(DateAvailabilityGrid).props("day").changed).toBe(false);
+    });
+
+    it("shows the default week or the date in the header of the availability card", async () => {
+        const w = mountShow([], { shifts: [{ id: 1, name: "Day", start_time: "08:00", end_time: "12:00", weekdays: [1, 2, 3, 4, 5] }] });
+        const section = () => w.get('[data-testid="default-week-section"]');
+
+        expect(section().find('[data-testid="availability-card-header"]').exists()).toBe(false);
+        expect(section().get('[data-testid="default-week-hint"]').exists()).toBe(true);
+
+        await selectDefaultWeek(w);
+        expect(section().get('[data-testid="availability-card-header"]').text()).toBe("Default week");
+
+        w.getComponent(AvailabilityCalendar).vm.$emit("update:defaultWeekSelected", false);
+        w.getComponent(AvailabilityCalendar).vm.$emit("update:selectedDate", "2026-10-05");
+        await w.vm.$nextTick();
+        expect(section().get('[data-testid="availability-card-header"]').text()).toBe("Monday 05-10-2026");
     });
 });

@@ -533,9 +533,6 @@ function restore() {
 
                 <div class="grid gap-6 @3xl:grid-cols-2">
                     <section class="min-w-0 space-y-3" data-testid="availability-calendar-section">
-                        <h3 class="text-sm font-semibold text-(--color-text-primary)">
-                            {{ __('availability.calendar.heading') }}
-                        </h3>
                         <AvailabilityCalendar
                             v-model:default-week-selected="defaultWeekSelected"
                             v-model:selected-date="selectedDate"
@@ -548,31 +545,40 @@ function restore() {
                     </section>
 
                     <section class="min-w-0 space-y-3" data-testid="default-week-section">
-                        <template v-if="defaultWeekSelected">
-                            <h3 class="text-sm font-semibold text-(--color-text-primary)">
-                                {{ __('availability.default_week.heading') }}
-                            </h3>
-                            <AvailabilityGrid
-                                :key="availabilityVersion"
-                                :shifts="shifts"
-                                :availability="availability"
-                                :disabled="isArchived"
-                                show-add-hint
-                                @update:availability="onAvailabilityChange"
-                            />
-                        </template>
-                        <template v-else-if="selectedDay">
-                            <h3 class="text-sm font-semibold text-(--color-text-primary)">
-                                {{ __('availability.day.title', {
-                                    weekday: __(`availability.weekday_long.${isoWeekdayOf(selectedDay.date)}`),
-                                    date: formatDate(selectedDay.date),
-                                }) }}
-                            </h3>
-                            <DateAvailabilityGrid :day="selectedDay" :disabled="isArchived" @apply-day="onApplyDay" />
-                        </template>
-                        <p v-else data-testid="default-week-hint" class="text-sm text-(--color-text-secondary)">
-                            {{ __('availability.default_week.hint') }}
-                        </p>
+                        <Card>
+                            <template v-if="defaultWeekSelected || selectedDay" #header>
+                                <div data-testid="availability-card-header" class="flex h-12 items-center px-6 text-md font-semibold">
+                                    <template v-if="defaultWeekSelected">{{ __('availability.default_week.heading') }}</template>
+                                    <template v-else>
+                                        {{ __('availability.day.title', {
+                                            weekday: __(`availability.weekday_long.${isoWeekdayOf(selectedDay.date)}`),
+                                            date: formatDate(selectedDay.date),
+                                        }) }}
+                                    </template>
+                                </div>
+                            </template>
+
+                            <div class="px-6 py-4">
+                                <AvailabilityGrid
+                                    v-if="defaultWeekSelected"
+                                    :key="availabilityVersion"
+                                    :shifts="shifts"
+                                    :availability="availability"
+                                    :disabled="isArchived"
+                                    show-add-hint
+                                    @update:availability="onAvailabilityChange"
+                                />
+                                <DateAvailabilityGrid
+                                    v-else-if="selectedDay"
+                                    :day="selectedDay"
+                                    :disabled="isArchived"
+                                    @apply-day="onApplyDay"
+                                />
+                                <p v-else data-testid="default-week-hint" class="text-sm text-(--color-text-secondary)">
+                                    {{ __('availability.default_week.hint') }}
+                                </p>
+                            </div>
+                        </Card>
                         <ShiftNote v-if="scheduleNoteHtml" :html="scheduleNoteHtml" />
                     </section>
                 </div>

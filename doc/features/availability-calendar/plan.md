@@ -1,4 +1,4 @@
-Status: complete — 16/16
+Status: complete — 17/17
 
 - [x] 1. Add the `EmployeeAvailability` resolver for weekly defaults and
   holidays. Build it from loaded relations and from `PlanProblem`
@@ -83,3 +83,7 @@ Status: complete — 16/16
 - [x] 16. Hover borders: the whole weekday header row in header-selection
   mode, and one day (not its week row) when `highlightSelection` is
   false. A click anywhere on the header row selects it. Vitest.
+
+- [x] 17. Put the right column in a card. The card header shows
+  "Default week" or the date. Add a separator below the block checkbox.
+  Remove the "Calendar" heading, so both cards align at the top. Vitest.

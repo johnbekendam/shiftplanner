@@ -92,7 +92,8 @@ same table and cell style as the default week. Each shift cell
 opens a menu with: default (shows the default level), available, not
 preferred, unavailable. A cell with an override has the same solid
 border as a changed day. Above the table is a "Block the whole day"
-checkbox, and below it a "Reset to default" button. On a holiday a
+checkbox with a separator below it, and below the table a "Reset to
+default" button. On a holiday a
 notice shows above the table. The overrides stay stored, but have no
 effect. Each change goes straight into the pending edits.
 
@@ -102,8 +103,9 @@ Both pages use the same Availability tab layout:
 
 1. Top row: start date, weekly hours, the hours warning.
 2. Two columns on wide screens. Left: the calendar with its legend.
-   Right: the default week or the schedule of one date, and the
-   schedule note.
+   Right: a card with the default week or the schedule of one date, and
+   the schedule note below the card. The card header shows "Default
+   week" or the date. Without a selection, the card shows only a hint.
 3. Holidays, full width.
 
 A click on any weekday letter in the calendar header selects the whole

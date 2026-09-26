@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import AvailabilityLevelCell from '@/components/AvailabilityLevelCell.vue'
 import ButtonSecondary from '@/components/ui/ButtonSecondary.vue'
+import CardSeparator from '@/components/ui/CardSeparator.vue'
 import { CheckboxInput } from '@/components/ui/Input'
 import { isoWeekday } from '@/utils/availabilityCalendar'
 import { useI18n } from '@/composables/useI18n'
@@ -71,6 +72,8 @@ function reset() {
         <CheckboxInput :model-value="day.blocked" :disabled="disabled" @update:model-value="setBlocked">
             {{ __('availability.day.block') }}
         </CheckboxInput>
+
+        <CardSeparator />
 
         <p v-if="!day.shifts.length" class="text-sm text-(--color-text-secondary)">
             {{ __('availability.grid.no_shifts_on_day') }}

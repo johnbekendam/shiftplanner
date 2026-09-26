@@ -30,6 +30,7 @@ vi.mock("@/composables/useI18n", () => ({
 
 import DateAvailabilityGrid from "@/components/DateAvailabilityGrid.vue";
 import { CheckboxInput } from "@/components/ui/Input";
+import CardSeparator from "@/components/ui/CardSeparator.vue";
 
 const early = { id: 10, name: "Early", start_time: "06:00", end_time: "14:00" };
 const late = { id: 20, name: "Late", start_time: "14:00", end_time: "22:00" };
@@ -128,5 +129,14 @@ describe("DateAvailabilityGrid", () => {
         expect(cell(w, 10).attributes("disabled")).toBeDefined();
         expect(w.getComponent(CheckboxInput).props("disabled")).toBe(true);
         expect(w.findAll("button").some((b) => b.text() === "Reset to default")).toBe(false);
+    });
+
+    it("places a separator right below the block checkbox", () => {
+        const w = mountGrid();
+        const html = w.html();
+
+        expect(w.findComponent(CardSeparator).exists()).toBe(true);
+        expect(html.indexOf("Block the whole day")).toBeLessThan(html.indexOf("<hr"));
+        expect(html.indexOf("<hr")).toBeLessThan(html.indexOf("<table"));
     });
 });
