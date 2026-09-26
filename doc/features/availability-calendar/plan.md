@@ -1,4 +1,4 @@
-Status: complete — 27/27
+Status: complete — 28/28
 
 - [x] 1. Add the `EmployeeAvailability` resolver for weekly defaults and
   holidays. Build it from loaded relations and from `PlanProblem`
@@ -131,3 +131,6 @@ Status: complete — 27/27
   right-aligned, as `DayBlockToggle.vue`. Remove it and its separator
   from `DateAvailabilityGrid`, and the unused `flushTop` from
   `CardSeparator`. Vitest.
+
+- [x] 28. Draw a changed day's border in its badge text color instead of
+  its badge border color. Vitest.

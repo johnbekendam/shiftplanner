@@ -299,12 +299,12 @@ describe("Calendar", () => {
         expect(header.findAll("button")).toHaveLength(7);
     });
 
-    it("draws a dayBorders border in the day's own badge border color", () => {
+    it("draws a dayBorders border in the day's own badge text color", () => {
         const w = mount(Calendar, { props: { year: 2026, month: 10, dayStates: { 5: "success", 6: "warning" }, dayBorders: { 5: "solid", 6: "solid" } } });
         const day = (n) => w.findAll("button").find((b) => b.text() === String(n))
 
-        expect(day(5).classes()).toContain("border-(--color-badge-success-border)");
-        expect(day(6).classes()).toContain("border-(--color-badge-warning-border)");
+        expect(day(5).classes()).toContain("border-(--color-badge-success-text)");
+        expect(day(6).classes()).toContain("border-(--color-badge-warning-text)");
         expect(day(5).classes()).not.toContain("border-(--color-tab-active-border)");
         expect(day(7).classes()).toContain("border-transparent");
     });
@@ -325,7 +325,7 @@ describe("Calendar", () => {
 
         const solid = w.get('[data-testid="calendar-border-legend-solid"]');
         expect(solid.text()).toContain("Changed");
-        expect(solid.find("div").classes()).toContain("border-(--color-badge-success-border)");
+        expect(solid.find("div").classes()).toContain("border-(--color-badge-success-text)");
     });
 
 
@@ -386,7 +386,7 @@ describe("Calendar", () => {
         expect(weekRow(day(14)).className).not.toContain("hover:border-(--color-tab-hover-border)");
         expect(weekRow(day(14)).className).not.toContain("cursor-pointer");
         expect(day(14).classes()).toContain("hover:border-(--color-tab-hover-border)");
-        expect(day(7).classes()).toContain("border-(--color-badge-success-border)");
+        expect(day(7).classes()).toContain("border-(--color-badge-success-text)");
     });
 
     it("keeps the week-row hover by default", () => {

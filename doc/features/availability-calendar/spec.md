@@ -77,8 +77,9 @@ resolver for the shifts that run that day:
 - Else one or more shifts `not_preferred`: warning.
 - Else: error. A day without running shifts is error.
 
-A day with one or more overrides gets a border in the border token of
-its own color family, for example a green border on a success day. A
+A day with one or more overrides gets a border in the text token of its
+own color family, the same color as its day number. For example, a
+success day gets a border in the success text color. A
 holiday gets no border: its overrides have no effect.
 
 Days before the start date are disabled. The availability calendar does

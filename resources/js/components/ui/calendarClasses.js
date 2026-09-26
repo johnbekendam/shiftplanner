@@ -13,14 +13,15 @@ export const COLOR_CLASS = {
     muted: 'bg-(--color-badge-muted-bg) text-(--color-badge-muted-text)',
 }
 
-// A marked day's border (dayBorders), in the border token of its own color family.
+// A marked day's border (dayBorders), in the text token of its own color family,
+// so it stands out as clearly as the day number.
 export const BORDER_COLOR_CLASS = {
-    success: 'border-(--color-badge-success-border)',
-    custom: 'border-(--color-badge-custom-border)',
-    error: 'border-(--color-badge-error-border)',
-    warning: 'border-(--color-badge-warning-border)',
-    standard: 'border-(--color-badge-standard-border)',
-    muted: 'border-(--color-badge-muted-border)',
+    success: 'border-(--color-badge-success-text)',
+    custom: 'border-(--color-badge-custom-text)',
+    error: 'border-(--color-badge-error-text)',
+    warning: 'border-(--color-badge-warning-text)',
+    standard: 'border-(--color-badge-standard-text)',
+    muted: 'border-(--color-badge-muted-text)',
 }
 
 // The one day border style dayBorders supports.
