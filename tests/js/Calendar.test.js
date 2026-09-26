@@ -298,4 +298,37 @@ describe("Calendar", () => {
         expect(w.get('[data-testid="calendar-week-number-0"]').classes()).toContain("text-(--color-text-muted)");
         expect(header.findAll("button")).toHaveLength(7);
     });
+
+    it("draws a solid or dashed day border from dayBorders", () => {
+        const w = mount(Calendar, { props: { year: 2026, month: 10, dayBorders: { 5: "solid", 12: "dashed" } } });
+        const day = (n) => w.findAll("button").find((b) => b.text() === String(n))
+
+        expect(day(5).classes()).toContain("border-(--color-tab-active-border)");
+        expect(day(5).classes()).not.toContain("border-dashed");
+        expect(day(12).classes()).toContain("border-(--color-tab-active-border)");
+        expect(day(12).classes()).toContain("border-dashed");
+        expect(day(6).classes()).toContain("border-transparent");
+    });
+
+    it("draws no selected-week border when highlightSelection is false", async () => {
+        const w = mount(Calendar, { props: { year: 2026, month: 9, highlightSelection: false } });
+        const day10 = w.findAll("button").find((b) => b.text() === "10");
+
+        await day10.trigger("click");
+
+        expect(weekRow(day10).className).not.toContain("border-(--color-tab-active-border)");
+        expect(w.emitted("change").at(-1)[0]).toMatchObject({ day: 10 });
+    });
+
+    it("renders a legend entry per border style", () => {
+        const w = mount(Calendar, {
+            props: { year: 2026, month: 9, borderLegenda: { solid: "Changed", dashed: "Holiday" } },
+        });
+
+        const solid = w.get('[data-testid="calendar-border-legend-solid"]');
+        const dashed = w.get('[data-testid="calendar-border-legend-dashed"]');
+        expect(solid.text()).toContain("Changed");
+        expect(dashed.text()).toContain("Holiday");
+        expect(dashed.find("div").classes()).toContain("border-dashed");
+    });
 });

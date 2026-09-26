@@ -62,7 +62,7 @@
                         <div v-if="cell.type === 'pad'"></div>
                         <button
                             v-else
-                            :class="dayClass(colorForDay(cell.day), false, isToday(cell.day), isDisabled(cell.day), false)"
+                            :class="dayClass(colorForDay(cell.day), false, isToday(cell.day), isDisabled(cell.day), false, dayBorders[cell.day])"
                             :disabled="isDisabled(cell.day)"
                             @click="!isDisabled(cell.day) && enableDaySelection && selectDay(cell.day)"
                         >
@@ -74,8 +74,8 @@
         </div>
 
         <!-- Footer: legenda + optional actions slot -->
-        <template v-if="legendaEntries.length || $slots.footer" #footer>
-            <div v-if="legendaEntries.length" class="flex flex-wrap items-center gap-4 px-3 py-2">
+        <template v-if="legendaEntries.length || borderLegendaEntries.length || $slots.footer" #footer>
+            <div v-if="legendaEntries.length || borderLegendaEntries.length" class="flex flex-wrap items-center gap-4 px-3 py-2">
                 <div v-for="entry in legendaEntries" :key="entry.color" class="flex items-center gap-2">
                     <div
                         :class="[
@@ -85,6 +85,20 @@
                     >
                         x
                     </div>
+                    <span class="text-xs text-(--color-text-muted)">{{ entry.text }}</span>
+                </div>
+                <div
+                    v-for="entry in borderLegendaEntries"
+                    :key="entry.style"
+                    :data-testid="'calendar-border-legend-' + entry.style"
+                    class="flex items-center gap-2"
+                >
+                    <div
+                        :class="[
+                            'm-1 h-6 w-6 shrink-0 rounded-md border-2 border-(--color-tab-active-border)',
+                            BORDER_STYLE_CLASS[entry.style],
+                        ]"
+                    ></div>
                     <span class="text-xs text-(--color-text-muted)">{{ entry.text }}</span>
                 </div>
             </div>
@@ -116,6 +130,12 @@ const COLOR_CLASS = {
     muted: 'bg-(--color-badge-muted-bg) text-(--color-badge-muted-text)',
 }
 
+// Day border styles for dayBorders; the color is always the active-tab border token.
+const BORDER_STYLE_CLASS = {
+    solid: '',
+    dashed: 'border-dashed',
+}
+
 // A narrow week-number column, then the seven days.
 const GRID_COLUMNS = 'grid-cols-[1.75rem_repeat(7,minmax(0,1fr))]'
 
@@ -133,6 +153,12 @@ const props = defineProps({
     // { [day]: true } — marks the whole week-row containing that day.
     weekMarkerDays: { type: Object, default: () => ({}) },
     weekMarkerColor: { type: String, default: 'custom' },
+    // { [day]: 'solid' | 'dashed' } — a border on that day, on top of its color.
+    dayBorders: { type: Object, default: () => ({}) },
+    // { solid?: text, dashed?: text } — legend entries for the day borders.
+    borderLegenda: { type: Object, default: () => ({}) },
+    // False: selecting a day still emits change, but draws no week border.
+    highlightSelection: { type: Boolean, default: true },
 })
 
 const emit = defineEmits(['change'])
@@ -194,6 +220,12 @@ const legendaEntries = computed(() =>
     Object.entries(props.legenda)
         .filter(([, text]) => text)
         .map(([color, text]) => ({ color, text })),
+)
+
+const borderLegendaEntries = computed(() =>
+    Object.entries(props.borderLegenda)
+        .filter(([style, text]) => text && style in BORDER_STYLE_CLASS)
+        .map(([style, text]) => ({ style, text })),
 )
 
 // Day cells chunked into week-rows (7 per row), the first row's leading
@@ -270,10 +302,10 @@ function isDisabled(day) {
     return false
 }
 
-function dayClass(color, selected, today, disabled, hoverable = true) {
+function dayClass(color, selected, today, disabled, hoverable = true, borderStyle = null) {
     const base = 'border-2 text-center rounded-md text-sm font-semibold m-1 h-8 w-8 cursor-pointer'
-    const border = selected
-        ? 'border-(--color-tab-active-border)'
+    const border = selected || borderStyle
+        ? `border-(--color-tab-active-border) ${BORDER_STYLE_CLASS[borderStyle] ?? ''}`
         : hoverable
           ? 'border-transparent hover:border-(--color-tab-hover-border)'
           : 'border-transparent'
@@ -289,7 +321,7 @@ function dayClass(color, selected, today, disabled, hoverable = true) {
 
 // The border of a week row: active when selected, hoverable when a click can select it.
 function weekRowClass(week) {
-    if (isWeekSelected(week)) return 'border-(--color-tab-active-border)'
+    if (props.highlightSelection && isWeekSelected(week)) return 'border-(--color-tab-active-border)'
     return props.enableDaySelection
         ? 'border-transparent hover:border-(--color-tab-hover-border) cursor-pointer'
         : 'border-transparent'

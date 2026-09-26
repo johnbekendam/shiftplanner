@@ -1,4 +1,4 @@
-Status: in progress — 6/11
+Status: in progress — 7/11
 
 - [x] 1. Add the `EmployeeAvailability` resolver for weekly defaults and
   holidays. Build it from loaded relations and from `PlanProblem`
@@ -35,8 +35,9 @@ Status: in progress — 6/11
   where the shift runs. Hide a weekday column without running shifts.
   Vitest.
 
-- [ ] 7. Add a `dayBorders` prop (solid or dashed per day) and a
-  `highlightSelection` prop to `Calendar.vue`. Vitest.
+- [x] 7. Add a `dayBorders` prop (solid or dashed per day), a
+  `borderLegenda` prop and a `highlightSelection` prop to `Calendar.vue`.
+  Vitest.
 
 - [ ] 8. Add `utils/availabilityCalendar.js`. It gives the day status,
   fill and border from the start date, holidays, defaults, overrides and
