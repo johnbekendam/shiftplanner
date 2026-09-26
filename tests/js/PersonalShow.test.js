@@ -35,6 +35,7 @@ const en = {
     "availability.questions.heading": "Questions",
     "competences.heading": "Competences",
     "availability.day.title": ":weekday :date",
+    "availability.holidays.heading": "Holidays",
     "availability.default_week.heading": "Default availability",
     "availability.weekday_long.1": "Monday",
     "availability.tab.settings": "Settings",
@@ -873,5 +874,13 @@ describe("Personal/Show", () => {
 
         await selectDefaultWeek(w);
         expect(header().findComponent(DayBlockToggle).exists()).toBe(false);
+    });
+
+    it("shows the holidays in their own card with a Holidays header", () => {
+        const w = mountShow([{ id: 1, start_date: "2026-12-24", end_date: "2026-12-31", note: null }]);
+        const card = w.get('[data-testid="holidays-card"]');
+
+        expect(card.get("div > div").text()).toBe("Holidays");
+        expect(card.findComponent(HolidayList).exists()).toBe(true);
     });
 });

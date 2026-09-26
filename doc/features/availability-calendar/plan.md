@@ -1,4 +1,4 @@
-Status: complete — 29/29
+Status: complete — 30/30
 
 - [x] 1. Add the `EmployeeAvailability` resolver for weekly defaults and
   holidays. Build it from loaded relations and from `PlanProblem`
@@ -138,3 +138,6 @@ Status: complete — 29/29
 - [x] 29. Show the legend in the info card as a vertical list
   (`CalendarLegend` `vertical` prop). Move the schedule note to the card
   below the calendar, below a separator. Vitest.
+
+- [x] 30. Put the holiday list in its own card with "Holidays" in the
+  header. Vitest.

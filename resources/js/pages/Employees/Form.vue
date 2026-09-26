@@ -598,19 +598,21 @@ function restore() {
                     </section>
                 </div>
 
-                <CardSeparator />
-
-                <section class="space-y-3">
-                    <h3 class="text-sm font-semibold text-(--color-text-primary)">
-                        {{ __('availability.holidays.heading') }}
-                    </h3>
-                    <HolidayList
-                        :key="holidaysVersion"
-                        :holidays="committedHolidays"
-                        :disabled="isArchived"
-                        @update:holidays="onHolidaysChange"
-                    />
-                </section>
+                <Card class="mt-6" data-testid="holidays-card">
+                    <template #header>
+                        <div class="flex h-12 items-center px-6 text-md font-semibold">
+                            {{ __('availability.holidays.heading') }}
+                        </div>
+                    </template>
+                    <div class="px-6 py-4">
+                        <HolidayList
+                            :key="holidaysVersion"
+                            :holidays="committedHolidays"
+                            :disabled="isArchived"
+                            @update:holidays="onHolidaysChange"
+                        />
+                    </div>
+                </Card>
             </div>
 
             <div v-if="isEdit" v-show="tab === 'competences'" data-testid="panel-competences" class="p-6">

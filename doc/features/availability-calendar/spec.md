@@ -110,7 +110,7 @@ Both pages use the same Availability tab layout:
    With the default week or a date selected, it shows that instead,
    with "Default availability" or the date in its header. The schedule
    note sits at the bottom of this card, below a separator.
-4. Holidays, full width.
+4. Holidays, in their own card with "Holidays" in the header.
 
 A click on any weekday letter in the calendar header selects the whole
 header row. A border goes around the row, and the card shows
