@@ -73,7 +73,7 @@ function reset() {
             {{ __('availability.day.block') }}
         </CheckboxInput>
 
-        <CardSeparator />
+        <CardSeparator flush-top />
 
         <p v-if="!day.shifts.length" class="text-sm text-(--color-text-secondary)">
             {{ __('availability.grid.no_shifts_on_day') }}

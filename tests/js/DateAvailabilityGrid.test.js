@@ -135,7 +135,8 @@ describe("DateAvailabilityGrid", () => {
         const w = mountGrid();
         const html = w.html();
 
-        expect(w.findComponent(CardSeparator).exists()).toBe(true);
+        expect(w.getComponent(CardSeparator).props("flushTop")).toBe(true);
+        expect(w.get("hr").classes()).toContain("mt-0");
         expect(html.indexOf("Block the whole day")).toBeLessThan(html.indexOf("<hr"));
         expect(html.indexOf("<hr")).toBeLessThan(html.indexOf("<table"));
     });
