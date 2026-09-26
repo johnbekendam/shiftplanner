@@ -60,6 +60,17 @@ class AvailabilityStartDateTest extends TestCase
         $this->assertSame('2026-11-02', $employee->fresh()->available_from->toDateString());
     }
 
+    public function test_the_admin_clears_the_start_date_with_an_empty_string(): void
+    {
+        $employee = Employee::factory()->create(['available_from' => '2026-11-02']);
+
+        $this->actingAs(User::factory()->create())->put("/employees/{$employee->id}", [
+            'first_name' => 'A', 'last_name' => 'B', 'weekly_hours' => 24, 'available_from' => '',
+        ])->assertSessionHasNoErrors();
+
+        $this->assertNull($employee->fresh()->available_from);
+    }
+
     public function test_both_pages_include_the_start_date(): void
     {
         [$employee, $token] = $this->linkedEmployee(['available_from' => '2026-11-02']);

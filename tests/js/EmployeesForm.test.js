@@ -106,7 +106,8 @@ import TagChecklist from "@/components/TagChecklist.vue";
 import WorkcenterChecklist from "@/components/WorkcenterChecklist.vue";
 import QuestionChecklist from "@/components/QuestionChecklist.vue";
 import EmployeePlanningSettings from "@/components/EmployeePlanningSettings.vue";
-import { NumberInput } from "@/components/ui/Input";
+import { NumberInput, DateInput } from "@/components/ui/Input";
+import AvailabilityCalendar from "@/components/AvailabilityCalendar.vue";
 
 const stubs = { AppLayout: { template: "<div><slot /></div>" }, teleport: true };
 const findSaveButton = (w) => w.findAll("button").find((b) => ["Save", "Saving…", "Saved"].includes(b.text()));
@@ -846,5 +847,68 @@ describe("Employees/Form", () => {
         await dialogConfirm.trigger("click");
 
         expect(routerCalls).toContainEqual(["delete", "/employees/3"]);
+    });
+
+    const mountEdit = (extra = {}) =>
+        mount(Form, {
+            props: {
+                employee: { id: 3, first_name: "A", last_name: "B", email: "a@b.c", weekly_hours: 24, available_from: "2026-11-02" },
+                holidays: [],
+                ...extra,
+            },
+            global: { stubs },
+        });
+
+    it("puts the start date on the Availability tab and saves it with the employee endpoint", async () => {
+        const w = mountEdit();
+        const panel = w.get('[data-testid="panel-availability"]');
+        expect(panel.getComponent(DateInput).props("modelValue")).toBe("2026-11-02");
+        expect(panel.getComponent(AvailabilityCalendar).props("availableFrom")).toBe("2026-11-02");
+
+        const form = w.findComponent(EmployeeFields).props("form");
+        panel.getComponent(DateInput).vm.$emit("update:modelValue", "2026-12-01");
+        await w.vm.$nextTick();
+
+        expect(form.available_from).toBe("2026-12-01");
+        expect(findSaveButton(w).attributes("disabled")).toBeUndefined();
+
+        await findSaveButton(w).trigger("click");
+        await flushPromises();
+
+        expect(form.put).toHaveBeenCalledWith("/employees/3", expect.objectContaining({ async: true }));
+        expect(findSaveButton(w).attributes("disabled")).toBeDefined();
+    });
+
+    it("saves an applied calendar day with one PUT per date on the employee route", async () => {
+        const w = mountEdit({ availabilityOverrides: [{ date: "2026-10-05", shift_id: 1, level: "available" }] });
+        const calendar = w.getComponent(AvailabilityCalendar);
+        expect(calendar.props("overrides")).toEqual({ "2026-10-05": { blocked: false, shifts: { 1: "available" } } });
+
+        calendar.vm.$emit("apply-day", { date: "2026-10-07", blocked: true, shifts: {} });
+        await w.vm.$nextTick();
+        await findSaveButton(w).trigger("click");
+        await flushPromises();
+
+        expect(routerCalls).toEqual([["put", "/employees/3/availability/dates/2026-10-07", { blocked: true, shifts: {} }]]);
+        expect(findSaveButton(w).attributes("disabled")).toBeDefined();
+    });
+
+    it("Cancel discards a pending calendar day", async () => {
+        const w = mountEdit();
+        const calendar = w.getComponent(AvailabilityCalendar);
+
+        calendar.vm.$emit("apply-day", { date: "2026-10-07", blocked: true, shifts: {} });
+        await w.vm.$nextTick();
+        await findCancelButton(w).trigger("click");
+
+        expect(calendar.props("overrides")).toEqual({});
+        expect(findSaveButton(w).attributes("disabled")).toBeDefined();
+    });
+
+    it("makes the calendar read-only for an archived employee", () => {
+        const w = mountEdit({ employee: { id: 3, first_name: "A", last_name: "B", email: "a@b.c", weekly_hours: 24, archived: true } });
+
+        expect(w.getComponent(AvailabilityCalendar).props("disabled")).toBe(true);
+        expect(w.getComponent(DateInput).props("disabled")).toBe(true);
     });
 });

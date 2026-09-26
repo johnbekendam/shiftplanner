@@ -1,4 +1,4 @@
-Status: in progress — 10/11
+Status: complete — 11/11
 
 - [x] 1. Add the `EmployeeAvailability` resolver for weekly defaults and
   holidays. Build it from loaded relations and from `PlanProblem`
@@ -54,5 +54,6 @@ Status: in progress — 10/11
   The columns use a container query, so they stack in a narrow card.
   Vitest.
 
-- [ ] 11. Integrate the same layout, start date and `dates` save entry in
-  the admin employee page. Vitest.
+- [x] 11. Integrate the same layout, start date and `dates` save entry in
+  the admin employee page. The card widens on the Availability tab.
+  Vitest.
