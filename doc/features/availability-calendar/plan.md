@@ -1,4 +1,4 @@
-Status: in progress — 7/11
+Status: in progress — 8/11
 
 - [x] 1. Add the `EmployeeAvailability` resolver for weekly defaults and
   holidays. Build it from loaded relations and from `PlanProblem`
@@ -39,7 +39,7 @@ Status: in progress — 7/11
   `borderLegenda` prop and a `highlightSelection` prop to `Calendar.vue`.
   Vitest.
 
-- [ ] 8. Add `utils/availabilityCalendar.js`. It gives the day status,
+- [x] 8. Add `utils/availabilityCalendar.js`. It gives the day status,
   fill and border from the start date, holidays, defaults, overrides and
   shifts per weekday. It mirrors the resolver order. Vitest.
 
