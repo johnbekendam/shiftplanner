@@ -1,4 +1,4 @@
-Status: in progress — 32/39
+Status: in progress — 33/39
 
 - [x] 1. Add the `EmployeeAvailability` resolver for weekly defaults and
   holidays. Build it from loaded relations and from `PlanProblem`
@@ -152,7 +152,7 @@ Review fixes (code review of 2026-09-27):
   PUT replaces only the rows it can edit. The client keeps hidden
   overrides when a date changes. Tests.
 
-- [ ] 33. Keep a date edit made while its save is in flight pending.
+- [x] 33. Keep a date edit made while its save is in flight pending.
   Vitest.
 
 - [ ] 34. Reject a date that does not exist (for example 2026-02-30)

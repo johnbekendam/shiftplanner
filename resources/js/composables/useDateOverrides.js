@@ -41,7 +41,8 @@ export function useDateOverrides(rows, urlFor) {
                 if (isEmpty(day)) delete next[date]
                 else next[date] = day
                 committed.value = next
-                delete pending[date]
+                // An edit made while this request ran stays pending.
+                if (sameDay(pending[date], day)) delete pending[date]
             })))
         return results.every((r) => r.status === 'fulfilled')
     }
