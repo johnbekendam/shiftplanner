@@ -1,4 +1,4 @@
-Status: complete — 30/30
+Status: in progress — 31/39
 
 - [x] 1. Add the `EmployeeAvailability` resolver for weekly defaults and
   holidays. Build it from loaded relations and from `PlanProblem`
@@ -141,3 +141,35 @@ Status: complete — 30/30
 
 - [x] 30. Put the holiday list in its own card with "Holidays" in the
   header. Vitest.
+
+Review fixes (code review of 2026-09-27):
+
+- [x] 31. Extract the shared date-override state into a `useDateOverrides`
+  composable and the calendar plus availability card into
+  `AvailabilityCalendarSection.vue`, used by both pages. Vitest.
+
+- [ ] 32. Keep overrides of shifts that are hidden on a date. The date
+  PUT replaces only the rows it can edit. The client keeps hidden
+  overrides when a date changes. Tests.
+
+- [ ] 33. Keep a date edit made while its save is in flight pending.
+  Vitest.
+
+- [ ] 34. Reject a date that does not exist (for example 2026-02-30)
+  with a 404. Tests.
+
+- [ ] 35. Use workcenter date capacity overrides for the shifts that run
+  on a date: in the payload, the date write path and the date grid.
+  Tests.
+
+- [ ] 36. Let a weekly default be cleared (`not_set`) for a weekday the
+  shift does not run on. Tests.
+
+- [ ] 37. Count every weekday a shift runs on, weekend included, in the
+  hours warning. Vitest.
+
+- [ ] 38. Audit `available_from` as `Y-m-d`, not as a timestamp. Tests.
+
+- [ ] 39. Build the availability resolver once per employee in the
+  verifier and the eligible-employee list, and load only the overrides
+  and holidays of the checked dates. Tests.

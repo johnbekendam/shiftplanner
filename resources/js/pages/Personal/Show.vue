@@ -7,10 +7,7 @@ import CardSeparator from '@/components/ui/CardSeparator.vue'
 import Tabs from '@/components/ui/Tabs.vue'
 import EmployeeFields from '@/components/EmployeeFields.vue'
 import WeeklyHoursField from '@/components/WeeklyHoursField.vue'
-import AvailabilityGrid from '@/components/AvailabilityGrid.vue'
-import AvailabilityCalendar from '@/components/AvailabilityCalendar.vue'
-import DateAvailabilityGrid from '@/components/DateAvailabilityGrid.vue'
-import DayBlockToggle from '@/components/DayBlockToggle.vue'
+import AvailabilityCalendarSection from '@/components/AvailabilityCalendarSection.vue'
 import LabeledInput from '@/components/LabeledInput.vue'
 import { DateInput } from '@/components/ui/Input'
 import ShiftNote from '@/components/ShiftNote.vue'
@@ -24,11 +21,10 @@ import ButtonDanger from '@/components/ui/ButtonDanger.vue'
 import WithdrawContactDialog from '@/components/WithdrawContactDialog.vue'
 import { useI18n } from '@/composables/useI18n'
 import { useSaveRegistry } from '@/composables/useSaveRegistry'
+import { useDateOverrides } from '@/composables/useDateOverrides'
 import { useUnsavedChangesGuard } from '@/composables/useUnsavedChangesGuard'
 import { putAsync, postAsync, deleteAsync } from '@/utils/inertiaAsync'
 import { calculateAvailabilityHours } from '@/utils/availabilityHours'
-import { dayAvailability, groupOverrides, isoWeekday as isoWeekdayOf } from '@/utils/availabilityCalendar'
-import { formatDate } from '@/utils/date'
 
 const __ = useI18n()
 
@@ -183,53 +179,9 @@ const availabilityWarning = computed(() => {
     return availabilityHours.value.available >= form.weekly_hours ? 'not_preferred' : 'insufficient'
 })
 
-// The right column edits the default week or one date's availability.
-// The calendar keeps at most one of the two selected.
-const defaultWeekSelected = ref(false)
-const selectedDate = ref(null)
-
 // ── Date overrides: one PUT per changed date, replacing that date ──────
-// { [date]: { blocked, shifts } } — a date without overrides has no key.
-const committedOverrides = ref(groupOverrides(props.availabilityOverrides))
-const overrides = ref({ ...committedOverrides.value })
-const pendingDates = reactive({})
-
-const selectedDay = computed(() => selectedDate.value
-    ? dayAvailability(selectedDate.value, {
-        shifts: props.shifts,
-        availableFrom: form.available_from || null,
-        holidays: currentHolidayRows.value,
-        defaults: availability.value,
-        overrides: overrides.value,
-    })
-    : null)
-
-function onApplyDay({ date, blocked, shifts }) {
-    const next = { ...overrides.value }
-    if (blocked || Object.keys(shifts).length) next[date] = { blocked, shifts }
-    else delete next[date]
-    overrides.value = next
-
-    const committed = committedOverrides.value[date] ?? { blocked: false, shifts: {} }
-    if (JSON.stringify(committed) === JSON.stringify({ blocked, shifts })) delete pendingDates[date]
-    else pendingDates[date] = { blocked, shifts }
-}
-
-registry.register('dates', {
-    isDirty: () => Object.keys(pendingDates).length > 0,
-    save: async () => {
-        const results = await Promise.allSettled(Object.entries(pendingDates).map(([date, day]) =>
-            putAsync(`/personal/${props.token}/availability/dates/${date}`, day)
-                .then(() => {
-                    delete pendingDates[date]
-                    const next = { ...committedOverrides.value }
-                    if (day.blocked || Object.keys(day.shifts).length) next[date] = day
-                    else delete next[date]
-                    committedOverrides.value = next
-                })))
-        return results.every((r) => r.status === 'fulfilled')
-    },
-})
+const dates = useDateOverrides(props.availabilityOverrides, (date) => `/personal/${props.token}/availability/dates/${date}`)
+registry.register('dates', { isDirty: dates.isDirty, save: dates.save })
 
 // ── Holidays: POST is not idempotent, so a failed save leaves the whole
 // resource dirty rather than retrying only the still-pending items — a
@@ -365,8 +317,7 @@ function onCancelClick() {
     currentHolidayRows.value = committedHolidays.value
     holidaysVersion.value++
 
-    for (const date of Object.keys(pendingDates)) delete pendingDates[date]
-    overrides.value = { ...committedOverrides.value }
+    dates.reset()
 
     pendingAnsweredIds.value = [...savedAnsweredIds.value]
     questionsVersion.value++
@@ -447,67 +398,18 @@ const withdrawDialogOpen = ref(false)
 
             <CardSeparator />
 
-            <div class="space-y-6">
-                <section class="min-w-0 space-y-3" data-testid="availability-calendar-section">
-                    <AvailabilityCalendar
-                        v-model:default-week-selected="defaultWeekSelected"
-                        v-model:selected-date="selectedDate"
-                        :shifts="shifts"
-                        :defaults="availability"
-                        :overrides="overrides"
-                        :holidays="currentHolidayRows"
-                        :available-from="form.available_from || null"
-                    />
-                </section>
-
-                <section class="min-w-0" data-testid="default-week-section">
-                    <Card>
-                        <template v-if="defaultWeekSelected || selectedDay" #header>
-                            <div data-testid="availability-card-header" class="flex h-12 items-center justify-between gap-4 px-6">
-                                <span class="text-md font-semibold">
-                                    <template v-if="defaultWeekSelected">{{ __('availability.default_week.heading') }}</template>
-                                    <template v-else>
-                                        {{ __('availability.day.title', {
-                                            weekday: __(`availability.weekday_long.${isoWeekdayOf(selectedDay.date)}`),
-                                            date: formatDate(selectedDay.date),
-                                        }) }}
-                                    </template>
-                                </span>
-                                <DayBlockToggle
-                                    v-if="!defaultWeekSelected && selectedDay && !selectedDay.holiday"
-                                    :day="selectedDay"
-                                    :disabled="!editable"
-                                    @apply-day="onApplyDay"
-                                />
-                            </div>
-                        </template>
-
-                        <div class="px-6 py-4">
-                            <AvailabilityGrid
-                                v-if="defaultWeekSelected"
-                                :key="availabilityVersion"
-                                :shifts="shifts"
-                                :availability="availability"
-                                :disabled="!editable"
-                                @update:availability="onAvailabilityChange"
-                            />
-                            <DateAvailabilityGrid
-                                v-else-if="selectedDay"
-                                :day="selectedDay"
-                                :disabled="!editable"
-                                @apply-day="onApplyDay"
-                            />
-                            <p v-else data-testid="default-week-hint" class="text-sm text-(--color-text-secondary)">
-                                {{ __('availability.default_week.hint') }}
-                            </p>
-                            <template v-if="scheduleNoteHtml">
-                                <CardSeparator />
-                                <ShiftNote :html="scheduleNoteHtml" data-testid="availability-card-note" />
-                            </template>
-                        </div>
-                    </Card>
-                </section>
-            </div>
+            <AvailabilityCalendarSection
+                :shifts="shifts"
+                :defaults="availability"
+                :overrides="dates.overrides.value"
+                :holidays="currentHolidayRows"
+                :available-from="form.available_from || null"
+                :disabled="!editable"
+                :schedule-note-html="scheduleNoteHtml"
+                :grid-key="availabilityVersion"
+                @update:availability="onAvailabilityChange"
+                @apply-day="dates.applyDay"
+            />
 
             <Card class="mt-6" data-testid="holidays-card">
                 <template #header>
