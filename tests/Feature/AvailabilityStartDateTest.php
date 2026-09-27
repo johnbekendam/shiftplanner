@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Employee;
+use App\Models\EmployeeAuditEvent;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -80,5 +81,22 @@ class AvailabilityStartDateTest extends TestCase
 
         $this->actingAs(User::factory()->create())->get("/employees/{$employee->id}/edit")
             ->assertInertia(fn ($page) => $page->where('employee.available_from', '2026-11-02'));
+    }
+
+    public function test_a_start_date_change_is_audited_as_a_plain_date(): void
+    {
+        [$employee, $token] = $this->linkedEmployee(['weekly_hours' => 20, 'available_from' => '2026-10-01']);
+
+        $this->put("/personal/{$token}", ['weekly_hours' => 20, 'available_from' => '2026-11-02']);
+        $this->actingAs(User::factory()->create())->put("/employees/{$employee->id}", [
+            'first_name' => $employee->first_name, 'last_name' => $employee->last_name,
+            'email' => $employee->email, 'weekly_hours' => 20, 'available_from' => null,
+        ]);
+
+        $events = EmployeeAuditEvent::query()->orderBy('id')->get();
+        $this->assertSame(['available_from' => '2026-10-01'], $events[0]->old_values);
+        $this->assertSame(['available_from' => '2026-11-02'], $events[0]->new_values);
+        $this->assertSame(['available_from' => '2026-11-02'], $events[1]->old_values);
+        $this->assertSame(['available_from' => null], $events[1]->new_values);
     }
 }

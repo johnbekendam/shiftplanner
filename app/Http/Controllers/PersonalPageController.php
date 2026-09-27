@@ -87,7 +87,7 @@ class PersonalPageController extends Controller
             'available_from' => ['sometimes', 'nullable', 'date_format:Y-m-d'],
         ]);
 
-        $before = $employee->only(array_keys($data));
+        $before = EmployeeAuditLogger::values($employee, array_keys($data));
         $employee->fill($data);
         $changed = array_keys($employee->getDirty());
         $employee->update($data);
@@ -99,7 +99,7 @@ class PersonalPageController extends Controller
                 'employee',
                 $employee->id,
                 array_intersect_key($before, array_flip($changed)),
-                $employee->only($changed),
+                EmployeeAuditLogger::values($employee, $changed),
                 'employee_personal_link',
                 actorType: 'employee',
                 actorSnapshot: ['id' => $employee->id, 'name' => $employee->name, 'email' => $employee->email],

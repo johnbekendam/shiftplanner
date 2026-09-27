@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Employee;
 use App\Models\EmployeeAuditEvent;
 use App\Models\User;
+use Carbon\CarbonInterface;
 
 class EmployeeAuditLogger
 {
@@ -17,6 +18,20 @@ class EmployeeAuditLogger
         'business_line_id',
         'confirmed',
     ];
+
+    /**
+     * The employee's attribute values for an audit entry, with a date as
+     * Y-m-d instead of a full timestamp.
+     *
+     * @param  string[]  $keys
+     */
+    public static function values(Employee $employee, array $keys): array
+    {
+        return array_map(
+            fn ($value) => $value instanceof CarbonInterface ? $value->toDateString() : $value,
+            $employee->only($keys),
+        );
+    }
 
     public function record(
         Employee $employee,

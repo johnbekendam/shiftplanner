@@ -211,7 +211,7 @@ class EmployeeController extends Controller
     public function update(Request $request, Employee $employee)
     {
         $data = $this->validated($request, $employee);
-        $before = $employee->only(array_keys($data));
+        $before = EmployeeAuditLogger::values($employee, array_keys($data));
         $employee->fill($data);
         $changed = array_keys($employee->getDirty());
         $employee->save();
@@ -223,7 +223,7 @@ class EmployeeController extends Controller
                 'employee',
                 $employee->id,
                 array_intersect_key($before, array_flip($changed)),
-                $employee->only($changed),
+                EmployeeAuditLogger::values($employee, $changed),
                 'user',
                 $request->user(),
             );
