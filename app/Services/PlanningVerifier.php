@@ -23,10 +23,14 @@ class PlanningVerifier
     /** @var array<int, true> ids of the assignments this run verifies */
     private array $verifiedIds = [];
 
+    /** @var array<int, EmployeeAvailability> employee id => availability, built once per run */
+    private array $availability = [];
+
     /** @return array<int, string[]> assignment id => violation codes; violating assignments only */
     public function verifyWeek(Carbon $weekStart): array
     {
         $this->violations = [];
+        $this->availability = [];
         $weekStart = $weekStart->copy()->startOfWeek(Carbon::MONDAY);
         $weekEnd = $weekStart->copy()->addDays(6);
 
@@ -38,9 +42,14 @@ class PlanningVerifier
             ->with([
                 'shift',
                 'workcenter.shifts',
-                'employee.holidays',
+                // Only what can touch this week: holidays overlapping it, its date overrides.
+                'employee.holidays' => fn ($q) => $q
+                    ->whereDate('start_date', '<=', $weekEnd)
+                    ->whereDate('end_date', '>=', $weekStart),
                 'employee.recurringAvailabilities',
-                'employee.availabilityOverrides',
+                'employee.availabilityOverrides' => fn ($q) => $q
+                    ->whereDate('date', '>=', $weekStart)
+                    ->whereDate('date', '<=', $weekEnd),
                 'employee.workcenters',
                 'employee.competences',
             ])
@@ -169,7 +178,8 @@ class PlanningVerifier
             $this->flag($assignment, 'archived');
         }
 
-        $status = EmployeeAvailability::fromEmployee($employee)->status($date, $assignment->shift_id);
+        $this->availability[$employee->id] ??= EmployeeAvailability::fromEmployee($employee);
+        $status = $this->availability[$employee->id]->status($date, $assignment->shift_id);
         if (! EmployeeAvailability::isAssignable($status)) {
             $this->flag($assignment, EmployeeAvailability::blockReason($status));
         }

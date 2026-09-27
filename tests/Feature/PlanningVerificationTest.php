@@ -163,6 +163,20 @@ class PlanningVerificationTest extends TestCase
         $this->assertSame(['holiday'], $this->codesFor($assignment));
     }
 
+    public function test_a_holiday_that_starts_before_the_week_and_ignores_changes_of_other_weeks(): void
+    {
+        $shift = $this->shift();
+        $employee = $this->employee($shift);
+        EmployeeHoliday::query()->create(['employee_id' => $employee->id, 'start_date' => '2026-09-01', 'end_date' => '2026-09-15']);
+        $employee->availabilityOverrides()->create(['date' => '2026-09-22', 'shift_id' => null, 'level' => 'unavailable']);
+        $holidayAssignment = $this->assign($employee, $shift);
+        $other = $this->employee($shift);
+        $otherAssignment = $this->assign($other, $shift);
+
+        $this->assertSame(['holiday'], $this->codesFor($holidayAssignment));
+        $this->assertSame([], $this->codesFor($otherAssignment));
+    }
+
     public function test_an_employee_before_their_start_date(): void
     {
         $shift = $this->shift();

@@ -28,7 +28,12 @@ class EligibleEmployeeController extends Controller
         $employees = Employee::query()
             ->active()
             ->where('confirmed', true)
-            ->with(['holidays', 'recurringAvailabilities', 'availabilityOverrides'])
+            // Only what can touch this date: the holidays spanning it, its overrides.
+            ->with([
+                'holidays' => fn ($q) => $q->whereDate('start_date', '<=', $date)->whereDate('end_date', '>=', $date),
+                'recurringAvailabilities',
+                'availabilityOverrides' => fn ($q) => $q->whereDate('date', $date),
+            ])
             ->orderBy('first_name')
             ->orderBy('last_name')
             ->get()

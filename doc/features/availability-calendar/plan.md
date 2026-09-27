@@ -1,4 +1,4 @@
-Status: in progress — 38/39
+Status: complete — 39/39
 
 - [x] 1. Add the `EmployeeAvailability` resolver for weekly defaults and
   holidays. Build it from loaded relations and from `PlanProblem`
@@ -170,6 +170,6 @@ Review fixes (code review of 2026-09-27):
 
 - [x] 38. Audit `available_from` as `Y-m-d`, not as a timestamp. Tests.
 
-- [ ] 39. Build the availability resolver once per employee in the
+- [x] 39. Build the availability resolver once per employee in the
   verifier and the eligible-employee list, and load only the overrides
   and holidays of the checked dates. Tests.

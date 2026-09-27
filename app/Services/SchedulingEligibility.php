@@ -16,6 +16,14 @@ use Carbon\Carbon;
  */
 class SchedulingEligibility
 {
+    /** @var \WeakMap<Employee, EmployeeAvailability> one resolver per loaded employee */
+    private \WeakMap $availability;
+
+    public function __construct()
+    {
+        $this->availability = new \WeakMap;
+    }
+
     public function assignmentBlockReason(Employee $employee, Workcenter $workcenter, Shift $shift, Carbon $date): ?string
     {
         $assignments = ShiftAssignment::query()
@@ -111,9 +119,12 @@ class SchedulingEligibility
 
     private function availabilityStatus(Employee $employee, Carbon $date, Shift $shift): string
     {
-        $employee->loadMissing(['holidays', 'recurringAvailabilities', 'availabilityOverrides']);
+        if (! isset($this->availability[$employee])) {
+            $employee->loadMissing(['holidays', 'recurringAvailabilities', 'availabilityOverrides']);
+            $this->availability[$employee] = EmployeeAvailability::fromEmployee($employee);
+        }
 
-        return EmployeeAvailability::fromEmployee($employee)->status($date->toDateString(), $shift->id);
+        return $this->availability[$employee]->status($date->toDateString(), $shift->id);
     }
 
     /** Any other same-date assignment for this employee whose shift's clock range intersects this one's. */
