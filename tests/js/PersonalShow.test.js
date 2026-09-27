@@ -884,7 +884,7 @@ describe("Personal/Show", () => {
         expect(card.findComponent(HolidayList).exists()).toBe(true);
     });
 
-    it("fits the card to the page and puts Withdraw, Cancel and Save in the card footer", () => {
+    it("fits the card to the page and puts Cancel and Save in the card footer", () => {
         const w = mount(Show, {
             props: {
                 token: "tok-1",
@@ -904,7 +904,7 @@ describe("Personal/Show", () => {
         expect(w.get("[data-fit-height]").attributes("data-fit-height")).toBe("true");
         expect(w.get("[data-scroll-key]").attributes("data-scroll-key")).toBe("information");
         const footer = w.get('[data-testid="stub-footer"]');
-        expect(footer.findAll("button").map((b) => b.text())).toEqual(["Withdraw", "Cancel", "Save"]);
+        expect(footer.findAll("button").map((b) => b.text())).toEqual(["Cancel", "Save"]);
         expect(footer.find("hr").exists()).toBe(false);
         expect(w.get('[data-testid="stub-body"]').findAll("button").some((b) => b.text() === "Save")).toBe(false);
     });
@@ -913,5 +913,14 @@ describe("Personal/Show", () => {
         const w = mountShow([], { editable: false });
 
         expect(w.find('[data-testid="card-footer-actions"]').exists()).toBe(false);
+    });
+
+    it("shows Withdraw only on the Details tab, not in the footer", () => {
+        const w = mountShow();
+        const inDetails = w.get('[data-testid="panel-details"]').findAll("button").filter((b) => b.text() === "Withdraw");
+
+        expect(inDetails).toHaveLength(1);
+        expect(w.findAll("button").filter((b) => b.text() === "Withdraw")).toHaveLength(1);
+        expect(w.get('[data-testid="card-footer-actions"]').text()).not.toContain("Withdraw");
     });
 });

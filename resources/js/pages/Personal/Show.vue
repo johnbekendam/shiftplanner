@@ -359,6 +359,13 @@ const withdrawDialogOpen = ref(false)
 
         <div v-show="tab === 'details'" data-testid="panel-details">
             <EmployeeFields :form="form" :business-lines="businessLines" readonly-identity :disabled="!editable" />
+
+            <template v-if="editable">
+                <CardSeparator />
+                <ButtonDanger type="button" @click="withdrawDialogOpen = true">
+                    {{ __('personal.action.withdraw') }}
+                </ButtonDanger>
+            </template>
         </div>
 
         <div v-show="tab === 'availability'" data-testid="panel-availability" class="@container">
@@ -482,11 +489,7 @@ const withdrawDialogOpen = ref(false)
         </div>
 
         <template v-if="editable" #footer>
-            <div data-testid="card-footer-actions" class="flex items-center justify-between gap-3">
-                <ButtonDanger type="button" @click="withdrawDialogOpen = true">
-                    {{ __('personal.action.withdraw') }}
-                </ButtonDanger>
-
+            <div data-testid="card-footer-actions" class="flex items-center justify-end gap-3">
                 <div class="flex items-center gap-3">
                     <ButtonSecondary
                         type="button"

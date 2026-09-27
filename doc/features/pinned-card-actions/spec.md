@@ -27,8 +27,10 @@ prop). The separator above the buttons goes.
 - Employee edit page: the footer holds Delete, Cancel and Save. For an
   archived employee it holds only Restore, for an admin. A manager sees
   no footer on an archived employee.
-- Personal page: the footer holds Withdraw, Cancel and Save. When
-  employee changes are locked, the page has no buttons and no footer.
+- Personal page: the footer holds Cancel and Save. Withdraw sits at the
+  bottom of the Details tab, below a separator, so it shows only on that
+  tab. When employee changes are locked, the page has no Withdraw, no
+  buttons and no footer.
 
 The layouts get this behavior as an option:
 
