@@ -34,4 +34,19 @@ describe('calculateAvailabilityHours', () => {
             available: 0,
         })
     })
+
+    it('counts every weekday the shift runs on, weekend included, and no other day', () => {
+        const weekend = [{ id: 1, name: 'Morning', start_time: '08:00', end_time: '12:00', weekdays: [1, 6, 7] }]
+        const availability = [
+            { weekday: 6, shift_id: 1, level: 'available' },
+            { weekday: 7, shift_id: 1, level: 'not_preferred' },
+            // A default left on a day the shift no longer runs.
+            { weekday: 3, shift_id: 1, level: 'available' },
+        ]
+
+        expect(calculateAvailabilityHours(weekend, availability)).toEqual({
+            preferred: 4,
+            available: 8,
+        })
+    })
 })

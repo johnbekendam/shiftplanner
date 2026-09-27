@@ -1,4 +1,4 @@
-Status: in progress — 36/39
+Status: in progress — 37/39
 
 - [x] 1. Add the `EmployeeAvailability` resolver for weekly defaults and
   holidays. Build it from loaded relations and from `PlanProblem`
@@ -165,7 +165,7 @@ Review fixes (code review of 2026-09-27):
 - [x] 36. Let a weekly default be cleared (`not_set`) for a weekday the
   shift does not run on. Tests.
 
-- [ ] 37. Count every weekday a shift runs on, weekend included, in the
+- [x] 37. Count every weekday a shift runs on, weekend included, in the
   hours warning. Vitest.
 
 - [ ] 38. Audit `available_from` as `Y-m-d`, not as a timestamp. Tests.

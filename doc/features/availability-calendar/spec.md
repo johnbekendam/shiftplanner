@@ -181,7 +181,8 @@ of these writes.
 - An end date for employment.
 - Public holidays.
 - Date-range selection in the calendar.
-- Changes to the hours warning. It still uses only the weekly defaults.
+- Date overrides in the hours warning. It uses only the weekly defaults,
+  for every weekday a shift runs on, weekend included.
 - Changes to the reports that read the weekly grid (shift coverage,
   missing availability).
 - Changes to the questions themselves and to the schedule note. Only
