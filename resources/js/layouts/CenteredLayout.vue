@@ -67,6 +67,7 @@ const widthClass = { md: 'max-w-md', lg: 'max-w-xl', xl: 'max-w-2xl' }[props.wid
                 data-testid="centered-card"
                 class="w-full"
                 :class="[widthClass, fitHeight ? 'flex max-h-full min-h-0 flex-col' : '']"
+                footer-class="bg-[var(--color-card-body-bg)] text-[var(--color-card-body-text)]"
             >
                 <template v-if="$slots.header || $slots.title" #header>
                     <slot name="header">

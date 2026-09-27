@@ -20,8 +20,9 @@ On both pages the card is never taller than the visible page area:
 - A short tab keeps a short card. The card shrinks to its content.
 - A tab switch shows the new tab from its top.
 
-The button row moves into the `Card` footer slot. It gets the footer
-background and top border. The separator above the buttons goes.
+The button row moves into the `Card` footer slot. It keeps the footer
+top border, but uses the body background (the new `Card` `footerClass`
+prop). The separator above the buttons goes.
 
 - Employee edit page: the footer holds Delete, Cancel and Save. For an
   archived employee it holds only Restore, for an admin. A manager sees

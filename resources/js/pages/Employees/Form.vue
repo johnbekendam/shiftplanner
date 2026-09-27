@@ -415,7 +415,12 @@ function restore() {
 
         <!-- Edit: at most as tall as the page, so the tabs and the buttons in
              the footer stay on screen while the body scrolls. -->
-        <Card data-testid="employee-card" class="max-w-2xl" :class="isEdit ? 'flex min-h-0 flex-col' : ''">
+        <Card
+            data-testid="employee-card"
+            class="max-w-2xl"
+            footer-class="bg-[var(--color-card-body-bg)] text-[var(--color-card-body-text)]"
+            :class="isEdit ? 'flex min-h-0 flex-col' : ''"
+        >
             <template v-if="isEdit" #header>
                 <Tabs v-model="tab" :tabs="tabs" />
             </template>

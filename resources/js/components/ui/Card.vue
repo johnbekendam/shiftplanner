@@ -22,7 +22,10 @@
 
         <div
             v-if="$slots.footer"
-            class="shrink-0 overflow-hidden rounded-b-lg border-t border-[var(--color-card-footer-border)] bg-[var(--color-card-footer-bg)] text-[var(--color-card-footer-text)]"
+            :class="[
+                'shrink-0 overflow-hidden rounded-b-lg border-t border-[var(--color-card-footer-border)]',
+                footerClass ?? 'bg-[var(--color-card-footer-bg)] text-[var(--color-card-footer-text)]',
+            ]"
         >
             <slot name="footer" />
         </div>
@@ -33,5 +36,7 @@
 defineOptions({ inheritAttrs: false })
 defineProps({
     headerClass: { type: String, default: null },
+    // Replaces the footer's background and text colors.
+    footerClass: { type: String, default: null },
 })
 </script>

@@ -68,4 +68,12 @@ describe("CenteredLayout fitHeight", () => {
 
         expect(body.scrollTop).toBe(0);
     });
+
+    it("gives the footer the body background", () => {
+        const w = mount(CenteredLayout, { slots: { default: "<p>Body</p>", footer: "<button>Save</button>" }, global: { stubs } });
+        const footer = w.get('[data-testid="centered-footer"]').element.parentElement;
+
+        expect(footer.className).toContain("bg-[var(--color-card-body-bg)]");
+        expect(footer.className).not.toContain("--color-card-footer-bg");
+    });
 });

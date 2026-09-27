@@ -1036,4 +1036,12 @@ describe("Employees/Form", () => {
 
         expect(w.find('[data-testid="card-footer-actions"]').exists()).toBe(false);
     });
+
+    it("gives the card footer the body background", () => {
+        const w = mount(Form, { props: { employee: editEmployee, holidays: [] }, global: { stubs: fitStubs } });
+        const footer = w.get('[data-testid="card-footer-actions"]').element.parentElement;
+
+        expect(footer.className).toContain("bg-[var(--color-card-body-bg)]");
+        expect(footer.className).not.toContain("--color-card-footer-bg");
+    });
 });
