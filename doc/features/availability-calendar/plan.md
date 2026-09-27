@@ -1,4 +1,4 @@
-Status: in progress — 31/39
+Status: in progress — 32/39
 
 - [x] 1. Add the `EmployeeAvailability` resolver for weekly defaults and
   holidays. Build it from loaded relations and from `PlanProblem`
@@ -148,7 +148,7 @@ Review fixes (code review of 2026-09-27):
   composable and the calendar plus availability card into
   `AvailabilityCalendarSection.vue`, used by both pages. Vitest.
 
-- [ ] 32. Keep overrides of shifts that are hidden on a date. The date
+- [x] 32. Keep overrides of shifts that are hidden on a date. The date
   PUT replaces only the rows it can edit. The client keeps hidden
   overrides when a date changes. Tests.
 

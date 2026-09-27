@@ -37,7 +37,6 @@ export function dayAvailability(date, ctx) {
     const notStarted = !!ctx.availableFrom && date < ctx.availableFrom
     const holiday = ctx.holidays.some((h) => h.start_date <= date && h.end_date >= date)
     const override = ctx.overrides[date] ?? { blocked: false, shifts: {} }
-    const changed = override.blocked || Object.keys(override.shifts).length > 0
 
     const shifts = ctx.shifts
         .filter((shift) => (shift.weekdays ?? []).includes(weekday))
@@ -51,6 +50,12 @@ export function dayAvailability(date, ctx) {
             return { shift, defaultLevel, override: shiftOverride, status }
         })
 
+    // Overrides of shifts that do not show on this date (hidden, or not
+    // running that day). They stay stored and are sent back unchanged.
+    const shownIds = new Set(shifts.map((s) => String(s.shift.id)))
+    const hiddenOverrides = Object.fromEntries(Object.entries(override.shifts).filter(([id]) => !shownIds.has(id)))
+    const changed = override.blocked || shifts.some((s) => s.override !== null)
+
     let fill = shifts.some((s) => s.status === 'available')
         ? 'success'
         : shifts.some((s) => s.status === 'not_preferred') ? 'warning' : 'error'
@@ -59,12 +64,16 @@ export function dayAvailability(date, ctx) {
     // A holiday has its own fill; its overrides have no effect, so no border.
     const border = !notStarted && !holiday && changed ? 'solid' : null
 
-    return { date, notStarted, holiday, blocked: override.blocked, changed, shifts, fill, border }
+    return { date, notStarted, holiday, blocked: override.blocked, changed, shifts, hiddenOverrides, fill, border }
 }
 
-// The shift overrides of a dayAvailability() result: { [shiftId]: level }.
+// The shift overrides of a dayAvailability() result, hidden ones included:
+// { [shiftId]: level }. A date PUT sends all of them.
 export function dayOverrides(day) {
-    return Object.fromEntries(day.shifts.filter((s) => s.override).map((s) => [s.shift.id, s.override]))
+    return {
+        ...(day.hiddenOverrides ?? {}),
+        ...Object.fromEntries(day.shifts.filter((s) => s.override).map((s) => [s.shift.id, s.override])),
+    }
 }
 
 // Calendar.vue's dayStates and dayBorders for one month, keyed by day number.

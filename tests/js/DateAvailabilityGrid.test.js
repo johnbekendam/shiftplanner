@@ -150,4 +150,17 @@ describe("DateAvailabilityGrid", () => {
         expect(row.classes()).toEqual(expect.arrayContaining(["flex", "justify-end"]));
         expect(row.text()).toBe("Reset to default");
     });
+
+    it("keeps hidden overrides when a shift changes or the day is reset", async () => {
+        const w = mountGrid({ day: day({ hiddenOverrides: { 30: "available" } }) });
+
+        await w.findAll("button").find((b) => b.text() === "Reset to default").trigger("click");
+        await cell(w, 10).trigger("click");
+        await w.get('[data-testid="availability-menu-unavailable"]').trigger("click");
+
+        expect(w.emitted("apply-day")).toEqual([
+            [{ date: "2026-10-05", blocked: false, shifts: { 30: "available" } }],
+            [{ date: "2026-10-05", blocked: false, shifts: { 30: "available", 10: "unavailable", 20: "not_preferred" } }],
+        ]);
+    });
 });

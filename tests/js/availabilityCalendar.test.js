@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { dayAvailability, groupOverrides, monthStates, isoWeekday } from "@/utils/availabilityCalendar";
+import { dayAvailability, dayOverrides, groupOverrides, monthStates, isoWeekday } from "@/utils/availabilityCalendar";
 
 const early = { id: 10, name: "Early", start_time: "06:00", end_time: "14:00", weekdays: [1, 2, 3, 4, 5] };
 const late = { id: 20, name: "Late", start_time: "14:00", end_time: "22:00", weekdays: [1, 6] };
@@ -113,5 +113,23 @@ describe("availabilityCalendar", () => {
         expect(dayStates[7]).toBe("success");
         expect(dayStates[12]).toBe("custom");
         expect(dayBorders).toEqual({ 7: "solid" });
+    });
+
+    it("keeps overrides of shifts that do not run that day apart, and not as a change", () => {
+        // 2026-10-06 is a Tuesday: Late (20) does not run.
+        const day = dayAvailability("2026-10-06", context({ overrides: { "2026-10-06": { blocked: false, shifts: { 20: "available" } } } }));
+
+        expect(day.shifts.map((s) => s.shift.id)).toEqual([10]);
+        expect(day.hiddenOverrides).toEqual({ 20: "available" });
+        expect(day.changed).toBe(false);
+        expect(day.border).toBeNull();
+        expect(dayOverrides(day)).toEqual({ 20: "available" });
+    });
+
+    it("merges visible and hidden overrides in dayOverrides", () => {
+        const day = dayAvailability("2026-10-06", context({ overrides: { "2026-10-06": { blocked: false, shifts: { 10: "unavailable", 20: "available" } } } }));
+
+        expect(day.changed).toBe(true);
+        expect(dayOverrides(day)).toEqual({ 10: "unavailable", 20: "available" });
     });
 });

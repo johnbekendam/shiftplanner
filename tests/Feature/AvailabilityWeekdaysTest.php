@@ -76,4 +76,23 @@ class AvailabilityWeekdaysTest extends TestCase
         $this->get("/personal/{$link->token}")
             ->assertInertia(fn ($page) => $page->where('shifts.0.weekdays', [1, 6]));
     }
+
+    public function test_a_date_change_keeps_the_override_of_a_shift_that_does_not_run_that_day(): void
+    {
+        $other = Shift::factory()->create(['visible_by_default' => true]);
+        // 2026-10-10 is a Saturday: $this->shift runs, $other does not.
+        $this->employee->availabilityOverrides()->create(['date' => '2026-10-10', 'shift_id' => $other->id, 'level' => 'available']);
+        $url = "/employees/{$this->employee->id}/availability/dates/2026-10-10";
+
+        $this->put($url, ['blocked' => true, 'shifts' => []])->assertSessionHasNoErrors();
+        $this->put($url, ['blocked' => true, 'shifts' => [$other->id => 'available', $this->shift->id => 'not_preferred']])
+            ->assertSessionHasNoErrors();
+
+        $this->assertEqualsCanonicalizing(
+            [[null, 'unavailable'], [$other->id, 'available'], [$this->shift->id, 'not_preferred']],
+            $this->employee->availabilityOverrides()->get()->map(fn ($o) => [$o->shift_id, $o->level])->all(),
+        );
+
+        $this->put($url, ['blocked' => false, 'shifts' => [$other->id => 'unavailable']])->assertSessionHasErrors('shifts');
+    }
 }

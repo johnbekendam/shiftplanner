@@ -13,8 +13,10 @@ use Illuminate\Validation\ValidationException;
 trait SetsDateAvailability
 {
     /**
-     * Replace every override of one date with the requested whole-day
-     * block and shift levels. An omitted shift follows the weekly default.
+     * Replace the whole-day block and the shift levels of one date. An
+     * omitted shift follows the weekly default. Only shifts the employee
+     * sees on that date are replaced: rows of other shifts (hidden, or not
+     * running that day) stay, and the payload may repeat them unchanged.
      *
      * @return array{0: array, 1: array} the date's state before and after
      */
@@ -26,35 +28,57 @@ trait SetsDateAvailability
             'shifts.*' => ['required', Rule::in(AvailabilityOverride::LEVELS)],
         ]);
 
-        $shiftIds = array_map('intval', array_keys($data['shifts']));
         $effectiveIds = $employee->effectiveShifts()->pluck('id')->all();
-        if (array_diff($shiftIds, $effectiveIds) !== []) {
-            throw ValidationException::withMessages(['shifts' => __('availability.error.shift_hidden')]);
-        }
+        $editableIds = $this->editableShiftIds($employee, $date, $effectiveIds);
+        $stored = $employee->availabilityOverrides()->whereDate('date', $date)->whereNotNull('shift_id')
+            ->pluck('level', 'shift_id')->all();
 
-        $weekday = Carbon::parse($date)->isoWeekday();
-        $shiftWeekdays = $employee->shiftWeekdays();
-        foreach ($shiftIds as $shiftId) {
-            if (! in_array($weekday, $shiftWeekdays[$shiftId], true)) {
-                throw ValidationException::withMessages(['shifts' => __('availability.error.shift_not_running')]);
+        $shifts = [];
+        foreach ($data['shifts'] as $shiftId => $level) {
+            $shiftId = (int) $shiftId;
+            if (in_array($shiftId, $editableIds, true)) {
+                $shifts[$shiftId] = $level;
+            } elseif (($stored[$shiftId] ?? null) !== $level) {
+                $error = in_array($shiftId, $effectiveIds, true) ? 'shift_not_running' : 'shift_hidden';
+                throw ValidationException::withMessages(['shifts' => __("availability.error.{$error}")]);
             }
         }
 
         $before = $this->dateState($employee, $date);
 
-        DB::transaction(function () use ($employee, $date, $data) {
-            $employee->availabilityOverrides()->whereDate('date', $date)->delete();
+        DB::transaction(function () use ($employee, $date, $data, $shifts, $editableIds) {
+            $employee->availabilityOverrides()
+                ->whereDate('date', $date)
+                ->where(fn ($q) => $q->whereNull('shift_id')->orWhereIn('shift_id', $editableIds))
+                ->delete();
 
             if ($data['blocked']) {
                 $employee->availabilityOverrides()->create(['date' => $date, 'shift_id' => null, 'level' => 'unavailable']);
             }
 
-            foreach ($data['shifts'] as $shiftId => $level) {
-                $employee->availabilityOverrides()->create(['date' => $date, 'shift_id' => (int) $shiftId, 'level' => $level]);
+            foreach ($shifts as $shiftId => $level) {
+                $employee->availabilityOverrides()->create(['date' => $date, 'shift_id' => $shiftId, 'level' => $level]);
             }
         });
 
         return [$before, $this->dateState($employee, $date)];
+    }
+
+    /**
+     * The effective shifts that run on the date: the ones its schedule shows.
+     *
+     * @param  int[]  $effectiveIds
+     * @return int[]
+     */
+    private function editableShiftIds(Employee $employee, string $date, array $effectiveIds): array
+    {
+        $weekday = Carbon::parse($date)->isoWeekday();
+        $shiftWeekdays = $employee->shiftWeekdays();
+
+        return array_values(array_filter(
+            $effectiveIds,
+            fn (int $id) => in_array($weekday, $shiftWeekdays[$id] ?? [], true),
+        ));
     }
 
     /** The audit shape of one date: its block flag and shift levels. */

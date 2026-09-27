@@ -79,6 +79,7 @@ class AvailabilityOverrideTest extends TestCase
         $this->actingAs(User::factory()->create());
         $employee = Employee::factory()->create();
         $shift = Shift::factory()->create(['visible_by_default' => true]);
+        $this->staffOnMonday($shift);
         $employee->availabilityOverrides()->create(['date' => self::MONDAY, 'shift_id' => $shift->id, 'level' => 'available']);
         $employee->availabilityOverrides()->create(['date' => '2026-10-06', 'shift_id' => $shift->id, 'level' => 'available']);
 

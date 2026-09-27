@@ -47,7 +47,7 @@ function choose(shiftId, value) {
 }
 
 function reset() {
-    emit('apply-day', { date: props.day.date, blocked: false, shifts: {} })
+    emit('apply-day', { date: props.day.date, blocked: false, shifts: { ...(props.day.hiddenOverrides ?? {}) } })
 }
 </script>
 
