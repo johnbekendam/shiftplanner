@@ -1,4 +1,4 @@
-Status: in progress — 34/39
+Status: in progress — 35/39
 
 - [x] 1. Add the `EmployeeAvailability` resolver for weekly defaults and
   holidays. Build it from loaded relations and from `PlanProblem`
@@ -158,7 +158,7 @@ Review fixes (code review of 2026-09-27):
 - [x] 34. Reject a date that does not exist (for example 2026-02-30)
   with a 404. Tests.
 
-- [ ] 35. Use workcenter date capacity overrides for the shifts that run
+- [x] 35. Use workcenter date capacity overrides for the shifts that run
   on a date: in the payload, the date write path and the date grid.
   Tests.
 

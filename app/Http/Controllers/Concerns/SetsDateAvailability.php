@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Concerns;
 
 use App\Models\AvailabilityOverride;
 use App\Models\Employee;
-use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -33,7 +32,7 @@ trait SetsDateAvailability
         ]);
 
         $effectiveIds = $employee->effectiveShifts()->pluck('id')->all();
-        $editableIds = $this->editableShiftIds($employee, $date, $effectiveIds);
+        $editableIds = $employee->shiftsRunningOn($date, $effectiveIds);
         $stored = $employee->availabilityOverrides()->whereDate('date', $date)->whereNotNull('shift_id')
             ->pluck('level', 'shift_id')->all();
 
@@ -66,23 +65,6 @@ trait SetsDateAvailability
         });
 
         return [$before, $this->dateState($employee, $date)];
-    }
-
-    /**
-     * The effective shifts that run on the date: the ones its schedule shows.
-     *
-     * @param  int[]  $effectiveIds
-     * @return int[]
-     */
-    private function editableShiftIds(Employee $employee, string $date, array $effectiveIds): array
-    {
-        $weekday = Carbon::parse($date)->isoWeekday();
-        $shiftWeekdays = $employee->shiftWeekdays();
-
-        return array_values(array_filter(
-            $effectiveIds,
-            fn (int $id) => in_array($weekday, $shiftWeekdays[$id] ?? [], true),
-        ));
     }
 
     /** The audit shape of one date: its block flag and shift levels. */

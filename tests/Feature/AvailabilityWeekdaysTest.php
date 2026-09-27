@@ -7,6 +7,7 @@ use App\Models\Shift;
 use App\Models\User;
 use App\Models\Workcenter;
 use App\Models\WorkcenterShiftCapacity;
+use App\Models\WorkcenterShiftDateOverride;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -94,5 +95,24 @@ class AvailabilityWeekdaysTest extends TestCase
         );
 
         $this->put($url, ['blocked' => false, 'shifts' => [$other->id => 'unavailable']])->assertSessionHasErrors('shifts');
+    }
+
+    public function test_a_date_capacity_override_opens_or_closes_date_availability(): void
+    {
+        $workcenter = $this->shift->workcenters()->first();
+        // Opens Tuesday 2026-10-06, closes Monday 2026-10-05.
+        WorkcenterShiftDateOverride::query()->create(['workcenter_id' => $workcenter->id, 'shift_id' => $this->shift->id, 'date' => '2026-10-06', 'spots' => 2]);
+        WorkcenterShiftDateOverride::query()->create(['workcenter_id' => $workcenter->id, 'shift_id' => $this->shift->id, 'date' => '2026-10-05', 'spots' => 0]);
+
+        $this->put("/employees/{$this->employee->id}/availability/dates/2026-10-06", [
+            'blocked' => false, 'shifts' => [$this->shift->id => 'available'],
+        ])->assertSessionHasNoErrors();
+        $this->put("/employees/{$this->employee->id}/availability/dates/2026-10-05", [
+            'blocked' => false, 'shifts' => [$this->shift->id => 'available'],
+        ])->assertSessionHasErrors('shifts');
+
+        $this->get("/employees/{$this->employee->id}/edit")->assertInertia(fn ($page) => $page
+            ->where('shifts.0.open_dates', ['2026-10-06'])
+            ->where('shifts.0.closed_dates', ['2026-10-05']));
     }
 }

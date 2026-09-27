@@ -15,6 +15,13 @@ export function isoWeekday(date) {
     return ((new Date(y, m - 1, d).getDay() + 6) % 7) + 1
 }
 
+// Whether a shift runs on a date: its weekdays, unless a workcenter date
+// capacity opens (open_dates) or closes (closed_dates) that single date.
+function runsOn(shift, date, weekday) {
+    if ((shift.closed_dates ?? []).includes(date)) return false
+    return (shift.open_dates ?? []).includes(date) || (shift.weekdays ?? []).includes(weekday)
+}
+
 // Override rows [{ date, shift_id, level }] → { [date]: { blocked, shifts: { [shiftId]: level } } }.
 export function groupOverrides(rows) {
     const byDate = {}
@@ -39,7 +46,7 @@ export function dayAvailability(date, ctx) {
     const override = ctx.overrides[date] ?? { blocked: false, shifts: {} }
 
     const shifts = ctx.shifts
-        .filter((shift) => (shift.weekdays ?? []).includes(weekday))
+        .filter((shift) => runsOn(shift, date, weekday))
         .map((shift) => {
             const defaultLevel = ctx.defaults.find((r) => r.weekday === weekday && r.shift_id === shift.id)?.level ?? 'not_set'
             const shiftOverride = override.shifts[shift.id] ?? null

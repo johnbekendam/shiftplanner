@@ -132,4 +132,16 @@ describe("availabilityCalendar", () => {
         expect(day.changed).toBe(true);
         expect(dayOverrides(day)).toEqual({ 10: "unavailable", 20: "available" });
     });
+
+    it("lets open and closed dates of a shift overrule its weekdays", () => {
+        const shifts = [
+            { ...early, open_dates: ["2026-10-10"], closed_dates: ["2026-10-05"] },
+            late,
+        ];
+        const ctx = context({ shifts });
+
+        expect(dayAvailability("2026-10-10", ctx).shifts.map((s) => s.shift.id)).toEqual([10, 20]);
+        expect(dayAvailability("2026-10-05", ctx).shifts.map((s) => s.shift.id)).toEqual([20]);
+        expect(dayAvailability("2026-10-12", ctx).shifts.map((s) => s.shift.id)).toEqual([10, 20]);
+    });
 });

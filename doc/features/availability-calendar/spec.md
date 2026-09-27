@@ -59,8 +59,14 @@ code.
 A shift runs on an ISO weekday (1–7) for an employee when one of the
 employee's workcenters has capacity (spots > 0) for it on that weekday.
 An employee without a workcenter uses the capacity of any workcenter.
-Only effective shifts count (`Employee::effectiveShifts()`). Date
-overrides of workcenter capacity are not used.
+Only effective shifts count (`Employee::effectiveShifts()`).
+
+On a single date, a workcenter date capacity override can open or close
+a shift. The shift runs on that date when one of the workcenters has
+spots for it: its date override when it has one, else its weekly
+capacity. The payload lists these dates per shift as `open_dates` and
+`closed_dates`. The date write path and the date schedule use them. The
+default grid uses only the weekdays.
 
 The default grid supports Monday to Sunday. A cell shows only where the
 shift runs. A weekday column where no shift runs is hidden. The weekday
