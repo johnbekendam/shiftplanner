@@ -1,4 +1,4 @@
-Status: in progress — 4/5
+Status: complete — 5/5
 
 - [x] 1. Add a `fitHeight` prop to `AppLayout` and to `CenteredLayout`,
   and a `footer` slot to `CenteredLayout`. With `fitHeight`, the card is
@@ -16,5 +16,5 @@ Status: in progress — 4/5
   saving, or during the "Saved" confirmation. Block a tab switch with
   unsaved changes behind a Stay / Discard changes dialog. Vitest.
 
-- [ ] 5. Employee edit page: the same footer rule and tab-switch dialog.
+- [x] 5. Employee edit page: the same footer rule and tab-switch dialog.
   An archived employee keeps the Restore footer. Vitest.

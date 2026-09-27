@@ -26,6 +26,7 @@ import { useAuth } from '@/composables/useAuth'
 import { useSaveRegistry } from '@/composables/useSaveRegistry'
 import { useDateOverrides } from '@/composables/useDateOverrides'
 import { useUnsavedChangesGuard } from '@/composables/useUnsavedChangesGuard'
+import { useGuardedTab } from '@/composables/useGuardedTab'
 import { putAsync, postAsync, deleteAsync } from '@/utils/inertiaAsync'
 import { calculateAvailabilityHours } from '@/utils/availabilityHours'
 
@@ -396,6 +397,11 @@ function onCancelClick() {
     workcentersVersion.value++
 }
 
+// Cancel and Save act on the open tab: a tab with unsaved changes cannot be
+// left without staying or discarding, so the footer only shows when needed.
+const showActions = computed(() => registry.anyDirty.value || registry.saving.value || justSaved.value)
+const guard = useGuardedTab(tab, () => registry.anyDirty.value, onCancelClick)
+
 // ── Delete: admin/manager counterpart of the employee's own Withdraw ────
 const deleteDialogOpen = ref(false)
 const employeeName = computed(() => [props.employee?.first_name, props.employee?.last_name].filter(Boolean).join(' '))
@@ -422,7 +428,7 @@ function restore() {
             :class="isEdit ? 'flex min-h-0 flex-col' : ''"
         >
             <template v-if="isEdit" #header>
-                <Tabs v-model="tab" :tabs="tabs" />
+                <Tabs :model-value="tab" :tabs="tabs" @update:model-value="guard.requestTab" />
             </template>
 
             <div ref="cardBody" data-testid="card-body" :class="isEdit ? 'min-h-0 flex-1 overflow-y-auto' : ''">
@@ -612,8 +618,9 @@ function restore() {
                 </div>
             </div>
 
-            <!-- An archived employee has only Restore, and only for an admin. -->
-            <template v-if="isEdit && (!isArchived || isAdmin)" #footer>
+            <!-- An archived employee has only Restore, and only for an admin.
+                 Otherwise only while there is something to save, or to show "Saved". -->
+            <template v-if="isEdit && (isArchived ? isAdmin : showActions)" #footer>
                 <div data-testid="card-footer-actions" class="px-6 py-4">
                     <div v-if="isArchived" class="flex justify-end">
                         <ButtonPrimary type="button" @click="restore">
@@ -648,6 +655,18 @@ function restore() {
                 </div>
             </template>
         </Card>
+
+        <ConfirmDialog
+            :open="guard.blockedTab.value !== null"
+            :title="__('tabs.unsaved.title')"
+            :confirm-label="__('tabs.unsaved.discard')"
+            :cancel-label="__('tabs.unsaved.stay')"
+            variant="danger"
+            @confirm="guard.discardAndSwitch"
+            @cancel="guard.stay"
+        >
+            {{ __('tabs.unsaved.body') }}
+        </ConfirmDialog>
 
         <ConfirmDialog
             v-if="isEdit && !isArchived"

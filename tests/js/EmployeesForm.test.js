@@ -44,6 +44,9 @@ const en = {
     "employees.delete.body": "This permanently removes :name's details from ShiftPlanner.",
     "employees.delete.confirm": "Yes, delete",
     "app.cancel": "Cancel",
+    "tabs.unsaved.title": "Unsaved changes",
+    "tabs.unsaved.discard": "Discard changes",
+    "tabs.unsaved.stay": "Stay",
 };
 
 // Requests fired by putAsync/postAsync/deleteAsync (availability, holidays,
@@ -110,6 +113,7 @@ import EmployeePlanningSettings from "@/components/EmployeePlanningSettings.vue"
 import { NumberInput, DateInput } from "@/components/ui/Input";
 import AvailabilityCalendar from "@/components/AvailabilityCalendar.vue";
 import Tabs from "@/components/ui/Tabs.vue";
+import ConfirmDialog from "@/components/ui/ConfirmDialog.vue";
 import DateAvailabilityGrid from "@/components/DateAvailabilityGrid.vue";
 
 const stubs = { AppLayout: { template: "<div><slot /></div>" }, teleport: true };
@@ -331,6 +335,7 @@ describe("Employees/Form", () => {
         const form = w.findComponent(EmployeeFields).props("form");
 
         await w.setProps({ shifts: [shift] });
+        w.getComponent(WeeklyHoursField).vm.$emit("update:modelValue", 40);
         await w.vm.$nextTick();
 
         await findSaveButton(w).trigger("click");
@@ -533,16 +538,16 @@ describe("Employees/Form", () => {
             .toContain("Your available time totals 16 hours per week, below your target of 20 hours.");
     });
 
-    it("the Save button is disabled with nothing changed", () => {
+    it("shows no Save or Cancel button with nothing changed", () => {
         const w = mount(Form, {
             props: { employee: { id: 3, first_name: "A", last_name: "B", email: "a@b.c", weekly_hours: 24 }, holidays: [] },
             global: { stubs },
         });
-        expect(findSaveButton(w).attributes("disabled")).toBeDefined();
-        expect(findCancelButton(w).attributes("disabled")).toBeDefined();
+        expect(findSaveButton(w)).toBeUndefined();
+        expect(findCancelButton(w)).toBeUndefined();
     });
 
-    it("Cancel restores weekly hours and disables both buttons, without saving", async () => {
+    it("Cancel restores weekly hours and hides the footer, without saving", async () => {
         const w = mount(Form, {
             props: { employee: { id: 3, first_name: "A", last_name: "B", email: "a@b.c", weekly_hours: 24 }, holidays: [] },
             global: { stubs },
@@ -557,8 +562,7 @@ describe("Employees/Form", () => {
         await w.vm.$nextTick();
 
         expect(form.weekly_hours).toBe(24);
-        expect(findSaveButton(w).attributes("disabled")).toBeDefined();
-        expect(findCancelButton(w).attributes("disabled")).toBeDefined();
+        expect(w.find('[data-testid="card-footer-actions"]').exists()).toBe(false);
         expect(form.put).not.toHaveBeenCalled();
     });
 
@@ -579,9 +583,7 @@ describe("Employees/Form", () => {
         await findCancelButton(w).trigger("click");
         await w.vm.$nextTick();
 
-        expect(findSaveButton(w).attributes("disabled")).toBeDefined();
-        await findSaveButton(w).trigger("click");
-        await flushPromises();
+        expect(w.find('[data-testid="card-footer-actions"]').exists()).toBe(false);
         expect(routerCalls).toEqual([]);
     });
 
@@ -933,7 +935,7 @@ describe("Employees/Form", () => {
         await findCancelButton(w).trigger("click");
 
         expect(calendar.props("overrides")).toEqual({});
-        expect(findSaveButton(w).attributes("disabled")).toBeDefined();
+        expect(w.find('[data-testid="card-footer-actions"]').exists()).toBe(false);
     });
 
     it("makes the date grid read-only for an archived employee", async () => {
@@ -993,8 +995,10 @@ describe("Employees/Form", () => {
     const fitStubs = { ...stubs, AppLayout: { props: ["fitHeight"], template: "<div :data-fit-height='String(fitHeight)'><slot /></div>" } };
     const editEmployee = { id: 3, first_name: "A", last_name: "B", email: "a@b.c", weekly_hours: 24 };
 
-    it("fits the edit card to the page: a scrolling body and the buttons in the card footer", () => {
+    it("fits the edit card to the page: a scrolling body and the buttons in the card footer", async () => {
         const w = mount(Form, { props: { employee: editEmployee, holidays: [] }, global: { stubs: fitStubs } });
+        w.getComponent(WeeklyHoursField).vm.$emit("update:modelValue", 40);
+        await w.vm.$nextTick();
 
         expect(w.get("[data-fit-height]").attributes("data-fit-height")).toBe("true");
         expect(w.get('[data-testid="employee-card"]').classes()).toEqual(expect.arrayContaining(["flex", "min-h-0", "flex-col"]));
@@ -1037,8 +1041,10 @@ describe("Employees/Form", () => {
         expect(w.find('[data-testid="card-footer-actions"]').exists()).toBe(false);
     });
 
-    it("gives the card footer the body background", () => {
+    it("gives the card footer the body background", async () => {
         const w = mount(Form, { props: { employee: editEmployee, holidays: [] }, global: { stubs: fitStubs } });
+        w.getComponent(WeeklyHoursField).vm.$emit("update:modelValue", 40);
+        await w.vm.$nextTick();
         const footer = w.get('[data-testid="card-footer-actions"]').element.parentElement;
 
         expect(footer.className).toContain("bg-[var(--color-card-body-bg)]");
@@ -1053,5 +1059,40 @@ describe("Employees/Form", () => {
 
         const archived = mount(Form, { props: { employee: { ...editEmployee, archived: true }, holidays: [] }, global: { stubs: fitStubs } });
         expect(archived.findAll("button").some((b) => b.text() === "Delete")).toBe(false);
+    });
+
+    it("shows the Cancel / Save footer only when something changed", async () => {
+        const w = mount(Form, { props: { employee: editEmployee, holidays: [] }, global: { stubs: fitStubs } });
+        expect(w.find('[data-testid="card-footer-actions"]').exists()).toBe(false);
+
+        w.getComponent(WeeklyHoursField).vm.$emit("update:modelValue", 40);
+        await w.vm.$nextTick();
+
+        expect(w.get('[data-testid="card-footer-actions"]').findAll("button").map((b) => b.text())).toEqual(["Cancel", "Save"]);
+    });
+
+    it("asks to stay or discard before leaving a tab with unsaved changes", async () => {
+        const w = mount(Form, { props: { employee: editEmployee, holidays: [] }, global: { stubs: fitStubs } });
+        const dialog = () => w.findAllComponents(ConfirmDialog).find((d) => d.props("title") === "Unsaved changes");
+        const form = w.findComponent(EmployeeFields).props("form");
+        w.getComponent(WeeklyHoursField).vm.$emit("update:modelValue", 40);
+        await w.vm.$nextTick();
+
+        w.getComponent(Tabs).vm.$emit("update:modelValue", "planning");
+        await w.vm.$nextTick();
+        expect(w.getComponent(Tabs).props("modelValue")).toBe("settings");
+        expect(dialog().props()).toMatchObject({ open: true, confirmLabel: "Discard changes", cancelLabel: "Stay" });
+
+        dialog().vm.$emit("cancel");
+        await w.vm.$nextTick();
+        expect(dialog().props("open")).toBe(false);
+        expect(form.weekly_hours).toBe(40);
+
+        w.getComponent(Tabs).vm.$emit("update:modelValue", "planning");
+        await w.vm.$nextTick();
+        dialog().vm.$emit("confirm");
+        await w.vm.$nextTick();
+        expect(w.getComponent(Tabs).props("modelValue")).toBe("planning");
+        expect(form.weekly_hours).toBe(24);
     });
 });
