@@ -177,4 +177,17 @@ class AvailabilityOverrideTest extends TestCase
         $this->assertSame('unavailable', $entry('2026-10-12')['block_reason']);
         $this->assertNull($entry('2026-10-19')['block_reason']);
     }
+
+    public function test_a_date_that_does_not_exist_is_not_found(): void
+    {
+        [$employee, $token] = $this->linkedEmployee();
+        $this->actingAs(User::factory()->create());
+
+        foreach (['2026-02-30', '2026-13-01', '2026-00-10'] as $date) {
+            $this->put($this->adminUrl($employee, $date), ['blocked' => true, 'shifts' => []])->assertNotFound();
+            $this->put("/personal/{$token}/availability/dates/{$date}", ['blocked' => true, 'shifts' => []])->assertNotFound();
+        }
+
+        $this->assertSame(0, AvailabilityOverride::count());
+    }
 }

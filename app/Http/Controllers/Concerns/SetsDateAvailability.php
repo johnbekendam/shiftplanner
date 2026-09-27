@@ -22,6 +22,10 @@ trait SetsDateAvailability
      */
     protected function setDate(Request $request, Employee $employee, string $date): array
     {
+        // The route only checks the Y-m-d shape; 2026-02-30 is not a date.
+        [$year, $month, $day] = array_map('intval', explode('-', $date));
+        abort_unless(checkdate($month, $day, $year), 404);
+
         $data = $request->validate([
             'blocked' => ['required', 'boolean'],
             'shifts' => ['present', 'array'],
