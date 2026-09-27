@@ -895,8 +895,8 @@ describe("Personal/Show", () => {
             global: {
                 stubs: {
                     CenteredLayout: {
-                        props: { fitHeight: Boolean, scrollKey: String },
-                        template: "<div :data-fit-height='String(fitHeight)' :data-scroll-key='scrollKey'><slot name='header' /><div data-testid='stub-body'><slot /></div><div data-testid='stub-footer'><slot name='footer' /></div></div>",
+                        props: { fitHeight: Boolean, scrollKey: String, padding: String },
+                        template: "<div :data-fit-height='String(fitHeight)' :data-scroll-key='scrollKey' :data-padding='padding'><slot name='header' /><div data-testid='stub-body'><slot /></div><div data-testid='stub-footer'><slot name='footer' /></div></div>",
                     },
                     teleport: true,
                 },
@@ -908,6 +908,7 @@ describe("Personal/Show", () => {
 
         expect(w.get("[data-fit-height]").attributes("data-fit-height")).toBe("true");
         expect(w.get("[data-scroll-key]").attributes("data-scroll-key")).toBe("information");
+        expect(w.get("[data-padding]").attributes("data-padding")).toBe("normal");
         const footer = w.get('[data-testid="stub-footer"]');
         expect(footer.findAll("button").map((b) => b.text())).toEqual(["Cancel", "Save"]);
         expect(footer.find("hr").exists()).toBe(false);

@@ -27,6 +27,13 @@ const props = defineProps({
     // The card is at most as tall as the page area: header and footer stay
     // on screen and the body scrolls.
     fitHeight: { type: Boolean, default: false },
+    // Body and footer padding: 'wide' for login-shaped cards, 'normal' for
+    // the same padding as an app page card (p-6), e.g. a tabbed card.
+    padding: {
+        type: String,
+        default: 'wide',
+        validator: (v) => ['wide', 'normal'].includes(v),
+    },
     // A change scrolls the body back to its top, e.g. the current tab.
     scrollKey: { type: [String, Number], default: null },
 })
@@ -80,14 +87,16 @@ const widthClass = { md: 'max-w-md', lg: 'max-w-xl', xl: 'max-w-2xl' }[props.wid
                 <div
                     ref="body"
                     data-testid="centered-body"
-                    class="px-10 pt-8 pb-6"
-                    :class="fitHeight ? 'min-h-0 flex-1 overflow-y-auto' : ''"
+                    :class="[
+                        padding === 'normal' ? 'p-6' : 'px-10 pt-8 pb-6',
+                        fitHeight ? 'min-h-0 flex-1 overflow-y-auto' : '',
+                    ]"
                 >
                     <slot />
                 </div>
 
                 <template v-if="$slots.footer" #footer>
-                    <div data-testid="centered-footer" class="px-10 py-4">
+                    <div data-testid="centered-footer" class="py-4" :class="padding === 'normal' ? 'px-6' : 'px-10'">
                         <slot name="footer" />
                     </div>
                 </template>

@@ -340,7 +340,7 @@ const withdrawDialogOpen = ref(false)
 <template>
     <!-- At most as tall as the page: the tabs and the buttons in the footer
          stay on screen while the body scrolls. -->
-    <CenteredLayout align="top" width="xl" fit-height :scroll-key="tab">
+    <CenteredLayout align="top" width="xl" padding="normal" fit-height :scroll-key="tab">
         <Head :title="__('personal.title')" />
 
         <template #header>

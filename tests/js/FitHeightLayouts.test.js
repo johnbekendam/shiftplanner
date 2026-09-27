@@ -76,4 +76,15 @@ describe("CenteredLayout fitHeight", () => {
         expect(footer.className).toContain("bg-[var(--color-card-body-bg)]");
         expect(footer.className).not.toContain("--color-card-footer-bg");
     });
+
+    it("uses the wide padding by default and the normal card padding on request", () => {
+        const wide = mount(CenteredLayout, { slots: { default: "<p>Body</p>", footer: "<b>x</b>" }, global: { stubs } });
+        expect(wide.get('[data-testid="centered-body"]').classes()).toEqual(expect.arrayContaining(["px-10", "pt-8", "pb-6"]));
+        expect(wide.get('[data-testid="centered-footer"]').classes()).toContain("px-10");
+
+        const normal = mount(CenteredLayout, { props: { padding: "normal" }, slots: { default: "<p>Body</p>", footer: "<b>x</b>" }, global: { stubs } });
+        expect(normal.get('[data-testid="centered-body"]').classes()).toContain("p-6");
+        expect(normal.get('[data-testid="centered-body"]').classes()).not.toContain("px-10");
+        expect(normal.get('[data-testid="centered-footer"]').classes()).toEqual(expect.arrayContaining(["px-6", "py-4"]));
+    });
 });

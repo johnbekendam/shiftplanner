@@ -40,6 +40,10 @@ The layouts get this behavior as an option:
   height of the page area instead of growing past it.
 - `CenteredLayout` gets a `fitHeight` prop, a `footer` slot, and a
   `scrollKey` prop. A change of `scrollKey` scrolls the body to its top.
+  A `padding="normal"` prop gives the body and footer the same padding
+  as the employee edit card. The personal page uses it, so both cards
+  place their content, Withdraw/Archive and Cancel/Save at the same
+  spot.
 
 ### Save per tab
 
