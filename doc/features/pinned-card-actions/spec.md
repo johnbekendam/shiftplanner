@@ -24,7 +24,8 @@ The button row moves into the `Card` footer slot. It gets the footer
 background and top border. The separator above the buttons goes.
 
 - Employee edit page: the footer holds Delete, Cancel and Save. For an
-  archived employee it holds only Restore (admin only).
+  archived employee it holds only Restore, for an admin. A manager sees
+  no footer on an archived employee.
 - Personal page: the footer holds Withdraw, Cancel and Save. When
   employee changes are locked, the page has no buttons and no footer.
 
@@ -32,7 +33,8 @@ The layouts get this behavior as an option:
 
 - `AppLayout` gets a `fitHeight` prop. The page content then fills the
   height of the page area instead of growing past it.
-- `CenteredLayout` gets a `fitHeight` prop and a `footer` slot.
+- `CenteredLayout` gets a `fitHeight` prop, a `footer` slot, and a
+  `scrollKey` prop. A change of `scrollKey` scrolls the body to its top.
 
 ## Key decisions
 

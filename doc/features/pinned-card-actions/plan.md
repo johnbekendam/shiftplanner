@@ -1,4 +1,4 @@
-Status: in progress — 2/3
+Status: complete — 3/3
 
 - [x] 1. Add a `fitHeight` prop to `AppLayout` and to `CenteredLayout`,
   and a `footer` slot to `CenteredLayout`. With `fitHeight`, the card is
@@ -8,6 +8,6 @@ Status: in progress — 2/3
   area with a scrolling body, move the button row to the card footer,
   and scroll the body to the top on a tab switch. Vitest.
 
-- [ ] 3. Personal page: use `fitHeight`, move the button row to the
+- [x] 3. Personal page: use `fitHeight`, move the button row to the
   `CenteredLayout` footer, and scroll the body to the top on a tab
   switch. Vitest.

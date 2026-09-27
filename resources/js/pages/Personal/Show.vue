@@ -331,7 +331,9 @@ const withdrawDialogOpen = ref(false)
 </script>
 
 <template>
-    <CenteredLayout align="top" width="xl">
+    <!-- At most as tall as the page: the tabs and the buttons in the footer
+         stay on screen while the body scrolls. -->
+    <CenteredLayout align="top" width="xl" fit-height :scroll-key="tab">
         <Head :title="__('personal.title')" />
 
         <template #header>
@@ -479,10 +481,8 @@ const withdrawDialogOpen = ref(false)
             <ShiftNote v-if="scheduleNoteHtml" :html="scheduleNoteHtml" class="mt-6" />
         </div>
 
-        <template v-if="editable">
-            <CardSeparator />
-
-            <div class="flex items-center justify-between gap-3">
+        <template v-if="editable" #footer>
+            <div data-testid="card-footer-actions" class="flex items-center justify-between gap-3">
                 <ButtonDanger type="button" @click="withdrawDialogOpen = true">
                     {{ __('personal.action.withdraw') }}
                 </ButtonDanger>

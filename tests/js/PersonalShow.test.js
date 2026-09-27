@@ -883,4 +883,35 @@ describe("Personal/Show", () => {
         expect(card.get("div > div").text()).toBe("Holidays");
         expect(card.findComponent(HolidayList).exists()).toBe(true);
     });
+
+    it("fits the card to the page and puts Withdraw, Cancel and Save in the card footer", () => {
+        const w = mount(Show, {
+            props: {
+                token: "tok-1",
+                employee: { first_name: "J", last_name: "L", email: "j@l.c", weekly_hours: 24, business_line_id: null },
+            },
+            global: {
+                stubs: {
+                    CenteredLayout: {
+                        props: { fitHeight: Boolean, scrollKey: String },
+                        template: "<div :data-fit-height='String(fitHeight)' :data-scroll-key='scrollKey'><slot name='header' /><div data-testid='stub-body'><slot /></div><div data-testid='stub-footer'><slot name='footer' /></div></div>",
+                    },
+                    teleport: true,
+                },
+            },
+        });
+
+        expect(w.get("[data-fit-height]").attributes("data-fit-height")).toBe("true");
+        expect(w.get("[data-scroll-key]").attributes("data-scroll-key")).toBe("information");
+        const footer = w.get('[data-testid="stub-footer"]');
+        expect(footer.findAll("button").map((b) => b.text())).toEqual(["Withdraw", "Cancel", "Save"]);
+        expect(footer.find("hr").exists()).toBe(false);
+        expect(w.get('[data-testid="stub-body"]').findAll("button").some((b) => b.text() === "Save")).toBe(false);
+    });
+
+    it("has no footer when changes are locked", () => {
+        const w = mountShow([], { editable: false });
+
+        expect(w.find('[data-testid="card-footer-actions"]').exists()).toBe(false);
+    });
 });

@@ -54,4 +54,18 @@ describe("CenteredLayout fitHeight", () => {
         expect(body.classes()).toEqual(expect.arrayContaining(["min-h-0", "flex-1", "overflow-y-auto"]));
         expect(w.get('[data-testid="centered-footer"]').text()).toBe("Save");
     });
+
+    it("scrolls the body back to the top when scrollKey changes", async () => {
+        const w = mount(CenteredLayout, {
+            props: { fitHeight: true, scrollKey: "details" },
+            slots: { default: "<p>Body</p>" },
+            global: { stubs },
+        });
+        const body = w.get('[data-testid="centered-body"]').element;
+        body.scrollTop = 250;
+
+        await w.setProps({ scrollKey: "availability" });
+
+        expect(body.scrollTop).toBe(0);
+    });
 });
