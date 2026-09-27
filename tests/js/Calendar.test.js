@@ -298,4 +298,116 @@ describe("Calendar", () => {
         expect(w.get('[data-testid="calendar-week-number-0"]').classes()).toContain("text-(--color-text-muted)");
         expect(header.findAll("button")).toHaveLength(7);
     });
+
+    it("draws a dayBorders border in the day's own badge text color", () => {
+        const w = mount(Calendar, { props: { year: 2026, month: 10, dayStates: { 5: "success", 6: "warning" }, dayBorders: { 5: "solid", 6: "solid" } } });
+        const day = (n) => w.findAll("button").find((b) => b.text() === String(n))
+
+        expect(day(5).classes()).toContain("border-(--color-badge-success-text)");
+        expect(day(6).classes()).toContain("border-(--color-badge-warning-text)");
+        expect(day(5).classes()).not.toContain("border-(--color-tab-active-border)");
+        expect(day(7).classes()).toContain("border-transparent");
+    });
+
+
+    it("draws no selected-week border when highlightSelection is false", async () => {
+        const w = mount(Calendar, { props: { year: 2026, month: 9, highlightSelection: false } });
+        const day10 = w.findAll("button").find((b) => b.text() === "10");
+
+        await day10.trigger("click");
+
+        expect(weekRow(day10).className).not.toContain("border-(--color-tab-active-border)");
+        expect(w.emitted("change").at(-1)[0]).toMatchObject({ day: 10 });
+    });
+
+    it("renders a legend entry for the changed border", () => {
+        const w = mount(Calendar, { props: { year: 2026, month: 9, borderLegenda: { solid: "Changed" } } });
+
+        const solid = w.get('[data-testid="calendar-border-legend-solid"]');
+        expect(solid.text()).toContain("Changed");
+        expect(solid.find("div").classes()).toContain("border-(--color-badge-success-text)");
+    });
+
+
+    it("emits day-click with the date only when a day button is clicked", async () => {
+        const w = mount(Calendar, { props: { year: 2026, month: 10 } });
+
+        await w.get('[aria-label="Next month"]').trigger("click");
+        await w.get('[data-testid="calendar-week-number-1"]').trigger("click");
+        expect(w.emitted("day-click")).toBeUndefined();
+
+        await w.findAll("button").find((b) => b.text() === "14").trigger("click");
+        expect(w.emitted("day-click")).toEqual([[{ year: 2026, month: 10, day: 14 }]]);
+    });
+
+    it("emits weekday-click with the ISO weekday when a weekday header is clicked", async () => {
+        const w = mount(Calendar, { props: { year: 2026, month: 10 } });
+        const headers = w.get('[data-testid="calendar-weekday-header"]').findAll("button");
+
+        await headers[0].trigger("click");
+        await headers[6].trigger("click");
+
+        expect(w.emitted("weekday-click")).toEqual([[{ weekday: 1 }], [{ weekday: 7 }]]);
+    });
+
+    it("draws a ring around ringDay only", () => {
+        const w = mount(Calendar, { props: { year: 2026, month: 10, ringDay: 14 } });
+        const day = (n) => w.findAll("button").find((b) => b.text() === String(n));
+
+        expect(day(14).classes()).toContain("ring-2");
+        expect(day(15).classes()).not.toContain("ring-2");
+    });
+
+    it("draws one border around the whole weekday header when weekdayHeaderSelected is set", async () => {
+        const w = mount(Calendar, { props: { year: 2026, month: 10, weekdayHeaderSelected: false } });
+        const header = w.get('[data-testid="calendar-weekday-header"]');
+        expect(header.classes()).not.toContain("border-(--color-tab-active-border)");
+
+        await header.findAll("button")[2].trigger("click");
+        expect(header.findAll("button").every((b) => !b.classes().includes("border-(--color-tab-active-border)"))).toBe(true);
+
+        await w.setProps({ weekdayHeaderSelected: true });
+        expect(header.classes()).toContain("border-(--color-tab-active-border)");
+        expect(header.findAll("button").every((b) => !b.classes().includes("border-(--color-tab-active-border)"))).toBe(true);
+    });
+
+    it("shows the hover border on the whole weekday header, not on single letters, in header-selection mode", () => {
+        const w = mount(Calendar, { props: { year: 2026, month: 10, weekdayHeaderSelected: false } });
+        const header = w.get('[data-testid="calendar-weekday-header"]');
+
+        expect(header.classes()).toContain("hover:border-(--color-tab-hover-border)");
+        expect(header.findAll("button").every((b) => !b.classes().includes("hover:border-(--color-tab-hover-border)"))).toBe(true);
+    });
+
+    it("hovers a single day, not its week row, when highlightSelection is false", () => {
+        const w = mount(Calendar, { props: { year: 2026, month: 10, highlightSelection: false, dayStates: { 7: "success" }, dayBorders: { 7: "solid" } } });
+        const day = (n) => w.findAll("button").find((b) => b.text() === String(n));
+
+        expect(weekRow(day(14)).className).not.toContain("hover:border-(--color-tab-hover-border)");
+        expect(weekRow(day(14)).className).not.toContain("cursor-pointer");
+        expect(day(14).classes()).toContain("hover:border-(--color-tab-hover-border)");
+        expect(day(7).classes()).toContain("border-(--color-badge-success-text)");
+    });
+
+    it("keeps the week-row hover by default", () => {
+        const w = mount(Calendar, { props: { year: 2026, month: 10 } });
+        const day14 = w.findAll("button").find((b) => b.text() === "14");
+
+        expect(weekRow(day14).className).toContain("hover:border-(--color-tab-hover-border)");
+        expect(day14.classes()).not.toContain("hover:border-(--color-tab-hover-border)");
+    });
+
+    it("selects the weekday header from anywhere on the row in header-selection mode", async () => {
+        const w = mount(Calendar, { props: { year: 2026, month: 10, weekdayHeaderSelected: false } });
+
+        await w.get('[data-testid="calendar-week-label"]').trigger("click");
+
+        expect(w.emitted("weekday-click")).toEqual([[{ weekday: 1 }]]);
+    });
+
+    it("keeps the legend from widening the calendar", () => {
+        const w = mount(Calendar, { props: { year: 2026, month: 10, legenda: { success: "Available" } } });
+
+        expect(w.get('[data-testid="calendar-legend"]').classes()).toEqual(expect.arrayContaining(["w-0", "min-w-full", "flex-wrap"]));
+    });
 });

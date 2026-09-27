@@ -1,3 +1,4 @@
+// Shifts without `weekdays` (older payloads) count Monday to Friday.
 const WEEKDAYS = [1, 2, 3, 4, 5]
 
 function hoursBetween(startTime, endTime) {
@@ -16,7 +17,7 @@ export function calculateAvailabilityHours(shifts, availability) {
     return shifts.reduce((totals, shift) => {
         const hours = hoursBetween(shift.start_time, shift.end_time)
 
-        for (const weekday of WEEKDAYS) {
+        for (const weekday of shift.weekdays ?? WEEKDAYS) {
             const level = levels.get(`${weekday}-${shift.id}`)
 
             if (level === 'available' || level === 'not_preferred') totals.available += hours

@@ -53,16 +53,18 @@ class PersonalPageController extends Controller
                 'email' => $employee->email,
                 'weekly_hours' => $employee->weekly_hours,
                 'business_line_id' => $employee->business_line_id,
+                'available_from' => $employee->available_from?->toDateString(),
             ],
             'weeklyHoursMinimum' => $employee->effectiveWeeklyHoursMinimum(),
             'businessLines' => BusinessLine::all()->map->toPayload()->all(),
             'holidays' => $employee->holidays->map->toPayload()->all(),
-            'shifts' => $visibleShifts->map->toPayload()->values()->all(),
+            'shifts' => $employee->availabilityShiftsPayload($visibleShifts),
             'shiftNoteHtml' => PlanningSettings::current()->shiftNoteHtml($employee->first_name),
             'scheduleNoteHtml' => PlanningSettings::current()->scheduleNoteHtml($employee->first_name),
             'availability' => $employee->recurringAvailabilities
                 ->whereIn('shift_id', $visibleShifts->pluck('id'))
                 ->map->toPayload()->values()->all(),
+            'availabilityOverrides' => $employee->availabilityOverrides->map->toPayload()->values()->all(),
             'competences' => Competence::all()->map->toPayload()->all(),
             'competenceIds' => $employee->competences->pluck('id')->all(),
             'questions' => AvailabilityQuestion::all()->map->toPayload()->all(),
@@ -82,9 +84,10 @@ class PersonalPageController extends Controller
         $data = $request->validate([
             'weekly_hours' => ['required', 'integer', 'min:0', 'max:48'],
             'business_line_id' => ['nullable', 'integer', 'exists:business_lines,id'],
+            'available_from' => ['sometimes', 'nullable', 'date_format:Y-m-d'],
         ]);
 
-        $before = $employee->only(array_keys($data));
+        $before = EmployeeAuditLogger::values($employee, array_keys($data));
         $employee->fill($data);
         $changed = array_keys($employee->getDirty());
         $employee->update($data);
@@ -96,7 +99,7 @@ class PersonalPageController extends Controller
                 'employee',
                 $employee->id,
                 array_intersect_key($before, array_flip($changed)),
-                $employee->only($changed),
+                EmployeeAuditLogger::values($employee, $changed),
                 'employee_personal_link',
                 actorType: 'employee',
                 actorSnapshot: ['id' => $employee->id, 'name' => $employee->name, 'email' => $employee->email],

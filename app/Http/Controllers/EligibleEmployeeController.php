@@ -24,11 +24,16 @@ class EligibleEmployeeController extends Controller
         $workcenter = Workcenter::findOrFail($data['workcenter_id']);
         $shift = Shift::findOrFail($data['shift_id']);
         $date = Carbon::parse($data['date']);
-        $weekday = $date->isoWeekday();
 
         $employees = Employee::query()
             ->active()
             ->where('confirmed', true)
+            // Only what can touch this date: the holidays spanning it, its overrides.
+            ->with([
+                'holidays' => fn ($q) => $q->whereDate('start_date', '<=', $date)->whereDate('end_date', '>=', $date),
+                'recurringAvailabilities',
+                'availabilityOverrides' => fn ($q) => $q->whereDate('date', $date),
+            ])
             ->orderBy('first_name')
             ->orderBy('last_name')
             ->get()
@@ -36,7 +41,7 @@ class EligibleEmployeeController extends Controller
                 'id' => $employee->id,
                 'name' => $employee->name,
                 'block_reason' => $this->eligibility->assignmentBlockReason($employee, $workcenter, $shift, $date),
-                'not_preferred' => $this->eligibility->isNotPreferred($employee, $weekday, $shift),
+                'not_preferred' => $this->eligibility->isNotPreferred($employee, $date, $shift),
             ])
             ->values();
 

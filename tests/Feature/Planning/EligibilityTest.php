@@ -58,6 +58,38 @@ class EligibilityTest extends TestCase
         $this->assertSame('no_eligible_employee', $unfulfilled[0]['reason']);
     }
 
+    public function test_a_start_date_blocks_the_days_before_it_only(): void
+    {
+        [, $shift] = $this->workcenterWithOverride('2026-09-08');
+        $employee = $this->eligibleEmployee($shift, '2026-09-08');
+
+        $employee->update(['available_from' => '2026-09-09']);
+        $this->generator()->generate($this->makeRun());
+        $this->assertSame(0, ShiftAssignment::count());
+
+        $employee->update(['available_from' => '2026-09-08']);
+        $this->generator()->generate($this->makeRun());
+        $this->assertSame(1, ShiftAssignment::count());
+    }
+
+    public function test_a_date_override_decides_the_planner_on_its_date(): void
+    {
+        [, $shift] = $this->workcenterWithOverride('2026-09-08');
+        $employee = $this->eligibleEmployee($shift, '2026-09-08');
+
+        $override = $employee->availabilityOverrides()->create(['date' => '2026-09-08', 'shift_id' => $shift->id, 'level' => 'unavailable']);
+        $this->generator()->generate($this->makeRun());
+        $this->assertSame(0, ShiftAssignment::count());
+
+        $override->update(['shift_id' => null]);
+        $this->generator()->generate($this->makeRun());
+        $this->assertSame(0, ShiftAssignment::count());
+
+        $override->delete();
+        $this->generator()->generate($this->makeRun());
+        $this->assertSame(1, ShiftAssignment::count());
+    }
+
     // Each test below runs the planner twice on the same data: first with the
     // blocking condition (nobody is assigned), then with the condition removed
     // (the same employee is assigned). The second run is the control.

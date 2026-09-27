@@ -9,6 +9,7 @@ use App\Models\EmployeeAuditEvent;
 use App\Models\Shift;
 use App\Models\User;
 use App\Models\Workcenter;
+use App\Models\WorkcenterShiftCapacity;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -27,6 +28,13 @@ class EmployeeConfigurationAuditTest extends TestCase
         $this->manager = User::factory()->create();
         $this->employee = Employee::factory()->create();
         $this->actingAs($this->manager);
+    }
+
+    private function staffOnTuesday(Shift $shift): void
+    {
+        WorkcenterShiftCapacity::query()->create([
+            'workcenter_id' => Workcenter::factory()->create()->id, 'shift_id' => $shift->id, 'weekday' => 2, 'spots' => 1,
+        ]);
     }
 
     public function test_holiday_creation_and_removal_are_audited(): void
@@ -54,6 +62,7 @@ class EmployeeConfigurationAuditTest extends TestCase
     public function test_recurring_availability_change_is_audited(): void
     {
         $shift = Shift::factory()->create(['visible_by_default' => true]);
+        $this->staffOnTuesday($shift);
 
         $this->put("/employees/{$this->employee->id}/availability/2/{$shift->id}", [
             'level' => 'unavailable',
@@ -121,6 +130,7 @@ class EmployeeConfigurationAuditTest extends TestCase
         $employee = Employee::factory()->create();
         $employee->personalLink()->create(['token' => 'personal-audit']);
         $shift = Shift::factory()->create(['visible_by_default' => true]);
+        $this->staffOnTuesday($shift);
         $competence = Competence::factory()->create();
         $question = AvailabilityQuestion::factory()->create();
 

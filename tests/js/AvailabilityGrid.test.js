@@ -3,6 +3,7 @@ import { mount } from "@vue/test-utils";
 
 const en = {
     "availability.grid.cell": ":shift, :day: :state",
+    "availability.grid.shift_column": "Shift",
     "availability.grid.no_shifts": "No shifts are defined yet.",
     "availability.grid.no_shifts_manager": "No shifts are defined yet. Add them on the Settings page.",
     "availability.weekday.1": "Mon",
@@ -10,6 +11,10 @@ const en = {
     "availability.weekday.3": "Wed",
     "availability.weekday.4": "Thu",
     "availability.weekday.5": "Fri",
+    "availability.weekday.6": "Sat",
+    "availability.weekday.7": "Sun",
+    "availability.grid.no_running_days": "None of these shifts is scheduled on any day yet.",
+    "availability.grid.no_shifts_on_day": "No shift runs on this day.",
     "availability.state.available": "Available",
     "availability.state.not_set": "Not set",
     "availability.state.not_preferred": "Not preferred",
@@ -30,8 +35,8 @@ vi.mock("@/composables/useI18n", () => ({
 import AvailabilityGrid from "@/components/AvailabilityGrid.vue";
 
 const shifts = [
-    { id: 10, name: "Early", start_time: "06:00", end_time: "14:00" },
-    { id: 20, name: "Late", start_time: "14:00", end_time: "22:00" },
+    { id: 10, name: "Early", start_time: "06:00", end_time: "14:00", weekdays: [1, 2, 3, 4, 5] },
+    { id: 20, name: "Late", start_time: "14:00", end_time: "22:00", weekdays: [1, 2, 3, 4, 5] },
 ];
 
 const mountGrid = (props = {}) =>
@@ -53,6 +58,30 @@ describe("AvailabilityGrid", () => {
         expect(w.text()).toContain("06:00 – 14:00");
         expect(w.text()).not.toContain("Sat");
         expect(w.text()).not.toContain("Sun");
+    });
+
+    it("shows a weekend column and cells only where a shift runs", () => {
+        const w = mountGrid({
+            shifts: [
+                { id: 10, name: "Early", start_time: "06:00", end_time: "14:00", weekdays: [1, 6] },
+                { id: 20, name: "Late", start_time: "14:00", end_time: "22:00", weekdays: [1] },
+            ],
+        });
+
+        expect(w.findAll("thead th").map((th) => th.text())).toEqual(["Shift", "Mon", "Sat"]);
+        expect(w.findAll('[data-testid^="cell-"]').map((c) => c.attributes("data-testid"))).toEqual([
+            "cell-1-10",
+            "cell-6-10",
+            "cell-1-20",
+        ]);
+        expect(w.find('[data-testid="no-cell-6-20"]').exists()).toBe(true);
+    });
+
+    it("explains when no shift runs on any day", () => {
+        const w = mountGrid({ shifts: [{ id: 10, name: "Early", start_time: "06:00", end_time: "14:00", weekdays: [] }] });
+
+        expect(w.find("table").exists()).toBe(false);
+        expect(w.text()).toContain("None of these shifts is scheduled on any day yet.");
     });
 
     it("colours a stored cell by its level", () => {
@@ -118,4 +147,8 @@ describe("AvailabilityGrid", () => {
         const w = mountGrid({ shifts: [], showAddHint: true });
         expect(w.text()).toContain("Add them on the Settings page.");
     });
+
+
+
+
 });

@@ -109,6 +109,37 @@ class EligibleEmployeeTest extends TestCase
         $this->assertSame('holiday', $entry['block_reason']);
     }
 
+    public function test_marks_an_employee_on_a_holiday_that_spans_the_date_as_blocked(): void
+    {
+        $this->actingAsAdmin();
+        $workcenter = Workcenter::factory()->create();
+        $shift = Shift::factory()->create();
+        $employee = Employee::factory()->create(['confirmed' => true]);
+        EmployeeHoliday::factory()->create([
+            'employee_id' => $employee->id, 'start_date' => '2026-09-01', 'end_date' => '2026-09-30',
+        ]);
+
+        $entry = collect($this->get($this->url($workcenter, $shift))->json())->firstWhere('id', $employee->id);
+
+        $this->assertSame('holiday', $entry['block_reason']);
+    }
+
+    public function test_marks_an_employee_before_their_start_date_as_blocked(): void
+    {
+        $this->actingAsAdmin();
+        $workcenter = Workcenter::factory()->create();
+        $shift = Shift::factory()->create();
+        $employee = Employee::factory()->create(['confirmed' => true, 'available_from' => '2026-09-16']);
+        $employee->workcenters()->attach($workcenter);
+        RecurringAvailability::factory()->create([
+            'employee_id' => $employee->id, 'weekday' => 2, 'shift_id' => $shift->id, 'level' => 'available',
+        ]);
+
+        $entry = collect($this->get($this->url($workcenter, $shift))->json())->firstWhere('id', $employee->id);
+
+        $this->assertSame('not_started', $entry['block_reason']);
+    }
+
     public function test_marks_an_unavailable_employee_as_blocked(): void
     {
         $this->actingAsAdmin();

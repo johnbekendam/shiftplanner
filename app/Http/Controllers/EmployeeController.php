@@ -175,6 +175,7 @@ class EmployeeController extends Controller
         return Inertia::render('Employees/Form', [
             'employee' => [
                 ...$employee->only(['id', 'first_name', 'last_name', 'email', 'weekly_hours', 'weekly_hours_minimum', 'business_line_id']),
+                'available_from' => $employee->available_from?->toDateString(),
                 'archived' => $employee->archived_at !== null,
                 'link_sent' => $employee->email !== null && Message::query()
                     ->where('type', MessageType::PersonalPageLink)
@@ -186,12 +187,13 @@ class EmployeeController extends Controller
             'globalWeeklyHoursMinimum' => PlanningSettings::current()->weekly_hours_minimum,
             'businessLines' => BusinessLine::all()->map->toPayload()->all(),
             'holidays' => $employee->holidays->map->toPayload()->all(),
-            'shifts' => $visibleShifts->map->toPayload()->values()->all(),
+            'shifts' => $employee->availabilityShiftsPayload($visibleShifts),
             'shiftNoteHtml' => PlanningSettings::current()->shiftNoteHtml($employee->first_name),
             'scheduleNoteHtml' => PlanningSettings::current()->scheduleNoteHtml($employee->first_name),
             'availability' => $employee->recurringAvailabilities
                 ->whereIn('shift_id', $visibleShifts->pluck('id'))
                 ->map->toPayload()->values()->all(),
+            'availabilityOverrides' => $employee->availabilityOverrides->map->toPayload()->values()->all(),
             'competences' => Competence::all()->map->toPayload()->all(),
             'competenceIds' => $employee->competences->pluck('id')->all(),
             'workcenters' => $workcenters->map(fn (Workcenter $workcenter) => [
@@ -209,7 +211,7 @@ class EmployeeController extends Controller
     public function update(Request $request, Employee $employee)
     {
         $data = $this->validated($request, $employee);
-        $before = $employee->only(array_keys($data));
+        $before = EmployeeAuditLogger::values($employee, array_keys($data));
         $employee->fill($data);
         $changed = array_keys($employee->getDirty());
         $employee->save();
@@ -221,7 +223,7 @@ class EmployeeController extends Controller
                 'employee',
                 $employee->id,
                 array_intersect_key($before, array_flip($changed)),
-                $employee->only($changed),
+                EmployeeAuditLogger::values($employee, $changed),
                 'user',
                 $request->user(),
             );
@@ -403,6 +405,7 @@ class EmployeeController extends Controller
         if ($employee !== null) {
             $rules += [
                 'weekly_hours_minimum' => ['nullable', 'integer', 'min:1', 'max:48'],
+                'available_from' => ['sometimes', 'nullable', 'date_format:Y-m-d'],
             ];
         }
 

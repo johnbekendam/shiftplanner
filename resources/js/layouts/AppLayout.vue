@@ -11,6 +11,11 @@ import { useBreadcrumb } from '@/composables/useBreadcrumb'
 import { useDarkMode } from '@/composables/useDarkMode'
 import { useAuth } from '@/composables/useAuth'
 
+defineProps({
+    // The page content fills the page area instead of growing past it.
+    fitHeight: { type: Boolean, default: false },
+})
+
 const page = usePage()
 const __ = useI18n()
 const { segments } = useBreadcrumb()
@@ -201,10 +206,13 @@ function isActive(href) {
             </nav>
         </template>
 
-        <!-- Page content -->
-        <FlashMessage />
-        <div class="p-6">
-            <slot />
+        <!-- Page content. With fitHeight it fills the page area instead of
+             growing past it, so a page can pin parts of a card on screen. -->
+        <div data-testid="page-frame" :class="fitHeight ? 'flex h-full flex-col' : ''">
+            <FlashMessage />
+            <div data-testid="page-content" :class="fitHeight ? 'flex min-h-0 flex-1 flex-col p-6' : 'p-6'">
+                <slot />
+            </div>
         </div>
 
     </Layout>

@@ -32,13 +32,21 @@ const en = {
     "availability.tab.information": "Information",
     "availability.tab.details": "Details",
     "availability.tab.availability": "Availability",
+    "availability.questions.heading": "Questions",
+    "competences.heading": "Competences",
+    "availability.day.title": ":weekday :date",
+    "tabs.unsaved.title": "Unsaved changes",
+    "tabs.unsaved.discard": "Discard changes",
+    "tabs.unsaved.stay": "Stay",
+    "availability.holidays.heading": "Holidays",
+    "availability.default_week.heading": "Default availability",
+    "availability.weekday_long.1": "Monday",
     "availability.tab.settings": "Settings",
     "availability.info.empty": "No information has been provided yet.",
     "availability.info.cta": "Please update your details, availability and competences on the different tabs.",
     "availability.hours_warning.not_preferred": "You will be planned on not-preferred hours.",
     "availability.hours_warning.insufficient": "Your available time totals :available hours per week, below your target of :target hours.",
     "availability.holidays.empty": "No holidays yet.",
-    "availability.questions.heading": "Questions",
     "competences.tab": "Competences",
     "competences.checklist_empty": "No competences have been set up yet.",
     "planning.tab": "Planning",
@@ -90,6 +98,7 @@ const form = reactive({
     email: "",
     weekly_hours: null,
     business_line_id: null,
+    available_from: "",
     errors: {},
     processing: false,
     recentlySuccessful: false,
@@ -97,14 +106,20 @@ const form = reactive({
     _transform: null,
     get isDirty() {
         return this.weekly_hours !== this._defaults.weekly_hours
-            || this.business_line_id !== this._defaults.business_line_id;
+            || this.business_line_id !== this._defaults.business_line_id
+            || this.available_from !== this._defaults.available_from;
     },
     defaults() {
-        this._defaults = { weekly_hours: this.weekly_hours, business_line_id: this.business_line_id };
+        this._defaults = {
+            weekly_hours: this.weekly_hours,
+            business_line_id: this.business_line_id,
+            available_from: this.available_from,
+        };
     },
     reset() {
         this.weekly_hours = this._defaults.weekly_hours;
         this.business_line_id = this._defaults.business_line_id;
+        this.available_from = this._defaults.available_from;
     },
     clearErrors() {
         this.errors = {};
@@ -114,7 +129,11 @@ const form = reactive({
         return this;
     },
     put(url, opts) {
-        const data = { weekly_hours: this.weekly_hours, business_line_id: this.business_line_id };
+        const data = {
+            weekly_hours: this.weekly_hours,
+            business_line_id: this.business_line_id,
+            available_from: this.available_from,
+        };
         form.lastPut = { url, opts, data: this._transform ? this._transform(data) : data };
         if (failUrlsRef.current.includes(`FORM:${url}`)) opts.onError();
         else opts.onSuccess();
@@ -136,6 +155,12 @@ import ShiftNote from "@/components/ShiftNote.vue";
 import TagChecklist from "@/components/TagChecklist.vue";
 import QuestionChecklist from "@/components/QuestionChecklist.vue";
 import SelectInput from "@/components/ui/Input/Select.vue";
+import DateInput from "@/components/ui/Input/Date.vue";
+import AvailabilityCalendar from "@/components/AvailabilityCalendar.vue";
+import DateAvailabilityGrid from "@/components/DateAvailabilityGrid.vue";
+import Tabs from "@/components/ui/Tabs.vue";
+import ConfirmDialog from "@/components/ui/ConfirmDialog.vue";
+import DayBlockToggle from "@/components/DayBlockToggle.vue";
 
 const mountShow = (holidays = [], extra = {}) =>
     mount(Show, {
@@ -166,6 +191,20 @@ const hidden = (w, sel) => (w.get(sel).attributes("style") ?? "").includes("disp
 const findSaveButton = (w) => w.findAll("button").find((b) => ["Save", "Saving…", "Saved"].includes(b.text()));
 const findCancelButton = (w) => w.findAll("button").find((b) => b.text() === "Cancel");
 const findWithdrawButton = (w) => w.findAll("button").find((b) => b.text() === "Withdraw");
+
+// The Default week grid only mounts once the weekday header is picked in the calendar.
+const selectDefaultWeek = async (w, selected = true) => {
+    w.getComponent(AvailabilityCalendar).vm.$emit("update:defaultWeekSelected", selected);
+    await w.vm.$nextTick();
+};
+
+// Picks the date in the calendar, then applies a change from the date grid.
+const applyDay = async (w, day) => {
+    w.getComponent(AvailabilityCalendar).vm.$emit("update:selectedDate", day.date);
+    await w.vm.$nextTick();
+    w.getComponent(DateAvailabilityGrid).vm.$emit("apply-day", day);
+    await w.vm.$nextTick();
+};
 
 beforeEach(() => {
     routerCalls.length = 0;
@@ -206,7 +245,7 @@ describe("Personal/Show", () => {
 
     it("updates the availability-hours warning after an availability-grid change", async () => {
         const w = mountShow([], {
-            shifts: [{ id: 1, name: "Day", start_time: "08:00", end_time: "12:00" }],
+            shifts: [{ id: 1, name: "Day", start_time: "08:00", end_time: "12:00", weekdays: [1, 2, 3, 4, 5] }],
             availability: [
                 { weekday: 2, shift_id: 1, level: "available" },
                 { weekday: 3, shift_id: 1, level: "available" },
@@ -215,6 +254,7 @@ describe("Personal/Show", () => {
             ],
             employee: { first_name: "J", last_name: "L", email: "j@l.c", weekly_hours: 20, business_line_id: null },
         });
+        await selectDefaultWeek(w);
 
         w.findComponent(AvailabilityGrid).vm.$emit("update:availability", {
             weekday: 1,
@@ -227,9 +267,9 @@ describe("Personal/Show", () => {
             .toContain("Your available time totals 16 hours per week, below your target of 20 hours.");
     });
 
-    it("the Save button is disabled with nothing changed", () => {
+    it("shows no Save button with nothing changed", () => {
         const w = mountShow();
-        expect(findSaveButton(w).attributes("disabled")).toBeDefined();
+        expect(findSaveButton(w)).toBeUndefined();
     });
 
     it("hides Withdraw, Cancel, and Save entirely when not editable", () => {
@@ -285,16 +325,16 @@ describe("Personal/Show", () => {
         await flushPromises();
 
         expect(form.lastPut.url).toBe("/personal/tok-1");
-        expect(form.lastPut.data).toEqual({ weekly_hours: 40, business_line_id: null });
+        expect(form.lastPut.data).toEqual({ weekly_hours: 40, business_line_id: null, available_from: null });
         expect(findSaveButton(w).attributes("disabled")).toBeDefined();
     });
 
-    it("Cancel is disabled with nothing changed", () => {
+    it("shows no Cancel button with nothing changed", () => {
         const w = mountShow();
-        expect(findCancelButton(w).attributes("disabled")).toBeDefined();
+        expect(findCancelButton(w)).toBeUndefined();
     });
 
-    it("Cancel restores weekly hours and disables both buttons, without saving", async () => {
+    it("Cancel restores weekly hours and hides the footer, without saving", async () => {
         const w = mountShow();
         w.get('[data-testid="panel-availability"]').findComponent(WeeklyHoursField)
             .vm.$emit("update:modelValue", 40);
@@ -305,13 +345,13 @@ describe("Personal/Show", () => {
         await w.vm.$nextTick();
 
         expect(form.weekly_hours).toBe(24);
-        expect(findSaveButton(w).attributes("disabled")).toBeDefined();
-        expect(findCancelButton(w).attributes("disabled")).toBeDefined();
+        expect(w.find('[data-testid="card-footer-actions"]').exists()).toBe(false);
         expect(form.lastPut).toBeUndefined();
     });
 
     it("Cancel discards a pending availability-grid change", async () => {
-        const w = mountShow([], { shifts: [{ id: 1, name: "Day", start_time: "08:00", end_time: "12:00" }] });
+        const w = mountShow([], { shifts: [{ id: 1, name: "Day", start_time: "08:00", end_time: "12:00", weekdays: [1, 2, 3, 4, 5] }] });
+        await selectDefaultWeek(w);
         w.findComponent(AvailabilityGrid).vm.$emit("update:availability", { weekday: 1, shiftId: 1, level: "unavailable" });
         await w.vm.$nextTick();
         expect(findSaveButton(w).attributes("disabled")).toBeUndefined();
@@ -319,9 +359,7 @@ describe("Personal/Show", () => {
         await findCancelButton(w).trigger("click");
         await w.vm.$nextTick();
 
-        expect(findSaveButton(w).attributes("disabled")).toBeDefined();
-        await findSaveButton(w).trigger("click");
-        await flushPromises();
+        expect(w.find('[data-testid="card-footer-actions"]').exists()).toBe(false);
         expect(routerCalls).toEqual([]);
     });
 
@@ -338,13 +376,14 @@ describe("Personal/Show", () => {
         await findSaveButton(w).trigger("click");
         await flushPromises();
 
-        expect(form.lastPut.data).toEqual({ weekly_hours: 24, business_line_id: 5 });
+        expect(form.lastPut.data).toEqual({ available_from: null, weekly_hours: 24, business_line_id: 5 });
     });
 
     it("saves an availability-grid change with one PUT per changed cell", async () => {
         const w = mountShow([], {
-            shifts: [{ id: 1, name: "Day", start_time: "08:00", end_time: "12:00" }],
+            shifts: [{ id: 1, name: "Day", start_time: "08:00", end_time: "12:00", weekdays: [1, 2, 3, 4, 5] }],
         });
+        await selectDefaultWeek(w);
         w.findComponent(AvailabilityGrid).vm.$emit("update:availability", { weekday: 1, shiftId: 1, level: "unavailable" });
         await w.vm.$nextTick();
 
@@ -405,7 +444,8 @@ describe("Personal/Show", () => {
 
     it("keeps Save enabled and marks the Availability tab on a failed availability save", async () => {
         failUrlsRef.current = ["/personal/tok-1/availability/1/1"];
-        const w = mountShow([], { shifts: [{ id: 1, name: "Day", start_time: "08:00", end_time: "12:00" }] });
+        const w = mountShow([], { shifts: [{ id: 1, name: "Day", start_time: "08:00", end_time: "12:00", weekdays: [1, 2, 3, 4, 5] }] });
+        await selectDefaultWeek(w);
         w.findComponent(AvailabilityGrid).vm.$emit("update:availability", { weekday: 1, shiftId: 1, level: "unavailable" });
         await w.vm.$nextTick();
 
@@ -563,7 +603,7 @@ describe("Personal/Show", () => {
         expect(lists[1].props("disabled")).toBe(true);
     });
 
-    it("shows the questions checklist on the Availability tab", () => {
+    it("shows the questions in their own section on the Competences tab, below the competences", () => {
         const w = mountShow([], {
             questions: [{ id: 5, text: "Can we contact you to work in the weekend?" }],
             questionAnswers: [5],
@@ -572,24 +612,32 @@ describe("Personal/Show", () => {
         const checklist = w.findComponent(QuestionChecklist);
         expect(checklist.exists()).toBe(true);
         expect(checklist.props("answeredIds")).toEqual([5]);
-        expect(w.get('[data-testid="panel-availability"]').text()).toContain("Questions");
+        const panel = w.get('[data-testid="panel-competences"]');
+        expect(panel.get('[data-testid="questions-section"]').findComponent(QuestionChecklist).exists()).toBe(true);
+        expect(panel.get('[data-testid="competences-section"]').text()).toContain("Competences");
+        expect(panel.get('[data-testid="questions-section"]').text()).toContain("Questions");
+        const html = panel.html();
+        expect(html.indexOf('data-testid="competences-section"')).toBeLessThan(html.indexOf('data-testid="questions-section"'));
+        expect(w.findAll("button").map((button) => button.text())).not.toContain("Questions");
     });
 
     it("omits the questions section when no question is configured", () => {
         const w = mountShow();
         expect(w.findComponent(QuestionChecklist).exists()).toBe(false);
-        expect(w.get('[data-testid="panel-availability"]').text()).not.toContain("Questions");
+        expect(w.find('[data-testid="questions-section"]').exists()).toBe(false);
+        expect(w.get('[data-testid="panel-competences"]').text()).not.toContain("Questions");
     });
 
-    it("is fully editable by default: no lock notice, controls enabled", () => {
+    it("is fully editable by default: no lock notice, controls enabled", async () => {
         const w = mountShow();
+        await selectDefaultWeek(w);
         expect(w.find('[data-testid="locked-notice"]').exists()).toBe(false);
         expect(w.findComponent(AvailabilityGrid).props("disabled")).toBe(false);
         expect(w.findComponent(HolidayList).props("disabled")).toBe(false);
         expect(w.findComponent(EmployeeFields).props("disabled")).toBe(false);
     });
 
-    it("shows the lock notice and disables every control when editable is false", () => {
+    it("shows the lock notice and disables every control when editable is false", async () => {
         const w = mountShow([], {
             editable: false,
             competences: [{ id: 1, name: "Forklift" }],
@@ -597,6 +645,7 @@ describe("Personal/Show", () => {
             questions: [{ id: 5, text: "Weekend?" }],
             questionAnswers: [],
         });
+        await selectDefaultWeek(w);
 
         expect(w.get('[data-testid="locked-notice"]').text()).toContain("closed by your planner");
         expect(w.findComponent(AvailabilityGrid).props("disabled")).toBe(true);
@@ -614,5 +663,321 @@ describe("Personal/Show", () => {
 
         expect(hidden(w, '[data-testid="panel-availability"]')).toBe(false);
         expect(hidden(w, '[data-testid="panel-information"]')).toBe(true);
+    });
+
+    it("saves the start date with the personal endpoint and passes it to the calendar", async () => {
+        const w = mountShow([], {
+            employee: { first_name: "J", last_name: "L", email: "j@l.c", weekly_hours: 24, business_line_id: null, available_from: "2026-11-02" },
+        });
+        const panel = w.get('[data-testid="panel-availability"]');
+        expect(panel.getComponent(DateInput).props("modelValue")).toBe("2026-11-02");
+        expect(panel.getComponent(AvailabilityCalendar).props("availableFrom")).toBe("2026-11-02");
+
+        panel.getComponent(DateInput).vm.$emit("update:modelValue", "2026-12-01");
+        await w.vm.$nextTick();
+        await findSaveButton(w).trigger("click");
+        await flushPromises();
+
+        expect(form.lastPut.data).toEqual({ weekly_hours: 24, business_line_id: null, available_from: "2026-12-01" });
+    });
+
+    it("sends an empty start date as null", async () => {
+        const w = mountShow([], {
+            employee: { first_name: "J", last_name: "L", email: "j@l.c", weekly_hours: 24, business_line_id: null, available_from: "2026-11-02" },
+        });
+
+        w.getComponent(DateInput).vm.$emit("update:modelValue", "");
+        await w.vm.$nextTick();
+        await findSaveButton(w).trigger("click");
+        await flushPromises();
+
+        expect(form.lastPut.data.available_from).toBeNull();
+    });
+
+    it("gives the calendar the grouped overrides and saves an applied day with one PUT per date", async () => {
+        const w = mountShow([], {
+            availabilityOverrides: [{ date: "2026-10-05", shift_id: null, level: "unavailable" }],
+        });
+        const calendar = w.getComponent(AvailabilityCalendar);
+        expect(calendar.props("overrides")).toEqual({ "2026-10-05": { blocked: true, shifts: {} } });
+
+        await applyDay(w, { date: "2026-10-06", blocked: false, shifts: { 1: "available" } });
+        await applyDay(w, { date: "2026-10-05", blocked: false, shifts: {} });
+        await w.vm.$nextTick();
+
+        expect(calendar.props("overrides")).toEqual({ "2026-10-06": { blocked: false, shifts: { 1: "available" } } });
+        expect(findSaveButton(w).attributes("disabled")).toBeUndefined();
+
+        await findSaveButton(w).trigger("click");
+        await flushPromises();
+
+        expect(routerCalls).toEqual([
+            ["put", "/personal/tok-1/availability/dates/2026-10-06", { blocked: false, shifts: { 1: "available" } }],
+            ["put", "/personal/tok-1/availability/dates/2026-10-05", { blocked: false, shifts: {} }],
+        ]);
+        expect(findSaveButton(w).attributes("disabled")).toBeDefined();
+    });
+
+    it("drops a day change that returns to the saved state", async () => {
+        const w = mountShow([], { availabilityOverrides: [{ date: "2026-10-05", shift_id: null, level: "unavailable" }] });
+        const calendar = w.getComponent(AvailabilityCalendar);
+
+        await applyDay(w, { date: "2026-10-05", blocked: false, shifts: {} });
+        await applyDay(w, { date: "2026-10-05", blocked: true, shifts: {} });
+        await w.vm.$nextTick();
+
+        expect(w.find('[data-testid="card-footer-actions"]').exists()).toBe(false);
+    });
+
+    it("Cancel discards a pending day change", async () => {
+        const w = mountShow();
+        const calendar = w.getComponent(AvailabilityCalendar);
+
+        await applyDay(w, { date: "2026-10-06", blocked: true, shifts: {} });
+        await w.vm.$nextTick();
+        await findCancelButton(w).trigger("click");
+
+        expect(calendar.props("overrides")).toEqual({});
+        expect(w.find('[data-testid="card-footer-actions"]').exists()).toBe(false);
+    });
+
+    it("keeps a failed day change pending and marks the Availability tab", async () => {
+        failUrlsRef.current = ["/personal/tok-1/availability/dates/2026-10-06"];
+        const w = mountShow();
+
+        await applyDay(w, { date: "2026-10-06", blocked: true, shifts: {} });
+        await w.vm.$nextTick();
+        await findSaveButton(w).trigger("click");
+        await flushPromises();
+
+        expect(findSaveButton(w).attributes("disabled")).toBeUndefined();
+    });
+
+    it("shows the hint card below the calendar until the default week is picked, then the default availability", async () => {
+        const w = mountShow([], { shifts: [{ id: 1, name: "Day", start_time: "08:00", end_time: "12:00", weekdays: [1, 2, 3, 4, 5] }] });
+        const panel = w.get('[data-testid="panel-availability"]');
+        const section = () => panel.get('[data-testid="default-week-section"]');
+        const sections = panel.findAll('[data-testid="availability-calendar-section"], [data-testid="default-week-section"]');
+        expect(sections.map((x) => x.attributes("data-testid"))).toEqual(["availability-calendar-section", "default-week-section"]);
+        expect(section().find('[data-testid="default-week-hint"]').exists()).toBe(true);
+        expect(section().find('[data-testid="availability-card-header"]').exists()).toBe(false);
+        expect(panel.findComponent(AvailabilityGrid).exists()).toBe(false);
+
+        await selectDefaultWeek(w);
+
+        expect(panel.getComponent(AvailabilityCalendar).props("defaultWeekSelected")).toBe(true);
+        expect(panel.findAll('[data-testid^="cell-"]').map((c) => c.attributes("data-testid"))).toEqual([
+            "cell-1-1", "cell-2-1", "cell-3-1", "cell-4-1", "cell-5-1",
+        ]);
+        expect(section().find('[data-testid="default-week-hint"]').exists()).toBe(false);
+
+        await selectDefaultWeek(w, false);
+        expect(section().find('[data-testid="default-week-hint"]').exists()).toBe(true);
+        expect(panel.findComponent(AvailabilityGrid).exists()).toBe(false);
+    });
+
+
+    it("keeps a pending default edit visible after hiding and showing the default week", async () => {
+        const w = mountShow([], { shifts: [{ id: 1, name: "Day", start_time: "08:00", end_time: "12:00", weekdays: [1, 2, 3, 4, 5] }] });
+        await selectDefaultWeek(w);
+        w.getComponent(AvailabilityGrid).vm.$emit("update:availability", { weekday: 1, shiftId: 1, level: "unavailable" });
+        await selectDefaultWeek(w, false);
+        await selectDefaultWeek(w);
+
+        expect(w.get('[data-testid="cell-1-1"]').classes()).toContain("bg-(--color-badge-error-bg)");
+    });
+
+
+    it("replaces the default week with the schedule of a clicked date", async () => {
+        const w = mountShow([], {
+            shifts: [{ id: 1, name: "Day", start_time: "08:00", end_time: "12:00", weekdays: [1, 2, 3, 4, 5] }],
+            availability: [{ weekday: 1, shift_id: 1, level: "available" }],
+            availabilityOverrides: [{ date: "2026-10-05", shift_id: 1, level: "unavailable" }],
+        });
+        const calendar = w.getComponent(AvailabilityCalendar);
+
+        await selectDefaultWeek(w);
+        expect(w.findComponent(AvailabilityGrid).exists()).toBe(true);
+
+        calendar.vm.$emit("update:selectedDate", "2026-10-05");
+        calendar.vm.$emit("update:defaultWeekSelected", false);
+        await w.vm.$nextTick();
+
+        expect(w.findComponent(AvailabilityGrid).exists()).toBe(false);
+        const grid = w.getComponent(DateAvailabilityGrid);
+        expect(grid.props("day")).toMatchObject({ date: "2026-10-05", changed: true });
+        expect(grid.props("day").shifts[0]).toMatchObject({ defaultLevel: "available", override: "unavailable" });
+        expect(w.get('[data-testid="default-week-section"]').text()).toContain("05-10-2026");
+
+        await applyDay(w, { date: "2026-10-05", blocked: false, shifts: {} });
+        expect(w.getComponent(DateAvailabilityGrid).props("day").changed).toBe(false);
+    });
+
+    it("shows the default week or the date in the header of the availability card", async () => {
+        const w = mountShow([], { shifts: [{ id: 1, name: "Day", start_time: "08:00", end_time: "12:00", weekdays: [1, 2, 3, 4, 5] }] });
+        const section = () => w.get('[data-testid="default-week-section"]');
+
+        expect(section().find('[data-testid="availability-card-header"]').exists()).toBe(false);
+
+        await selectDefaultWeek(w);
+        expect(section().get('[data-testid="availability-card-header"] span').text()).toBe("Default availability");
+
+        w.getComponent(AvailabilityCalendar).vm.$emit("update:defaultWeekSelected", false);
+        w.getComponent(AvailabilityCalendar).vm.$emit("update:selectedDate", "2026-10-05");
+        await w.vm.$nextTick();
+        expect(section().get('[data-testid="availability-card-header"] span').text()).toBe("Monday 05-10-2026");
+    });
+
+    it("shows the schedule note in the card below the calendar, below a separator, in every state", async () => {
+        const w = mountShow([], {
+            scheduleNoteHtml: "<p>Early starts at six.</p>",
+            shifts: [{ id: 1, name: "Day", start_time: "08:00", end_time: "12:00", weekdays: [1, 2, 3, 4, 5] }],
+        });
+        const card = () => w.get('[data-testid="default-week-section"]');
+        const noteBelowSeparator = () => {
+            const html = card().html();
+            return html.indexOf("<hr") > -1 && html.indexOf("<hr") < html.indexOf("Early starts at six.");
+        };
+
+        expect(w.get('[data-testid="availability-info-card"]').text()).not.toContain("Early starts at six.");
+        expect(noteBelowSeparator()).toBe(true);
+
+        await selectDefaultWeek(w);
+        expect(noteBelowSeparator()).toBe(true);
+
+        w.getComponent(AvailabilityCalendar).vm.$emit("update:defaultWeekSelected", false);
+        w.getComponent(AvailabilityCalendar).vm.$emit("update:selectedDate", "2026-10-05");
+        await w.vm.$nextTick();
+        expect(noteBelowSeparator()).toBe(true);
+        expect(card().findAllComponents(ShiftNote)).toHaveLength(1);
+    });
+
+
+    it("puts the block toggle right-aligned in the date card header, not for the default week or a holiday", async () => {
+        const w = mountShow([], {
+            shifts: [{ id: 1, name: "Day", start_time: "08:00", end_time: "12:00", weekdays: [1, 2, 3, 4, 5] }],
+            holidays: [{ id: 9, start_date: "2026-10-06", end_date: "2026-10-06", note: null }],
+        });
+        const calendar = w.getComponent(AvailabilityCalendar);
+        const header = () => w.get('[data-testid="availability-card-header"]');
+
+        calendar.vm.$emit("update:selectedDate", "2026-10-05");
+        await w.vm.$nextTick();
+        expect(header().classes()).toContain("justify-between");
+        expect(header().getComponent(DayBlockToggle).props("day")).toMatchObject({ date: "2026-10-05" });
+
+        header().getComponent(DayBlockToggle).vm.$emit("apply-day", { date: "2026-10-05", blocked: true, shifts: {} });
+        await w.vm.$nextTick();
+        expect(calendar.props("overrides")).toEqual({ "2026-10-05": { blocked: true, shifts: {} } });
+
+        calendar.vm.$emit("update:selectedDate", "2026-10-06");
+        await w.vm.$nextTick();
+        expect(header().findComponent(DayBlockToggle).exists()).toBe(false);
+
+        await selectDefaultWeek(w);
+        expect(header().findComponent(DayBlockToggle).exists()).toBe(false);
+    });
+
+    it("shows the holidays in their own card with a Holidays header", () => {
+        const w = mountShow([{ id: 1, start_date: "2026-12-24", end_date: "2026-12-31", note: null }]);
+        const card = w.get('[data-testid="holidays-card"]');
+
+        expect(card.get("div > div").text()).toBe("Holidays");
+        expect(card.findComponent(HolidayList).exists()).toBe(true);
+    });
+
+    it("fits the card to the page and puts Cancel and Save in the card footer", async () => {
+        const w = mount(Show, {
+            props: {
+                token: "tok-1",
+                employee: { first_name: "J", last_name: "L", email: "j@l.c", weekly_hours: 24, business_line_id: null },
+            },
+            global: {
+                stubs: {
+                    CenteredLayout: {
+                        props: { fitHeight: Boolean, scrollKey: String, padding: String },
+                        template: "<div :data-fit-height='String(fitHeight)' :data-scroll-key='scrollKey' :data-padding='padding'><slot name='header' /><div data-testid='stub-body'><slot /></div><div data-testid='stub-footer'><slot name='footer' /></div></div>",
+                    },
+                    teleport: true,
+                },
+            },
+        });
+
+        w.getComponent(WeeklyHoursField).vm.$emit("update:modelValue", 40);
+        await w.vm.$nextTick();
+
+        expect(w.get("[data-fit-height]").attributes("data-fit-height")).toBe("true");
+        expect(w.get("[data-scroll-key]").attributes("data-scroll-key")).toBe("information");
+        expect(w.get("[data-padding]").attributes("data-padding")).toBe("normal");
+        const footer = w.get('[data-testid="stub-footer"]');
+        expect(footer.findAll("button").map((b) => b.text())).toEqual(["Cancel", "Save"]);
+        expect(footer.find("hr").exists()).toBe(false);
+        expect(w.get('[data-testid="stub-body"]').findAll("button").some((b) => b.text() === "Save")).toBe(false);
+    });
+
+    it("has no footer when changes are locked", () => {
+        const w = mountShow([], { editable: false });
+
+        expect(w.find('[data-testid="card-footer-actions"]').exists()).toBe(false);
+    });
+
+    it("shows Withdraw only on the Details tab, not in the footer", async () => {
+        const w = mountShow();
+        const inDetails = w.get('[data-testid="panel-details"]').findAll("button").filter((b) => b.text() === "Withdraw");
+
+        expect(inDetails).toHaveLength(1);
+        expect(w.findAll("button").filter((b) => b.text() === "Withdraw")).toHaveLength(1);
+        w.getComponent(WeeklyHoursField).vm.$emit("update:modelValue", 40);
+        await w.vm.$nextTick();
+        expect(w.get('[data-testid="card-footer-actions"]').text()).not.toContain("Withdraw");
+    });
+
+    it("shows the Cancel / Save footer only when something changed", async () => {
+        const w = mountShow();
+        expect(w.find('[data-testid="card-footer-actions"]').exists()).toBe(false);
+
+        w.getComponent(WeeklyHoursField).vm.$emit("update:modelValue", 40);
+        await w.vm.$nextTick();
+
+        expect(w.find('[data-testid="card-footer-actions"]').exists()).toBe(true);
+    });
+
+    it("keeps the footer for the Saved confirmation right after a save", async () => {
+        const w = mountShow();
+        w.getComponent(WeeklyHoursField).vm.$emit("update:modelValue", 40);
+        await w.vm.$nextTick();
+
+        await findSaveButton(w).trigger("click");
+        await flushPromises();
+
+        expect(findSaveButton(w).text()).toBe("Saved");
+    });
+
+    it("asks to stay or discard before leaving a tab with unsaved changes", async () => {
+        const w = mountShow();
+        const dialog = () => w.getComponent(ConfirmDialog);
+        w.getComponent(Tabs).vm.$emit("update:modelValue", "availability");
+        await w.vm.$nextTick();
+        w.getComponent(WeeklyHoursField).vm.$emit("update:modelValue", 40);
+        await w.vm.$nextTick();
+
+        w.getComponent(Tabs).vm.$emit("update:modelValue", "details");
+        await w.vm.$nextTick();
+        expect(w.getComponent(Tabs).props("modelValue")).toBe("availability");
+        expect(dialog().props()).toMatchObject({ open: true, title: "Unsaved changes", confirmLabel: "Discard changes", cancelLabel: "Stay" });
+
+        dialog().vm.$emit("cancel");
+        await w.vm.$nextTick();
+        expect(dialog().props("open")).toBe(false);
+        expect(w.getComponent(Tabs).props("modelValue")).toBe("availability");
+        expect(form.weekly_hours).toBe(40);
+
+        w.getComponent(Tabs).vm.$emit("update:modelValue", "details");
+        await w.vm.$nextTick();
+        dialog().vm.$emit("confirm");
+        await w.vm.$nextTick();
+        expect(w.getComponent(Tabs).props("modelValue")).toBe("details");
+        expect(form.weekly_hours).toBe(24);
+        expect(w.find('[data-testid="card-footer-actions"]').exists()).toBe(false);
     });
 });

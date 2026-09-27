@@ -17,7 +17,12 @@
             <!-- Weekday headers -->
             <div
                 data-testid="calendar-weekday-header"
-                :class="['mb-4 grid justify-items-center gap-x-0 gap-y-1 border-b border-(--color-card-border)', GRID_COLUMNS]"
+                @click="onWeekdayHeaderClick"
+                :class="[
+                    'mb-4 grid justify-items-center gap-x-0 gap-y-1',
+                    weekdayHeaderClass,
+                    GRID_COLUMNS,
+                ]"
             >
                 <span data-testid="calendar-week-label" class="self-center text-xs text-(--color-text-muted)">
                     {{ __('calendar.week_abbr') }}
@@ -28,9 +33,10 @@
                     :class="
                         dayClass(
                             weekDayStates[i] ?? null,
-                            selectedDay === null && selectedDayOfWeek === i,
+                            isWeekdayHighlighted(i),
                             false,
                             false,
+                            weekdayHeaderSelected === undefined,
                         )
                     "
                     :disabled="!enableWeekDaySelection"
@@ -62,9 +68,12 @@
                         <div v-if="cell.type === 'pad'"></div>
                         <button
                             v-else
-                            :class="dayClass(colorForDay(cell.day), false, isToday(cell.day), isDisabled(cell.day), false)"
+                            :class="[
+                                dayClass(colorForDay(cell.day), false, isToday(cell.day), isDisabled(cell.day), !highlightSelection && enableDaySelection, dayBorders[cell.day]),
+                                cell.day === ringDay ? 'ring-2 ring-(--color-input-focus-border)' : '',
+                            ]"
                             :disabled="isDisabled(cell.day)"
-                            @click="!isDisabled(cell.day) && enableDaySelection && selectDay(cell.day)"
+                            @click="onDayClick(cell.day)"
                         >
                             {{ cell.day }}
                         </button>
@@ -74,20 +83,15 @@
         </div>
 
         <!-- Footer: legenda + optional actions slot -->
-        <template v-if="legendaEntries.length || $slots.footer" #footer>
-            <div v-if="legendaEntries.length" class="flex flex-wrap items-center gap-4 px-3 py-2">
-                <div v-for="entry in legendaEntries" :key="entry.color" class="flex items-center gap-2">
-                    <div
-                        :class="[
-                            'm-1 h-6 w-6 shrink-0 rounded-md border-2 border-transparent text-center text-sm font-semibold',
-                            colorBg(entry.color),
-                        ]"
-                    >
-                        x
-                    </div>
-                    <span class="text-xs text-(--color-text-muted)">{{ entry.text }}</span>
-                </div>
-            </div>
+        <template v-if="hasLegend || $slots.footer" #footer>
+            <!-- w-0 min-w-full: the legend wraps to the calendar's width instead of
+                 widening it, so a w-fit calendar stays as wide as its day grid. -->
+            <CalendarLegend
+                v-if="hasLegend"
+                :legenda="legenda"
+                :border-legenda="borderLegenda"
+                class="w-0 min-w-full px-3 py-2"
+            />
             <slot name="footer" />
         </template>
     </Card>
@@ -98,24 +102,14 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { usePage } from '@inertiajs/vue3'
 import Card from '@/components/ui/Card.vue'
 import ButtonSecondary from '@/components/ui/ButtonSecondary.vue'
+import CalendarLegend from '@/components/ui/CalendarLegend.vue'
+import { BORDER_COLOR_CLASS, BORDER_STYLES, COLOR_CLASS } from '@/components/ui/calendarClasses'
 import { useI18n } from '@/composables/useI18n'
 
 const page = usePage()
 const __ = useI18n()
 
 // ── Color class maps (full strings so Tailwind includes them) ─────────────────
-// Each family aliases the existing badge tokens (ThemeTokens::COLOR_DEFAULTS).
-// There is no badge hover-state token in this app's theme system, so unlike
-// the source component, hover feedback here comes only from the border.
-const COLOR_CLASS = {
-    success: 'bg-(--color-badge-success-bg) text-(--color-badge-success-text)',
-    custom: 'bg-(--color-badge-custom-bg) text-(--color-badge-custom-text)',
-    error: 'bg-(--color-badge-error-bg) text-(--color-badge-error-text)',
-    warning: 'bg-(--color-badge-warning-bg) text-(--color-badge-warning-text)',
-    standard: 'bg-(--color-badge-standard-bg) text-(--color-badge-standard-text)',
-    muted: 'bg-(--color-badge-muted-bg) text-(--color-badge-muted-text)',
-}
-
 // A narrow week-number column, then the seven days.
 const GRID_COLUMNS = 'grid-cols-[1.75rem_repeat(7,minmax(0,1fr))]'
 
@@ -133,9 +127,20 @@ const props = defineProps({
     // { [day]: true } — marks the whole week-row containing that day.
     weekMarkerDays: { type: Object, default: () => ({}) },
     weekMarkerColor: { type: String, default: 'custom' },
+    // { [day]: 'solid' } — a border on that day in its own color's border token.
+    dayBorders: { type: Object, default: () => ({}) },
+    // { solid?: text } — the legend entry for the day border.
+    borderLegenda: { type: Object, default: () => ({}) },
+    // False: selecting a day still emits change, but draws no week border.
+    highlightSelection: { type: Boolean, default: true },
+    // Set (true or false): the header row is one selection, drawn as a
+    // border around the whole row; single weekday letters are not highlighted.
+    weekdayHeaderSelected: { type: Boolean, default: undefined },
+    // A day of this month to mark with a ring (a selected date), or null.
+    ringDay: { type: Number, default: null },
 })
 
-const emit = defineEmits(['change'])
+const emit = defineEmits(['change', 'day-click', 'weekday-click'])
 
 // ── Today ─────────────────────────────────────────────────────────────────────
 
@@ -190,10 +195,10 @@ const firstDayOffset = computed(() => {
     return (dow + 6) % 7 // JS getDay: Sun=0, Mon=1 → convert to Mon=0
 })
 
-const legendaEntries = computed(() =>
-    Object.entries(props.legenda)
-        .filter(([, text]) => text)
-        .map(([color, text]) => ({ color, text })),
+// Only non-empty entries render, as in CalendarLegend.
+const hasLegend = computed(() =>
+    Object.values(props.legenda).some(Boolean)
+    || Object.entries(props.borderLegenda).some(([style, text]) => text && BORDER_STYLES.includes(style)),
 )
 
 // Day cells chunked into week-rows (7 per row), the first row's leading
@@ -270,11 +275,13 @@ function isDisabled(day) {
     return false
 }
 
-function dayClass(color, selected, today, disabled, hoverable = true) {
+function dayClass(color, selected, today, disabled, hoverable = true, borderStyle = null) {
     const base = 'border-2 text-center rounded-md text-sm font-semibold m-1 h-8 w-8 cursor-pointer'
     const border = selected
         ? 'border-(--color-tab-active-border)'
-        : hoverable
+        : borderStyle && BORDER_COLOR_CLASS[color]
+          ? BORDER_COLOR_CLASS[color]
+          : hoverable
           ? 'border-transparent hover:border-(--color-tab-hover-border)'
           : 'border-transparent'
 
@@ -288,16 +295,16 @@ function dayClass(color, selected, today, disabled, hoverable = true) {
 }
 
 // The border of a week row: active when selected, hoverable when a click can select it.
+// Without selection highlighting, the week row has no border or hover:
+// each day carries its own hover border instead.
 function weekRowClass(week) {
+    if (!props.highlightSelection) return 'border-transparent'
     if (isWeekSelected(week)) return 'border-(--color-tab-active-border)'
     return props.enableDaySelection
         ? 'border-transparent hover:border-(--color-tab-hover-border) cursor-pointer'
         : 'border-transparent'
 }
 
-function colorBg(color) {
-    return COLOR_CLASS[color] ?? ''
-}
 
 // ── Actions ───────────────────────────────────────────────────────────────────
 
@@ -342,6 +349,29 @@ function selectWeekday(i) {
     selectedDayOfWeek.value = i
     selectedWeekStart.value = null
     emitChange()
+    emit('weekday-click', { weekday: i + 1 })
+}
+
+// In header-selection mode the header row is one target: it carries the
+// selected and hover borders for all seven letters together.
+const weekdayHeaderClass = computed(() => {
+    if (props.weekdayHeaderSelected === undefined) return 'border-b border-(--color-card-border)'
+    if (props.weekdayHeaderSelected) return 'rounded-md border-2 border-(--color-tab-active-border)'
+    return 'rounded-md border-2 border-transparent border-b-(--color-card-border) hover:border-(--color-tab-hover-border) cursor-pointer'
+})
+
+// In header-selection mode a click on the row outside the letters (the
+// week label, the gaps) selects the header as a letter click does.
+function onWeekdayHeaderClick(event) {
+    if (props.weekdayHeaderSelected === undefined || !props.enableWeekDaySelection) return
+    if (event.target.closest('button')) return
+    selectWeekday(0)
+}
+
+// i: Mon=0 … Sun=6
+function isWeekdayHighlighted(i) {
+    if (props.weekdayHeaderSelected !== undefined) return false
+    return selectedDay.value === null && selectedDayOfWeek.value === i
 }
 
 // Anywhere in a week row that is not a day button (the week number, the gaps, the
@@ -350,6 +380,13 @@ function onWeekRowClick(event, week) {
     if (!props.enableDaySelection || event.target.closest('button')) return
     const first = week.find((cell) => cell.type === 'day' && !isDisabled(cell.day))
     if (first) selectDay(first.day)
+}
+
+// A click on a day button (not a week row or navigation) also emits day-click.
+function onDayClick(day) {
+    if (isDisabled(day) || !props.enableDaySelection) return
+    selectDay(day)
+    emit('day-click', { year: props.year, month: props.month, day })
 }
 
 function selectDay(day) {
