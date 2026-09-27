@@ -827,7 +827,7 @@ describe("Employees/Form", () => {
         expect(availabilityTab.find('[data-testid="tab-error-dot"]').exists()).toBe(true);
     });
 
-    it("shows a left-aligned Delete button in edit mode, none on create", () => {
+    it("shows a Delete button in edit mode, none on create", () => {
         const edit = mount(Form, {
             props: { employee: { id: 3, first_name: "A", last_name: "B", email: "a@b.c", weekly_hours: 24 }, holidays: [] },
             global: { stubs },
@@ -1000,7 +1000,7 @@ describe("Employees/Form", () => {
         expect(w.get('[data-testid="employee-card"]').classes()).toEqual(expect.arrayContaining(["flex", "min-h-0", "flex-col"]));
         expect(w.get('[data-testid="card-body"]').classes()).toEqual(expect.arrayContaining(["min-h-0", "flex-1", "overflow-y-auto"]));
         const footer = w.get('[data-testid="card-footer-actions"]');
-        expect(footer.findAll("button").map((b) => b.text())).toEqual(["Delete", "Cancel", "Save"]);
+        expect(footer.findAll("button").map((b) => b.text())).toEqual(["Cancel", "Save"]);
         expect(footer.find("hr").exists()).toBe(false);
         expect(w.get('[data-testid="card-body"]').findAll("button").some((b) => b.text() === "Save")).toBe(false);
     });
@@ -1043,5 +1043,15 @@ describe("Employees/Form", () => {
 
         expect(footer.className).toContain("bg-[var(--color-card-body-bg)]");
         expect(footer.className).not.toContain("--color-card-footer-bg");
+    });
+
+    it("shows Delete only on the Details tab, not in the footer, and not for an archived employee", () => {
+        const w = mount(Form, { props: { employee: editEmployee, holidays: [] }, global: { stubs: fitStubs } });
+
+        expect(w.get('[data-testid="panel-details"]').findAll("button").filter((b) => b.text() === "Delete")).toHaveLength(1);
+        expect(w.findAll("button").filter((b) => b.text() === "Delete")).toHaveLength(1);
+
+        const archived = mount(Form, { props: { employee: { ...editEmployee, archived: true }, holidays: [] }, global: { stubs: fitStubs } });
+        expect(archived.findAll("button").some((b) => b.text() === "Delete")).toBe(false);
     });
 });

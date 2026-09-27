@@ -24,8 +24,10 @@ The button row moves into the `Card` footer slot. It keeps the footer
 top border, but uses the body background (the new `Card` `footerClass`
 prop). The separator above the buttons goes.
 
-- Employee edit page: the footer holds Delete, Cancel and Save. For an
-  archived employee it holds only Restore, for an admin. A manager sees
+- Employee edit page: the footer holds Cancel and Save. Delete sits at
+  the bottom of the Details tab, below a separator, so it shows only on
+  that tab. For an archived employee there is no Delete, and the footer
+  holds only Restore, for an admin. A manager sees
   no footer on an archived employee.
 - Personal page: the footer holds Cancel and Save. Withdraw sits at the
   bottom of the Details tab, below a separator, so it shows only on that

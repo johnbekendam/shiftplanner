@@ -439,14 +439,22 @@ function restore() {
                     data-testid="panel-details"
                     class="p-6"
                 >
-                    <EmployeeFields
-                        v-if="isEdit"
-                        :form="form"
-                        :business-lines="businessLines"
-                        :readonly-identity="isArchived"
-                        :disabled="isArchived"
-                        live
-                    />
+                    <template v-if="isEdit">
+                        <EmployeeFields
+                            :form="form"
+                            :business-lines="businessLines"
+                            :readonly-identity="isArchived"
+                            :disabled="isArchived"
+                            live
+                        />
+
+                        <template v-if="!isArchived">
+                            <CardSeparator />
+                            <ButtonDanger type="button" @click="deleteDialogOpen = true">
+                                {{ __('employees.action.delete') }}
+                            </ButtonDanger>
+                        </template>
+                    </template>
 
                     <form v-else class="space-y-5" @submit.prevent="submit">
                         <EmployeeFields :form="form" :business-lines="businessLines" />
@@ -613,11 +621,7 @@ function restore() {
                         </ButtonPrimary>
                     </div>
 
-                    <div v-else class="flex items-center justify-between gap-3">
-                        <ButtonDanger type="button" @click="deleteDialogOpen = true">
-                            {{ __('employees.action.delete') }}
-                        </ButtonDanger>
-
+                    <div v-else class="flex items-center justify-end gap-3">
                         <div class="flex items-center gap-3">
                             <ButtonSecondary
                                 type="button"
