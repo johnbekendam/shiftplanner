@@ -35,6 +35,9 @@ const en = {
     "availability.questions.heading": "Questions",
     "competences.heading": "Competences",
     "availability.day.title": ":weekday :date",
+    "tabs.unsaved.title": "Unsaved changes",
+    "tabs.unsaved.discard": "Discard changes",
+    "tabs.unsaved.stay": "Stay",
     "availability.holidays.heading": "Holidays",
     "availability.default_week.heading": "Default availability",
     "availability.weekday_long.1": "Monday",
@@ -155,6 +158,8 @@ import SelectInput from "@/components/ui/Input/Select.vue";
 import DateInput from "@/components/ui/Input/Date.vue";
 import AvailabilityCalendar from "@/components/AvailabilityCalendar.vue";
 import DateAvailabilityGrid from "@/components/DateAvailabilityGrid.vue";
+import Tabs from "@/components/ui/Tabs.vue";
+import ConfirmDialog from "@/components/ui/ConfirmDialog.vue";
 import DayBlockToggle from "@/components/DayBlockToggle.vue";
 
 const mountShow = (holidays = [], extra = {}) =>
@@ -262,9 +267,9 @@ describe("Personal/Show", () => {
             .toContain("Your available time totals 16 hours per week, below your target of 20 hours.");
     });
 
-    it("the Save button is disabled with nothing changed", () => {
+    it("shows no Save button with nothing changed", () => {
         const w = mountShow();
-        expect(findSaveButton(w).attributes("disabled")).toBeDefined();
+        expect(findSaveButton(w)).toBeUndefined();
     });
 
     it("hides Withdraw, Cancel, and Save entirely when not editable", () => {
@@ -324,12 +329,12 @@ describe("Personal/Show", () => {
         expect(findSaveButton(w).attributes("disabled")).toBeDefined();
     });
 
-    it("Cancel is disabled with nothing changed", () => {
+    it("shows no Cancel button with nothing changed", () => {
         const w = mountShow();
-        expect(findCancelButton(w).attributes("disabled")).toBeDefined();
+        expect(findCancelButton(w)).toBeUndefined();
     });
 
-    it("Cancel restores weekly hours and disables both buttons, without saving", async () => {
+    it("Cancel restores weekly hours and hides the footer, without saving", async () => {
         const w = mountShow();
         w.get('[data-testid="panel-availability"]').findComponent(WeeklyHoursField)
             .vm.$emit("update:modelValue", 40);
@@ -340,8 +345,7 @@ describe("Personal/Show", () => {
         await w.vm.$nextTick();
 
         expect(form.weekly_hours).toBe(24);
-        expect(findSaveButton(w).attributes("disabled")).toBeDefined();
-        expect(findCancelButton(w).attributes("disabled")).toBeDefined();
+        expect(w.find('[data-testid="card-footer-actions"]').exists()).toBe(false);
         expect(form.lastPut).toBeUndefined();
     });
 
@@ -355,9 +359,7 @@ describe("Personal/Show", () => {
         await findCancelButton(w).trigger("click");
         await w.vm.$nextTick();
 
-        expect(findSaveButton(w).attributes("disabled")).toBeDefined();
-        await findSaveButton(w).trigger("click");
-        await flushPromises();
+        expect(w.find('[data-testid="card-footer-actions"]').exists()).toBe(false);
         expect(routerCalls).toEqual([]);
     });
 
@@ -724,7 +726,7 @@ describe("Personal/Show", () => {
         await applyDay(w, { date: "2026-10-05", blocked: true, shifts: {} });
         await w.vm.$nextTick();
 
-        expect(findSaveButton(w).attributes("disabled")).toBeDefined();
+        expect(w.find('[data-testid="card-footer-actions"]').exists()).toBe(false);
     });
 
     it("Cancel discards a pending day change", async () => {
@@ -736,7 +738,7 @@ describe("Personal/Show", () => {
         await findCancelButton(w).trigger("click");
 
         expect(calendar.props("overrides")).toEqual({});
-        expect(findSaveButton(w).attributes("disabled")).toBeDefined();
+        expect(w.find('[data-testid="card-footer-actions"]').exists()).toBe(false);
     });
 
     it("keeps a failed day change pending and marks the Availability tab", async () => {
@@ -884,7 +886,7 @@ describe("Personal/Show", () => {
         expect(card.findComponent(HolidayList).exists()).toBe(true);
     });
 
-    it("fits the card to the page and puts Cancel and Save in the card footer", () => {
+    it("fits the card to the page and puts Cancel and Save in the card footer", async () => {
         const w = mount(Show, {
             props: {
                 token: "tok-1",
@@ -901,6 +903,9 @@ describe("Personal/Show", () => {
             },
         });
 
+        w.getComponent(WeeklyHoursField).vm.$emit("update:modelValue", 40);
+        await w.vm.$nextTick();
+
         expect(w.get("[data-fit-height]").attributes("data-fit-height")).toBe("true");
         expect(w.get("[data-scroll-key]").attributes("data-scroll-key")).toBe("information");
         const footer = w.get('[data-testid="stub-footer"]');
@@ -915,12 +920,63 @@ describe("Personal/Show", () => {
         expect(w.find('[data-testid="card-footer-actions"]').exists()).toBe(false);
     });
 
-    it("shows Withdraw only on the Details tab, not in the footer", () => {
+    it("shows Withdraw only on the Details tab, not in the footer", async () => {
         const w = mountShow();
         const inDetails = w.get('[data-testid="panel-details"]').findAll("button").filter((b) => b.text() === "Withdraw");
 
         expect(inDetails).toHaveLength(1);
         expect(w.findAll("button").filter((b) => b.text() === "Withdraw")).toHaveLength(1);
+        w.getComponent(WeeklyHoursField).vm.$emit("update:modelValue", 40);
+        await w.vm.$nextTick();
         expect(w.get('[data-testid="card-footer-actions"]').text()).not.toContain("Withdraw");
+    });
+
+    it("shows the Cancel / Save footer only when something changed", async () => {
+        const w = mountShow();
+        expect(w.find('[data-testid="card-footer-actions"]').exists()).toBe(false);
+
+        w.getComponent(WeeklyHoursField).vm.$emit("update:modelValue", 40);
+        await w.vm.$nextTick();
+
+        expect(w.find('[data-testid="card-footer-actions"]').exists()).toBe(true);
+    });
+
+    it("keeps the footer for the Saved confirmation right after a save", async () => {
+        const w = mountShow();
+        w.getComponent(WeeklyHoursField).vm.$emit("update:modelValue", 40);
+        await w.vm.$nextTick();
+
+        await findSaveButton(w).trigger("click");
+        await flushPromises();
+
+        expect(findSaveButton(w).text()).toBe("Saved");
+    });
+
+    it("asks to stay or discard before leaving a tab with unsaved changes", async () => {
+        const w = mountShow();
+        const dialog = () => w.getComponent(ConfirmDialog);
+        w.getComponent(Tabs).vm.$emit("update:modelValue", "availability");
+        await w.vm.$nextTick();
+        w.getComponent(WeeklyHoursField).vm.$emit("update:modelValue", 40);
+        await w.vm.$nextTick();
+
+        w.getComponent(Tabs).vm.$emit("update:modelValue", "details");
+        await w.vm.$nextTick();
+        expect(w.getComponent(Tabs).props("modelValue")).toBe("availability");
+        expect(dialog().props()).toMatchObject({ open: true, title: "Unsaved changes", confirmLabel: "Discard changes", cancelLabel: "Stay" });
+
+        dialog().vm.$emit("cancel");
+        await w.vm.$nextTick();
+        expect(dialog().props("open")).toBe(false);
+        expect(w.getComponent(Tabs).props("modelValue")).toBe("availability");
+        expect(form.weekly_hours).toBe(40);
+
+        w.getComponent(Tabs).vm.$emit("update:modelValue", "details");
+        await w.vm.$nextTick();
+        dialog().vm.$emit("confirm");
+        await w.vm.$nextTick();
+        expect(w.getComponent(Tabs).props("modelValue")).toBe("details");
+        expect(form.weekly_hours).toBe(24);
+        expect(w.find('[data-testid="card-footer-actions"]').exists()).toBe(false);
     });
 });

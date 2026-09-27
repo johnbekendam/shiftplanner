@@ -41,6 +41,19 @@ The layouts get this behavior as an option:
 - `CenteredLayout` gets a `fitHeight` prop, a `footer` slot, and a
   `scrollKey` prop. A change of `scrollKey` scrolls the body to its top.
 
+### Save per tab
+
+Cancel and Save act on the current tab only:
+
+- A tab with unsaved changes cannot be left without a decision. A click
+  on another tab opens a dialog: "Stay" (the default) or "Discard
+  changes". Discard resets the changes and then opens the other tab.
+  Because of this rule, unsaved changes always belong to the open tab.
+- The footer with Cancel and Save shows only when there is something to
+  save, while saving, and for the short "Saved" confirmation after a
+  save. Tabs without editable data (Information, Planning) never show it.
+- For an archived employee, the footer with Restore shows as before.
+
 ## Key decisions
 
 - **Max height, not fixed height.** A short tab does not get a tall
@@ -49,6 +62,11 @@ The layouts get this behavior as an option:
   component and separates the fixed row from the scrolling body.
 - **Back to the top on a tab switch.** One body scrolls for all tabs, so
   a new tab must not open halfway down.
+- **One save per page, but only one tab can hold changes.** Blocking the
+  tab switch makes the page Save act on the open tab, without a separate
+  save per tab.
+- **A dialog on a blocked tab switch.** A click that does nothing would
+  look broken.
 - **Opt-in layout props.** Other pages that use the two layouts do not
   change.
 

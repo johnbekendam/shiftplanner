@@ -326,6 +326,10 @@
     "employees.flash.link_no_email": "This employee has no email address. Add one first.",
 
     "personal.title": "Your working hours",
+    "tabs.unsaved.title": "Unsaved changes",
+    "tabs.unsaved.body": "This tab has changes that are not saved. Stay to save or cancel them, or discard them and continue.",
+    "tabs.unsaved.discard": "Discard changes",
+    "tabs.unsaved.stay": "Stay",
     "personal.action.save": "Save",
     "personal.action.saving": "Saving…",
     "personal.action.cancel": "Cancel",

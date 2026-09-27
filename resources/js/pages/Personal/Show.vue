@@ -19,10 +19,12 @@ import ButtonPrimary from '@/components/ui/ButtonPrimary.vue'
 import ButtonSecondary from '@/components/ui/ButtonSecondary.vue'
 import ButtonDanger from '@/components/ui/ButtonDanger.vue'
 import WithdrawContactDialog from '@/components/WithdrawContactDialog.vue'
+import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 import { useI18n } from '@/composables/useI18n'
 import { useSaveRegistry } from '@/composables/useSaveRegistry'
 import { useDateOverrides } from '@/composables/useDateOverrides'
 import { useUnsavedChangesGuard } from '@/composables/useUnsavedChangesGuard'
+import { useGuardedTab } from '@/composables/useGuardedTab'
 import { putAsync, postAsync, deleteAsync } from '@/utils/inertiaAsync'
 import { calculateAvailabilityHours } from '@/utils/availabilityHours'
 
@@ -326,6 +328,11 @@ function onCancelClick() {
     competencesVersion.value++
 }
 
+// Cancel and Save act on the open tab: a tab with unsaved changes cannot be
+// left without staying or discarding, so the footer only shows when needed.
+const showActions = computed(() => registry.anyDirty.value || registry.saving.value || justSaved.value)
+const guard = useGuardedTab(tab, () => registry.anyDirty.value, onCancelClick)
+
 // ── Withdraw: not self-service; the card names who to contact instead ──
 const withdrawDialogOpen = ref(false)
 </script>
@@ -337,7 +344,7 @@ const withdrawDialogOpen = ref(false)
         <Head :title="__('personal.title')" />
 
         <template #header>
-            <Tabs v-model="tab" :tabs="tabs" />
+            <Tabs :model-value="tab" :tabs="tabs" @update:model-value="guard.requestTab" />
         </template>
 
         <p
@@ -488,7 +495,8 @@ const withdrawDialogOpen = ref(false)
             <ShiftNote v-if="scheduleNoteHtml" :html="scheduleNoteHtml" class="mt-6" />
         </div>
 
-        <template v-if="editable" #footer>
+        <!-- Only while there is something to save, or to show "Saved". -->
+        <template v-if="editable && showActions" #footer>
             <div data-testid="card-footer-actions" class="flex items-center justify-end gap-3">
                 <div class="flex items-center gap-3">
                     <ButtonSecondary
@@ -514,6 +522,18 @@ const withdrawDialogOpen = ref(false)
                 </div>
             </div>
         </template>
+
+        <ConfirmDialog
+            :open="guard.blockedTab.value !== null"
+            :title="__('tabs.unsaved.title')"
+            :confirm-label="__('tabs.unsaved.discard')"
+            :cancel-label="__('tabs.unsaved.stay')"
+            variant="danger"
+            @confirm="guard.discardAndSwitch"
+            @cancel="guard.stay"
+        >
+            {{ __('tabs.unsaved.body') }}
+        </ConfirmDialog>
 
         <WithdrawContactDialog
             :open="withdrawDialogOpen"
