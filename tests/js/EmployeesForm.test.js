@@ -109,6 +109,7 @@ import QuestionChecklist from "@/components/QuestionChecklist.vue";
 import EmployeePlanningSettings from "@/components/EmployeePlanningSettings.vue";
 import { NumberInput, DateInput } from "@/components/ui/Input";
 import AvailabilityCalendar from "@/components/AvailabilityCalendar.vue";
+import Tabs from "@/components/ui/Tabs.vue";
 import DateAvailabilityGrid from "@/components/DateAvailabilityGrid.vue";
 
 const stubs = { AppLayout: { template: "<div><slot /></div>" }, teleport: true };
@@ -987,5 +988,52 @@ describe("Employees/Form", () => {
         });
 
         expect((w.get('[data-testid="panel-competences"]').attributes("style") ?? "")).not.toContain("display: none");
+    });
+
+    const fitStubs = { ...stubs, AppLayout: { props: ["fitHeight"], template: "<div :data-fit-height='String(fitHeight)'><slot /></div>" } };
+    const editEmployee = { id: 3, first_name: "A", last_name: "B", email: "a@b.c", weekly_hours: 24 };
+
+    it("fits the edit card to the page: a scrolling body and the buttons in the card footer", () => {
+        const w = mount(Form, { props: { employee: editEmployee, holidays: [] }, global: { stubs: fitStubs } });
+
+        expect(w.get("[data-fit-height]").attributes("data-fit-height")).toBe("true");
+        expect(w.get('[data-testid="employee-card"]').classes()).toEqual(expect.arrayContaining(["flex", "min-h-0", "flex-col"]));
+        expect(w.get('[data-testid="card-body"]').classes()).toEqual(expect.arrayContaining(["min-h-0", "flex-1", "overflow-y-auto"]));
+        const footer = w.get('[data-testid="card-footer-actions"]');
+        expect(footer.findAll("button").map((b) => b.text())).toEqual(["Delete", "Cancel", "Save"]);
+        expect(footer.find("hr").exists()).toBe(false);
+        expect(w.get('[data-testid="card-body"]').findAll("button").some((b) => b.text() === "Save")).toBe(false);
+    });
+
+    it("shows only Restore in the footer of an archived employee", () => {
+        const w = mount(Form, { props: { employee: { ...editEmployee, archived: true }, holidays: [] }, global: { stubs: fitStubs } });
+
+        expect(w.get('[data-testid="card-footer-actions"]').findAll("button").map((b) => b.text())).toEqual(["Restore"]);
+    });
+
+    it("scrolls the card body back to the top on a tab switch", async () => {
+        const w = mount(Form, { props: { employee: editEmployee, holidays: [] }, global: { stubs: fitStubs } });
+        const body = w.get('[data-testid="card-body"]').element;
+        body.scrollTop = 300;
+
+        w.getComponent(Tabs).vm.$emit("update:modelValue", "availability");
+        await w.vm.$nextTick();
+
+        expect(body.scrollTop).toBe(0);
+    });
+
+    it("leaves the create form as it was: no fit height, no footer", () => {
+        const w = mount(Form, { props: { employee: null, holidays: [] }, global: { stubs: fitStubs } });
+
+        expect(w.get("[data-fit-height]").attributes("data-fit-height")).toBe("false");
+        expect(w.get('[data-testid="card-body"]').classes()).not.toContain("overflow-y-auto");
+        expect(w.find('[data-testid="card-footer-actions"]').exists()).toBe(false);
+    });
+
+    it("shows no footer to a manager on an archived employee", () => {
+        authState.user = { role: "manager" };
+        const w = mount(Form, { props: { employee: { ...editEmployee, archived: true }, holidays: [] }, global: { stubs: fitStubs } });
+
+        expect(w.find('[data-testid="card-footer-actions"]').exists()).toBe(false);
     });
 });

@@ -1,5 +1,5 @@
 <script setup>
-import { computed, reactive, ref } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import { Head, Link, router, useForm } from '@inertiajs/vue3'
 import AppLayout from '@/layouts/AppLayout.vue'
 import Card from '@/components/ui/Card.vue'
@@ -101,6 +101,12 @@ const tabs = computed(() => [
     { value: 'workcenters', label: __('workcenters.employee_tab'), hasError: registry.hasError('workcenters') },
     { value: 'planning', label: __('planning.tab') },
 ])
+
+// One body scrolls for every tab, so a new tab opens at its top.
+const cardBody = ref(null)
+watch(tab, () => {
+    if (cardBody.value) cardBody.value.scrollTop = 0
+})
 
 function submit() {
     if (!isEdit.value) form.post('/employees')
@@ -404,228 +410,234 @@ function restore() {
 </script>
 
 <template>
-    <AppLayout>
+    <AppLayout :fit-height="isEdit">
         <Head :title="isEdit ? __('employees.form.edit_title') : __('employees.form.create_title')" />
 
-        <Card class="max-w-2xl">
+        <!-- Edit: at most as tall as the page, so the tabs and the buttons in
+             the footer stay on screen while the body scrolls. -->
+        <Card data-testid="employee-card" class="max-w-2xl" :class="isEdit ? 'flex min-h-0 flex-col' : ''">
             <template v-if="isEdit" #header>
                 <Tabs v-model="tab" :tabs="tabs" />
             </template>
 
-            <p
-                v-if="isArchived"
-                class="border-b border-(--color-card-border) bg-(--color-badge-warning-bg) px-6 py-3 text-sm text-(--color-badge-warning-text)"
-            >
-                {{ __('employees.archived.notice') }}
-            </p>
-
-            <div
-                v-show="!isEdit || tab === 'details'"
-                data-testid="panel-details"
-                class="p-6"
-            >
-                <EmployeeFields
-                    v-if="isEdit"
-                    :form="form"
-                    :business-lines="businessLines"
-                    :readonly-identity="isArchived"
-                    :disabled="isArchived"
-                    live
-                />
-
-                <form v-else class="space-y-5" @submit.prevent="submit">
-                    <EmployeeFields :form="form" :business-lines="businessLines" />
-
-                    <div class="flex items-center justify-end gap-3">
-                        <Link href="/employees">
-                            <ButtonSecondary type="button">{{ __('employees.action.cancel') }}</ButtonSecondary>
-                        </Link>
-                        <ButtonPrimary type="submit" :disabled="form.processing">
-                            {{ form.processing ? __('employees.action.saving') : __('employees.action.create') }}
-                        </ButtonPrimary>
-                    </div>
-                </form>
-            </div>
-
-            <div v-if="isEdit" v-show="tab === 'availability'" data-testid="panel-availability" class="@container p-6">
-                <section class="mb-6 grid gap-6 @xl:grid-cols-2">
-                    <LabeledInput :label="__('availability.start_date.label')" :error="form.errors.available_from">
-                        <DateInput
-                            v-model="form.available_from"
-                            :disabled="isArchived"
-                            data-testid="available-from"
-                            class="w-40"
-                        />
-                        <p class="mt-1 text-xs text-(--color-text-secondary)">{{ __('availability.start_date.hint') }}</p>
-                    </LabeledInput>
-                    <WeeklyHoursField
-                        :model-value="form.weekly_hours"
-                        :minimum="effectiveWeeklyHoursMinimum"
-                        :error="form.errors.weekly_hours"
-                        :disabled="isArchived"
-                        live
-                        @update:model-value="onWeeklyHoursChange"
-                    />
-                </section>
+            <div ref="cardBody" data-testid="card-body" :class="isEdit ? 'min-h-0 flex-1 overflow-y-auto' : ''">
 
                 <p
-                    v-if="availabilityWarning"
-                    data-testid="availability-hours-warning"
-                    class="mb-6 rounded-md border border-(--color-badge-warning-border) bg-(--color-badge-warning-bg) px-3 py-2 text-sm text-(--color-badge-warning-text)"
+                    v-if="isArchived"
+                    class="border-b border-(--color-card-border) bg-(--color-badge-warning-bg) px-6 py-3 text-sm text-(--color-badge-warning-text)"
                 >
-                    <template v-if="availabilityWarning === 'not_preferred'">
-                        {{ __('availability.hours_warning.not_preferred') }}
-                    </template>
-                    <template v-else>
-                        {{ __('availability.hours_warning.insufficient', {
-                            available: availabilityHours.available,
-                            target: form.weekly_hours,
-                        }) }}
-                    </template>
+                    {{ __('employees.archived.notice') }}
                 </p>
 
-                <CardSeparator />
-
-                <AvailabilityCalendarSection
-                    :shifts="shifts"
-                    :defaults="availability"
-                    :overrides="dates.overrides.value"
-                    :holidays="currentHolidayRows"
-                    :available-from="form.available_from || null"
-                    :disabled="isArchived"
-                    :schedule-note-html="scheduleNoteHtml"
-                    :grid-key="availabilityVersion"
-                    show-add-hint
-                    @update:availability="onAvailabilityChange"
-                    @apply-day="dates.applyDay"
-                />
-
-                <Card class="mt-6" data-testid="holidays-card">
-                    <template #header>
-                        <div class="flex h-12 items-center px-6 text-md font-semibold">
-                            {{ __('availability.holidays.heading') }}
-                        </div>
-                    </template>
-                    <div class="px-6 py-4">
-                        <HolidayList
-                            :key="holidaysVersion"
-                            :holidays="committedHolidays"
-                            :disabled="isArchived"
-                            @update:holidays="onHolidaysChange"
-                        />
-                    </div>
-                </Card>
-            </div>
-
-            <div v-if="isEdit" v-show="tab === 'competences'" data-testid="panel-competences" class="p-6">
-                <section data-testid="competences-section" class="space-y-3">
-                    <h3 class="text-sm font-semibold text-(--color-text-primary)">{{ __('competences.heading') }}</h3>
-                    <TagChecklist
-                        :key="competencesVersion"
-                        :items="editableCompetences"
-                        :selected-ids="savedCompetenceIds.filter((id) => editableCompetences.some((item) => item.id === id))"
-                        empty-key="competences.checklist_empty"
+                <div
+                    v-show="!isEdit || tab === 'details'"
+                    data-testid="panel-details"
+                    class="p-6"
+                >
+                    <EmployeeFields
+                        v-if="isEdit"
+                        :form="form"
+                        :business-lines="businessLines"
+                        :readonly-identity="isArchived"
                         :disabled="isArchived"
-                        @update:selected-ids="onSelectedCompetenceIdsChange($event, editableCompetences)"
+                        live
                     />
-                    <template v-if="readOnlyCompetences.length">
-                        <CardSeparator />
-                        <TagChecklist
-                            :items="readOnlyCompetences"
-                            :selected-ids="savedCompetenceIds.filter((id) => readOnlyCompetences.some((item) => item.id === id))"
-                            empty-key="competences.checklist_empty"
-                            :disabled="isArchived"
-                            @update:selected-ids="onSelectedCompetenceIdsChange($event, readOnlyCompetences)"
-                        />
-                    </template>
-                </section>
 
-                <template v-if="questions.length">
+                    <form v-else class="space-y-5" @submit.prevent="submit">
+                        <EmployeeFields :form="form" :business-lines="businessLines" />
+
+                        <div class="flex items-center justify-end gap-3">
+                            <Link href="/employees">
+                                <ButtonSecondary type="button">{{ __('employees.action.cancel') }}</ButtonSecondary>
+                            </Link>
+                            <ButtonPrimary type="submit" :disabled="form.processing">
+                                {{ form.processing ? __('employees.action.saving') : __('employees.action.create') }}
+                            </ButtonPrimary>
+                        </div>
+                    </form>
+                </div>
+
+                <div v-if="isEdit" v-show="tab === 'availability'" data-testid="panel-availability" class="@container p-6">
+                    <section class="mb-6 grid gap-6 @xl:grid-cols-2">
+                        <LabeledInput :label="__('availability.start_date.label')" :error="form.errors.available_from">
+                            <DateInput
+                                v-model="form.available_from"
+                                :disabled="isArchived"
+                                data-testid="available-from"
+                                class="w-40"
+                            />
+                            <p class="mt-1 text-xs text-(--color-text-secondary)">{{ __('availability.start_date.hint') }}</p>
+                        </LabeledInput>
+                        <WeeklyHoursField
+                            :model-value="form.weekly_hours"
+                            :minimum="effectiveWeeklyHoursMinimum"
+                            :error="form.errors.weekly_hours"
+                            :disabled="isArchived"
+                            live
+                            @update:model-value="onWeeklyHoursChange"
+                        />
+                    </section>
+
+                    <p
+                        v-if="availabilityWarning"
+                        data-testid="availability-hours-warning"
+                        class="mb-6 rounded-md border border-(--color-badge-warning-border) bg-(--color-badge-warning-bg) px-3 py-2 text-sm text-(--color-badge-warning-text)"
+                    >
+                        <template v-if="availabilityWarning === 'not_preferred'">
+                            {{ __('availability.hours_warning.not_preferred') }}
+                        </template>
+                        <template v-else>
+                            {{ __('availability.hours_warning.insufficient', {
+                                available: availabilityHours.available,
+                                target: form.weekly_hours,
+                            }) }}
+                        </template>
+                    </p>
+
                     <CardSeparator />
 
-                    <section data-testid="questions-section" class="space-y-3">
-                        <h3 class="text-sm font-semibold text-(--color-text-primary)">{{ __('availability.questions.heading') }}</h3>
-                        <QuestionChecklist
-                            :key="questionsVersion"
-                            :items="questions"
-                            :answered-ids="savedAnsweredIds"
+                    <AvailabilityCalendarSection
+                        :shifts="shifts"
+                        :defaults="availability"
+                        :overrides="dates.overrides.value"
+                        :holidays="currentHolidayRows"
+                        :available-from="form.available_from || null"
+                        :disabled="isArchived"
+                        :schedule-note-html="scheduleNoteHtml"
+                        :grid-key="availabilityVersion"
+                        show-add-hint
+                        @update:availability="onAvailabilityChange"
+                        @apply-day="dates.applyDay"
+                    />
+
+                    <Card class="mt-6" data-testid="holidays-card">
+                        <template #header>
+                            <div class="flex h-12 items-center px-6 text-md font-semibold">
+                                {{ __('availability.holidays.heading') }}
+                            </div>
+                        </template>
+                        <div class="px-6 py-4">
+                            <HolidayList
+                                :key="holidaysVersion"
+                                :holidays="committedHolidays"
+                                :disabled="isArchived"
+                                @update:holidays="onHolidaysChange"
+                            />
+                        </div>
+                    </Card>
+                </div>
+
+                <div v-if="isEdit" v-show="tab === 'competences'" data-testid="panel-competences" class="p-6">
+                    <section data-testid="competences-section" class="space-y-3">
+                        <h3 class="text-sm font-semibold text-(--color-text-primary)">{{ __('competences.heading') }}</h3>
+                        <TagChecklist
+                            :key="competencesVersion"
+                            :items="editableCompetences"
+                            :selected-ids="savedCompetenceIds.filter((id) => editableCompetences.some((item) => item.id === id))"
+                            empty-key="competences.checklist_empty"
                             :disabled="isArchived"
-                            @update:answered-ids="onAnsweredIdsChange"
+                            @update:selected-ids="onSelectedCompetenceIdsChange($event, editableCompetences)"
                         />
+                        <template v-if="readOnlyCompetences.length">
+                            <CardSeparator />
+                            <TagChecklist
+                                :items="readOnlyCompetences"
+                                :selected-ids="savedCompetenceIds.filter((id) => readOnlyCompetences.some((item) => item.id === id))"
+                                empty-key="competences.checklist_empty"
+                                :disabled="isArchived"
+                                @update:selected-ids="onSelectedCompetenceIdsChange($event, readOnlyCompetences)"
+                            />
+                        </template>
                     </section>
-                </template>
-            </div>
 
-            <div v-if="isEdit" v-show="tab === 'workcenters'" data-testid="panel-workcenters" class="p-6">
-                <WorkcenterChecklist
-                    :key="workcentersVersion"
-                    :items="workcenters"
-                    :selected-ids="savedWorkcenterIds"
-                    empty-key="workcenters.checklist_empty"
-                    :disabled="isArchived"
-                    @update:selected-ids="onWorkcenterIdsChange"
-                />
-            </div>
+                    <template v-if="questions.length">
+                        <CardSeparator />
 
-            <div v-if="isEdit" v-show="tab === 'settings'" data-testid="panel-settings" class="p-6">
-                <EmployeePlanningSettings
-                    :form="form"
-                    :inherited-minimum="globalWeeklyHoursMinimum"
-                    :disabled="isArchived"
-                />
-            </div>
-
-            <div v-if="isEdit" v-show="tab === 'planning'" data-testid="panel-planning" class="p-6">
-                <div class="space-y-8">
-                    <section>
-                        <h3 class="mb-2 text-sm font-semibold text-(--color-text-primary)">{{ __('planning.published') }}</h3>
-                        <PlanningTable :assignments="publishedAssignments" :empty-text="__('planning.published_empty')" />
-                    </section>
-                    <section>
-                        <h3 class="mb-2 text-sm font-semibold text-(--color-text-primary)">{{ __('planning.draft') }}</h3>
-                        <PlanningTable :assignments="draftAssignments" :empty-text="__('planning.draft_empty')" />
-                    </section>
-                </div>
-            </div>
-
-            <div v-if="isEdit" class="p-6 pt-0">
-                <CardSeparator />
-
-                <div v-if="isArchived" class="flex justify-end">
-                    <ButtonPrimary v-if="isAdmin" type="button" @click="restore">
-                        {{ __('employees.action.restore') }}
-                    </ButtonPrimary>
+                        <section data-testid="questions-section" class="space-y-3">
+                            <h3 class="text-sm font-semibold text-(--color-text-primary)">{{ __('availability.questions.heading') }}</h3>
+                            <QuestionChecklist
+                                :key="questionsVersion"
+                                :items="questions"
+                                :answered-ids="savedAnsweredIds"
+                                :disabled="isArchived"
+                                @update:answered-ids="onAnsweredIdsChange"
+                            />
+                        </section>
+                    </template>
                 </div>
 
-                <div v-else class="flex items-center justify-between gap-3">
-                    <ButtonDanger type="button" @click="deleteDialogOpen = true">
-                        {{ __('employees.action.delete') }}
-                    </ButtonDanger>
+                <div v-if="isEdit" v-show="tab === 'workcenters'" data-testid="panel-workcenters" class="p-6">
+                    <WorkcenterChecklist
+                        :key="workcentersVersion"
+                        :items="workcenters"
+                        :selected-ids="savedWorkcenterIds"
+                        empty-key="workcenters.checklist_empty"
+                        :disabled="isArchived"
+                        @update:selected-ids="onWorkcenterIdsChange"
+                    />
+                </div>
 
-                    <div class="flex items-center gap-3">
-                        <ButtonSecondary
-                            type="button"
-                            :disabled="!registry.anyDirty.value || registry.saving.value"
-                            @click="onCancelClick"
-                        >
-                            {{ __('employees.action.cancel') }}
-                        </ButtonSecondary>
-                        <ButtonPrimary
-                            :disabled="!registry.anyDirty.value || registry.saving.value"
-                            :icon="justSaved ? 'check-circle' : null"
-                            @click="onSaveClick"
-                        >
-                            {{
-                                registry.saving.value
-                                    ? __('employees.action.saving')
-                                    : justSaved
-                                      ? __('employees.action.saved')
-                                      : __('employees.action.save')
-                            }}
-                        </ButtonPrimary>
+                <div v-if="isEdit" v-show="tab === 'settings'" data-testid="panel-settings" class="p-6">
+                    <EmployeePlanningSettings
+                        :form="form"
+                        :inherited-minimum="globalWeeklyHoursMinimum"
+                        :disabled="isArchived"
+                    />
+                </div>
+
+                <div v-if="isEdit" v-show="tab === 'planning'" data-testid="panel-planning" class="p-6">
+                    <div class="space-y-8">
+                        <section>
+                            <h3 class="mb-2 text-sm font-semibold text-(--color-text-primary)">{{ __('planning.published') }}</h3>
+                            <PlanningTable :assignments="publishedAssignments" :empty-text="__('planning.published_empty')" />
+                        </section>
+                        <section>
+                            <h3 class="mb-2 text-sm font-semibold text-(--color-text-primary)">{{ __('planning.draft') }}</h3>
+                            <PlanningTable :assignments="draftAssignments" :empty-text="__('planning.draft_empty')" />
+                        </section>
                     </div>
                 </div>
             </div>
+
+            <!-- An archived employee has only Restore, and only for an admin. -->
+            <template v-if="isEdit && (!isArchived || isAdmin)" #footer>
+                <div data-testid="card-footer-actions" class="px-6 py-4">
+                    <div v-if="isArchived" class="flex justify-end">
+                        <ButtonPrimary type="button" @click="restore">
+                            {{ __('employees.action.restore') }}
+                        </ButtonPrimary>
+                    </div>
+
+                    <div v-else class="flex items-center justify-between gap-3">
+                        <ButtonDanger type="button" @click="deleteDialogOpen = true">
+                            {{ __('employees.action.delete') }}
+                        </ButtonDanger>
+
+                        <div class="flex items-center gap-3">
+                            <ButtonSecondary
+                                type="button"
+                                :disabled="!registry.anyDirty.value || registry.saving.value"
+                                @click="onCancelClick"
+                            >
+                                {{ __('employees.action.cancel') }}
+                            </ButtonSecondary>
+                            <ButtonPrimary
+                                :disabled="!registry.anyDirty.value || registry.saving.value"
+                                :icon="justSaved ? 'check-circle' : null"
+                                @click="onSaveClick"
+                            >
+                                {{
+                                    registry.saving.value
+                                        ? __('employees.action.saving')
+                                        : justSaved
+                                          ? __('employees.action.saved')
+                                          : __('employees.action.save')
+                                }}
+                            </ButtonPrimary>
+                        </div>
+                    </div>
+                </div>
+            </template>
         </Card>
 
         <ConfirmDialog
