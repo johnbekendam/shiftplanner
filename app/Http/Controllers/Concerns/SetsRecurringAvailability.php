@@ -22,10 +22,8 @@ trait SetsRecurringAvailability
             throw ValidationException::withMessages(['shift' => __('availability.error.shift_hidden')]);
         }
 
-        if (! in_array($weekday, $employee->shiftWeekdays()[$shift->id], true)) {
-            throw ValidationException::withMessages(['shift' => __('availability.error.shift_not_running')]);
-        }
-
+        // Clearing is always allowed, so a default left on a day the shift
+        // no longer runs can still be removed.
         if ($level === 'not_set') {
             $employee->recurringAvailabilities()
                 ->where('weekday', $weekday)
@@ -33,6 +31,10 @@ trait SetsRecurringAvailability
                 ->delete();
 
             return;
+        }
+
+        if (! in_array($weekday, $employee->shiftWeekdays()[$shift->id], true)) {
+            throw ValidationException::withMessages(['shift' => __('availability.error.shift_not_running')]);
         }
 
         $employee->recurringAvailabilities()->updateOrCreate(

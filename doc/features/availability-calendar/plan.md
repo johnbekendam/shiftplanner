@@ -1,4 +1,4 @@
-Status: in progress — 35/39
+Status: in progress — 36/39
 
 - [x] 1. Add the `EmployeeAvailability` resolver for weekly defaults and
   holidays. Build it from loaded relations and from `PlanProblem`
@@ -162,7 +162,7 @@ Review fixes (code review of 2026-09-27):
   on a date: in the payload, the date write path and the date grid.
   Tests.
 
-- [ ] 36. Let a weekly default be cleared (`not_set`) for a weekday the
+- [x] 36. Let a weekly default be cleared (`not_set`) for a weekday the
   shift does not run on. Tests.
 
 - [ ] 37. Count every weekday a shift runs on, weekend included, in the

@@ -115,4 +115,14 @@ class AvailabilityWeekdaysTest extends TestCase
             ->where('shifts.0.open_dates', ['2026-10-06'])
             ->where('shifts.0.closed_dates', ['2026-10-05']));
     }
+
+    public function test_a_default_on_a_day_the_shift_no_longer_runs_can_still_be_cleared(): void
+    {
+        $this->employee->recurringAvailabilities()->create(['weekday' => 3, 'shift_id' => $this->shift->id, 'level' => 'available']);
+
+        $this->put("/employees/{$this->employee->id}/availability/3/{$this->shift->id}", ['level' => 'not_set'])
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame(0, $this->employee->recurringAvailabilities()->count());
+    }
 }
