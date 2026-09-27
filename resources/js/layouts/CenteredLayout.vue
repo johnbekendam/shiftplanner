@@ -23,6 +23,9 @@ const props = defineProps({
         default: 'md',
         validator: (v) => ['md', 'lg', 'xl'].includes(v),
     },
+    // The card is at most as tall as the page area: header and footer stay
+    // on screen and the body scrolls.
+    fitHeight: { type: Boolean, default: false },
 })
 
 const widthClass = { md: 'max-w-md', lg: 'max-w-xl', xl: 'max-w-2xl' }[props.width]
@@ -41,14 +44,22 @@ const widthClass = { md: 'max-w-md', lg: 'max-w-xl', xl: 'max-w-2xl' }[props.wid
 
         <!-- Page: centered form card -->
         <div
-            class="flex flex-col items-center min-h-full px-4"
-            :class="align === 'top' ? 'justify-start pt-8 pb-12' : 'justify-center py-12'"
+            data-testid="centered-frame"
+            class="flex flex-col items-center px-4"
+            :class="[
+                fitHeight ? 'h-full' : 'min-h-full',
+                align === 'top' ? 'justify-start pt-8 pb-12' : 'justify-center py-12',
+            ]"
         >
             <div v-if="$slots.banner" class="w-full mb-4" :class="widthClass">
                 <slot name="banner" />
             </div>
 
-            <Card class="w-full" :class="widthClass">
+            <Card
+                data-testid="centered-card"
+                class="w-full"
+                :class="[widthClass, fitHeight ? 'flex max-h-full min-h-0 flex-col' : '']"
+            >
                 <template v-if="$slots.header || $slots.title" #header>
                     <slot name="header">
                         <div class="px-10 py-4 text-base font-semibold">
@@ -57,9 +68,19 @@ const widthClass = { md: 'max-w-md', lg: 'max-w-xl', xl: 'max-w-2xl' }[props.wid
                     </slot>
                 </template>
 
-                <div class="px-10 pt-8 pb-6">
+                <div
+                    data-testid="centered-body"
+                    class="px-10 pt-8 pb-6"
+                    :class="fitHeight ? 'min-h-0 flex-1 overflow-y-auto' : ''"
+                >
                     <slot />
                 </div>
+
+                <template v-if="$slots.footer" #footer>
+                    <div data-testid="centered-footer" class="px-10 py-4">
+                        <slot name="footer" />
+                    </div>
+                </template>
             </Card>
         </div>
 

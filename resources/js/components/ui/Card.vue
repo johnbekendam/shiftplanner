@@ -11,7 +11,7 @@
         <div
             v-if="$slots.header"
             :class="[
-                'overflow-hidden rounded-t-lg border-b border-[var(--color-card-header-border)]',
+                'shrink-0 overflow-hidden rounded-t-lg border-b border-[var(--color-card-header-border)]',
                 headerClass ?? 'bg-[var(--color-card-header-bg)] text-[var(--color-card-header-text)]',
             ]"
         >
@@ -22,7 +22,7 @@
 
         <div
             v-if="$slots.footer"
-            class="overflow-hidden rounded-b-lg border-t border-[var(--color-card-footer-border)] bg-[var(--color-card-footer-bg)] text-[var(--color-card-footer-text)]"
+            class="shrink-0 overflow-hidden rounded-b-lg border-t border-[var(--color-card-footer-border)] bg-[var(--color-card-footer-bg)] text-[var(--color-card-footer-text)]"
         >
             <slot name="footer" />
         </div>
