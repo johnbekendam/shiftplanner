@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Services\MarkdownRenderer;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
 
 class PlanningSettings extends Model
 {
@@ -18,6 +19,7 @@ class PlanningSettings extends Model
         'shift_note',
         'shift_schedule_note',
         'allow_employee_changes',
+        'roster_token',
     ];
 
     protected function casts(): array
@@ -39,6 +41,19 @@ class PlanningSettings extends Model
             'weekly_hours_minimum' => 20,
             'allow_employee_changes' => true,
         ]);
+    }
+
+    /**
+     * The secret token of the public roster link (features/roster-public-link/),
+     * made on first use.
+     */
+    public function rosterToken(): string
+    {
+        if ($this->roster_token === null) {
+            $this->update(['roster_token' => Str::random(40)]);
+        }
+
+        return $this->roster_token;
     }
 
     /**

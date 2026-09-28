@@ -34,6 +34,7 @@ use App\Http\Controllers\PublishedWeekController;
 use App\Http\Controllers\QuestionController;
 use App\Http\Controllers\RecurringAvailabilityController;
 use App\Http\Controllers\RosterController;
+use App\Http\Controllers\RosterPublicController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\ScheduleSpotController;
 use App\Http\Controllers\SchedulingController;
@@ -64,6 +65,9 @@ Route::post('/signup', [SignupController::class, 'store'])->middleware('throttle
 
 // Workcenter wall screen — token-only, no auth. See features/workcenter-live-planning/.
 Route::get('/live/{token}', [LivePlanningController::class, 'show'])->name('live.show');
+
+// Roster by secret link — token-only, no auth. See features/roster-public-link/.
+Route::get('/roster/{token}', [RosterPublicController::class, 'show'])->name('roster.public');
 
 Route::middleware('auth')->group(function () {
     // Admin-only: everything except the employee list/editor.
