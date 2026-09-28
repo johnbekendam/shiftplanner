@@ -84,7 +84,8 @@ const plannedShiftTimes = computed(() => {
     return [...byName.values()].sort((a, b) => a.start.localeCompare(b.start) || a.name.localeCompare(b.name))
 })
 
-const tab = ref(plannedAssignments.value.length ? 'planning' : 'information')
+// History alone does not open the Planning tab.
+const tab = ref(upcomingAssignments.value.length ? 'planning' : 'information')
 const tabs = computed(() => [
     { value: 'information', label: __('availability.tab.information') },
     { value: 'details', label: __('availability.tab.details'), hasError: registry.hasError('personal') },

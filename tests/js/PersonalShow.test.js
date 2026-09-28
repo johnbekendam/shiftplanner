@@ -469,6 +469,19 @@ describe("Personal/Show", () => {
         expect(hidden(w, '[data-testid="panel-availability"]')).toBe(true);
     });
 
+    it("opens on the Planning tab only when there are upcoming shifts", () => {
+        freezeToday("2026-09-09");
+        const shift = (date) => ({ date, workcenter_name: "Line 1", shift_name: "Early", start_time: "06:00", end_time: "14:00", published: true });
+        const weeks = (...dates) => [{ weekStart: "2026-09-07", weekEnd: "2026-09-13", assignments: dates.map(shift) }];
+
+        const upcoming = mountShow([], { plannedShifts: weeks("2026-09-08", "2026-09-09") });
+        expect(hidden(upcoming, '[data-testid="panel-planning"]')).toBe(false);
+
+        const pastOnly = mountShow([], { plannedShifts: weeks("2026-09-08") });
+        expect(hidden(pastOnly, '[data-testid="panel-planning"]')).toBe(true);
+        expect(hidden(pastOnly, '[data-testid="panel-information"]')).toBe(false);
+    });
+
     it("renders the planned shifts table on the Planning tab", () => {
         freezeToday("2026-09-01");
         const plannedShifts = [{
