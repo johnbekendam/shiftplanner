@@ -1,8 +1,6 @@
 <script setup>
 import { computed, ref } from 'vue'
 import Calendar from '@/components/ui/Calendar.vue'
-import CalendarLegend from '@/components/ui/CalendarLegend.vue'
-import Card from '@/components/ui/Card.vue'
 import { dateString, monthStates } from '@/utils/availabilityCalendar'
 import { useI18n } from '@/composables/useI18n'
 
@@ -69,26 +67,20 @@ const ringDay = computed(() => {
 </script>
 
 <template>
-    <!-- The calendar keeps its content width; the info card takes the rest. -->
-    <div class="flex flex-col gap-6 sm:flex-row sm:items-start">
-        <Calendar
-            class="w-fit shrink-0"
-            :year="year"
-            :month="month"
-            :day-states="states.dayStates"
-            :day-borders="states.dayBorders"
-            :date-range-start="availableFrom || null"
-            :enable-week-day-selection="false"
-            :ring-day="ringDay"
-            :highlight-selection="false"
-            @change="onChange"
-            @day-click="onDayClick"
-        />
-
-        <Card class="min-w-0 flex-1" data-testid="availability-info-card">
-            <div class="px-6 py-4">
-                <CalendarLegend :legenda="legenda" :border-legenda="borderLegenda" vertical />
-            </div>
-        </Card>
-    </div>
+    <!-- As wide as its content; the legend sits in the calendar footer. -->
+    <Calendar
+        class="w-fit shrink-0"
+        :year="year"
+        :month="month"
+        :day-states="states.dayStates"
+        :day-borders="states.dayBorders"
+        :legenda="legenda"
+        :border-legenda="borderLegenda"
+        :date-range-start="availableFrom || null"
+        :enable-week-day-selection="false"
+        :ring-day="ringDay"
+        :highlight-selection="false"
+        @change="onChange"
+        @day-click="onDayClick"
+    />
 </template>
