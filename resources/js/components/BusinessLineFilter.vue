@@ -85,8 +85,16 @@ function toggleLine(value, checked) {
     else next.delete(value)
 
     const allValues = options.value.map((option) => option.value)
-    const isAllSelected = allValues.every((v) => next.has(v))
-    emit('change', isAllSelected ? undefined : allValues.filter((v) => next.has(v)))
+    const selected = allValues.filter((v) => next.has(v))
+    if (selected.length === allValues.length) {
+        emit('change', undefined)
+    } else if (selected.length === 0) {
+        // An empty array drops out of the query string, which the server
+        // reads as "all". The sentinel keeps the selection empty.
+        emit('change', ['__empty__'])
+    } else {
+        emit('change', selected)
+    }
 }
 
 function selectAll() {

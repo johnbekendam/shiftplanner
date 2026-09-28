@@ -57,9 +57,9 @@ describe("AppLayout navigation", () => {
         expect(hrefs).toEqual([
             "/dashboard",
             "/employees",
-            "/roster",
             "/schedule",
             "/planning",
+            "/roster",
             "/mailbox",
             "/reports",
             "/users",

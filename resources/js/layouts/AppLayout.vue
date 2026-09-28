@@ -58,17 +58,21 @@ const navItems = computed(() => {
     const items = [
         { label: __('nav.dashboard'), href: '/dashboard', icon: 'chart-bar' },
         { label: __('nav.employees'), href: '/employees', icon: 'users' },
-        { label: __('nav.roster'), href: '/roster', icon: 'calendar-days' },
     ]
+    const roster = { label: __('nav.roster'), href: '/roster', icon: 'calendar-days' }
 
     if (isAdmin.value) {
         items.push(
             { label: __('nav.workcenter_shifts'), href: '/schedule', icon: 'table-cells' },
             { label: __('nav.scheduling'), href: planningHref(), icon: 'calendar-days' },
+            roster,
             { label: __('nav.mailbox'), href: '/mailbox', icon: 'envelope' },
             { label: __('nav.reports'), href: '/reports', icon: 'clipboard-list' },
             { separator: true },
         )
+    } else {
+        // A manager has no Mailbox or Reports; Roster follows Employees.
+        items.push(roster)
     }
 
     // Read-only for a manager; only an admin can create or edit here.

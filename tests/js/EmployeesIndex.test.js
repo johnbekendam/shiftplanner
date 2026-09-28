@@ -597,6 +597,20 @@ describe("Employees/Index", () => {
             );
         });
 
+        it("unchecking the last checked line selects none, not all", async () => {
+            const w = mountIndex({ businessLines, selectedBusinessLines: [2] });
+            await openMenu(w);
+
+            const checkboxes = w.get('[data-testid="business-lines-menu"]').findAll('input[type="checkbox"]');
+            await checkboxes[1].setValue(false); // uncheck VLV, the only checked line
+
+            expect(router.get).toHaveBeenCalledWith(
+                "/employees",
+                { business_lines: ["__empty__"] },
+                expect.objectContaining({ preserveState: true }),
+            );
+        });
+
         it("re-checking every box drops the business_lines param entirely", async () => {
             const w = mountIndex({ businessLines, selectedBusinessLines: [1, "none"] });
             await openMenu(w);

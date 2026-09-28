@@ -85,6 +85,16 @@ describe("Roster", () => {
         expect(rowEls[1].text()).toContain("—");
     });
 
+    it("keeps the header and business line text on one line", () => {
+        const w = mountRoster();
+
+        expect(w.get("thead tr").classes()).toContain("whitespace-nowrap");
+        expect(w.get("[data-testid='roster-week-label']").classes()).toContain("whitespace-nowrap");
+        expect(w.get("[data-testid='roster-week-dates']").classes()).toContain("whitespace-nowrap");
+        w.findAll("[data-testid='roster-business-line']").forEach((td) => expect(td.classes()).toContain("whitespace-nowrap"));
+        expect(w.findAll("[data-testid='roster-business-line']")).toHaveLength(2);
+    });
+
     it("lists each assignment of a day with shift and workcenter", () => {
         const cell = mountRoster().get("[data-testid='roster-cell-1-2026-09-22']");
         const items = cell.findAll("[data-testid='roster-assignment']");
@@ -94,6 +104,14 @@ describe("Roster", () => {
         expect(items[0].text()).toContain("Assembly");
         expect(items[1].text()).toContain("Late");
         expect(items[1].text()).toContain("Packing");
+    });
+
+    it("shows the workcenter in small text below the shift", () => {
+        const item = mountRoster().get("[data-testid='roster-cell-1-2026-09-22'] [data-testid='roster-assignment']");
+        const workcenter = item.get("[data-testid='roster-workcenter']");
+
+        expect(workcenter.text()).toBe("Assembly");
+        expect(workcenter.classes()).toContain("text-[10px]");
     });
 
     it("shows a dash on a day with no assignment", () => {
@@ -163,6 +181,19 @@ describe("Roster", () => {
                 "/roster",
                 { week: "2026-09-21", business_lines: [1, "none"] },
                 expect.objectContaining({ preserveState: true }),
+            );
+        });
+
+        it("unchecking the last checked line selects none, not all", async () => {
+            const w = mountRoster({ businessLines, selectedBusinessLines: [1] });
+            await openMenu(w);
+
+            await w.get('[data-testid="business-lines-menu"]').findAll('input[type="checkbox"]')[0].setValue(false);
+
+            expect(router.get).toHaveBeenLastCalledWith(
+                "/roster",
+                { week: "2026-09-21", business_lines: ["__empty__"] },
+                expect.any(Object),
             );
         });
 
