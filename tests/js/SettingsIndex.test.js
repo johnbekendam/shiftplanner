@@ -280,6 +280,12 @@ describe("Settings/Index", () => {
         expect(period.compareDocumentPosition(note) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     });
 
+    it("has no separator between the period form and the note, only the save bar's", () => {
+        const panel = mountPage().get('[data-testid="panel-general"]');
+
+        expect(panel.findAll("hr")).toHaveLength(1);
+    });
+
     it("the General tab's Save saves only the note when only the note changed", async () => {
         const w = mountPage({ shiftNote: "" });
         const bar = w.get('[data-testid="panel-general"]');

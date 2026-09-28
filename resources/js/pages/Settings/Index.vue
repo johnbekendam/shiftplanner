@@ -466,8 +466,7 @@ useUnsavedChangesGuard(() => (
 
             <div v-show="tab === 'general'" data-testid="panel-general" class="p-6">
                 <PeriodSettingsForm ref="periodFormRef" :period="period" />
-                <CardSeparator />
-                <ShiftNoteForm ref="shiftNoteFormRef" :note="shiftNote" />
+                <ShiftNoteForm ref="shiftNoteFormRef" :note="shiftNote" class="mt-5" />
                 <TabSaveBar
                     :dirty="generalDirty"
                     :saving="generalSaving"
