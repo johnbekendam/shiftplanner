@@ -65,8 +65,8 @@ const navItems = computed(() => {
         items.push(
             { label: __('nav.workcenter_shifts'), href: '/schedule', icon: 'table-cells' },
             { label: __('nav.scheduling'), href: planningHref(), icon: 'calendar-days' },
-            { label: __('nav.mailbox'), href: '/mailbox', icon: 'envelope' },
             roster,
+            { label: __('nav.mailbox'), href: '/mailbox', icon: 'envelope' },
             { label: __('nav.reports'), href: '/reports', icon: 'clipboard-list' },
             { separator: true },
         )
