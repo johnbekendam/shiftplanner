@@ -2,8 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\PublishedWeek;
+use App\Models\ShiftAssignment;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Inertia\Inertia;
 
 /**
@@ -23,7 +26,51 @@ class RosterController extends Controller
             'weekNumber' => $weekStart->isoWeek,
             'today' => $now->toDateString(),
             'days' => $days->map->toDateString()->all(),
+            'rows' => $this->rows($weekStart, $days),
         ]);
+    }
+
+    /**
+     * One row per employee with a published assignment in the week, sorted by
+     * name. `days` holds seven lists of { shift, workcenter }, Monday first,
+     * each in shift start order. An assignment shows only when its own
+     * (week, workcenter) pair is published.
+     */
+    private function rows(Carbon $weekStart, Collection $days): array
+    {
+        $publishedWorkcenterIds = PublishedWeek::query()
+            ->where('week_start', $weekStart->toDateString())
+            ->pluck('workcenter_id');
+
+        $dates = $days->map->toDateString();
+
+        $assignments = ShiftAssignment::query()
+            ->whereIn('workcenter_id', $publishedWorkcenterIds)
+            ->whereBetween('date', [$dates->first(), $dates->last()])
+            ->with(['employee.businessLine', 'shift', 'workcenter'])
+            ->get();
+
+        return $assignments
+            ->groupBy('employee_id')
+            ->sortBy(fn (Collection $own) => [$own->first()->employee->first_name, $own->first()->employee->last_name])
+            ->map(function (Collection $own) use ($dates) {
+                $employee = $own->first()->employee;
+                $byDate = $own
+                    ->sortBy(fn (ShiftAssignment $a) => [$a->shift->start_time, $a->shift->name])
+                    ->groupBy(fn (ShiftAssignment $a) => $a->date->toDateString());
+
+                return [
+                    'id' => $employee->id,
+                    'name' => $employee->name,
+                    'business_line' => $employee->businessLine?->abbreviation,
+                    'days' => $dates->map(fn (string $date) => $byDate->get($date, collect())
+                        ->map(fn (ShiftAssignment $a) => ['shift' => $a->shift->name, 'workcenter' => $a->workcenter->name])
+                        ->values()
+                        ->all())->all(),
+                ];
+            })
+            ->values()
+            ->all();
     }
 
     /** The Monday of the `?week=` date, or of the current week when it is missing or invalid. */

@@ -1,11 +1,11 @@
 # Roster — Plan
 
-Status: in progress — 1/5
+Status: in progress — 2/5
 
 - [x] 1. Route and controller: `GET /roster` for all logged-in users
   renders `Roster` with the week (`?week=`, current ISO week by
   default), its seven days, and today. A guest is sent to login.
-- [ ] 2. Rows: one row for each employee with a published assignment in
+- [x] 2. Rows: one row for each employee with a published assignment in
   the week, sorted by name, with the business line abbreviation and
   the assignments (shift, workcenter) for each day. Unpublished
   (week, workcenter) pairs are left out.
