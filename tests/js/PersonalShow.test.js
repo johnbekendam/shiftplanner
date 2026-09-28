@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { mount, flushPromises } from "@vue/test-utils";
 import { reactive } from "vue";
 
@@ -51,6 +51,7 @@ const en = {
     "competences.checklist_empty": "No competences have been set up yet.",
     "planning.tab": "Planning",
     "planning.empty": "No planned shifts yet.",
+    "planning.history": "History",
 };
 
 // Requests fired by putAsync/postAsync/deleteAsync (availability, holidays,
@@ -157,6 +158,7 @@ import QuestionChecklist from "@/components/QuestionChecklist.vue";
 import SelectInput from "@/components/ui/Input/Select.vue";
 import DateInput from "@/components/ui/Input/Date.vue";
 import AvailabilityCalendar from "@/components/AvailabilityCalendar.vue";
+import PlanningTable from "@/components/PlanningTable.vue";
 import DateAvailabilityGrid from "@/components/DateAvailabilityGrid.vue";
 import Tabs from "@/components/ui/Tabs.vue";
 import ConfirmDialog from "@/components/ui/ConfirmDialog.vue";
@@ -207,6 +209,14 @@ beforeEach(() => {
     form.recentlySuccessful = false;
     form.lastPut = undefined;
 });
+
+// The Planning tab splits the shifts at today; pin today for those tests.
+const freezeToday = (date) => {
+    const [y, m, d] = date.split("-").map(Number);
+    vi.useFakeTimers({ now: new Date(y, m - 1, d), toFake: ["Date"] });
+};
+
+afterEach(() => vi.useRealTimers());
 
 describe("Personal/Show", () => {
     it("renders the shared fields with the identity fields read-only", () => {
@@ -460,6 +470,7 @@ describe("Personal/Show", () => {
     });
 
     it("renders the planned shifts table on the Planning tab", () => {
+        freezeToday("2026-09-01");
         const plannedShifts = [{
             weekStart: "2026-09-07",
             weekEnd: "2026-09-13",
@@ -475,6 +486,7 @@ describe("Personal/Show", () => {
     });
 
     it("opens a shift card from a table row with an Add to calendar button that downloads the shift", async () => {
+        freezeToday("2026-09-01");
         downloadIcs.mockClear();
         const plannedShifts = [{
             weekStart: "2026-09-07",
@@ -500,6 +512,7 @@ describe("Personal/Show", () => {
     });
 
     it("lists the working times of the planned shifts once each, ordered by start time", () => {
+        freezeToday("2026-09-01");
         const assignment = (date, shift_name, start_time, end_time) => ({
             date, workcenter_name: "Line 1", shift_name, start_time, end_time, published: true,
         });
@@ -519,6 +532,69 @@ describe("Personal/Show", () => {
         expect(w.get('[data-testid="planning-shift-times"]').text()).toContain("Working times");
     });
 
+    it("splits the planning at today: upcoming on top, the history below a separator, from new to old", async () => {
+        freezeToday("2026-09-09");
+        const assignment = (date, shift_name, start_time, end_time) => ({
+            date, workcenter_name: "Line 1", responsible: null, shift_name, start_time, end_time, published: true,
+        });
+        const plannedShifts = [{
+            weekStart: "2026-08-31",
+            weekEnd: "2026-09-06",
+            assignments: [
+                assignment("2026-09-01", "Night", "22:00:00", "06:00:00"),
+                assignment("2026-09-02", "Late", "14:00:00", "22:00:00"),
+            ],
+        }, {
+            weekStart: "2026-09-07",
+            weekEnd: "2026-09-13",
+            assignments: [
+                assignment("2026-09-08", "Late", "14:00:00", "22:00:00"),
+                assignment("2026-09-09", "Early", "06:00:00", "14:00:00"),
+                assignment("2026-09-10", "Early", "06:00:00", "14:00:00"),
+            ],
+        }];
+        const w = mountShow([], { plannedShifts, scheduleNoteHtml: "<p>Schedule remarks</p>" });
+        const panel = w.get('[data-testid="panel-planning"]');
+        const dates = (table) => table.findAll("tbody tr").map((tr) => tr.findAll("td")[1].text());
+
+        const [upcoming, history] = panel.findAllComponents(PlanningTable);
+        expect(upcoming.props("assignments").map((a) => a.date)).toEqual(["2026-09-09", "2026-09-10"]);
+        expect(upcoming.props("calendarExport")).toBe(true);
+        expect(panel.get('[data-testid="planning-shift-times"]').findAll("li").map((li) => li.text())).toEqual(["Early 06:00–14:00"]);
+
+        const section = panel.get('[data-testid="planning-history"]');
+        expect(section.get("h3").text()).toBe("History");
+        expect(history.props()).toMatchObject({ calendarExport: false, descending: true });
+        expect(history.props("assignments").map((a) => a.date)).toEqual(["2026-09-01", "2026-09-02", "2026-09-08"]);
+        expect(dates(section)).toEqual(["Tuesday", "Wednesday", "Tuesday"]);
+
+        const html = panel.html();
+        expect(html.indexOf("Schedule remarks")).toBeLessThan(html.indexOf("<hr"));
+        expect(html.indexOf("<hr")).toBeLessThan(html.indexOf('data-testid="planning-history"'));
+
+        await section.get("tbody tr").trigger("click");
+        const dialog = w.get('[role="dialog"]');
+        expect(dialog.text()).toContain("14:00–22:00");
+        expect(dialog.findAll("button").some((b) => b.text() === "Add to calendar")).toBe(false);
+    });
+
+    it("shows no history and no separator without past shifts, and the empty text without upcoming shifts", () => {
+        freezeToday("2026-09-09");
+        const plannedShifts = [{
+            weekStart: "2026-09-07",
+            weekEnd: "2026-09-13",
+            assignments: [{ date: "2026-09-08", workcenter_name: "Line 1", shift_name: "Early", start_time: "06:00", end_time: "14:00", published: true }],
+        }];
+        const withPast = mountShow([], { plannedShifts }).get('[data-testid="panel-planning"]');
+        expect(withPast.text()).toContain("No planned shifts yet.");
+        expect(withPast.find('[data-testid="planning-history"]').exists()).toBe(true);
+        expect(withPast.find('[data-testid="planning-shift-times"]').exists()).toBe(false);
+
+        const empty = mountShow([], { plannedShifts: [] }).get('[data-testid="panel-planning"]');
+        expect(empty.find('[data-testid="planning-history"]').exists()).toBe(false);
+        expect(empty.find("hr").exists()).toBe(false);
+    });
+
     it("shows no working times when nothing is planned", () => {
         const w = mountShow([], { plannedShifts: [] });
 
@@ -526,6 +602,7 @@ describe("Personal/Show", () => {
     });
 
     it("puts the working times above the schedule note", () => {
+        freezeToday("2026-09-01");
         const plannedShifts = [{
             weekStart: "2026-09-07",
             weekEnd: "2026-09-13",
