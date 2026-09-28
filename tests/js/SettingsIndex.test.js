@@ -7,9 +7,9 @@ const en = {
     "settings.tab.competences": "Competences",
     "settings.tab.business_lines": "Business lines",
     "settings.tab.shifts": "Shifts",
-    "settings.tab.information": "Information",
     "settings.tab.questions": "Questions",
     "settings.tab.general": "General",
+    "settings.tab.screens": "Screens",
     "general.allow_employee_changes": "Allow employees to change their own details",
     "general.allow_employee_changes_hint": "When off, personal pages stay visible but read-only.",
     "shifts.name": "Name",
@@ -110,6 +110,7 @@ import WorkcenterList from "@/components/WorkcenterList.vue";
 import ShiftNoteForm from "@/components/ShiftNoteForm.vue";
 import ScheduleNoteForm from "@/components/ScheduleNoteForm.vue";
 import PeriodSettingsForm from "@/components/PeriodSettingsForm.vue";
+import Tabs from "@/components/ui/Tabs.vue";
 import { NumberInput, MultilineInput } from "@/components/ui/Input";
 import SelectInput from "@/components/ui/Input/Select.vue";
 
@@ -140,16 +141,36 @@ const findSaveButton = (w) => w.findAll("button").find((b) => ["Save", "Savingâ€
 const findCancelButton = (w) => w.findAll("button").find((b) => b.text() === "Cancel");
 
 describe("Settings/Index", () => {
-    it("shows a tab for competences, business lines, shifts, information, questions and general", () => {
+    it("shows a tab for competences, business lines, shifts, questions and general, and no Information tab", () => {
         const text = mountPage().text();
+        const tabs = mountPage().findComponent(Tabs).props("tabs").map((t) => t.value);
         expect(text).toContain("Competences");
         expect(text).toContain("Business lines");
         expect(text).toContain("Shifts");
         expect(text).toContain("Workcenters");
-        expect(text).toContain("Information");
+        expect(tabs).not.toContain("information");
         expect(text).toContain("Questions");
         expect(text).toContain("General");
         expect(text).not.toContain("Product groups");
+    });
+
+    it("shows the Screens tab last, with the roster link and the live screens", async () => {
+        const w = mountPage({
+            rosterUrl: "https://app.test/roster/secret",
+            workcenters: [{ id: 3, name: "Line 1", position: 1, archived_at: null, shifts: [], live_url: "https://app.test/live/abc" }],
+        });
+        const tabs = w.findComponent(Tabs).props("tabs").map((t) => t.label);
+
+        expect(tabs[tabs.length - 1]).toContain("Screens");
+        const panel = w.get("[data-testid='panel-screens']");
+        expect(panel.find("[data-testid='screen-row-roster']").exists()).toBe(true);
+        expect(panel.find("[data-testid='screen-row-workcenter-3']").exists()).toBe(true);
+    });
+
+    it("no longer shows the roster link on the General tab", () => {
+        const w = mountPage({ rosterUrl: "https://app.test/roster/secret" });
+
+        expect(w.find("[data-testid='panel-general'] [data-testid='screen-row-roster']").exists()).toBe(false);
     });
 
     it("mounts the period form seeded from the period prop", () => {
@@ -251,9 +272,23 @@ describe("Settings/Index", () => {
         expect(w.findComponent(ShiftNoteForm).props("note")).toBe("# Allowances");
     });
 
-    it("the Information tab's Save enables on edit and saves via the note form's own endpoint", async () => {
+    it("shows the shift note form on the General tab, below the period form", () => {
+        const panel = mountPage().get('[data-testid="panel-general"]');
+        const period = panel.findComponent(PeriodSettingsForm).element;
+        const note = panel.findComponent(ShiftNoteForm).element;
+
+        expect(period.compareDocumentPosition(note) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    });
+
+    it("has no separator between the period form and the note, only the save bar's", () => {
+        const panel = mountPage().get('[data-testid="panel-general"]');
+
+        expect(panel.findAll("hr")).toHaveLength(1);
+    });
+
+    it("the General tab's Save saves only the note when only the note changed", async () => {
         const w = mountPage({ shiftNote: "" });
-        const bar = w.get('[data-testid="panel-information"]');
+        const bar = w.get('[data-testid="panel-general"]');
         const save = () => bar.findAll("button").find((b) => ["Save", "Savingâ€¦", "Saved"].includes(b.text()));
         expect(save().attributes("disabled")).toBeDefined();
 
@@ -265,6 +300,43 @@ describe("Settings/Index", () => {
         await flushPromises();
 
         expect(routerCalls.some((c) => c[0] === "put" && c[1] === "/settings/shifts/note")).toBe(true);
+        expect(routerCalls.some((c) => c[1] === "/settings/period")).toBe(false);
+    });
+
+    it("the General tab's Save saves both forms, the period first", async () => {
+        const w = mountPage({ period: { fte_hours: 40 }, shiftNote: "" });
+        w.findComponent(PeriodSettingsForm).findComponent(NumberInput).vm.$emit("update:modelValue", 32);
+        w.findComponent(ShiftNoteForm).findComponent(MultilineInput).vm.$emit("update:modelValue", "New note");
+        await w.vm.$nextTick();
+
+        const bar = w.get('[data-testid="panel-general"]');
+        await bar.findAll("button").find((b) => b.text() === "Save").trigger("click");
+        await flushPromises();
+
+        expect(routerCalls.filter((c) => c[0] === "put").map((c) => c[1])).toEqual(["/settings/period", "/settings/shifts/note"]);
+    });
+
+    it("Cancel on the General tab reverts the note too", async () => {
+        const w = mountPage({ shiftNote: "Old" });
+        w.findComponent(ShiftNoteForm).findComponent(MultilineInput).vm.$emit("update:modelValue", "New note");
+        await w.vm.$nextTick();
+
+        const bar = w.get('[data-testid="panel-general"]');
+        await bar.findAll("button").find((b) => b.text() === "Cancel").trigger("click");
+        await w.vm.$nextTick();
+
+        expect(w.findComponent(ShiftNoteForm).findComponent(MultilineInput).props("modelValue")).toBe("Old");
+        expect(routerCalls).toEqual([]);
+    });
+
+    it("shows a dirty dot on the General tab when the note has unsaved edits", async () => {
+        const w = mountPage({ shiftNote: "" });
+        const findTab = () => w.findAll("button").find((b) => b.text().includes("General"));
+
+        w.findComponent(ShiftNoteForm).findComponent(MultilineInput).vm.$emit("update:modelValue", "New note");
+        await w.vm.$nextTick();
+
+        expect(findTab().find('[data-testid="tab-dirty-dot"]').exists()).toBe(true);
     });
 
     it("mounts the Business lines list with its items", () => {
@@ -427,21 +499,14 @@ describe("Settings/Index", () => {
         expect(list.props("items")).toHaveLength(1);
     });
 
-    it("passes each workcenter's live URL to the list", () => {
+    it("regenerates a live link from the Screens tab and leaves the Workcenters tab clean", async () => {
         const w = mountPage({
+            rosterUrl: "https://app.test/roster/secret",
             workcenters: [{ id: 3, name: "Line 1", position: 1, archived_at: null, shifts: [], live_url: "https://app.test/live/abc" }],
         });
 
-        expect(w.findComponent(WorkcenterList).props("liveUrls")).toEqual({ 3: "https://app.test/live/abc" });
-    });
-
-    it("regenerates a live link with one POST and leaves the Workcenters tab clean", async () => {
-        const w = mountPage({
-            workcenters: [{ id: 3, name: "Line 1", position: 1, archived_at: null, shifts: [], live_url: "https://app.test/live/abc" }],
-        });
-
-        w.findComponent(WorkcenterList).vm.$emit("regenerate-live-link", 3);
-        await w.vm.$nextTick();
+        await w.get('[data-testid="screen-row-workcenter-3"] [data-testid="screen-regenerate"]').trigger("click");
+        await w.findAllComponents({ name: "ConfirmDialog" }).find((d) => d.props("open")).vm.$emit("confirm");
 
         expect(routerCalls).toEqual([
             ["post", "/settings/workcenters/3/live-token", {}, { preserveScroll: true, preserveState: true }],

@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed } from 'vue'
-import { Head, router } from '@inertiajs/vue3'
+import { Head } from '@inertiajs/vue3'
 import AppLayout from '@/layouts/AppLayout.vue'
 import Card from '@/components/ui/Card.vue'
 import CardSeparator from '@/components/ui/CardSeparator.vue'
@@ -12,6 +12,7 @@ import WorkcenterList from '@/components/WorkcenterList.vue'
 import ShiftNoteForm from '@/components/ShiftNoteForm.vue'
 import ScheduleNoteForm from '@/components/ScheduleNoteForm.vue'
 import PeriodSettingsForm from '@/components/PeriodSettingsForm.vue'
+import ScreensPanel from '@/components/ScreensPanel.vue'
 import TabSaveBar from '@/components/ui/TabSaveBar.vue'
 import { useI18n } from '@/composables/useI18n'
 import { useUnsavedChangesGuard } from '@/composables/useUnsavedChangesGuard'
@@ -29,17 +30,18 @@ const props = defineProps({
     scheduleNote: { type: String, default: '' },
     questions: { type: Array, default: () => [] },
     period: { type: Object, default: () => ({}) },
+    rosterUrl: { type: String, default: '' },
 })
 
 const tab = ref('general')
 const tabs = computed(() => [
-    { value: 'general', label: __('settings.tab.general'), dirty: periodFormRef.value?.isDirty ?? false },
+    { value: 'general', label: __('settings.tab.general'), dirty: generalDirty.value },
     { value: 'business_lines', label: __('settings.tab.business_lines'), dirty: businessLinesDirty.value },
     { value: 'shifts', label: __('settings.tab.shifts'), dirty: shiftsDirty.value },
     { value: 'workcenters', label: __('settings.tab.workcenters'), dirty: workcentersDirty.value },
     { value: 'questions', label: __('settings.tab.questions'), dirty: questionsTab.dirty.value },
     { value: 'competences', label: __('settings.tab.competences'), dirty: competencesTab.dirty.value },
-    { value: 'information', label: __('settings.tab.information'), dirty: shiftNoteFormRef.value?.isDirty ?? false },
+    { value: 'screens', label: __('settings.tab.screens') },
 ])
 
 // ── Business Lines: local edit/add/delete/reorder, one Save/Cancel ──────
@@ -310,14 +312,6 @@ async function saveWorkcenters() {
     return ok
 }
 
-// The URLs come straight from the page props, not from the edited rows, so a
-// regenerated link shows at once and the unsaved row edits stay as they are.
-const liveUrls = computed(() => Object.fromEntries(props.workcenters.map((w) => [w.id, w.live_url])))
-
-function regenerateLiveLink(id) {
-    router.post(`/settings/workcenters/${id}/live-token`, {}, { preserveScroll: true, preserveState: true })
-}
-
 function cancelWorkcenters() {
     currentWorkcenters.value = committedWorkcenters.value
     workcentersVersion.value++
@@ -408,31 +402,31 @@ function useOrderedTab(freshItems, endpoint) {
 const questionsTab = useOrderedTab(() => props.questions, '/settings/questions')
 const competencesTab = useOrderedTab(() => props.competences, '/settings/competences')
 
-// ── General and Information: already local-form/explicit-submit (their
-// own useForm), just driven by the shared TabSaveBar instead of their
-// own inline button. ─────────────────────────────────────────────────
+// ── General: the period form and the shift information note. Both are
+// already local-form/explicit-submit (their own useForm), driven by one
+// shared TabSaveBar. They save one after the other, because a new Inertia
+// visit cancels the one in flight. ────────────────────────────────────
 const periodFormRef = ref(null)
-const periodJustSaved = ref(false)
+const shiftNoteFormRef = ref(null)
+const generalJustSaved = ref(false)
 
-async function savePeriod() {
-    const ok = await periodFormRef.value.submit()
+const generalDirty = computed(() => (periodFormRef.value?.isDirty ?? false) || (shiftNoteFormRef.value?.isDirty ?? false))
+const generalSaving = computed(() => (periodFormRef.value?.processing ?? false) || (shiftNoteFormRef.value?.processing ?? false))
+
+async function saveGeneral() {
+    let ok = true
+    if (periodFormRef.value?.isDirty) ok = await periodFormRef.value.submit()
+    if (ok && shiftNoteFormRef.value?.isDirty) ok = await shiftNoteFormRef.value.submit()
     if (ok) {
-        periodJustSaved.value = true
-        setTimeout(() => { periodJustSaved.value = false }, 2000)
+        generalJustSaved.value = true
+        setTimeout(() => { generalJustSaved.value = false }, 2000)
     }
     return ok
 }
 
-const shiftNoteFormRef = ref(null)
-const shiftNoteJustSaved = ref(false)
-
-async function saveShiftNote() {
-    const ok = await shiftNoteFormRef.value.submit()
-    if (ok) {
-        shiftNoteJustSaved.value = true
-        setTimeout(() => { shiftNoteJustSaved.value = false }, 2000)
-    }
-    return ok
+function cancelGeneral() {
+    periodFormRef.value?.cancel()
+    shiftNoteFormRef.value?.cancel()
 }
 
 useUnsavedChangesGuard(() => (
@@ -441,8 +435,7 @@ useUnsavedChangesGuard(() => (
     || workcentersDirty.value
     || questionsTab.dirty.value
     || competencesTab.dirty.value
-    || (periodFormRef.value?.isDirty ?? false)
-    || (shiftNoteFormRef.value?.isDirty ?? false)
+    || generalDirty.value
 ))
 </script>
 
@@ -473,12 +466,13 @@ useUnsavedChangesGuard(() => (
 
             <div v-show="tab === 'general'" data-testid="panel-general" class="p-6">
                 <PeriodSettingsForm ref="periodFormRef" :period="period" />
+                <ShiftNoteForm ref="shiftNoteFormRef" :note="shiftNote" class="mt-5" />
                 <TabSaveBar
-                    :dirty="periodFormRef?.isDirty ?? false"
-                    :saving="periodFormRef?.processing ?? false"
-                    :just-saved="periodJustSaved"
-                    @save="savePeriod"
-                    @cancel="periodFormRef?.cancel()"
+                    :dirty="generalDirty"
+                    :saving="generalSaving"
+                    :just-saved="generalJustSaved"
+                    @save="saveGeneral"
+                    @cancel="cancelGeneral"
                 />
             </div>
 
@@ -499,9 +493,7 @@ useUnsavedChangesGuard(() => (
                 <WorkcenterList
                     :key="workcentersVersion"
                     :items="committedWorkcenters"
-                    :live-urls="liveUrls"
                     @update:items="onWorkcentersChange"
-                    @regenerate-live-link="regenerateLiveLink"
                 />
                 <TabSaveBar
                     :dirty="workcentersDirty"
@@ -512,15 +504,8 @@ useUnsavedChangesGuard(() => (
                 />
             </div>
 
-            <div v-show="tab === 'information'" data-testid="panel-information" class="p-6">
-                <ShiftNoteForm ref="shiftNoteFormRef" :note="shiftNote" />
-                <TabSaveBar
-                    :dirty="shiftNoteFormRef?.isDirty ?? false"
-                    :saving="shiftNoteFormRef?.processing ?? false"
-                    :just-saved="shiftNoteJustSaved"
-                    @save="saveShiftNote"
-                    @cancel="shiftNoteFormRef?.cancel()"
-                />
+            <div v-show="tab === 'screens'" data-testid="panel-screens" class="p-6">
+                <ScreensPanel :roster-url="rosterUrl" :workcenters="workcenters" />
             </div>
 
             <div v-show="tab === 'questions'" data-testid="panel-questions" class="p-6">

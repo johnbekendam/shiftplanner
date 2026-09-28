@@ -143,82 +143,11 @@ describe("WorkcenterList", () => {
         expect(row.find('[aria-label="Delete"]').exists()).toBe(true);
     });
 
-    describe("live screen link", () => {
-        const liveUrls = { 1: "https://app.test/live/aaa", 2: "https://app.test/live/bbb" };
-        const mountLive = (props = {}) => mount(WorkcenterList, {
-            props: { items, liveUrls, ...props },
-            global: { stubs: { teleport: true } },
-        });
+    it("has no live screen column; the links are on the Screens tab", () => {
+        const w = mountList();
 
-        afterEach(() => vi.unstubAllGlobals());
-
-        it("shows the copy and regenerate buttons on each saved row, without an open link", () => {
-            const w = mountLive();
-
-            expect(w.find('[data-testid="workcenter-live-copy-2"]').exists()).toBe(true);
-            expect(w.find('[data-testid="workcenter-live-regenerate-2"]').exists()).toBe(true);
-            expect(w.find("a").exists()).toBe(false);
-        });
-
-        it("shows no live link on a row that is not saved yet", async () => {
-            const w = mountLive({ items: [] });
-            w.get('[data-testid="workcenter-add-row"]').findComponent(TextInput).vm.$emit("update:modelValue", "Line 3");
-            await w.get("form").trigger("submit");
-
-            const row = w.get('[data-testid="workcenter-row"]');
-            expect(row.find('[aria-label="Copy link"]').exists()).toBe(false);
-        });
-
-        it("shows no live link on an archived row, because the link no longer works", () => {
-            const w = mountLive({
-                items: [{ id: 1, name: "Line 1", position: 1, archived_at: "2026-09-01T00:00:00Z", shifts: [{ id: 9, name: "Early" }] }],
-            });
-
-            expect(w.find('[data-testid="workcenter-live-copy-1"]').exists()).toBe(false);
-        });
-
-        it("copies the link and confirms it", async () => {
-            const writeText = vi.fn().mockResolvedValue();
-            vi.stubGlobal("navigator", { clipboard: { writeText } });
-            const w = mountLive();
-
-            await w.get('[data-testid="workcenter-live-copy-1"]').trigger("click");
-            await w.vm.$nextTick();
-
-            expect(writeText).toHaveBeenCalledWith("https://app.test/live/aaa");
-            expect(w.get('[data-testid="workcenter-live-copy-1"]').attributes("aria-label")).toBe("Link copied");
-        });
-
-        it("does not fail when the clipboard is not available", async () => {
-            vi.stubGlobal("navigator", {});
-            const w = mountLive();
-
-            await w.get('[data-testid="workcenter-live-copy-1"]').trigger("click");
-
-            expect(w.get('[data-testid="workcenter-live-copy-1"]').attributes("aria-label")).toBe("Copy link");
-        });
-
-        it("asks for confirmation before it regenerates, and emits only after confirm", async () => {
-            const w = mountLive();
-
-            await w.get('[data-testid="workcenter-live-regenerate-2"]').trigger("click");
-            expect(w.text()).toContain("Regenerate the live-screen link?");
-            expect(w.emitted("regenerate-live-link")).toBeUndefined();
-
-            await w.findComponent({ name: "ConfirmDialog" }).vm.$emit("confirm");
-
-            expect(w.emitted("regenerate-live-link")).toEqual([[2]]);
-            expect(w.text()).not.toContain("Regenerate the live-screen link?");
-        });
-
-        it("emits nothing when the confirmation is cancelled", async () => {
-            const w = mountLive();
-
-            await w.get('[data-testid="workcenter-live-regenerate-1"]').trigger("click");
-            await w.findComponent({ name: "ConfirmDialog" }).vm.$emit("cancel");
-
-            expect(w.emitted("regenerate-live-link")).toBeUndefined();
-            expect(w.text()).not.toContain("Regenerate the live-screen link?");
-        });
+        expect(w.text()).not.toContain("Live screen");
+        expect(w.find('[aria-label="Copy link"]').exists()).toBe(false);
+        expect(w.find('[aria-label="Regenerate link"]').exists()).toBe(false);
     });
 });

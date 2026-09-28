@@ -4,6 +4,7 @@ import { Head, useForm } from '@inertiajs/vue3'
 import CenteredLayout from '@/layouts/CenteredLayout.vue'
 import Card from '@/components/ui/Card.vue'
 import CardSeparator from '@/components/ui/CardSeparator.vue'
+import { todayIso } from '@/utils/date'
 import Tabs from '@/components/ui/Tabs.vue'
 import EmployeeFields from '@/components/EmployeeFields.vue'
 import WeeklyHoursField from '@/components/WeeklyHoursField.vue'
@@ -69,16 +70,22 @@ const form = useForm({
 
 const plannedAssignments = computed(() => props.plannedShifts.flatMap((week) => week.assignments))
 
-// The distinct shifts the employee is planned on, earliest start first.
+// A shift before today is history; a shift of today is still upcoming.
+const today = todayIso()
+const upcomingAssignments = computed(() => plannedAssignments.value.filter((a) => a.date >= today))
+const pastAssignments = computed(() => plannedAssignments.value.filter((a) => a.date < today))
+
+// The distinct upcoming shifts, earliest start first.
 const plannedShiftTimes = computed(() => {
     const byName = new Map()
-    for (const a of plannedAssignments.value) {
+    for (const a of upcomingAssignments.value) {
         byName.set(a.shift_name, { name: a.shift_name, start: a.start_time.slice(0, 5), end: a.end_time.slice(0, 5) })
     }
     return [...byName.values()].sort((a, b) => a.start.localeCompare(b.start) || a.name.localeCompare(b.name))
 })
 
-const tab = ref(plannedAssignments.value.length ? 'planning' : 'information')
+// History alone does not open the Planning tab.
+const tab = ref(upcomingAssignments.value.length ? 'planning' : 'information')
 const tabs = computed(() => [
     { value: 'information', label: __('availability.tab.information') },
     { value: 'details', label: __('availability.tab.details'), hasError: registry.hasError('personal') },
@@ -483,7 +490,7 @@ const withdrawDialogOpen = ref(false)
         </div>
 
         <div v-show="tab === 'planning'" data-testid="panel-planning">
-            <PlanningTable :assignments="plannedAssignments" :empty-text="__('planning.empty')" calendar-export />
+            <PlanningTable :assignments="upcomingAssignments" :empty-text="__('planning.empty')" calendar-export />
             <section v-if="plannedShiftTimes.length" data-testid="planning-shift-times" class="mt-6">
                 <h3 class="mb-2 text-sm font-semibold text-(--color-text-primary)">{{ __('planning.shift_times') }}</h3>
                 <ul class="space-y-1 text-xs text-(--color-text-primary)">
@@ -493,6 +500,13 @@ const withdrawDialogOpen = ref(false)
                 </ul>
             </section>
             <ShiftNote v-if="scheduleNoteHtml" :html="scheduleNoteHtml" class="mt-6" />
+            <template v-if="pastAssignments.length">
+                <CardSeparator />
+                <section data-testid="planning-history">
+                    <h3 class="mb-2 text-sm font-semibold text-(--color-text-primary)">{{ __('planning.history') }}</h3>
+                    <PlanningTable :assignments="pastAssignments" :empty-text="__('planning.empty')" descending />
+                </section>
+            </template>
         </div>
 
         <!-- Only while there is something to save, or to show "Saved". -->

@@ -70,6 +70,13 @@ describe("PlanningTable", () => {
         }
     });
 
+    it("lists the rows from old to new by default, and from new to old with descending", () => {
+        const weeks = (w) => w.findAll("tbody tr").map((tr) => tr.find("td").text());
+
+        expect(weeks(mountTable())).toEqual(["37", "38"]);
+        expect(weeks(mountTable({ descending: true }))).toEqual(["38", "37"]);
+    });
+
     it("uses the normal font size", () => {
         const w = mountTable();
 

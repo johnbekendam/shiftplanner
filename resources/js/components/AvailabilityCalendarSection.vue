@@ -6,6 +6,7 @@ import AvailabilityCalendar from '@/components/AvailabilityCalendar.vue'
 import AvailabilityGrid from '@/components/AvailabilityGrid.vue'
 import DateAvailabilityGrid from '@/components/DateAvailabilityGrid.vue'
 import DayBlockToggle from '@/components/DayBlockToggle.vue'
+import DayResetButton from '@/components/DayResetButton.vue'
 import ShiftNote from '@/components/ShiftNote.vue'
 import { dayAvailability, isoWeekday } from '@/utils/availabilityCalendar'
 import { formatDate } from '@/utils/date'
@@ -35,9 +36,7 @@ const props = defineProps({
 // update:availability — a default grid change; apply-day — a whole date.
 const emit = defineEmits(['update:availability', 'apply-day'])
 
-// The card edits the default week or one date; the calendar keeps at most
-// one of the two selected.
-const defaultWeekSelected = ref(false)
+// The date whose availability the date card edits, or null.
 const selectedDate = ref(null)
 
 const selectedDay = computed(() => selectedDate.value
@@ -56,13 +55,37 @@ const dayTitle = computed(() => selectedDay.value
         date: formatDate(selectedDay.value.date),
     })
     : '')
+
+const canReset = computed(() => !props.disabled && !!selectedDay.value?.changed && !selectedDay.value.holiday)
 </script>
 
 <template>
     <div class="space-y-6">
-        <section class="min-w-0 space-y-3" data-testid="availability-calendar-section">
+        <Card data-testid="default-week-card">
+            <template #header>
+                <div data-testid="default-week-card-header" class="flex h-12 items-center px-6 text-md font-semibold">
+                    {{ __('availability.default_week.heading') }}
+                </div>
+            </template>
+            <div class="px-6 py-4">
+                <AvailabilityGrid
+                    :key="gridKey"
+                    :shifts="shifts"
+                    :availability="defaults"
+                    :disabled="disabled"
+                    :show-add-hint="showAddHint"
+                    @update:availability="emit('update:availability', $event)"
+                />
+                <template v-if="scheduleNoteHtml">
+                    <CardSeparator />
+                    <ShiftNote :html="scheduleNoteHtml" data-testid="availability-card-note" />
+                </template>
+            </div>
+        </Card>
+
+        <!-- The calendar keeps its content width; the date card takes the rest. -->
+        <section data-testid="availability-calendar-section" class="flex flex-col gap-6 sm:flex-row sm:items-start">
             <AvailabilityCalendar
-                v-model:default-week-selected="defaultWeekSelected"
                 v-model:selected-date="selectedDate"
                 :shifts="shifts"
                 :defaults="defaults"
@@ -70,48 +93,42 @@ const dayTitle = computed(() => selectedDay.value
                 :holidays="holidays"
                 :available-from="availableFrom || null"
             />
-        </section>
 
-        <section class="min-w-0" data-testid="default-week-section">
-            <Card>
-                <template v-if="defaultWeekSelected || selectedDay" #header>
-                    <div data-testid="availability-card-header" class="flex h-12 items-center justify-between gap-4 px-6">
-                        <span class="text-md font-semibold">
-                            {{ defaultWeekSelected ? __('availability.default_week.heading') : dayTitle }}
-                        </span>
-                        <DayBlockToggle
-                            v-if="!defaultWeekSelected && selectedDay && !selectedDay.holiday"
-                            :day="selectedDay"
-                            :disabled="disabled"
-                            @apply-day="emit('apply-day', $event)"
-                        />
+            <Card class="min-w-0 flex-1" data-testid="date-card">
+                <template #header>
+                    <div data-testid="date-card-header" class="flex h-12 items-center px-6 text-md font-semibold">
+                        {{ selectedDay ? dayTitle : __('availability.specific.heading') }}
                     </div>
                 </template>
 
                 <div class="px-6 py-4">
-                    <AvailabilityGrid
-                        v-if="defaultWeekSelected"
-                        :key="gridKey"
-                        :shifts="shifts"
-                        :availability="defaults"
-                        :disabled="disabled"
-                        :show-add-hint="showAddHint"
-                        @update:availability="emit('update:availability', $event)"
-                    />
                     <DateAvailabilityGrid
-                        v-else-if="selectedDay"
+                        v-if="selectedDay"
                         :day="selectedDay"
                         :disabled="disabled"
                         @apply-day="emit('apply-day', $event)"
                     />
-                    <p v-else data-testid="default-week-hint" class="text-sm text-(--color-text-secondary)">
-                        {{ __('availability.default_week.hint') }}
-                    </p>
-                    <template v-if="scheduleNoteHtml">
+                    <template v-if="selectedDay && !selectedDay.holiday">
                         <CardSeparator />
-                        <ShiftNote :html="scheduleNoteHtml" data-testid="availability-card-note" />
+                        <div data-testid="day-block-row">
+                            <DayBlockToggle
+                                :day="selectedDay"
+                                :disabled="disabled"
+                                @apply-day="emit('apply-day', $event)"
+                            />
+                        </div>
                     </template>
+                    <p v-else-if="!selectedDay" data-testid="date-hint" class="text-sm text-(--color-text-secondary)">
+                        {{ __('availability.specific.hint') }}
+                    </p>
                 </div>
+
+                <!-- Only a date with its own changes can go back to the default. -->
+                <template v-if="canReset" #footer>
+                    <div data-testid="date-card-footer" class="flex justify-end px-6 py-3">
+                        <DayResetButton :day="selectedDay" @apply-day="emit('apply-day', $event)" />
+                    </div>
+                </template>
             </Card>
         </section>
     </div>

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { mount, flushPromises } from "@vue/test-utils";
 import { reactive } from "vue";
 
@@ -51,6 +51,7 @@ const en = {
     "competences.checklist_empty": "No competences have been set up yet.",
     "planning.tab": "Planning",
     "planning.empty": "No planned shifts yet.",
+    "planning.history": "History",
 };
 
 // Requests fired by putAsync/postAsync/deleteAsync (availability, holidays,
@@ -157,6 +158,7 @@ import QuestionChecklist from "@/components/QuestionChecklist.vue";
 import SelectInput from "@/components/ui/Input/Select.vue";
 import DateInput from "@/components/ui/Input/Date.vue";
 import AvailabilityCalendar from "@/components/AvailabilityCalendar.vue";
+import PlanningTable from "@/components/PlanningTable.vue";
 import DateAvailabilityGrid from "@/components/DateAvailabilityGrid.vue";
 import Tabs from "@/components/ui/Tabs.vue";
 import ConfirmDialog from "@/components/ui/ConfirmDialog.vue";
@@ -192,12 +194,6 @@ const findSaveButton = (w) => w.findAll("button").find((b) => ["Save", "Saving�
 const findCancelButton = (w) => w.findAll("button").find((b) => b.text() === "Cancel");
 const findWithdrawButton = (w) => w.findAll("button").find((b) => b.text() === "Withdraw");
 
-// The Default week grid only mounts once the weekday header is picked in the calendar.
-const selectDefaultWeek = async (w, selected = true) => {
-    w.getComponent(AvailabilityCalendar).vm.$emit("update:defaultWeekSelected", selected);
-    await w.vm.$nextTick();
-};
-
 // Picks the date in the calendar, then applies a change from the date grid.
 const applyDay = async (w, day) => {
     w.getComponent(AvailabilityCalendar).vm.$emit("update:selectedDate", day.date);
@@ -213,6 +209,14 @@ beforeEach(() => {
     form.recentlySuccessful = false;
     form.lastPut = undefined;
 });
+
+// The Planning tab splits the shifts at today; pin today for those tests.
+const freezeToday = (date) => {
+    const [y, m, d] = date.split("-").map(Number);
+    vi.useFakeTimers({ now: new Date(y, m - 1, d), toFake: ["Date"] });
+};
+
+afterEach(() => vi.useRealTimers());
 
 describe("Personal/Show", () => {
     it("renders the shared fields with the identity fields read-only", () => {
@@ -254,7 +258,6 @@ describe("Personal/Show", () => {
             ],
             employee: { first_name: "J", last_name: "L", email: "j@l.c", weekly_hours: 20, business_line_id: null },
         });
-        await selectDefaultWeek(w);
 
         w.findComponent(AvailabilityGrid).vm.$emit("update:availability", {
             weekday: 1,
@@ -351,7 +354,6 @@ describe("Personal/Show", () => {
 
     it("Cancel discards a pending availability-grid change", async () => {
         const w = mountShow([], { shifts: [{ id: 1, name: "Day", start_time: "08:00", end_time: "12:00", weekdays: [1, 2, 3, 4, 5] }] });
-        await selectDefaultWeek(w);
         w.findComponent(AvailabilityGrid).vm.$emit("update:availability", { weekday: 1, shiftId: 1, level: "unavailable" });
         await w.vm.$nextTick();
         expect(findSaveButton(w).attributes("disabled")).toBeUndefined();
@@ -383,7 +385,6 @@ describe("Personal/Show", () => {
         const w = mountShow([], {
             shifts: [{ id: 1, name: "Day", start_time: "08:00", end_time: "12:00", weekdays: [1, 2, 3, 4, 5] }],
         });
-        await selectDefaultWeek(w);
         w.findComponent(AvailabilityGrid).vm.$emit("update:availability", { weekday: 1, shiftId: 1, level: "unavailable" });
         await w.vm.$nextTick();
 
@@ -445,7 +446,6 @@ describe("Personal/Show", () => {
     it("keeps Save enabled and marks the Availability tab on a failed availability save", async () => {
         failUrlsRef.current = ["/personal/tok-1/availability/1/1"];
         const w = mountShow([], { shifts: [{ id: 1, name: "Day", start_time: "08:00", end_time: "12:00", weekdays: [1, 2, 3, 4, 5] }] });
-        await selectDefaultWeek(w);
         w.findComponent(AvailabilityGrid).vm.$emit("update:availability", { weekday: 1, shiftId: 1, level: "unavailable" });
         await w.vm.$nextTick();
 
@@ -469,7 +469,21 @@ describe("Personal/Show", () => {
         expect(hidden(w, '[data-testid="panel-availability"]')).toBe(true);
     });
 
+    it("opens on the Planning tab only when there are upcoming shifts", () => {
+        freezeToday("2026-09-09");
+        const shift = (date) => ({ date, workcenter_name: "Line 1", shift_name: "Early", start_time: "06:00", end_time: "14:00", published: true });
+        const weeks = (...dates) => [{ weekStart: "2026-09-07", weekEnd: "2026-09-13", assignments: dates.map(shift) }];
+
+        const upcoming = mountShow([], { plannedShifts: weeks("2026-09-08", "2026-09-09") });
+        expect(hidden(upcoming, '[data-testid="panel-planning"]')).toBe(false);
+
+        const pastOnly = mountShow([], { plannedShifts: weeks("2026-09-08") });
+        expect(hidden(pastOnly, '[data-testid="panel-planning"]')).toBe(true);
+        expect(hidden(pastOnly, '[data-testid="panel-information"]')).toBe(false);
+    });
+
     it("renders the planned shifts table on the Planning tab", () => {
+        freezeToday("2026-09-01");
         const plannedShifts = [{
             weekStart: "2026-09-07",
             weekEnd: "2026-09-13",
@@ -485,6 +499,7 @@ describe("Personal/Show", () => {
     });
 
     it("opens a shift card from a table row with an Add to calendar button that downloads the shift", async () => {
+        freezeToday("2026-09-01");
         downloadIcs.mockClear();
         const plannedShifts = [{
             weekStart: "2026-09-07",
@@ -510,6 +525,7 @@ describe("Personal/Show", () => {
     });
 
     it("lists the working times of the planned shifts once each, ordered by start time", () => {
+        freezeToday("2026-09-01");
         const assignment = (date, shift_name, start_time, end_time) => ({
             date, workcenter_name: "Line 1", shift_name, start_time, end_time, published: true,
         });
@@ -529,6 +545,69 @@ describe("Personal/Show", () => {
         expect(w.get('[data-testid="planning-shift-times"]').text()).toContain("Working times");
     });
 
+    it("splits the planning at today: upcoming on top, the history below a separator, from new to old", async () => {
+        freezeToday("2026-09-09");
+        const assignment = (date, shift_name, start_time, end_time) => ({
+            date, workcenter_name: "Line 1", responsible: null, shift_name, start_time, end_time, published: true,
+        });
+        const plannedShifts = [{
+            weekStart: "2026-08-31",
+            weekEnd: "2026-09-06",
+            assignments: [
+                assignment("2026-09-01", "Night", "22:00:00", "06:00:00"),
+                assignment("2026-09-02", "Late", "14:00:00", "22:00:00"),
+            ],
+        }, {
+            weekStart: "2026-09-07",
+            weekEnd: "2026-09-13",
+            assignments: [
+                assignment("2026-09-08", "Late", "14:00:00", "22:00:00"),
+                assignment("2026-09-09", "Early", "06:00:00", "14:00:00"),
+                assignment("2026-09-10", "Early", "06:00:00", "14:00:00"),
+            ],
+        }];
+        const w = mountShow([], { plannedShifts, scheduleNoteHtml: "<p>Schedule remarks</p>" });
+        const panel = w.get('[data-testid="panel-planning"]');
+        const dates = (table) => table.findAll("tbody tr").map((tr) => tr.findAll("td")[1].text());
+
+        const [upcoming, history] = panel.findAllComponents(PlanningTable);
+        expect(upcoming.props("assignments").map((a) => a.date)).toEqual(["2026-09-09", "2026-09-10"]);
+        expect(upcoming.props("calendarExport")).toBe(true);
+        expect(panel.get('[data-testid="planning-shift-times"]').findAll("li").map((li) => li.text())).toEqual(["Early 06:00–14:00"]);
+
+        const section = panel.get('[data-testid="planning-history"]');
+        expect(section.get("h3").text()).toBe("History");
+        expect(history.props()).toMatchObject({ calendarExport: false, descending: true });
+        expect(history.props("assignments").map((a) => a.date)).toEqual(["2026-09-01", "2026-09-02", "2026-09-08"]);
+        expect(dates(section)).toEqual(["Tuesday", "Wednesday", "Tuesday"]);
+
+        const html = panel.html();
+        expect(html.indexOf("Schedule remarks")).toBeLessThan(html.indexOf("<hr"));
+        expect(html.indexOf("<hr")).toBeLessThan(html.indexOf('data-testid="planning-history"'));
+
+        await section.get("tbody tr").trigger("click");
+        const dialog = w.get('[role="dialog"]');
+        expect(dialog.text()).toContain("14:00–22:00");
+        expect(dialog.findAll("button").some((b) => b.text() === "Add to calendar")).toBe(false);
+    });
+
+    it("shows no history and no separator without past shifts, and the empty text without upcoming shifts", () => {
+        freezeToday("2026-09-09");
+        const plannedShifts = [{
+            weekStart: "2026-09-07",
+            weekEnd: "2026-09-13",
+            assignments: [{ date: "2026-09-08", workcenter_name: "Line 1", shift_name: "Early", start_time: "06:00", end_time: "14:00", published: true }],
+        }];
+        const withPast = mountShow([], { plannedShifts }).get('[data-testid="panel-planning"]');
+        expect(withPast.text()).toContain("No planned shifts yet.");
+        expect(withPast.find('[data-testid="planning-history"]').exists()).toBe(true);
+        expect(withPast.find('[data-testid="planning-shift-times"]').exists()).toBe(false);
+
+        const empty = mountShow([], { plannedShifts: [] }).get('[data-testid="panel-planning"]');
+        expect(empty.find('[data-testid="planning-history"]').exists()).toBe(false);
+        expect(empty.find("hr").exists()).toBe(false);
+    });
+
     it("shows no working times when nothing is planned", () => {
         const w = mountShow([], { plannedShifts: [] });
 
@@ -536,6 +615,7 @@ describe("Personal/Show", () => {
     });
 
     it("puts the working times above the schedule note", () => {
+        freezeToday("2026-09-01");
         const plannedShifts = [{
             weekStart: "2026-09-07",
             weekEnd: "2026-09-13",
@@ -630,7 +710,6 @@ describe("Personal/Show", () => {
 
     it("is fully editable by default: no lock notice, controls enabled", async () => {
         const w = mountShow();
-        await selectDefaultWeek(w);
         expect(w.find('[data-testid="locked-notice"]').exists()).toBe(false);
         expect(w.findComponent(AvailabilityGrid).props("disabled")).toBe(false);
         expect(w.findComponent(HolidayList).props("disabled")).toBe(false);
@@ -645,7 +724,6 @@ describe("Personal/Show", () => {
             questions: [{ id: 5, text: "Weekend?" }],
             questionAnswers: [],
         });
-        await selectDefaultWeek(w);
 
         expect(w.get('[data-testid="locked-notice"]').text()).toContain("closed by your planner");
         expect(w.findComponent(AvailabilityGrid).props("disabled")).toBe(true);
@@ -753,42 +831,9 @@ describe("Personal/Show", () => {
         expect(findSaveButton(w).attributes("disabled")).toBeUndefined();
     });
 
-    it("shows the hint card below the calendar until the default week is picked, then the default availability", async () => {
-        const w = mountShow([], { shifts: [{ id: 1, name: "Day", start_time: "08:00", end_time: "12:00", weekdays: [1, 2, 3, 4, 5] }] });
-        const panel = w.get('[data-testid="panel-availability"]');
-        const section = () => panel.get('[data-testid="default-week-section"]');
-        const sections = panel.findAll('[data-testid="availability-calendar-section"], [data-testid="default-week-section"]');
-        expect(sections.map((x) => x.attributes("data-testid"))).toEqual(["availability-calendar-section", "default-week-section"]);
-        expect(section().find('[data-testid="default-week-hint"]').exists()).toBe(true);
-        expect(section().find('[data-testid="availability-card-header"]').exists()).toBe(false);
-        expect(panel.findComponent(AvailabilityGrid).exists()).toBe(false);
-
-        await selectDefaultWeek(w);
-
-        expect(panel.getComponent(AvailabilityCalendar).props("defaultWeekSelected")).toBe(true);
-        expect(panel.findAll('[data-testid^="cell-"]').map((c) => c.attributes("data-testid"))).toEqual([
-            "cell-1-1", "cell-2-1", "cell-3-1", "cell-4-1", "cell-5-1",
-        ]);
-        expect(section().find('[data-testid="default-week-hint"]').exists()).toBe(false);
-
-        await selectDefaultWeek(w, false);
-        expect(section().find('[data-testid="default-week-hint"]').exists()).toBe(true);
-        expect(panel.findComponent(AvailabilityGrid).exists()).toBe(false);
-    });
 
 
-    it("keeps a pending default edit visible after hiding and showing the default week", async () => {
-        const w = mountShow([], { shifts: [{ id: 1, name: "Day", start_time: "08:00", end_time: "12:00", weekdays: [1, 2, 3, 4, 5] }] });
-        await selectDefaultWeek(w);
-        w.getComponent(AvailabilityGrid).vm.$emit("update:availability", { weekday: 1, shiftId: 1, level: "unavailable" });
-        await selectDefaultWeek(w, false);
-        await selectDefaultWeek(w);
-
-        expect(w.get('[data-testid="cell-1-1"]').classes()).toContain("bg-(--color-badge-error-bg)");
-    });
-
-
-    it("replaces the default week with the schedule of a clicked date", async () => {
+    it("shows the schedule of a clicked date in the date card", async () => {
         const w = mountShow([], {
             shifts: [{ id: 1, name: "Day", start_time: "08:00", end_time: "12:00", weekdays: [1, 2, 3, 4, 5] }],
             availability: [{ weekday: 1, shift_id: 1, level: "available" }],
@@ -796,86 +841,46 @@ describe("Personal/Show", () => {
         });
         const calendar = w.getComponent(AvailabilityCalendar);
 
-        await selectDefaultWeek(w);
-        expect(w.findComponent(AvailabilityGrid).exists()).toBe(true);
-
         calendar.vm.$emit("update:selectedDate", "2026-10-05");
-        calendar.vm.$emit("update:defaultWeekSelected", false);
         await w.vm.$nextTick();
 
-        expect(w.findComponent(AvailabilityGrid).exists()).toBe(false);
+        expect(w.findComponent(AvailabilityGrid).exists()).toBe(true);
         const grid = w.getComponent(DateAvailabilityGrid);
         expect(grid.props("day")).toMatchObject({ date: "2026-10-05", changed: true });
         expect(grid.props("day").shifts[0]).toMatchObject({ defaultLevel: "available", override: "unavailable" });
-        expect(w.get('[data-testid="default-week-section"]').text()).toContain("05-10-2026");
+        expect(w.get('[data-testid="date-card"]').text()).toContain("05-10-2026");
 
         await applyDay(w, { date: "2026-10-05", blocked: false, shifts: {} });
         expect(w.getComponent(DateAvailabilityGrid).props("day").changed).toBe(false);
     });
 
-    it("shows the default week or the date in the header of the availability card", async () => {
-        const w = mountShow([], { shifts: [{ id: 1, name: "Day", start_time: "08:00", end_time: "12:00", weekdays: [1, 2, 3, 4, 5] }] });
-        const section = () => w.get('[data-testid="default-week-section"]');
-
-        expect(section().find('[data-testid="availability-card-header"]').exists()).toBe(false);
-
-        await selectDefaultWeek(w);
-        expect(section().get('[data-testid="availability-card-header"] span').text()).toBe("Default availability");
-
-        w.getComponent(AvailabilityCalendar).vm.$emit("update:defaultWeekSelected", false);
-        w.getComponent(AvailabilityCalendar).vm.$emit("update:selectedDate", "2026-10-05");
-        await w.vm.$nextTick();
-        expect(section().get('[data-testid="availability-card-header"] span').text()).toBe("Monday 05-10-2026");
-    });
-
-    it("shows the schedule note in the card below the calendar, below a separator, in every state", async () => {
-        const w = mountShow([], {
-            scheduleNoteHtml: "<p>Early starts at six.</p>",
-            shifts: [{ id: 1, name: "Day", start_time: "08:00", end_time: "12:00", weekdays: [1, 2, 3, 4, 5] }],
-        });
-        const card = () => w.get('[data-testid="default-week-section"]');
-        const noteBelowSeparator = () => {
-            const html = card().html();
-            return html.indexOf("<hr") > -1 && html.indexOf("<hr") < html.indexOf("Early starts at six.");
-        };
-
-        expect(w.get('[data-testid="availability-info-card"]').text()).not.toContain("Early starts at six.");
-        expect(noteBelowSeparator()).toBe(true);
-
-        await selectDefaultWeek(w);
-        expect(noteBelowSeparator()).toBe(true);
-
-        w.getComponent(AvailabilityCalendar).vm.$emit("update:defaultWeekSelected", false);
-        w.getComponent(AvailabilityCalendar).vm.$emit("update:selectedDate", "2026-10-05");
-        await w.vm.$nextTick();
-        expect(noteBelowSeparator()).toBe(true);
-        expect(card().findAllComponents(ShiftNote)).toHaveLength(1);
-    });
 
 
-    it("puts the block toggle right-aligned in the date card header, not for the default week or a holiday", async () => {
+    it("puts the block toggle at the bottom of the date card body, below a separator, not for a holiday", async () => {
         const w = mountShow([], {
             shifts: [{ id: 1, name: "Day", start_time: "08:00", end_time: "12:00", weekdays: [1, 2, 3, 4, 5] }],
             holidays: [{ id: 9, start_date: "2026-10-06", end_date: "2026-10-06", note: null }],
         });
         const calendar = w.getComponent(AvailabilityCalendar);
-        const header = () => w.get('[data-testid="availability-card-header"]');
+        const card = () => w.get('[data-testid="date-card"]');
 
         calendar.vm.$emit("update:selectedDate", "2026-10-05");
         await w.vm.$nextTick();
-        expect(header().classes()).toContain("justify-between");
-        expect(header().getComponent(DayBlockToggle).props("day")).toMatchObject({ date: "2026-10-05" });
+        expect(card().get('[data-testid="date-card-header"]').findComponent(DayBlockToggle).exists()).toBe(false);
+        const html = card().html();
+        expect(html.indexOf("<table")).toBeLessThan(html.indexOf("<hr"));
+        expect(html.indexOf("<hr")).toBeLessThan(html.indexOf('data-testid="day-block-row"'));
+        const toggle = card().get('[data-testid="day-block-row"]').getComponent(DayBlockToggle);
+        expect(toggle.props("day")).toMatchObject({ date: "2026-10-05" });
 
-        header().getComponent(DayBlockToggle).vm.$emit("apply-day", { date: "2026-10-05", blocked: true, shifts: {} });
+        toggle.vm.$emit("apply-day", { date: "2026-10-05", blocked: true, shifts: {} });
         await w.vm.$nextTick();
         expect(calendar.props("overrides")).toEqual({ "2026-10-05": { blocked: true, shifts: {} } });
 
         calendar.vm.$emit("update:selectedDate", "2026-10-06");
         await w.vm.$nextTick();
-        expect(header().findComponent(DayBlockToggle).exists()).toBe(false);
-
-        await selectDefaultWeek(w);
-        expect(header().findComponent(DayBlockToggle).exists()).toBe(false);
+        expect(card().findComponent(DayBlockToggle).exists()).toBe(false);
+        expect(card().find("hr").exists()).toBe(false);
     });
 
     it("shows the holidays in their own card with a Holidays header", () => {

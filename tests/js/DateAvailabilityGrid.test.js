@@ -99,20 +99,6 @@ describe("DateAvailabilityGrid", () => {
     });
 
 
-    it("resets the day to the default", async () => {
-        const w = mountGrid();
-
-        await w.findAll("button").find((b) => b.text() === "Reset to default").trigger("click");
-
-        expect(w.emitted("apply-day")[0][0]).toEqual({ date: "2026-10-05", blocked: false, shifts: {} });
-    });
-
-    it("hides Reset on an unchanged day", () => {
-        const w = mountGrid({ day: day({ changed: false }) });
-
-        expect(w.findAll("button").some((b) => b.text() === "Reset to default")).toBe(false);
-    });
-
     it("shows only the holiday notice on a holiday", () => {
         const w = mountGrid({ day: day({ holiday: true }) });
 
@@ -132,34 +118,24 @@ describe("DateAvailabilityGrid", () => {
         const w = mountGrid({ disabled: true });
 
         expect(cell(w, 10).attributes("disabled")).toBeDefined();
-        expect(w.findAll("button").some((b) => b.text() === "Reset to default")).toBe(false);
     });
 
-    it("has no block checkbox or separator of its own; the card header holds the checkbox", () => {
+    it("has no block checkbox, reset button or separator of its own; the date card holds them", () => {
         const w = mountGrid();
 
         expect(w.findComponent(CheckboxInput).exists()).toBe(false);
+        expect(w.findAll("button").some((b) => b.text() === "Reset to default")).toBe(false);
         expect(w.find("hr").exists()).toBe(false);
     });
 
 
-    it("right-aligns the reset button", () => {
-        const w = mountGrid();
-
-        const row = w.get('[data-testid="reset-row"]');
-        expect(row.classes()).toEqual(expect.arrayContaining(["flex", "justify-end"]));
-        expect(row.text()).toBe("Reset to default");
-    });
-
-    it("keeps hidden overrides when a shift changes or the day is reset", async () => {
+    it("keeps hidden overrides when a shift changes", async () => {
         const w = mountGrid({ day: day({ hiddenOverrides: { 30: "available" } }) });
 
-        await w.findAll("button").find((b) => b.text() === "Reset to default").trigger("click");
         await cell(w, 10).trigger("click");
         await w.get('[data-testid="availability-menu-unavailable"]').trigger("click");
 
         expect(w.emitted("apply-day")).toEqual([
-            [{ date: "2026-10-05", blocked: false, shifts: { 30: "available" } }],
             [{ date: "2026-10-05", blocked: false, shifts: { 30: "available", 10: "unavailable", 20: "not_preferred" } }],
         ]);
     });

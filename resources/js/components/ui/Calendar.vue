@@ -17,12 +17,7 @@
             <!-- Weekday headers -->
             <div
                 data-testid="calendar-weekday-header"
-                @click="onWeekdayHeaderClick"
-                :class="[
-                    'mb-4 grid justify-items-center gap-x-0 gap-y-1',
-                    weekdayHeaderClass,
-                    GRID_COLUMNS,
-                ]"
+                :class="['mb-4 grid justify-items-center gap-x-0 gap-y-1 border-b border-(--color-card-border)', GRID_COLUMNS]"
             >
                 <span data-testid="calendar-week-label" class="self-center text-xs text-(--color-text-muted)">
                     {{ __('calendar.week_abbr') }}
@@ -36,7 +31,9 @@
                             isWeekdayHighlighted(i),
                             false,
                             false,
-                            weekdayHeaderSelected === undefined,
+                            enableWeekDaySelection,
+                            null,
+                            enableWeekDaySelection,
                         )
                     "
                     :disabled="!enableWeekDaySelection"
@@ -60,7 +57,7 @@
                     <span
                         :data-testid="'calendar-week-number-' + wi"
                         class="rounded px-1 text-xs"
-                        :class="isWeekMarked(week) ? weekMarkerNumberClass : 'text-(--color-text-muted)'"
+                        :class="weekNumberClass(week)"
                     >
                         {{ weekNumber(week) }}
                     </span>
@@ -133,9 +130,8 @@ const props = defineProps({
     borderLegenda: { type: Object, default: () => ({}) },
     // False: selecting a day still emits change, but draws no week border.
     highlightSelection: { type: Boolean, default: true },
-    // Set (true or false): the header row is one selection, drawn as a
-    // border around the whole row; single weekday letters are not highlighted.
-    weekdayHeaderSelected: { type: Boolean, default: undefined },
+    // Shows today and the week number of the current week bold, in the primary text color.
+    boldCurrent: { type: Boolean, default: false },
     // A day of this month to mark with a ring (a selected date), or null.
     ringDay: { type: Number, default: null },
 })
@@ -230,6 +226,19 @@ function isWeekMarked(week) {
     return week.some((cell) => cell.type === 'day' && props.weekMarkerDays[cell.day])
 }
 
+// A week row is the current week when it starts on the same Monday as today,
+// so the rows of both months around a month start count.
+function isCurrentWeek(week) {
+    const first = week.find((cell) => cell.type === 'day')
+    return dateString(weekStartForDay(first.day)) === dateString(weekStartForDay(todayD, todayY, todayM))
+}
+
+function weekNumberClass(week) {
+    if (isWeekMarked(week)) return weekMarkerNumberClass.value
+    if (props.boldCurrent && isCurrentWeek(week)) return 'font-bold text-(--color-text-primary)'
+    return 'text-(--color-text-muted)'
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function isToday(day) {
@@ -275,8 +284,10 @@ function isDisabled(day) {
     return false
 }
 
-function dayClass(color, selected, today, disabled, hoverable = true, borderStyle = null) {
-    const base = 'border-2 text-center rounded-md text-sm font-semibold m-1 h-8 w-8 cursor-pointer'
+// clickable: false draws a plain label (no pointer cursor), e.g. a weekday
+// letter without weekday selection.
+function dayClass(color, selected, today, disabled, hoverable = true, borderStyle = null, clickable = true) {
+    const base = `border-2 text-center rounded-md text-sm font-semibold m-1 h-8 w-8 ${clickable ? 'cursor-pointer' : 'cursor-default'}`
     const border = selected
         ? 'border-(--color-tab-active-border)'
         : borderStyle && BORDER_COLOR_CLASS[color]
@@ -290,6 +301,11 @@ function dayClass(color, selected, today, disabled, hoverable = true, borderStyl
     }
 
     const colorCls = COLOR_CLASS[color] ?? ''
+    if (today && props.boldCurrent) {
+        // Keep the fill, but replace its text color so only one text color applies.
+        const fill = colorCls.split(' ').filter((cls) => !cls.startsWith('text-')).join(' ')
+        return `${base.replace('font-semibold', 'font-bold')} ${border} ${fill} text-(--color-text-primary)`
+    }
     const todayCls = today ? 'text-(--color-badge-error-text)' : ''
     return `${base} ${border} ${colorCls} ${todayCls}`
 }
@@ -352,25 +368,8 @@ function selectWeekday(i) {
     emit('weekday-click', { weekday: i + 1 })
 }
 
-// In header-selection mode the header row is one target: it carries the
-// selected and hover borders for all seven letters together.
-const weekdayHeaderClass = computed(() => {
-    if (props.weekdayHeaderSelected === undefined) return 'border-b border-(--color-card-border)'
-    if (props.weekdayHeaderSelected) return 'rounded-md border-2 border-(--color-tab-active-border)'
-    return 'rounded-md border-2 border-transparent border-b-(--color-card-border) hover:border-(--color-tab-hover-border) cursor-pointer'
-})
-
-// In header-selection mode a click on the row outside the letters (the
-// week label, the gaps) selects the header as a letter click does.
-function onWeekdayHeaderClick(event) {
-    if (props.weekdayHeaderSelected === undefined || !props.enableWeekDaySelection) return
-    if (event.target.closest('button')) return
-    selectWeekday(0)
-}
-
 // i: Mon=0 … Sun=6
 function isWeekdayHighlighted(i) {
-    if (props.weekdayHeaderSelected !== undefined) return false
     return selectedDay.value === null && selectedDayOfWeek.value === i
 }
 

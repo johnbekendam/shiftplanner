@@ -1,8 +1,6 @@
 <script setup>
 import { computed, ref } from 'vue'
 import Calendar from '@/components/ui/Calendar.vue'
-import CalendarLegend from '@/components/ui/CalendarLegend.vue'
-import Card from '@/components/ui/Card.vue'
 import { dateString, monthStates } from '@/utils/availabilityCalendar'
 import { useI18n } from '@/composables/useI18n'
 
@@ -18,25 +16,16 @@ const props = defineProps({
     // [{ start_date, end_date }]
     holidays: { type: Array, default: () => [] },
     availableFrom: { type: String, default: null },
-    // True while the default week is being edited (the weekday header is selected).
-    defaultWeekSelected: { type: Boolean, default: false },
     // The 'Y-m-d' date whose availability is being edited, or null.
     selectedDate: { type: String, default: null },
 })
 
-// Picking the default week or a date clears the other; a second click deselects.
-const emit = defineEmits(['update:defaultWeekSelected', 'update:selectedDate'])
-
-// Any weekday letter selects the whole header: the default week.
-function onWeekdayClick() {
-    emit('update:defaultWeekSelected', !props.defaultWeekSelected)
-    emit('update:selectedDate', null)
-}
+// A second click on the selected date deselects it.
+const emit = defineEmits(['update:selectedDate'])
 
 function onDayClick({ year: y, month: m, day }) {
     const date = dateString(y, m, day)
     emit('update:selectedDate', props.selectedDate === date ? null : date)
-    emit('update:defaultWeekSelected', false)
 }
 
 const today = new Date()
@@ -78,27 +67,21 @@ const ringDay = computed(() => {
 </script>
 
 <template>
-    <!-- The calendar keeps its content width; the info card takes the rest. -->
-    <div class="flex flex-col gap-6 sm:flex-row sm:items-start">
-        <Calendar
-            class="w-fit shrink-0"
-            :year="year"
-            :month="month"
-            :day-states="states.dayStates"
-            :day-borders="states.dayBorders"
-            :date-range-start="availableFrom || null"
-            :weekday-header-selected="defaultWeekSelected"
-            :ring-day="ringDay"
-            :highlight-selection="false"
-            @change="onChange"
-            @day-click="onDayClick"
-            @weekday-click="onWeekdayClick"
-        />
-
-        <Card class="min-w-0 flex-1" data-testid="availability-info-card">
-            <div class="px-6 py-4">
-                <CalendarLegend :legenda="legenda" :border-legenda="borderLegenda" vertical />
-            </div>
-        </Card>
-    </div>
+    <!-- As wide as its content; the legend sits in the calendar footer. -->
+    <Calendar
+        class="w-fit shrink-0"
+        :year="year"
+        :month="month"
+        :day-states="states.dayStates"
+        :day-borders="states.dayBorders"
+        :legenda="legenda"
+        :border-legenda="borderLegenda"
+        :date-range-start="availableFrom || null"
+        :enable-week-day-selection="false"
+        bold-current
+        :ring-day="ringDay"
+        :highlight-selection="false"
+        @change="onChange"
+        @day-click="onDayClick"
+    />
 </template>

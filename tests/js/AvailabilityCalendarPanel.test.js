@@ -48,31 +48,17 @@ describe("AvailabilityCalendar", () => {
         expect(calendar.props("dayStates")[6]).toBe("error");
         expect(calendar.props("dayStates")[12]).toBe("custom");
         expect(calendar.props("dayBorders")).toEqual({ 7: "solid" });
-        expect(calendar.props("legenda")).toEqual({});
-        expect(calendar.props("borderLegenda")).toEqual({});
     });
 
-    it("shows the legend as a vertical list in an info card next to the calendar", () => {
+    it("shows the legend in the calendar footer, without an info card", () => {
         const w = mountCalendar();
-        const card = w.get('[data-testid="availability-info-card"]');
+        const calendar = w.getComponent(Calendar);
 
-        expect(card.classes()).toContain("flex-1");
-        expect(w.getComponent(Calendar).classes()).toEqual(expect.arrayContaining(["w-fit", "shrink-0"]));
-        expect(card.getComponent(CalendarLegend).props()).toEqual({
-            legenda: { success: "Available", warning: "Only not preferred", error: "Not available", custom: "Holiday" },
-            borderLegenda: { solid: "Changed" },
-            vertical: true,
-        });
-        expect(card.get('[data-testid="calendar-legend"]').classes()).toContain("flex-col");
+        expect(calendar.props("legenda")).toEqual({ success: "Available", warning: "Only not preferred", error: "Not available", custom: "Holiday" });
+        expect(calendar.props("borderLegenda")).toEqual({ solid: "Changed" });
+        expect(calendar.getComponent(CalendarLegend).props("vertical")).toBe(false);
+        expect(w.find('[data-testid="availability-info-card"]').exists()).toBe(false);
     });
-
-
-    it("holds only the legend in the info card", () => {
-        const w = mountCalendar();
-
-        expect(w.get('[data-testid="availability-info-card"]').findAll("hr")).toHaveLength(0);
-    });
-
 
     it("follows the calendar to another month", async () => {
         vi.useFakeTimers({ now: new Date(2026, 9, 20), toFake: ["Date"] });
@@ -83,15 +69,14 @@ describe("AvailabilityCalendar", () => {
         expect(w.getComponent(Calendar).props("month")).toBe(11);
     });
 
-    it("selects a date on a day click, clears the default week, and deselects on a second click", async () => {
-        const w = mountCalendar({ defaultWeekSelected: true });
+    it("selects a date on a day click and deselects on a second click", async () => {
+        const w = mountCalendar();
         const calendar = w.getComponent(Calendar);
 
         await calendar.vm.$emit("day-click", { year: 2026, month: 10, day: 5 });
         expect(w.emitted("update:selectedDate")).toEqual([["2026-10-05"]]);
-        expect(w.emitted("update:defaultWeekSelected")).toEqual([[false]]);
 
-        await w.setProps({ defaultWeekSelected: false, selectedDate: "2026-10-05" });
+        await w.setProps({ selectedDate: "2026-10-05" });
         await calendar.vm.$emit("day-click", { year: 2026, month: 10, day: 5 });
         expect(w.emitted("update:selectedDate").at(-1)).toEqual([null]);
     });
@@ -106,19 +91,16 @@ describe("AvailabilityCalendar", () => {
         expect(calendar.props("ringDay")).toBe(3);
     });
 
-    it("selects the default week from any weekday letter, clears the date, and deselects on a second click", async () => {
-        const w = mountCalendar({ selectedDate: "2026-10-05" });
+    it("shows the weekday letters as plain labels", () => {
+        const w = mountCalendar();
         const calendar = w.getComponent(Calendar);
-        expect(calendar.props("weekdayHeaderSelected")).toBe(false);
 
-        await calendar.vm.$emit("weekday-click", { weekday: 2 });
-        expect(w.emitted("update:defaultWeekSelected")).toEqual([[true]]);
-        expect(w.emitted("update:selectedDate")).toEqual([[null]]);
+        expect(calendar.props("enableWeekDaySelection")).toBe(false);
+        expect(calendar.props("weekdayHeaderSelected")).toBeUndefined();
+    });
 
-        await w.setProps({ defaultWeekSelected: true, selectedDate: null });
-        expect(calendar.props("weekdayHeaderSelected")).toBe(true);
-        await calendar.vm.$emit("weekday-click", { weekday: 5 });
-        expect(w.emitted("update:defaultWeekSelected").at(-1)).toEqual([false]);
+    it("marks the current week and today", () => {
+        expect(mountCalendar().getComponent(Calendar).props("boldCurrent")).toBe(true);
     });
 
     it("sizes the calendar to its content instead of stretching", () => {

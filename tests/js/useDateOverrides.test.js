@@ -1,12 +1,19 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-const { puts, failing, held } = vi.hoisted(() => ({ puts: [], failing: new Set(), held: { resolve: null } }));
+const { puts, failing, held, concurrent } = vi.hoisted(() => ({
+    puts: [], failing: new Set(), held: { resolve: null }, concurrent: { reject: false, active: 0 },
+}));
 
 vi.mock("@/utils/inertiaAsync", () => ({
     putAsync: (url, data) => {
         puts.push([url, data]);
         if (failing.has(url)) return Promise.reject(new Error("fail"));
         if (held.hold) return new Promise((resolve) => { held.resolve = resolve; });
+        if (concurrent.reject) {
+            if (concurrent.active) return Promise.reject(new Error("server 500 on overlapping write"));
+            concurrent.active++;
+            return Promise.resolve().then(() => { concurrent.active--; });
+        }
         return Promise.resolve();
     },
 }));
@@ -20,9 +27,28 @@ beforeEach(() => {
     failing.clear();
     held.hold = false;
     held.resolve = null;
+    concurrent.reject = false;
+    concurrent.active = 0;
 });
 
 describe("useDateOverrides", () => {
+    it.each([
+        ["manager", (date) => `/employees/1/availability/dates/${date}`],
+        ["personal", (date) => `/personal/token/availability/dates/${date}`],
+    ])("saves multiple blocked days without overlapping writes on the %s path", async (_path, urlFor) => {
+        const dates = useDateOverrides([], urlFor);
+        dates.applyDay({ date: "2026-10-05", blocked: true, shifts: {} });
+        dates.applyDay({ date: "2026-10-06", blocked: true, shifts: {} });
+        concurrent.reject = true;
+
+        expect(await dates.save()).toBe(true);
+        expect(puts).toEqual([
+            [urlFor("2026-10-05"), { blocked: true, shifts: {} }],
+            [urlFor("2026-10-06"), { blocked: true, shifts: {} }],
+        ]);
+        expect(dates.isDirty()).toBe(false);
+    });
+
     it("groups the saved rows and starts clean", () => {
         const dates = useDateOverrides([{ date: "2026-10-05", shift_id: null, level: "unavailable" }], url);
 

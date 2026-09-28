@@ -68,6 +68,16 @@ describe("PeriodSettingsForm", () => {
         expect(dates[1].props("modelValue")).toBe("2026-03-31");
     });
 
+    it("lays the inputs out in a two-column grid, with the checkbox across the full row", () => {
+        const w = mount(PeriodSettingsForm, { props: { period: {} } });
+        const grid = w.get('[data-testid="period-grid"]');
+
+        expect(grid.classes()).toEqual(expect.arrayContaining(["grid", "sm:grid-cols-2"]));
+        expect(grid.findAllComponents(NumberInput)).toHaveLength(2);
+        expect(grid.findAllComponents(DateInput)).toHaveLength(2);
+        expect(w.get('[data-testid="period-allow-changes"]').classes()).toContain("sm:col-span-2");
+    });
+
     it("defaults hours to 40 and dates to empty when the period is blank", () => {
         const w = mount(PeriodSettingsForm, { props: { period: {} } });
         expect(w.findAllComponents(NumberInput)[0].props("modelValue")).toBe(40);

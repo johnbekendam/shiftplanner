@@ -350,33 +350,63 @@ describe("Calendar", () => {
         expect(w.emitted("weekday-click")).toEqual([[{ weekday: 1 }], [{ weekday: 7 }]]);
     });
 
+    it("shows the weekday letters as plain labels when weekday selection is off", async () => {
+        const w = mount(Calendar, { props: { year: 2026, month: 10, enableWeekDaySelection: false } });
+        const header = w.get('[data-testid="calendar-weekday-header"]');
+        const letters = header.findAll("button");
+
+        expect(letters.every((b) => !b.classes().includes("hover:border-(--color-tab-hover-border)"))).toBe(true);
+        expect(letters.every((b) => !b.classes().includes("cursor-pointer"))).toBe(true);
+        expect(header.classes()).not.toContain("cursor-pointer");
+
+        await letters[2].trigger("click");
+        await header.trigger("click");
+        expect(w.emitted("weekday-click")).toBeUndefined();
+    });
+
+    it("shows the current week number bold in the primary text color with boldCurrent, across a month start", () => {
+        vi.useFakeTimers({ now: new Date(2026, 8, 28), toFake: ["Date"] });
+        try {
+            const number = (w, i) => w.get(`[data-testid="calendar-week-number-${i}"]`).classes();
+            const october = mount(Calendar, { props: { year: 2026, month: 10, boldCurrent: true } });
+            expect(number(october, 0)).toEqual(expect.arrayContaining(["font-bold", "text-(--color-text-primary)"]));
+            expect(number(october, 1)).toContain("text-(--color-text-muted)");
+            expect(number(october, 1)).not.toContain("font-bold");
+
+            const plain = mount(Calendar, { props: { year: 2026, month: 10 } });
+            expect(number(plain, 0)).toContain("text-(--color-text-muted)");
+            expect(number(plain, 0)).not.toContain("font-bold");
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
+    it("shows today bold in the primary text color with boldCurrent, keeping its fill", () => {
+        vi.useFakeTimers({ now: new Date(2026, 9, 14), toFake: ["Date"] });
+        try {
+            const day = (w, n) => w.findAll("button").find((b) => b.text() === String(n)).classes();
+            const w = mount(Calendar, { props: { year: 2026, month: 10, boldCurrent: true, dayStates: { 14: "success", 15: "success" } } });
+            expect(day(w, 14)).toEqual(expect.arrayContaining(["font-bold", "text-(--color-text-primary)", "bg-(--color-badge-success-bg)"]));
+            expect(day(w, 14)).not.toContain("text-(--color-badge-success-text)");
+            expect(day(w, 14)).not.toContain("text-(--color-badge-error-text)");
+            expect(day(w, 14)).not.toContain("font-semibold");
+            expect(day(w, 15)).toContain("text-(--color-badge-success-text)");
+            expect(day(w, 15)).not.toContain("font-bold");
+
+            const plain = mount(Calendar, { props: { year: 2026, month: 10 } });
+            expect(day(plain, 14)).toContain("text-(--color-badge-error-text)");
+            expect(day(plain, 14)).not.toContain("font-bold");
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
     it("draws a ring around ringDay only", () => {
         const w = mount(Calendar, { props: { year: 2026, month: 10, ringDay: 14 } });
         const day = (n) => w.findAll("button").find((b) => b.text() === String(n));
 
         expect(day(14).classes()).toContain("ring-2");
         expect(day(15).classes()).not.toContain("ring-2");
-    });
-
-    it("draws one border around the whole weekday header when weekdayHeaderSelected is set", async () => {
-        const w = mount(Calendar, { props: { year: 2026, month: 10, weekdayHeaderSelected: false } });
-        const header = w.get('[data-testid="calendar-weekday-header"]');
-        expect(header.classes()).not.toContain("border-(--color-tab-active-border)");
-
-        await header.findAll("button")[2].trigger("click");
-        expect(header.findAll("button").every((b) => !b.classes().includes("border-(--color-tab-active-border)"))).toBe(true);
-
-        await w.setProps({ weekdayHeaderSelected: true });
-        expect(header.classes()).toContain("border-(--color-tab-active-border)");
-        expect(header.findAll("button").every((b) => !b.classes().includes("border-(--color-tab-active-border)"))).toBe(true);
-    });
-
-    it("shows the hover border on the whole weekday header, not on single letters, in header-selection mode", () => {
-        const w = mount(Calendar, { props: { year: 2026, month: 10, weekdayHeaderSelected: false } });
-        const header = w.get('[data-testid="calendar-weekday-header"]');
-
-        expect(header.classes()).toContain("hover:border-(--color-tab-hover-border)");
-        expect(header.findAll("button").every((b) => !b.classes().includes("hover:border-(--color-tab-hover-border)"))).toBe(true);
     });
 
     it("hovers a single day, not its week row, when highlightSelection is false", () => {
@@ -395,14 +425,6 @@ describe("Calendar", () => {
 
         expect(weekRow(day14).className).toContain("hover:border-(--color-tab-hover-border)");
         expect(day14.classes()).not.toContain("hover:border-(--color-tab-hover-border)");
-    });
-
-    it("selects the weekday header from anywhere on the row in header-selection mode", async () => {
-        const w = mount(Calendar, { props: { year: 2026, month: 10, weekdayHeaderSelected: false } });
-
-        await w.get('[data-testid="calendar-week-label"]').trigger("click");
-
-        expect(w.emitted("weekday-click")).toEqual([[{ weekday: 1 }]]);
     });
 
     it("keeps the legend from widening the calendar", () => {

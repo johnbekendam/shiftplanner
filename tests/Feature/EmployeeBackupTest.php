@@ -9,6 +9,7 @@ use App\Models\Employee;
 use App\Models\EmployeeAuditEvent;
 use App\Models\EmployeeHoliday;
 use App\Models\PlanGenerationRun;
+use App\Models\PlanningSettings;
 use App\Models\RecurringAvailability;
 use App\Models\Shift;
 use App\Models\User;
@@ -485,6 +486,43 @@ class EmployeeBackupTest extends TestCase
             ['date' => '2026-11-09', 'shift_id' => null, 'level' => 'unavailable'],
             ['date' => '2026-11-10', 'shift_id' => $shift->id, 'level' => 'available'],
         ], $employee->availabilityOverrides()->get()->map->toPayload()->all());
+    }
+
+    public function test_the_application_archive_restores_the_roster_and_live_screen_links(): void
+    {
+        $admin = $this->admin();
+        $rosterToken = PlanningSettings::current()->rosterToken();
+        $workcenter = Workcenter::factory()->create();
+        $liveToken = $workcenter->live_token;
+
+        $archive = json_decode($this->actingAs($admin)->get('/employee-backup/export')->getContent(), true, 512, JSON_THROW_ON_ERROR);
+        PlanningSettings::current()->regenerateRosterToken();
+        $workcenter->regenerateLiveToken();
+
+        $this->actingAs($admin)->post('/employee-backup/import', [
+            'file' => UploadedFile::fake()->createWithContent('backup.json', json_encode($archive, JSON_THROW_ON_ERROR)),
+        ])->assertOk();
+
+        $this->assertSame($rosterToken, PlanningSettings::current()->rosterToken());
+        $this->assertSame($liveToken, $workcenter->fresh()->live_token);
+    }
+
+    public function test_an_archive_from_before_the_roster_link_imports_and_gets_a_new_link(): void
+    {
+        $admin = $this->admin();
+        PlanningSettings::current()->rosterToken();
+
+        $archive = json_decode($this->actingAs($admin)->get('/employee-backup/export')->getContent(), true, 512, JSON_THROW_ON_ERROR);
+        $archive['data']['planning_settings'] = array_map(
+            fn (array $row) => array_diff_key($row, ['roster_token' => true]),
+            $archive['data']['planning_settings'],
+        );
+
+        $this->actingAs($admin)->post('/employee-backup/import', [
+            'file' => UploadedFile::fake()->createWithContent('backup.json', json_encode($archive, JSON_THROW_ON_ERROR)),
+        ])->assertOk();
+
+        $this->assertSame(40, strlen(PlanningSettings::current()->rosterToken()));
     }
 
     public function test_an_archive_from_before_date_overrides_still_imports(): void

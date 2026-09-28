@@ -13,6 +13,8 @@ const props = defineProps({
     emptyText: { type: String, required: true },
     // Adds an Add to calendar button to the shift card, which downloads the shift as an .ics event.
     calendarExport: { type: Boolean, default: false },
+    // Lists the rows from new to old instead of from old to new.
+    descending: { type: Boolean, default: false },
 })
 
 const selected = ref(null)
@@ -43,7 +45,7 @@ function formatDate(date) {
 }
 
 const rows = computed(() => [...props.assignments]
-    .sort((a, b) => a.date.localeCompare(b.date))
+    .sort((a, b) => (props.descending ? b.date.localeCompare(a.date) : a.date.localeCompare(b.date)))
     .map((assignment) => {
         const date = parseDate(assignment.date)
 

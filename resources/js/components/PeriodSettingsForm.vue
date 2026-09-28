@@ -55,7 +55,7 @@ defineExpose({
 </script>
 
 <template>
-    <div class="max-w-sm space-y-5">
+    <div data-testid="period-grid" class="grid grid-cols-1 gap-x-6 gap-y-5 sm:grid-cols-2">
         <LabeledInput :label="__('period.fte_hours')" :error="form.errors.fte_hours">
             <NumberInput v-model="form.fte_hours" :min="1" class="w-full" />
             <p class="mt-1 text-xs text-(--color-text-secondary)">{{ __('period.fte_hours_hint') }}</p>
@@ -74,7 +74,7 @@ defineExpose({
             <DateInput v-model="form.period_end" class="w-full" />
         </LabeledInput>
 
-        <div>
+        <div data-testid="period-allow-changes" class="sm:col-span-2">
             <CheckboxInput v-model="form.allow_employee_changes">
                 {{ __('general.allow_employee_changes') }}
             </CheckboxInput>

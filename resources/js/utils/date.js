@@ -11,3 +11,10 @@ export function formatDate(iso) {
     if (!m) return iso
     return `${m[3]}-${m[2]}-${m[1]}`
 }
+
+/** Today in the browser's local time, as an ISO `YYYY-MM-DD` string. */
+export function todayIso() {
+    const now = new Date()
+    const pad = (n) => String(n).padStart(2, '0')
+    return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`
+}

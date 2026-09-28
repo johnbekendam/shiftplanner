@@ -14,6 +14,7 @@ use App\Models\MessageTemplate;
 use App\Models\PlanningSettings;
 use App\Models\Shift;
 use App\Models\Workcenter;
+use App\Services\BusinessLineFilter;
 use App\Services\EmployeeAuditLogger;
 use App\Services\EmployeePersonalLinkService;
 use App\Services\MessageComposer;
@@ -56,10 +57,7 @@ class EmployeeController extends Controller
 
         $businessLines = BusinessLine::all(); // position-ordered by the model scope
 
-        $requestedBusinessLines = $request->query('business_lines');
-        $businessLineFilter = is_array($requestedBusinessLines)
-            ? array_values(array_intersect($requestedBusinessLines, [...$businessLines->pluck('id')->map(strval(...)), 'none']))
-            : null;
+        $businessLineFilter = BusinessLineFilter::fromRequest($request, $businessLines);
 
         $query = Employee::query()
             ->select('employees.*')
@@ -84,29 +82,7 @@ class EmployeeController extends Controller
             $query->search($search);
         }
 
-        $filterIds = [];
-        $filterIncludesNone = false;
-
-        if ($businessLineFilter !== null) {
-            $filterIds = array_map('intval', array_values(array_filter($businessLineFilter, fn ($id) => $id !== 'none')));
-            $filterIncludesNone = in_array('none', $businessLineFilter, true);
-
-            $query->where(function ($q) use ($filterIds, $filterIncludesNone) {
-                if ($filterIds !== []) {
-                    $q->orWhereIn('employees.business_line_id', $filterIds);
-                }
-                if ($filterIncludesNone) {
-                    $q->orWhereNull('employees.business_line_id');
-                }
-                if ($filterIds === [] && ! $filterIncludesNone) {
-                    $q->whereRaw('1 = 0');
-                }
-            });
-        }
-
-        $selectedBusinessLines = $businessLineFilter !== null
-            ? [...$filterIds, ...($filterIncludesNone ? ['none'] : [])]
-            : [...$businessLines->pluck('id')->all(), 'none'];
+        $businessLineFilter->apply($query, 'employees.business_line_id');
 
         $employees = $query->paginate(15)->withQueryString();
 
@@ -133,7 +109,7 @@ class EmployeeController extends Controller
                 'id' => $line->id,
                 'abbreviation' => $line->abbreviation,
             ])->all(),
-            'selectedBusinessLines' => $selectedBusinessLines,
+            'selectedBusinessLines' => $businessLineFilter->selected(),
         ]);
     }
 
