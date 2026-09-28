@@ -106,6 +106,14 @@ describe("Roster", () => {
         expect(items[1].text()).toContain("Packing");
     });
 
+    it("shows the workcenter in small text below the shift", () => {
+        const item = mountRoster().get("[data-testid='roster-cell-1-2026-09-22'] [data-testid='roster-assignment']");
+        const workcenter = item.get("[data-testid='roster-workcenter']");
+
+        expect(workcenter.text()).toBe("Assembly");
+        expect(workcenter.classes()).toContain("text-[10px]");
+    });
+
     it("shows a dash on a day with no assignment", () => {
         const cell = mountRoster().get("[data-testid='roster-cell-1-2026-09-21']");
 

@@ -139,7 +139,7 @@ function goToWeek(offset) {
                                 class="whitespace-nowrap"
                             >
                                 <div class="text-(--color-text-primary)">{{ assignment.shift }}</div>
-                                <div class="text-xs text-(--color-text-muted)">{{ assignment.workcenter }}</div>
+                                <div data-testid="roster-workcenter" class="text-[10px] leading-tight text-(--color-text-muted)">{{ assignment.workcenter }}</div>
                             </div>
                             <span v-if="!assignments.length" class="text-(--color-text-muted)">—</span>
                         </td>
