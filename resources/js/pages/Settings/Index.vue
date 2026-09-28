@@ -12,7 +12,7 @@ import WorkcenterList from '@/components/WorkcenterList.vue'
 import ShiftNoteForm from '@/components/ShiftNoteForm.vue'
 import ScheduleNoteForm from '@/components/ScheduleNoteForm.vue'
 import PeriodSettingsForm from '@/components/PeriodSettingsForm.vue'
-import RosterLinkSection from '@/components/RosterLinkSection.vue'
+import ScreensPanel from '@/components/ScreensPanel.vue'
 import TabSaveBar from '@/components/ui/TabSaveBar.vue'
 import { useI18n } from '@/composables/useI18n'
 import { useUnsavedChangesGuard } from '@/composables/useUnsavedChangesGuard'
@@ -42,6 +42,7 @@ const tabs = computed(() => [
     { value: 'questions', label: __('settings.tab.questions'), dirty: questionsTab.dirty.value },
     { value: 'competences', label: __('settings.tab.competences'), dirty: competencesTab.dirty.value },
     { value: 'information', label: __('settings.tab.information'), dirty: shiftNoteFormRef.value?.isDirty ?? false },
+    { value: 'screens', label: __('settings.tab.screens') },
 ])
 
 // ── Business Lines: local edit/add/delete/reorder, one Save/Cancel ──────
@@ -482,10 +483,6 @@ useUnsavedChangesGuard(() => (
                     @save="savePeriod"
                     @cancel="periodFormRef?.cancel()"
                 />
-                <template v-if="rosterUrl">
-                    <CardSeparator />
-                    <RosterLinkSection :url="rosterUrl" />
-                </template>
             </div>
 
             <div v-show="tab === 'shifts'" data-testid="panel-shifts" class="space-y-6 p-6">
@@ -527,6 +524,10 @@ useUnsavedChangesGuard(() => (
                     @save="saveShiftNote"
                     @cancel="shiftNoteFormRef?.cancel()"
                 />
+            </div>
+
+            <div v-show="tab === 'screens'" data-testid="panel-screens" class="p-6">
+                <ScreensPanel :roster-url="rosterUrl" :workcenters="workcenters" />
             </div>
 
             <div v-show="tab === 'questions'" data-testid="panel-questions" class="p-6">

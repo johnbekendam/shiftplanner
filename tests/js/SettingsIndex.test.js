@@ -10,6 +10,7 @@ const en = {
     "settings.tab.information": "Information",
     "settings.tab.questions": "Questions",
     "settings.tab.general": "General",
+    "settings.tab.screens": "Screens",
     "general.allow_employee_changes": "Allow employees to change their own details",
     "general.allow_employee_changes_hint": "When off, personal pages stay visible but read-only.",
     "shifts.name": "Name",
@@ -110,6 +111,7 @@ import WorkcenterList from "@/components/WorkcenterList.vue";
 import ShiftNoteForm from "@/components/ShiftNoteForm.vue";
 import ScheduleNoteForm from "@/components/ScheduleNoteForm.vue";
 import PeriodSettingsForm from "@/components/PeriodSettingsForm.vue";
+import Tabs from "@/components/ui/Tabs.vue";
 import { NumberInput, MultilineInput } from "@/components/ui/Input";
 import SelectInput from "@/components/ui/Input/Select.vue";
 
@@ -152,10 +154,23 @@ describe("Settings/Index", () => {
         expect(text).not.toContain("Product groups");
     });
 
-    it("shows the roster link section on the General tab", () => {
+    it("shows the Screens tab last, with the roster link and the live screens", async () => {
+        const w = mountPage({
+            rosterUrl: "https://app.test/roster/secret",
+            workcenters: [{ id: 3, name: "Line 1", position: 1, archived_at: null, shifts: [], live_url: "https://app.test/live/abc" }],
+        });
+        const tabs = w.findComponent(Tabs).props("tabs").map((t) => t.label);
+
+        expect(tabs[tabs.length - 1]).toContain("Screens");
+        const panel = w.get("[data-testid='panel-screens']");
+        expect(panel.find("[data-testid='screen-row-roster']").exists()).toBe(true);
+        expect(panel.find("[data-testid='screen-row-workcenter-3']").exists()).toBe(true);
+    });
+
+    it("no longer shows the roster link on the General tab", () => {
         const w = mountPage({ rosterUrl: "https://app.test/roster/secret" });
 
-        expect(w.find("[data-testid='panel-general'] [data-testid='roster-link-copy']").exists()).toBe(true);
+        expect(w.find("[data-testid='panel-general'] [data-testid='screen-row-roster']").exists()).toBe(false);
     });
 
     it("mounts the period form seeded from the period prop", () => {
