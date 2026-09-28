@@ -33,6 +33,7 @@ use App\Http\Controllers\PlanNotificationController;
 use App\Http\Controllers\PublishedWeekController;
 use App\Http\Controllers\QuestionController;
 use App\Http\Controllers\RecurringAvailabilityController;
+use App\Http\Controllers\RosterController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\ScheduleSpotController;
 use App\Http\Controllers\SchedulingController;
@@ -157,6 +158,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/users/{user}/edit', [UserController::class, 'edit'])->name('users.edit');
 
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard.index');
+    Route::get('/roster', [RosterController::class, 'index'])->name('roster.index');
 
     Route::get('/account', [AccountController::class, 'show'])->name('account.show');
     Route::put('/account/password', [AccountController::class, 'updatePassword'])->name('account.password');
