@@ -1,151 +1,19 @@
 <script setup>
-import { computed } from 'vue'
-import { Head, router, usePage } from '@inertiajs/vue3'
+import { Head } from '@inertiajs/vue3'
 import AppLayout from '@/layouts/AppLayout.vue'
-import Card from '@/components/ui/Card.vue'
-import ButtonSecondary from '@/components/ui/ButtonSecondary.vue'
-import BusinessLineFilter from '@/components/BusinessLineFilter.vue'
+import RosterView from '@/components/RosterView.vue'
 import { useI18n } from '@/composables/useI18n'
-import { formatDate } from '@/utils/date'
 
 const __ = useI18n()
-const locale = usePage().props.locale
 
-const props = defineProps({
-    weekStart: { type: String, required: true }, // the Monday, YYYY-MM-DD
-    weekNumber: { type: Number, required: true },
-    // The date of today, from the server, so the page and the planning agree.
-    today: { type: String, required: true },
-    days: { type: Array, required: true }, // ['YYYY-MM-DD', …] Monday to Sunday
-    // [{ id, name, business_line, days: [[{ shift, workcenter }], …seven] }]
-    rows: { type: Array, required: true },
-    businessLines: { type: Array, default: () => [] }, // { id, abbreviation }
-    selectedBusinessLines: { type: Array, default: () => [] },
-})
-
-function dayLabel(dateStr) {
-    const [y, m, d] = dateStr.split('-').map(Number)
-    return new Date(y, m - 1, d).toLocaleDateString(locale, { weekday: 'short', day: 'numeric' })
-}
-
-// UTC arithmetic, so a daylight saving change never shifts the date.
-function addDays(dateStr, count) {
-    const [y, m, d] = dateStr.split('-').map(Number)
-    return new Date(Date.UTC(y, m - 1, d + count)).toISOString().slice(0, 10)
-}
-
-const allBusinessLinesSelected = computed(() =>
-    [...props.businessLines.map((line) => line.id), 'none'].every((value) => props.selectedBusinessLines.includes(value)),
-)
-
-const query = computed(() => {
-    const q = { week: props.weekStart }
-    if (!allBusinessLinesSelected.value) q.business_lines = props.selectedBusinessLines
-    return q
-})
-
-function visit(overrides, options = {}) {
-    router.get('/roster', { ...query.value, ...overrides }, {
-        preserveState: true,
-        preserveScroll: true,
-        ...options,
-    })
-}
-
-function goToWeek(offset) {
-    visit({ week: addDays(props.weekStart, offset * 7) })
-}
+// Every page prop goes through to RosterView, not onto the layout root.
+defineOptions({ inheritAttrs: false })
 </script>
 
 <template>
     <AppLayout>
         <Head :title="__('roster.title')" />
 
-        <Card class="overflow-visible">
-            <div class="flex items-center gap-3 px-6 py-4">
-                <ButtonSecondary
-                    type="button"
-                    icon="chevron-left"
-                    :aria-label="__('roster.previous_week')"
-                    @click="goToWeek(-1)"
-                />
-                <span class="font-semibold">{{ __('roster.week', { number: weekNumber }) }}</span>
-                <span class="text-(--color-text-muted)">
-                    {{ formatDate(days[0]) }} - {{ formatDate(days[days.length - 1]) }}
-                </span>
-                <ButtonSecondary
-                    type="button"
-                    icon="chevron-right"
-                    :aria-label="__('roster.next_week')"
-                    @click="goToWeek(1)"
-                />
-                <BusinessLineFilter
-                    class="ml-auto"
-                    align="right"
-                    :business-lines="businessLines"
-                    :selected="selectedBusinessLines"
-                    default-session-key="roster.businessLineDefaultApplied"
-                    @change="(value) => visit({ business_lines: value })"
-                    @default="(value) => visit({ business_lines: value }, { replace: true })"
-                />
-            </div>
-
-            <p v-if="!rows.length" class="px-6 pb-8 pt-4 text-(--color-text-muted)">
-                {{ __('roster.empty') }}
-            </p>
-
-            <div v-else class="overflow-x-auto border-t border-(--color-table-header-separator)">
-                <table class="w-full text-sm">
-                    <thead>
-                        <tr class="border-b border-(--color-table-header-separator) bg-(--color-table-header-bg) text-left text-(--color-table-header-text)">
-                            <th class="px-4 py-2 font-medium">{{ __('roster.column.name') }}</th>
-                            <th class="px-4 py-2 font-medium">{{ __('roster.column.business_line') }}</th>
-                            <th
-                                v-for="day in days"
-                                :key="day"
-                                class="px-4 py-2 font-medium"
-                                :class="day === today ? 'bg-(--color-table-row-selected-bg) text-(--color-table-row-selected-text)' : ''"
-                                :data-date="day"
-                                :data-today="day === today"
-                            >
-                                {{ dayLabel(day) }}
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr
-                            v-for="row in rows"
-                            :key="row.id"
-                            data-testid="roster-row"
-                            class="border-b border-(--color-table-row-separator) last:border-b-0 hover:bg-(--color-table-row-hover-bg)"
-                        >
-                            <td class="whitespace-nowrap px-4 py-2 align-top text-(--color-table-row-text)">{{ row.name }}</td>
-                            <td class="px-4 py-2 align-top text-(--color-table-row-text)">
-                                {{ row.business_line ?? __('roster.no_business_line') }}
-                            </td>
-                            <td
-                                v-for="(assignments, index) in row.days"
-                                :key="days[index]"
-                                class="px-4 py-2 align-top"
-                                :class="days[index] === today ? 'bg-(--color-table-row-selected-bg)' : ''"
-                                :data-testid="`roster-cell-${row.id}-${days[index]}`"
-                                :data-today="days[index] === today"
-                            >
-                                <div
-                                    v-for="(assignment, i) in assignments"
-                                    :key="i"
-                                    data-testid="roster-assignment"
-                                    class="whitespace-nowrap"
-                                >
-                                    <div class="text-(--color-text-primary)">{{ assignment.shift }}</div>
-                                    <div class="text-xs text-(--color-text-muted)">{{ assignment.workcenter }}</div>
-                                </div>
-                                <span v-if="!assignments.length" class="text-(--color-text-muted)">—</span>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </Card>
+        <RosterView v-bind="$attrs" url="/roster" default-session-key="roster.businessLineDefaultApplied" />
     </AppLayout>
 </template>

@@ -152,6 +152,13 @@ describe("Settings/Index", () => {
         expect(text).not.toContain("Product groups");
     });
 
+    it("shows the roster link section on the General tab", () => {
+        const w = mountPage({ rosterUrl: "https://app.test/roster/secret" });
+
+        expect(w.get("[data-testid='panel-general'] [data-testid='roster-link-url']").text())
+            .toBe("https://app.test/roster/secret");
+    });
+
     it("mounts the period form seeded from the period prop", () => {
         const w = mountPage({ period: { fte_hours: 32, period_start: "2026-02-01", period_end: "2026-02-28" } });
         const form = w.findComponent(PeriodSettingsForm);

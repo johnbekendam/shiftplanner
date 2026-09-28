@@ -18,8 +18,9 @@ const { user: currentUser } = useAuth()
 const props = defineProps({
     businessLines: { type: Array, default: () => [] }, // { id, abbreviation }
     selected: { type: Array, default: () => [] }, // ids and 'none'
-    // The sessionStorage key that marks the default as applied in this tab.
-    defaultSessionKey: { type: String, required: true },
+    // The sessionStorage key that marks the default as applied in this tab;
+    // null turns the default off.
+    defaultSessionKey: { type: String, default: null },
     // The trigger edge the menu lines up with; 'right' opens it toward the left.
     align: { type: String, default: 'left' },
 })
@@ -46,7 +47,7 @@ function hasExplicitQuery() {
 
 onMounted(() => {
     const businessLineId = currentUser.value?.business_line_id
-    if (!businessLineId || defaultApplied()) return
+    if (!props.defaultSessionKey || !businessLineId || defaultApplied()) return
 
     if (hasExplicitQuery()) {
         markDefaultApplied()

@@ -12,6 +12,7 @@ import WorkcenterList from '@/components/WorkcenterList.vue'
 import ShiftNoteForm from '@/components/ShiftNoteForm.vue'
 import ScheduleNoteForm from '@/components/ScheduleNoteForm.vue'
 import PeriodSettingsForm from '@/components/PeriodSettingsForm.vue'
+import RosterLinkSection from '@/components/RosterLinkSection.vue'
 import TabSaveBar from '@/components/ui/TabSaveBar.vue'
 import { useI18n } from '@/composables/useI18n'
 import { useUnsavedChangesGuard } from '@/composables/useUnsavedChangesGuard'
@@ -29,6 +30,7 @@ const props = defineProps({
     scheduleNote: { type: String, default: '' },
     questions: { type: Array, default: () => [] },
     period: { type: Object, default: () => ({}) },
+    rosterUrl: { type: String, default: '' },
 })
 
 const tab = ref('general')
@@ -480,6 +482,10 @@ useUnsavedChangesGuard(() => (
                     @save="savePeriod"
                     @cancel="periodFormRef?.cancel()"
                 />
+                <template v-if="rosterUrl">
+                    <CardSeparator />
+                    <RosterLinkSection :url="rosterUrl" />
+                </template>
             </div>
 
             <div v-show="tab === 'shifts'" data-testid="panel-shifts" class="space-y-6 p-6">
