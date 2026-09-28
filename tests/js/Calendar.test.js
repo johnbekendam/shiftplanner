@@ -364,6 +364,23 @@ describe("Calendar", () => {
         expect(w.emitted("weekday-click")).toBeUndefined();
     });
 
+    it("shows the current week number bold in the primary text color with boldCurrentWeek, across a month start", () => {
+        vi.useFakeTimers({ now: new Date(2026, 8, 28), toFake: ["Date"] });
+        try {
+            const number = (w, i) => w.get(`[data-testid="calendar-week-number-${i}"]`).classes();
+            const october = mount(Calendar, { props: { year: 2026, month: 10, boldCurrentWeek: true } });
+            expect(number(october, 0)).toEqual(expect.arrayContaining(["font-bold", "text-(--color-text-primary)"]));
+            expect(number(october, 1)).toContain("text-(--color-text-muted)");
+            expect(number(october, 1)).not.toContain("font-bold");
+
+            const plain = mount(Calendar, { props: { year: 2026, month: 10 } });
+            expect(number(plain, 0)).toContain("text-(--color-text-muted)");
+            expect(number(plain, 0)).not.toContain("font-bold");
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
     it("draws a ring around ringDay only", () => {
         const w = mount(Calendar, { props: { year: 2026, month: 10, ringDay: 14 } });
         const day = (n) => w.findAll("button").find((b) => b.text() === String(n));

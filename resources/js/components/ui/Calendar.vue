@@ -57,7 +57,7 @@
                     <span
                         :data-testid="'calendar-week-number-' + wi"
                         class="rounded px-1 text-xs"
-                        :class="isWeekMarked(week) ? weekMarkerNumberClass : 'text-(--color-text-muted)'"
+                        :class="weekNumberClass(week)"
                     >
                         {{ weekNumber(week) }}
                     </span>
@@ -130,6 +130,8 @@ const props = defineProps({
     borderLegenda: { type: Object, default: () => ({}) },
     // False: selecting a day still emits change, but draws no week border.
     highlightSelection: { type: Boolean, default: true },
+    // Shows the week number of the current week bold, in the primary text color.
+    boldCurrentWeek: { type: Boolean, default: false },
     // A day of this month to mark with a ring (a selected date), or null.
     ringDay: { type: Number, default: null },
 })
@@ -222,6 +224,19 @@ function weekNumber(week) {
 
 function isWeekMarked(week) {
     return week.some((cell) => cell.type === 'day' && props.weekMarkerDays[cell.day])
+}
+
+// A week row is the current week when it starts on the same Monday as today,
+// so the rows of both months around a month start count.
+function isCurrentWeek(week) {
+    const first = week.find((cell) => cell.type === 'day')
+    return dateString(weekStartForDay(first.day)) === dateString(weekStartForDay(todayD, todayY, todayM))
+}
+
+function weekNumberClass(week) {
+    if (isWeekMarked(week)) return weekMarkerNumberClass.value
+    if (props.boldCurrentWeek && isCurrentWeek(week)) return 'font-bold text-(--color-text-primary)'
+    return 'text-(--color-text-muted)'
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
