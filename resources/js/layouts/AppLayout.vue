@@ -58,6 +58,7 @@ const navItems = computed(() => {
     const items = [
         { label: __('nav.dashboard'), href: '/dashboard', icon: 'chart-bar' },
         { label: __('nav.employees'), href: '/employees', icon: 'users' },
+        { label: __('nav.roster'), href: '/roster', icon: 'calendar-days' },
     ]
 
     if (isAdmin.value) {

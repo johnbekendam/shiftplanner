@@ -246,8 +246,8 @@ class RosterTest extends TestCase
     /** Anna in ASM, Bob in PCK, Cleo with no business line — all planned this week. */
     private function threeLines(): array
     {
-        $asm = BusinessLine::factory()->create(['abbreviation' => 'ASM']);
-        $pck = BusinessLine::factory()->create(['abbreviation' => 'PCK']);
+        $asm = BusinessLine::factory()->create(['abbreviation' => 'ASM', 'position' => 1]);
+        $pck = BusinessLine::factory()->create(['abbreviation' => 'PCK', 'position' => 2]);
         $assembly = $this->workcenter('Assembly');
         $early = $this->shift('Early', '06:00');
         $this->publish($assembly);

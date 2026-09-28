@@ -1,6 +1,6 @@
 # Roster — Plan
 
-Status: in progress — 3/5
+Status: in progress — 4/5
 
 - [x] 1. Route and controller: `GET /roster` for all logged-in users
   renders `Roster` with the week (`?week=`, current ISO week by
@@ -12,7 +12,7 @@ Status: in progress — 3/5
 - [x] 3. Business line filter on the server: the `business_lines` query
   of the Employees page, with "none". Extract the shared parse logic
   from `EmployeeController` so both pages use it.
-- [ ] 4. Page: `Roster.vue` in `AppLayout` with the week grid, the muted
+- [x] 4. Page: `Roster.vue` in `AppLayout` with the week grid, the muted
   dash for an empty day, the highlight for today, the empty state,
   and previous/next week buttons. Add "Roster" to the sidebar after
   "Employees". All text in `en.json`.

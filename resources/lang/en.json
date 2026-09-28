@@ -13,6 +13,7 @@
     "nav.scheduling": "Planning",
     "nav.planning_rules": "Planning rules",
     "nav.employees": "Employees",
+    "nav.roster": "Roster",
     "nav.my_details": "My details",
     "nav.account": "Account",
     "nav.users": "Users",
@@ -70,6 +71,13 @@
     "theme.preview.chrome_note": "This is the page text.",
 
     "roster.title": "Roster",
+    "roster.week": "Week :number",
+    "roster.previous_week": "Previous week",
+    "roster.next_week": "Next week",
+    "roster.column.name": "Name",
+    "roster.column.business_line": "Business line",
+    "roster.no_business_line": "—",
+    "roster.empty": "No published shifts in this week.",
 
     "reports.title": "Reports",
     "reports.tab.missing_availability": "Missing availability",
