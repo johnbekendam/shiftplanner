@@ -146,6 +146,13 @@ describe("Roster", () => {
                 .toEqual(["ASM", "PCK", "No business line"]);
         });
 
+        it("opens the menu toward the left, so it stays on the screen", async () => {
+            const w = mountRoster({ businessLines, selectedBusinessLines: [1, 2, "none"] });
+            await openMenu(w);
+
+            expect(w.get('[data-testid="business-lines-menu"]').classes()).toContain("right-0");
+        });
+
         it("reloads the same week with the new selection", async () => {
             const w = mountRoster({ businessLines, selectedBusinessLines: [1, 2, "none"] });
             await openMenu(w);

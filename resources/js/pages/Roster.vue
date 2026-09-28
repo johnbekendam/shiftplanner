@@ -81,6 +81,7 @@ function goToWeek(offset) {
                 />
                 <BusinessLineFilter
                     class="ml-auto"
+                    align="right"
                     :business-lines="businessLines"
                     :selected="selectedBusinessLines"
                     default-session-key="roster.businessLineDefaultApplied"

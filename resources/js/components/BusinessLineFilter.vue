@@ -20,6 +20,8 @@ const props = defineProps({
     selected: { type: Array, default: () => [] }, // ids and 'none'
     // The sessionStorage key that marks the default as applied in this tab.
     defaultSessionKey: { type: String, required: true },
+    // The trigger edge the menu lines up with; 'right' opens it toward the left.
+    align: { type: String, default: 'left' },
 })
 
 const emit = defineEmits(['change', 'default'])
@@ -112,6 +114,7 @@ function selectNone() {
             data-testid="business-lines-menu"
             role="group"
             :aria-label="__('business_line_filter.aria_group')"
+            :class="align === 'right' ? 'right-0' : 'left-0'"
             class="absolute z-50 mt-1 w-max min-w-48 rounded-md border border-(--color-dropdown-panel-border) bg-(--color-dropdown-panel-bg) p-2 shadow-lg"
         >
             <div class="flex flex-col gap-1">
