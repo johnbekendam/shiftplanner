@@ -70,8 +70,8 @@ function goToWeek(offset) {
                 :aria-label="__('roster.previous_week')"
                 @click="goToWeek(-1)"
             />
-            <span class="font-semibold">{{ __('roster.week', { number: weekNumber }) }}</span>
-            <span class="text-(--color-text-muted)">
+            <span data-testid="roster-week-label" class="whitespace-nowrap font-semibold">{{ __('roster.week', { number: weekNumber }) }}</span>
+            <span data-testid="roster-week-dates" class="whitespace-nowrap text-(--color-text-muted)">
                 {{ formatDate(days[0]) }} - {{ formatDate(days[days.length - 1]) }}
             </span>
             <ButtonSecondary
@@ -98,7 +98,7 @@ function goToWeek(offset) {
         <div v-else class="overflow-x-auto border-t border-(--color-table-header-separator)">
             <table class="w-full text-sm">
                 <thead>
-                    <tr class="border-b border-(--color-table-header-separator) bg-(--color-table-header-bg) text-left text-(--color-table-header-text)">
+                    <tr class="whitespace-nowrap border-b border-(--color-table-header-separator) bg-(--color-table-header-bg) text-left text-(--color-table-header-text)">
                         <th class="px-4 py-2 font-medium">{{ __('roster.column.name') }}</th>
                         <th class="px-4 py-2 font-medium">{{ __('roster.column.business_line') }}</th>
                         <th
@@ -121,7 +121,7 @@ function goToWeek(offset) {
                         class="border-b border-(--color-table-row-separator) last:border-b-0 hover:bg-(--color-table-row-hover-bg)"
                     >
                         <td class="whitespace-nowrap px-4 py-2 align-top text-(--color-table-row-text)">{{ row.name }}</td>
-                        <td class="px-4 py-2 align-top text-(--color-table-row-text)">
+                        <td data-testid="roster-business-line" class="whitespace-nowrap px-4 py-2 align-top text-(--color-table-row-text)">
                             {{ row.business_line ?? __('roster.no_business_line') }}
                         </td>
                         <td

@@ -85,6 +85,16 @@ describe("Roster", () => {
         expect(rowEls[1].text()).toContain("—");
     });
 
+    it("keeps the header and business line text on one line", () => {
+        const w = mountRoster();
+
+        expect(w.get("thead tr").classes()).toContain("whitespace-nowrap");
+        expect(w.get("[data-testid='roster-week-label']").classes()).toContain("whitespace-nowrap");
+        expect(w.get("[data-testid='roster-week-dates']").classes()).toContain("whitespace-nowrap");
+        w.findAll("[data-testid='roster-business-line']").forEach((td) => expect(td.classes()).toContain("whitespace-nowrap"));
+        expect(w.findAll("[data-testid='roster-business-line']")).toHaveLength(2);
+    });
+
     it("lists each assignment of a day with shift and workcenter", () => {
         const cell = mountRoster().get("[data-testid='roster-cell-1-2026-09-22']");
         const items = cell.findAll("[data-testid='roster-assignment']");
