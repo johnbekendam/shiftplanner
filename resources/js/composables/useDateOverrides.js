@@ -35,16 +35,21 @@ export function useDateOverrides(rows, urlFor) {
     const isDirty = () => Object.keys(pending).length > 0
 
     async function save() {
-        const results = await Promise.allSettled(Object.entries(pending).map(([date, day]) =>
-            putAsync(urlFor(date), day).then(() => {
+        let ok = true
+        for (const [date, day] of Object.entries(pending)) {
+            try {
+                await putAsync(urlFor(date), day)
                 const next = { ...committed.value }
                 if (isEmpty(day)) delete next[date]
                 else next[date] = day
                 committed.value = next
                 // An edit made while this request ran stays pending.
                 if (sameDay(pending[date], day)) delete pending[date]
-            })))
-        return results.every((r) => r.status === 'fulfilled')
+            } catch {
+                ok = false
+            }
+        }
+        return ok
     }
 
     function reset() {
