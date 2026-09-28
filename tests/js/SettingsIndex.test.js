@@ -7,7 +7,6 @@ const en = {
     "settings.tab.competences": "Competences",
     "settings.tab.business_lines": "Business lines",
     "settings.tab.shifts": "Shifts",
-    "settings.tab.information": "Information",
     "settings.tab.questions": "Questions",
     "settings.tab.general": "General",
     "settings.tab.screens": "Screens",
@@ -142,13 +141,14 @@ const findSaveButton = (w) => w.findAll("button").find((b) => ["Save", "Savingâ€
 const findCancelButton = (w) => w.findAll("button").find((b) => b.text() === "Cancel");
 
 describe("Settings/Index", () => {
-    it("shows a tab for competences, business lines, shifts, information, questions and general", () => {
+    it("shows a tab for competences, business lines, shifts, questions and general, and no Information tab", () => {
         const text = mountPage().text();
+        const tabs = mountPage().findComponent(Tabs).props("tabs").map((t) => t.value);
         expect(text).toContain("Competences");
         expect(text).toContain("Business lines");
         expect(text).toContain("Shifts");
         expect(text).toContain("Workcenters");
-        expect(text).toContain("Information");
+        expect(tabs).not.toContain("information");
         expect(text).toContain("Questions");
         expect(text).toContain("General");
         expect(text).not.toContain("Product groups");
@@ -272,9 +272,17 @@ describe("Settings/Index", () => {
         expect(w.findComponent(ShiftNoteForm).props("note")).toBe("# Allowances");
     });
 
-    it("the Information tab's Save enables on edit and saves via the note form's own endpoint", async () => {
+    it("shows the shift note form on the General tab, below the period form", () => {
+        const panel = mountPage().get('[data-testid="panel-general"]');
+        const period = panel.findComponent(PeriodSettingsForm).element;
+        const note = panel.findComponent(ShiftNoteForm).element;
+
+        expect(period.compareDocumentPosition(note) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    });
+
+    it("the General tab's Save saves only the note when only the note changed", async () => {
         const w = mountPage({ shiftNote: "" });
-        const bar = w.get('[data-testid="panel-information"]');
+        const bar = w.get('[data-testid="panel-general"]');
         const save = () => bar.findAll("button").find((b) => ["Save", "Savingâ€¦", "Saved"].includes(b.text()));
         expect(save().attributes("disabled")).toBeDefined();
 
@@ -286,6 +294,43 @@ describe("Settings/Index", () => {
         await flushPromises();
 
         expect(routerCalls.some((c) => c[0] === "put" && c[1] === "/settings/shifts/note")).toBe(true);
+        expect(routerCalls.some((c) => c[1] === "/settings/period")).toBe(false);
+    });
+
+    it("the General tab's Save saves both forms, the period first", async () => {
+        const w = mountPage({ period: { fte_hours: 40 }, shiftNote: "" });
+        w.findComponent(PeriodSettingsForm).findComponent(NumberInput).vm.$emit("update:modelValue", 32);
+        w.findComponent(ShiftNoteForm).findComponent(MultilineInput).vm.$emit("update:modelValue", "New note");
+        await w.vm.$nextTick();
+
+        const bar = w.get('[data-testid="panel-general"]');
+        await bar.findAll("button").find((b) => b.text() === "Save").trigger("click");
+        await flushPromises();
+
+        expect(routerCalls.filter((c) => c[0] === "put").map((c) => c[1])).toEqual(["/settings/period", "/settings/shifts/note"]);
+    });
+
+    it("Cancel on the General tab reverts the note too", async () => {
+        const w = mountPage({ shiftNote: "Old" });
+        w.findComponent(ShiftNoteForm).findComponent(MultilineInput).vm.$emit("update:modelValue", "New note");
+        await w.vm.$nextTick();
+
+        const bar = w.get('[data-testid="panel-general"]');
+        await bar.findAll("button").find((b) => b.text() === "Cancel").trigger("click");
+        await w.vm.$nextTick();
+
+        expect(w.findComponent(ShiftNoteForm).findComponent(MultilineInput).props("modelValue")).toBe("Old");
+        expect(routerCalls).toEqual([]);
+    });
+
+    it("shows a dirty dot on the General tab when the note has unsaved edits", async () => {
+        const w = mountPage({ shiftNote: "" });
+        const findTab = () => w.findAll("button").find((b) => b.text().includes("General"));
+
+        w.findComponent(ShiftNoteForm).findComponent(MultilineInput).vm.$emit("update:modelValue", "New note");
+        await w.vm.$nextTick();
+
+        expect(findTab().find('[data-testid="tab-dirty-dot"]').exists()).toBe(true);
     });
 
     it("mounts the Business lines list with its items", () => {

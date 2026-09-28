@@ -35,13 +35,12 @@ const props = defineProps({
 
 const tab = ref('general')
 const tabs = computed(() => [
-    { value: 'general', label: __('settings.tab.general'), dirty: periodFormRef.value?.isDirty ?? false },
+    { value: 'general', label: __('settings.tab.general'), dirty: generalDirty.value },
     { value: 'business_lines', label: __('settings.tab.business_lines'), dirty: businessLinesDirty.value },
     { value: 'shifts', label: __('settings.tab.shifts'), dirty: shiftsDirty.value },
     { value: 'workcenters', label: __('settings.tab.workcenters'), dirty: workcentersDirty.value },
     { value: 'questions', label: __('settings.tab.questions'), dirty: questionsTab.dirty.value },
     { value: 'competences', label: __('settings.tab.competences'), dirty: competencesTab.dirty.value },
-    { value: 'information', label: __('settings.tab.information'), dirty: shiftNoteFormRef.value?.isDirty ?? false },
     { value: 'screens', label: __('settings.tab.screens') },
 ])
 
@@ -403,31 +402,31 @@ function useOrderedTab(freshItems, endpoint) {
 const questionsTab = useOrderedTab(() => props.questions, '/settings/questions')
 const competencesTab = useOrderedTab(() => props.competences, '/settings/competences')
 
-// ── General and Information: already local-form/explicit-submit (their
-// own useForm), just driven by the shared TabSaveBar instead of their
-// own inline button. ─────────────────────────────────────────────────
+// ── General: the period form and the shift information note. Both are
+// already local-form/explicit-submit (their own useForm), driven by one
+// shared TabSaveBar. They save one after the other, because a new Inertia
+// visit cancels the one in flight. ────────────────────────────────────
 const periodFormRef = ref(null)
-const periodJustSaved = ref(false)
+const shiftNoteFormRef = ref(null)
+const generalJustSaved = ref(false)
 
-async function savePeriod() {
-    const ok = await periodFormRef.value.submit()
+const generalDirty = computed(() => (periodFormRef.value?.isDirty ?? false) || (shiftNoteFormRef.value?.isDirty ?? false))
+const generalSaving = computed(() => (periodFormRef.value?.processing ?? false) || (shiftNoteFormRef.value?.processing ?? false))
+
+async function saveGeneral() {
+    let ok = true
+    if (periodFormRef.value?.isDirty) ok = await periodFormRef.value.submit()
+    if (ok && shiftNoteFormRef.value?.isDirty) ok = await shiftNoteFormRef.value.submit()
     if (ok) {
-        periodJustSaved.value = true
-        setTimeout(() => { periodJustSaved.value = false }, 2000)
+        generalJustSaved.value = true
+        setTimeout(() => { generalJustSaved.value = false }, 2000)
     }
     return ok
 }
 
-const shiftNoteFormRef = ref(null)
-const shiftNoteJustSaved = ref(false)
-
-async function saveShiftNote() {
-    const ok = await shiftNoteFormRef.value.submit()
-    if (ok) {
-        shiftNoteJustSaved.value = true
-        setTimeout(() => { shiftNoteJustSaved.value = false }, 2000)
-    }
-    return ok
+function cancelGeneral() {
+    periodFormRef.value?.cancel()
+    shiftNoteFormRef.value?.cancel()
 }
 
 useUnsavedChangesGuard(() => (
@@ -436,8 +435,7 @@ useUnsavedChangesGuard(() => (
     || workcentersDirty.value
     || questionsTab.dirty.value
     || competencesTab.dirty.value
-    || (periodFormRef.value?.isDirty ?? false)
-    || (shiftNoteFormRef.value?.isDirty ?? false)
+    || generalDirty.value
 ))
 </script>
 
@@ -468,12 +466,14 @@ useUnsavedChangesGuard(() => (
 
             <div v-show="tab === 'general'" data-testid="panel-general" class="p-6">
                 <PeriodSettingsForm ref="periodFormRef" :period="period" />
+                <CardSeparator />
+                <ShiftNoteForm ref="shiftNoteFormRef" :note="shiftNote" />
                 <TabSaveBar
-                    :dirty="periodFormRef?.isDirty ?? false"
-                    :saving="periodFormRef?.processing ?? false"
-                    :just-saved="periodJustSaved"
-                    @save="savePeriod"
-                    @cancel="periodFormRef?.cancel()"
+                    :dirty="generalDirty"
+                    :saving="generalSaving"
+                    :just-saved="generalJustSaved"
+                    @save="saveGeneral"
+                    @cancel="cancelGeneral"
                 />
             </div>
 
@@ -502,17 +502,6 @@ useUnsavedChangesGuard(() => (
                     :just-saved="workcentersJustSaved"
                     @save="saveWorkcenters"
                     @cancel="cancelWorkcenters"
-                />
-            </div>
-
-            <div v-show="tab === 'information'" data-testid="panel-information" class="p-6">
-                <ShiftNoteForm ref="shiftNoteFormRef" :note="shiftNote" />
-                <TabSaveBar
-                    :dirty="shiftNoteFormRef?.isDirty ?? false"
-                    :saving="shiftNoteFormRef?.processing ?? false"
-                    :just-saved="shiftNoteJustSaved"
-                    @save="saveShiftNote"
-                    @cancel="shiftNoteFormRef?.cancel()"
                 />
             </div>
 
