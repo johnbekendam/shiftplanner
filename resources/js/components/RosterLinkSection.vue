@@ -5,8 +5,8 @@ import ButtonSecondary from '@/components/ui/ButtonSecondary.vue'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 import { useI18n } from '@/composables/useI18n'
 
-// The public roster link on the Settings General tab: the URL, copy, and
-// regenerate. See features/roster-public-link/.
+// The public roster link on the Settings General tab: copy and regenerate
+// buttons, with the URL itself kept off screen. See features/roster-public-link/.
 const __ = useI18n()
 
 defineProps({
@@ -43,7 +43,6 @@ function regenerate() {
         <h2 class="text-sm font-semibold text-(--color-text-primary)">{{ __('settings.roster_link.title') }}</h2>
         <p class="text-sm text-(--color-text-secondary)">{{ __('settings.roster_link.help') }}</p>
         <div class="flex items-center gap-1.5">
-            <code class="min-w-0 truncate text-sm text-(--color-text-primary)" data-testid="roster-link-url">{{ url }}</code>
             <ButtonSecondary
                 type="button"
                 :icon="copied ? 'check-circle' : 'link'"

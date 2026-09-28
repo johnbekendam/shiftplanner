@@ -28,11 +28,13 @@ beforeEach(() => {
 });
 
 describe("RosterLinkSection", () => {
-    it("shows the roster URL", () => {
+    it("shows the copy and regenerate buttons, not the URL", () => {
         const w = mount(RosterLinkSection, { props: { url } });
 
         expect(w.text()).toContain("Roster link");
-        expect(w.text()).toContain(url);
+        expect(w.text()).not.toContain(url);
+        expect(w.find("[data-testid='roster-link-copy']").exists()).toBe(true);
+        expect(w.find("[data-testid='roster-link-regenerate']").exists()).toBe(true);
     });
 
     it("copies the URL to the clipboard", async () => {

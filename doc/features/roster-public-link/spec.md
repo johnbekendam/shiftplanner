@@ -24,8 +24,9 @@ live screens.
 
 ### Link admin
 
-- The Settings General tab has a "Roster link" section. It shows the
-  URL, a copy button, and a "Regenerate link" action with a confirm.
+- The Settings General tab has a "Roster link" section. It shows a
+  copy button and a "Regenerate link" action with a confirm. It does
+  not show the URL.
 - Only an admin sees the section and can regenerate the link.
 
 ### What the page shows

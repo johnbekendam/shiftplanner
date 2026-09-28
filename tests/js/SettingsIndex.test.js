@@ -155,8 +155,7 @@ describe("Settings/Index", () => {
     it("shows the roster link section on the General tab", () => {
         const w = mountPage({ rosterUrl: "https://app.test/roster/secret" });
 
-        expect(w.get("[data-testid='panel-general'] [data-testid='roster-link-url']").text())
-            .toBe("https://app.test/roster/secret");
+        expect(w.find("[data-testid='panel-general'] [data-testid='roster-link-copy']").exists()).toBe(true);
     });
 
     it("mounts the period form seeded from the period prop", () => {
