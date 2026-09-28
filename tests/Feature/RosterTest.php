@@ -240,4 +240,62 @@ class RosterTest extends TestCase
             ['shift' => 'Late', 'workcenter' => 'Packing'],
         ], $this->rows()[0]['days'][1]);
     }
+
+    // ── Business line filter ────────────────────────────────────────────
+
+    /** Anna in ASM, Bob in PCK, Cleo with no business line — all planned this week. */
+    private function threeLines(): array
+    {
+        $asm = BusinessLine::factory()->create(['abbreviation' => 'ASM']);
+        $pck = BusinessLine::factory()->create(['abbreviation' => 'PCK']);
+        $assembly = $this->workcenter('Assembly');
+        $early = $this->shift('Early', '06:00');
+        $this->publish($assembly);
+        $this->assign($this->employee('Anna', 'Smith', $asm), $assembly, $early, '2026-09-22');
+        $this->assign($this->employee('Bob', 'Smith', $pck), $assembly, $early, '2026-09-22');
+        $this->assign($this->employee('Cleo'), $assembly, $early, '2026-09-22');
+
+        return [$asm, $pck];
+    }
+
+    public function test_without_a_filter_every_business_line_shows(): void
+    {
+        [$asm, $pck] = $this->threeLines();
+        $this->actingAs(User::factory()->create());
+
+        $this->get('/roster')->assertInertia(fn ($page) => $page
+            ->where('businessLines', [
+                ['id' => $asm->id, 'abbreviation' => 'ASM'],
+                ['id' => $pck->id, 'abbreviation' => 'PCK'],
+            ])
+            ->where('selectedBusinessLines', [$asm->id, $pck->id, 'none'])
+            ->has('rows', 3));
+    }
+
+    public function test_the_filter_keeps_the_selected_business_lines(): void
+    {
+        [$asm] = $this->threeLines();
+
+        $this->assertSame(['Anna Smith'], array_column($this->rows("?business_lines[]={$asm->id}"), 'name'));
+    }
+
+    public function test_the_filter_can_select_no_business_line(): void
+    {
+        [$asm] = $this->threeLines();
+
+        $this->assertSame(
+            ['Anna Smith', 'Cleo Smith'],
+            array_column($this->rows("?business_lines[]={$asm->id}&business_lines[]=none"), 'name'),
+        );
+    }
+
+    public function test_an_empty_selection_shows_no_rows(): void
+    {
+        $this->threeLines();
+        $this->actingAs(User::factory()->create());
+
+        $this->get('/roster?business_lines[]=__empty__')->assertInertia(fn ($page) => $page
+            ->where('selectedBusinessLines', [])
+            ->has('rows', 0));
+    }
 }

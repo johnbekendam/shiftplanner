@@ -1,6 +1,6 @@
 # Roster — Plan
 
-Status: in progress — 2/5
+Status: in progress — 3/5
 
 - [x] 1. Route and controller: `GET /roster` for all logged-in users
   renders `Roster` with the week (`?week=`, current ISO week by
@@ -9,7 +9,7 @@ Status: in progress — 2/5
   the week, sorted by name, with the business line abbreviation and
   the assignments (shift, workcenter) for each day. Unpublished
   (week, workcenter) pairs are left out.
-- [ ] 3. Business line filter on the server: the `business_lines` query
+- [x] 3. Business line filter on the server: the `business_lines` query
   of the Employees page, with "none". Extract the shared parse logic
   from `EmployeeController` so both pages use it.
 - [ ] 4. Page: `Roster.vue` in `AppLayout` with the week grid, the muted

@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\BusinessLine;
 use App\Models\PublishedWeek;
 use App\Models\ShiftAssignment;
+use App\Services\BusinessLineFilter;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -20,13 +22,20 @@ class RosterController extends Controller
         $now = now();
         $weekStart = $this->weekStart($request, $now);
         $days = collect(range(0, 6))->map(fn (int $i) => $weekStart->copy()->addDays($i));
+        $businessLines = BusinessLine::all(); // position-ordered by the model scope
+        $filter = BusinessLineFilter::fromRequest($request, $businessLines);
 
         return Inertia::render('Roster', [
             'weekStart' => $weekStart->toDateString(),
             'weekNumber' => $weekStart->isoWeek,
             'today' => $now->toDateString(),
             'days' => $days->map->toDateString()->all(),
-            'rows' => $this->rows($weekStart, $days),
+            'rows' => $this->rows($weekStart, $days, $filter),
+            'businessLines' => $businessLines->map(fn (BusinessLine $line) => [
+                'id' => $line->id,
+                'abbreviation' => $line->abbreviation,
+            ])->all(),
+            'selectedBusinessLines' => $filter->selected(),
         ]);
     }
 
@@ -34,9 +43,9 @@ class RosterController extends Controller
      * One row per employee with a published assignment in the week, sorted by
      * name. `days` holds seven lists of { shift, workcenter }, Monday first,
      * each in shift start order. An assignment shows only when its own
-     * (week, workcenter) pair is published.
+     * (week, workcenter) pair is published. $filter limits the employees.
      */
-    private function rows(Carbon $weekStart, Collection $days): array
+    private function rows(Carbon $weekStart, Collection $days, BusinessLineFilter $filter): array
     {
         $publishedWorkcenterIds = PublishedWeek::query()
             ->where('week_start', $weekStart->toDateString())
@@ -47,6 +56,7 @@ class RosterController extends Controller
         $assignments = ShiftAssignment::query()
             ->whereIn('workcenter_id', $publishedWorkcenterIds)
             ->whereBetween('date', [$dates->first(), $dates->last()])
+            ->whereHas('employee', fn ($q) => $filter->apply($q, 'business_line_id'))
             ->with(['employee.businessLine', 'shift', 'workcenter'])
             ->get();
 
