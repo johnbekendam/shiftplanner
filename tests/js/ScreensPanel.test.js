@@ -76,6 +76,16 @@ describe("ScreensPanel", () => {
         expect(w.get("[data-testid='screen-row-workcenter-3'] [data-testid='screen-copy']").attributes("aria-label")).toBe("Link copied");
     });
 
+    it("does not fail when the clipboard is not available", async () => {
+        Object.assign(navigator, { clipboard: undefined });
+        const w = mountPanel();
+
+        await w.get("[data-testid='screen-row-workcenter-1'] [data-testid='screen-copy']").trigger("click");
+        await flushPromises();
+
+        expect(w.get("[data-testid='screen-row-workcenter-1'] [data-testid='screen-copy']").attributes("aria-label")).toBe("Copy link");
+    });
+
     it("copies the roster URL", async () => {
         const writeText = vi.fn().mockResolvedValue();
         Object.assign(navigator, { clipboard: { writeText } });

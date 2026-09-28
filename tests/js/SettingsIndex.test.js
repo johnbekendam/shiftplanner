@@ -448,21 +448,14 @@ describe("Settings/Index", () => {
         expect(list.props("items")).toHaveLength(1);
     });
 
-    it("passes each workcenter's live URL to the list", () => {
+    it("regenerates a live link from the Screens tab and leaves the Workcenters tab clean", async () => {
         const w = mountPage({
+            rosterUrl: "https://app.test/roster/secret",
             workcenters: [{ id: 3, name: "Line 1", position: 1, archived_at: null, shifts: [], live_url: "https://app.test/live/abc" }],
         });
 
-        expect(w.findComponent(WorkcenterList).props("liveUrls")).toEqual({ 3: "https://app.test/live/abc" });
-    });
-
-    it("regenerates a live link with one POST and leaves the Workcenters tab clean", async () => {
-        const w = mountPage({
-            workcenters: [{ id: 3, name: "Line 1", position: 1, archived_at: null, shifts: [], live_url: "https://app.test/live/abc" }],
-        });
-
-        w.findComponent(WorkcenterList).vm.$emit("regenerate-live-link", 3);
-        await w.vm.$nextTick();
+        await w.get('[data-testid="screen-row-workcenter-3"] [data-testid="screen-regenerate"]').trigger("click");
+        await w.findAllComponents({ name: "ConfirmDialog" }).find((d) => d.props("open")).vm.$emit("confirm");
 
         expect(routerCalls).toEqual([
             ["post", "/settings/workcenters/3/live-token", {}, { preserveScroll: true, preserveState: true }],
