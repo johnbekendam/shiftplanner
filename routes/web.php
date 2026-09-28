@@ -104,6 +104,7 @@ Route::middleware('auth')->group(function () {
         Route::put('/settings/questions/{question}', [QuestionController::class, 'update'])->name('settings.questions.update');
         Route::delete('/settings/questions/{question}', [QuestionController::class, 'destroy'])->name('settings.questions.destroy');
         Route::put('/settings/period', [PeriodController::class, 'update'])->name('settings.period.update');
+        Route::post('/settings/roster-token', [SettingsController::class, 'regenerateRosterToken'])->name('settings.roster-token');
         Route::post('/settings/workcenters', [WorkcenterController::class, 'store'])->name('settings.workcenters.store');
         Route::put('/settings/workcenters/reorder', [WorkcenterController::class, 'reorder'])->name('settings.workcenters.reorder');
         Route::put('/settings/workcenters/{workcenter}', [WorkcenterController::class, 'update'])->name('settings.workcenters.update');

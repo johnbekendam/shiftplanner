@@ -7,6 +7,7 @@ use App\Models\PlanningSettings;
 use App\Models\PublishedWeek;
 use App\Models\Shift;
 use App\Models\ShiftAssignment;
+use App\Models\User;
 use App\Models\Workcenter;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -82,5 +83,44 @@ class RosterPublicLinkTest extends TestCase
 
         $this->assertSame('Anna Smit', $rows[0]['name']);
         $this->assertSame([['shift' => 'Early', 'workcenter' => 'Assembly']], $rows[0]['days'][1]);
+    }
+
+    // ── Regenerate ──────────────────────────────────────────────────────
+
+    public function test_an_admin_regenerates_the_token_and_the_old_link_stops(): void
+    {
+        $old = $this->token();
+        $this->actingAs(User::factory()->admin()->create());
+
+        $this->post('/settings/roster-token')->assertRedirect();
+
+        $new = PlanningSettings::current()->rosterToken();
+        $this->assertNotSame($old, $new);
+        auth()->logout();
+        $this->get("/roster/{$old}")->assertNotFound();
+        $this->get("/roster/{$new}")->assertOk();
+    }
+
+    public function test_a_manager_cannot_regenerate_the_token(): void
+    {
+        $old = $this->token();
+        $this->actingAs(User::factory()->create());
+
+        $this->post('/settings/roster-token')->assertForbidden();
+
+        $this->assertSame($old, PlanningSettings::current()->rosterToken());
+    }
+
+    public function test_a_guest_cannot_regenerate_the_token(): void
+    {
+        $this->post('/settings/roster-token')->assertRedirect('/login');
+    }
+
+    public function test_the_settings_page_carries_the_roster_url(): void
+    {
+        $this->actingAs(User::factory()->admin()->create());
+
+        $this->get('/settings')->assertInertia(fn ($page) => $page
+            ->where('rosterUrl', url("/roster/{$this->token()}")));
     }
 }

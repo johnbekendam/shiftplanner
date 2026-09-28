@@ -56,6 +56,17 @@ class PlanningSettings extends Model
         return $this->roster_token;
     }
 
+    /** Replaces the roster token. The old link stops working at once. */
+    public function regenerateRosterToken(): void
+    {
+        $this->update(['roster_token' => Str::random(40)]);
+    }
+
+    public function rosterUrl(): string
+    {
+        return url("/roster/{$this->rosterToken()}");
+    }
+
     /**
      * The shift information note rendered to HTML, or null when blank.
      *

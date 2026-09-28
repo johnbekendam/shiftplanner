@@ -468,6 +468,7 @@
     "users.flash.invite_resent": "Invite resent.",
 
     "settings.title": "Settings",
+    "settings.roster_link.regenerated": "Roster link regenerated. The old link no longer works.",
     "settings.tab.competences": "Competences",
     "settings.tab.business_lines": "Business lines",
     "settings.tab.shifts": "Shifts",
