@@ -3,6 +3,8 @@ import { mount } from "@vue/test-utils";
 
 const en = {
     "availability.default_week.heading": "Default availability",
+    "availability.specific.heading": "Specific availability",
+    "availability.specific.hint": "Click a date to change its availability.",
     "availability.day.title": ":weekday :date",
     "availability.weekday_long.1": "Monday",
 };
@@ -79,5 +81,23 @@ describe("AvailabilityCalendarSection", () => {
         expect(card().find('[data-testid="date-hint"]').exists()).toBe(false);
         expect(card().getComponent(DateAvailabilityGrid).props("day")).toMatchObject({ date: "2026-10-05" });
         expect(card().get('[data-testid="date-card-header"]').text()).toContain("Monday 05-10-2026");
+    });
+
+    it("puts the date card to the right of the calendar, stacked on narrow screens", () => {
+        const w = mountSection();
+        const row = w.get('[data-testid="availability-calendar-section"]');
+
+        expect(row.classes()).toEqual(expect.arrayContaining(["flex", "flex-col", "sm:flex-row", "sm:items-start"]));
+        expect(row.element.children[0].dataset.testid).not.toBe("date-card");
+        expect(row.findComponent(AvailabilityCalendar).exists()).toBe(true);
+        expect(row.get('[data-testid="date-card"]').classes()).toEqual(expect.arrayContaining(["min-w-0", "flex-1"]));
+    });
+
+    it("shows the Specific availability header and the date hint with no date selected", () => {
+        const w = mountSection();
+        const card = w.get('[data-testid="date-card"]');
+
+        expect(card.get('[data-testid="date-card-header"]').text()).toBe("Specific availability");
+        expect(card.get('[data-testid="date-hint"]').text()).toBe("Click a date to change its availability.");
     });
 });
