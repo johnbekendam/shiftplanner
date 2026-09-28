@@ -184,6 +184,19 @@ describe("Roster", () => {
             );
         });
 
+        it("unchecking the last checked line selects none, not all", async () => {
+            const w = mountRoster({ businessLines, selectedBusinessLines: [1] });
+            await openMenu(w);
+
+            await w.get('[data-testid="business-lines-menu"]').findAll('input[type="checkbox"]')[0].setValue(false);
+
+            expect(router.get).toHaveBeenLastCalledWith(
+                "/roster",
+                { week: "2026-09-21", business_lines: ["__empty__"] },
+                expect.any(Object),
+            );
+        });
+
         it("keeps the selection when the week changes", async () => {
             const w = mountRoster({ businessLines, selectedBusinessLines: [2] });
 
