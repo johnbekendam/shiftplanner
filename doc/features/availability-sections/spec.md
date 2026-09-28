@@ -41,8 +41,8 @@ The weekday letters in the calendar header are plain labels. They have no
 hover, no selection and no click action. A click on a day selects it. A
 second click on the same day deselects it.
 
-The week number of the current week is bold, in the primary text color.
-The other week numbers stay muted.
+Today and the week number of the current week are bold, in the primary
+text color. Today keeps its day fill. The other week numbers stay muted.
 
 ## Key decisions
 

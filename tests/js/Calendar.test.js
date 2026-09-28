@@ -364,11 +364,11 @@ describe("Calendar", () => {
         expect(w.emitted("weekday-click")).toBeUndefined();
     });
 
-    it("shows the current week number bold in the primary text color with boldCurrentWeek, across a month start", () => {
+    it("shows the current week number bold in the primary text color with boldCurrent, across a month start", () => {
         vi.useFakeTimers({ now: new Date(2026, 8, 28), toFake: ["Date"] });
         try {
             const number = (w, i) => w.get(`[data-testid="calendar-week-number-${i}"]`).classes();
-            const october = mount(Calendar, { props: { year: 2026, month: 10, boldCurrentWeek: true } });
+            const october = mount(Calendar, { props: { year: 2026, month: 10, boldCurrent: true } });
             expect(number(october, 0)).toEqual(expect.arrayContaining(["font-bold", "text-(--color-text-primary)"]));
             expect(number(october, 1)).toContain("text-(--color-text-muted)");
             expect(number(october, 1)).not.toContain("font-bold");
@@ -376,6 +376,26 @@ describe("Calendar", () => {
             const plain = mount(Calendar, { props: { year: 2026, month: 10 } });
             expect(number(plain, 0)).toContain("text-(--color-text-muted)");
             expect(number(plain, 0)).not.toContain("font-bold");
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
+    it("shows today bold in the primary text color with boldCurrent, keeping its fill", () => {
+        vi.useFakeTimers({ now: new Date(2026, 9, 14), toFake: ["Date"] });
+        try {
+            const day = (w, n) => w.findAll("button").find((b) => b.text() === String(n)).classes();
+            const w = mount(Calendar, { props: { year: 2026, month: 10, boldCurrent: true, dayStates: { 14: "success", 15: "success" } } });
+            expect(day(w, 14)).toEqual(expect.arrayContaining(["font-bold", "text-(--color-text-primary)", "bg-(--color-badge-success-bg)"]));
+            expect(day(w, 14)).not.toContain("text-(--color-badge-success-text)");
+            expect(day(w, 14)).not.toContain("text-(--color-badge-error-text)");
+            expect(day(w, 14)).not.toContain("font-semibold");
+            expect(day(w, 15)).toContain("text-(--color-badge-success-text)");
+            expect(day(w, 15)).not.toContain("font-bold");
+
+            const plain = mount(Calendar, { props: { year: 2026, month: 10 } });
+            expect(day(plain, 14)).toContain("text-(--color-badge-error-text)");
+            expect(day(plain, 14)).not.toContain("font-bold");
         } finally {
             vi.useRealTimers();
         }

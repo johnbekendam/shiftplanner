@@ -78,7 +78,7 @@ const ringDay = computed(() => {
         :border-legenda="borderLegenda"
         :date-range-start="availableFrom || null"
         :enable-week-day-selection="false"
-        bold-current-week
+        bold-current
         :ring-day="ringDay"
         :highlight-selection="false"
         @change="onChange"

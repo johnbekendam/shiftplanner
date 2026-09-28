@@ -130,8 +130,8 @@ const props = defineProps({
     borderLegenda: { type: Object, default: () => ({}) },
     // False: selecting a day still emits change, but draws no week border.
     highlightSelection: { type: Boolean, default: true },
-    // Shows the week number of the current week bold, in the primary text color.
-    boldCurrentWeek: { type: Boolean, default: false },
+    // Shows today and the week number of the current week bold, in the primary text color.
+    boldCurrent: { type: Boolean, default: false },
     // A day of this month to mark with a ring (a selected date), or null.
     ringDay: { type: Number, default: null },
 })
@@ -235,7 +235,7 @@ function isCurrentWeek(week) {
 
 function weekNumberClass(week) {
     if (isWeekMarked(week)) return weekMarkerNumberClass.value
-    if (props.boldCurrentWeek && isCurrentWeek(week)) return 'font-bold text-(--color-text-primary)'
+    if (props.boldCurrent && isCurrentWeek(week)) return 'font-bold text-(--color-text-primary)'
     return 'text-(--color-text-muted)'
 }
 
@@ -301,6 +301,11 @@ function dayClass(color, selected, today, disabled, hoverable = true, borderStyl
     }
 
     const colorCls = COLOR_CLASS[color] ?? ''
+    if (today && props.boldCurrent) {
+        // Keep the fill, but replace its text color so only one text color applies.
+        const fill = colorCls.split(' ').filter((cls) => !cls.startsWith('text-')).join(' ')
+        return `${base.replace('font-semibold', 'font-bold')} ${border} ${fill} text-(--color-text-primary)`
+    }
     const todayCls = today ? 'text-(--color-badge-error-text)' : ''
     return `${base} ${border} ${colorCls} ${todayCls}`
 }

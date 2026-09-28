@@ -99,8 +99,8 @@ describe("AvailabilityCalendar", () => {
         expect(calendar.props("weekdayHeaderSelected")).toBeUndefined();
     });
 
-    it("marks the current week", () => {
-        expect(mountCalendar().getComponent(Calendar).props("boldCurrentWeek")).toBe(true);
+    it("marks the current week and today", () => {
+        expect(mountCalendar().getComponent(Calendar).props("boldCurrent")).toBe(true);
     });
 
     it("sizes the calendar to its content instead of stretching", () => {
