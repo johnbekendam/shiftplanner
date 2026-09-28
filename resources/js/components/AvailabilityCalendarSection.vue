@@ -35,9 +35,7 @@ const props = defineProps({
 // update:availability — a default grid change; apply-day — a whole date.
 const emit = defineEmits(['update:availability', 'apply-day'])
 
-// The card edits the default week or one date; the calendar keeps at most
-// one of the two selected.
-const defaultWeekSelected = ref(false)
+// The date whose availability the date card edits, or null.
 const selectedDate = ref(null)
 
 const selectedDay = computed(() => selectedDate.value
@@ -60,9 +58,30 @@ const dayTitle = computed(() => selectedDay.value
 
 <template>
     <div class="space-y-6">
+        <Card data-testid="default-week-card">
+            <template #header>
+                <div data-testid="default-week-card-header" class="flex h-12 items-center px-6 text-md font-semibold">
+                    {{ __('availability.default_week.heading') }}
+                </div>
+            </template>
+            <div class="px-6 py-4">
+                <AvailabilityGrid
+                    :key="gridKey"
+                    :shifts="shifts"
+                    :availability="defaults"
+                    :disabled="disabled"
+                    :show-add-hint="showAddHint"
+                    @update:availability="emit('update:availability', $event)"
+                />
+                <template v-if="scheduleNoteHtml">
+                    <CardSeparator />
+                    <ShiftNote :html="scheduleNoteHtml" data-testid="availability-card-note" />
+                </template>
+            </div>
+        </Card>
+
         <section class="min-w-0 space-y-3" data-testid="availability-calendar-section">
             <AvailabilityCalendar
-                v-model:default-week-selected="defaultWeekSelected"
                 v-model:selected-date="selectedDate"
                 :shifts="shifts"
                 :defaults="defaults"
@@ -72,47 +91,30 @@ const dayTitle = computed(() => selectedDay.value
             />
         </section>
 
-        <section class="min-w-0" data-testid="default-week-section">
-            <Card>
-                <template v-if="defaultWeekSelected || selectedDay" #header>
-                    <div data-testid="availability-card-header" class="flex h-12 items-center justify-between gap-4 px-6">
-                        <span class="text-md font-semibold">
-                            {{ defaultWeekSelected ? __('availability.default_week.heading') : dayTitle }}
-                        </span>
-                        <DayBlockToggle
-                            v-if="!defaultWeekSelected && selectedDay && !selectedDay.holiday"
-                            :day="selectedDay"
-                            :disabled="disabled"
-                            @apply-day="emit('apply-day', $event)"
-                        />
-                    </div>
-                </template>
-
-                <div class="px-6 py-4">
-                    <AvailabilityGrid
-                        v-if="defaultWeekSelected"
-                        :key="gridKey"
-                        :shifts="shifts"
-                        :availability="defaults"
-                        :disabled="disabled"
-                        :show-add-hint="showAddHint"
-                        @update:availability="emit('update:availability', $event)"
-                    />
-                    <DateAvailabilityGrid
-                        v-else-if="selectedDay"
+        <Card data-testid="date-card">
+            <template v-if="selectedDay" #header>
+                <div data-testid="date-card-header" class="flex h-12 items-center justify-between gap-4 px-6">
+                    <span class="text-md font-semibold">{{ dayTitle }}</span>
+                    <DayBlockToggle
+                        v-if="!selectedDay.holiday"
                         :day="selectedDay"
                         :disabled="disabled"
                         @apply-day="emit('apply-day', $event)"
                     />
-                    <p v-else data-testid="default-week-hint" class="text-sm text-(--color-text-secondary)">
-                        {{ __('availability.default_week.hint') }}
-                    </p>
-                    <template v-if="scheduleNoteHtml">
-                        <CardSeparator />
-                        <ShiftNote :html="scheduleNoteHtml" data-testid="availability-card-note" />
-                    </template>
                 </div>
-            </Card>
-        </section>
+            </template>
+
+            <div class="px-6 py-4">
+                <DateAvailabilityGrid
+                    v-if="selectedDay"
+                    :day="selectedDay"
+                    :disabled="disabled"
+                    @apply-day="emit('apply-day', $event)"
+                />
+                <p v-else data-testid="date-hint" class="text-sm text-(--color-text-secondary)">
+                    {{ __('availability.default_week.hint') }}
+                </p>
+            </div>
+        </Card>
     </div>
 </template>
