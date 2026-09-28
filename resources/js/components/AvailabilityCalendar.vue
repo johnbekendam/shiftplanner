@@ -18,25 +18,16 @@ const props = defineProps({
     // [{ start_date, end_date }]
     holidays: { type: Array, default: () => [] },
     availableFrom: { type: String, default: null },
-    // True while the default week is being edited (the weekday header is selected).
-    defaultWeekSelected: { type: Boolean, default: false },
     // The 'Y-m-d' date whose availability is being edited, or null.
     selectedDate: { type: String, default: null },
 })
 
-// Picking the default week or a date clears the other; a second click deselects.
-const emit = defineEmits(['update:defaultWeekSelected', 'update:selectedDate'])
-
-// Any weekday letter selects the whole header: the default week.
-function onWeekdayClick() {
-    emit('update:defaultWeekSelected', !props.defaultWeekSelected)
-    emit('update:selectedDate', null)
-}
+// A second click on the selected date deselects it.
+const emit = defineEmits(['update:selectedDate'])
 
 function onDayClick({ year: y, month: m, day }) {
     const date = dateString(y, m, day)
     emit('update:selectedDate', props.selectedDate === date ? null : date)
-    emit('update:defaultWeekSelected', false)
 }
 
 const today = new Date()
@@ -87,12 +78,11 @@ const ringDay = computed(() => {
             :day-states="states.dayStates"
             :day-borders="states.dayBorders"
             :date-range-start="availableFrom || null"
-            :weekday-header-selected="defaultWeekSelected"
+            :enable-week-day-selection="false"
             :ring-day="ringDay"
             :highlight-selection="false"
             @change="onChange"
             @day-click="onDayClick"
-            @weekday-click="onWeekdayClick"
         />
 
         <Card class="min-w-0 flex-1" data-testid="availability-info-card">

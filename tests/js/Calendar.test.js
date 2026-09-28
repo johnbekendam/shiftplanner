@@ -350,33 +350,26 @@ describe("Calendar", () => {
         expect(w.emitted("weekday-click")).toEqual([[{ weekday: 1 }], [{ weekday: 7 }]]);
     });
 
+    it("shows the weekday letters as plain labels when weekday selection is off", async () => {
+        const w = mount(Calendar, { props: { year: 2026, month: 10, enableWeekDaySelection: false } });
+        const header = w.get('[data-testid="calendar-weekday-header"]');
+        const letters = header.findAll("button");
+
+        expect(letters.every((b) => !b.classes().includes("hover:border-(--color-tab-hover-border)"))).toBe(true);
+        expect(letters.every((b) => !b.classes().includes("cursor-pointer"))).toBe(true);
+        expect(header.classes()).not.toContain("cursor-pointer");
+
+        await letters[2].trigger("click");
+        await header.trigger("click");
+        expect(w.emitted("weekday-click")).toBeUndefined();
+    });
+
     it("draws a ring around ringDay only", () => {
         const w = mount(Calendar, { props: { year: 2026, month: 10, ringDay: 14 } });
         const day = (n) => w.findAll("button").find((b) => b.text() === String(n));
 
         expect(day(14).classes()).toContain("ring-2");
         expect(day(15).classes()).not.toContain("ring-2");
-    });
-
-    it("draws one border around the whole weekday header when weekdayHeaderSelected is set", async () => {
-        const w = mount(Calendar, { props: { year: 2026, month: 10, weekdayHeaderSelected: false } });
-        const header = w.get('[data-testid="calendar-weekday-header"]');
-        expect(header.classes()).not.toContain("border-(--color-tab-active-border)");
-
-        await header.findAll("button")[2].trigger("click");
-        expect(header.findAll("button").every((b) => !b.classes().includes("border-(--color-tab-active-border)"))).toBe(true);
-
-        await w.setProps({ weekdayHeaderSelected: true });
-        expect(header.classes()).toContain("border-(--color-tab-active-border)");
-        expect(header.findAll("button").every((b) => !b.classes().includes("border-(--color-tab-active-border)"))).toBe(true);
-    });
-
-    it("shows the hover border on the whole weekday header, not on single letters, in header-selection mode", () => {
-        const w = mount(Calendar, { props: { year: 2026, month: 10, weekdayHeaderSelected: false } });
-        const header = w.get('[data-testid="calendar-weekday-header"]');
-
-        expect(header.classes()).toContain("hover:border-(--color-tab-hover-border)");
-        expect(header.findAll("button").every((b) => !b.classes().includes("hover:border-(--color-tab-hover-border)"))).toBe(true);
     });
 
     it("hovers a single day, not its week row, when highlightSelection is false", () => {
@@ -395,14 +388,6 @@ describe("Calendar", () => {
 
         expect(weekRow(day14).className).toContain("hover:border-(--color-tab-hover-border)");
         expect(day14.classes()).not.toContain("hover:border-(--color-tab-hover-border)");
-    });
-
-    it("selects the weekday header from anywhere on the row in header-selection mode", async () => {
-        const w = mount(Calendar, { props: { year: 2026, month: 10, weekdayHeaderSelected: false } });
-
-        await w.get('[data-testid="calendar-week-label"]').trigger("click");
-
-        expect(w.emitted("weekday-click")).toEqual([[{ weekday: 1 }]]);
     });
 
     it("keeps the legend from widening the calendar", () => {
