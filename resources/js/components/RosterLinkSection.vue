@@ -39,10 +39,12 @@ function regenerate() {
 </script>
 
 <template>
-    <section class="space-y-2">
-        <h2 class="text-sm font-semibold text-(--color-text-primary)">{{ __('settings.roster_link.title') }}</h2>
-        <p class="text-sm text-(--color-text-secondary)">{{ __('settings.roster_link.help') }}</p>
-        <div class="flex items-center gap-1.5">
+    <section class="flex items-center justify-between gap-4">
+        <div class="min-w-0 space-y-1">
+            <h2 class="text-sm font-semibold text-(--color-text-primary)">{{ __('settings.roster_link.title') }}</h2>
+            <p class="text-sm text-(--color-text-secondary)">{{ __('settings.roster_link.help') }}</p>
+        </div>
+        <div class="flex shrink-0 items-center gap-1.5">
             <ButtonSecondary
                 type="button"
                 :icon="copied ? 'check-circle' : 'link'"
