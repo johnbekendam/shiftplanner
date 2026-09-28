@@ -766,26 +766,31 @@ describe("Personal/Show", () => {
 
 
 
-    it("puts the block toggle right-aligned in the date card header, not for a holiday", async () => {
+    it("puts the block toggle at the bottom of the date card body, below a separator, not for a holiday", async () => {
         const w = mountShow([], {
             shifts: [{ id: 1, name: "Day", start_time: "08:00", end_time: "12:00", weekdays: [1, 2, 3, 4, 5] }],
             holidays: [{ id: 9, start_date: "2026-10-06", end_date: "2026-10-06", note: null }],
         });
         const calendar = w.getComponent(AvailabilityCalendar);
-        const header = () => w.get('[data-testid="date-card-header"]');
+        const card = () => w.get('[data-testid="date-card"]');
 
         calendar.vm.$emit("update:selectedDate", "2026-10-05");
         await w.vm.$nextTick();
-        expect(header().classes()).toContain("justify-between");
-        expect(header().getComponent(DayBlockToggle).props("day")).toMatchObject({ date: "2026-10-05" });
+        expect(card().get('[data-testid="date-card-header"]').findComponent(DayBlockToggle).exists()).toBe(false);
+        const html = card().html();
+        expect(html.indexOf("<table")).toBeLessThan(html.indexOf("<hr"));
+        expect(html.indexOf("<hr")).toBeLessThan(html.indexOf('data-testid="day-block-row"'));
+        const toggle = card().get('[data-testid="day-block-row"]').getComponent(DayBlockToggle);
+        expect(toggle.props("day")).toMatchObject({ date: "2026-10-05" });
 
-        header().getComponent(DayBlockToggle).vm.$emit("apply-day", { date: "2026-10-05", blocked: true, shifts: {} });
+        toggle.vm.$emit("apply-day", { date: "2026-10-05", blocked: true, shifts: {} });
         await w.vm.$nextTick();
         expect(calendar.props("overrides")).toEqual({ "2026-10-05": { blocked: true, shifts: {} } });
 
         calendar.vm.$emit("update:selectedDate", "2026-10-06");
         await w.vm.$nextTick();
-        expect(header().findComponent(DayBlockToggle).exists()).toBe(false);
+        expect(card().findComponent(DayBlockToggle).exists()).toBe(false);
+        expect(card().find("hr").exists()).toBe(false);
     });
 
     it("shows the holidays in their own card with a Holidays header", () => {

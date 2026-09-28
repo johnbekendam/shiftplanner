@@ -93,14 +93,8 @@ const dayTitle = computed(() => selectedDay.value
 
             <Card class="min-w-0 flex-1" data-testid="date-card">
                 <template #header>
-                    <div data-testid="date-card-header" class="flex h-12 items-center justify-between gap-4 px-6">
-                        <span class="text-md font-semibold">{{ selectedDay ? dayTitle : __('availability.specific.heading') }}</span>
-                        <DayBlockToggle
-                            v-if="selectedDay && !selectedDay.holiday"
-                            :day="selectedDay"
-                            :disabled="disabled"
-                            @apply-day="emit('apply-day', $event)"
-                        />
+                    <div data-testid="date-card-header" class="flex h-12 items-center px-6 text-md font-semibold">
+                        {{ selectedDay ? dayTitle : __('availability.specific.heading') }}
                     </div>
                 </template>
 
@@ -111,7 +105,17 @@ const dayTitle = computed(() => selectedDay.value
                         :disabled="disabled"
                         @apply-day="emit('apply-day', $event)"
                     />
-                    <p v-else data-testid="date-hint" class="text-sm text-(--color-text-secondary)">
+                    <template v-if="selectedDay && !selectedDay.holiday">
+                        <CardSeparator />
+                        <div data-testid="day-block-row">
+                            <DayBlockToggle
+                                :day="selectedDay"
+                                :disabled="disabled"
+                                @apply-day="emit('apply-day', $event)"
+                            />
+                        </div>
+                    </template>
+                    <p v-else-if="!selectedDay" data-testid="date-hint" class="text-sm text-(--color-text-secondary)">
                         {{ __('availability.specific.hint') }}
                     </p>
                 </div>

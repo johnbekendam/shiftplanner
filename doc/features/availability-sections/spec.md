@@ -28,9 +28,11 @@ bottom:
    - Right: the date card. It takes the remaining width. With no date
      selected, the header shows "Specific availability" and the body
      shows the hint "Click a date to change its availability". With a
-     date selected, the card shows the header, the date grid and the
-     reset button as they are now. On a holiday it shows only the
-     holiday notice, as it does now.
+     date selected, the header shows the date, and the body shows the
+     date grid and the reset button as they are now. The "Block the
+     whole day" checkbox sits at the bottom of the body, below a
+     separator. On a holiday the body shows only the holiday notice, as
+     it does now.
    - On narrow screens the two cards stack.
 4. **Holidays.** No change.
 
