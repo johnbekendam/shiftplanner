@@ -1,7 +1,6 @@
 <script setup>
 import { computed } from 'vue'
 import AvailabilityLevelCell from '@/components/AvailabilityLevelCell.vue'
-import ButtonSecondary from '@/components/ui/ButtonSecondary.vue'
 import { dayOverrides, isoWeekday } from '@/utils/availabilityCalendar'
 import { useI18n } from '@/composables/useI18n'
 
@@ -15,7 +14,7 @@ const props = defineProps({
 })
 
 // Every change emits the whole day, so the parent replaces that date's overrides.
-// The whole-day block is DayBlockToggle, in the card header.
+// The whole-day block (DayBlockToggle) and the reset (DayResetButton) are in the date card.
 const emit = defineEmits(['apply-day'])
 
 const LEVELS = ['available', 'not_preferred', 'unavailable']
@@ -44,10 +43,6 @@ function choose(shiftId, value) {
     if (value === 'default') delete shifts[shiftId]
     else shifts[shiftId] = value
     emit('apply-day', { date: props.day.date, blocked: props.day.blocked, shifts })
-}
-
-function reset() {
-    emit('apply-day', { date: props.day.date, blocked: false, shifts: { ...(props.day.hiddenOverrides ?? {}) } })
 }
 </script>
 
@@ -104,11 +99,5 @@ function reset() {
                 </tr>
             </tbody>
         </table>
-
-        <div v-if="day.changed && !disabled" data-testid="reset-row" class="flex justify-end">
-            <ButtonSecondary type="button" @click="reset">
-                {{ __('availability.day.reset') }}
-            </ButtonSecondary>
-        </div>
     </div>
 </template>

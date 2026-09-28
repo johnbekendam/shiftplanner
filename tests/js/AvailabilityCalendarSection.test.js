@@ -26,6 +26,7 @@ import AvailabilityCalendar from "@/components/AvailabilityCalendar.vue";
 import AvailabilityGrid from "@/components/AvailabilityGrid.vue";
 import DateAvailabilityGrid from "@/components/DateAvailabilityGrid.vue";
 import ShiftNote from "@/components/ShiftNote.vue";
+import DayResetButton from "@/components/DayResetButton.vue";
 
 const day = { id: 1, name: "Day", start_time: "08:00", end_time: "12:00", weekdays: [1, 2, 3, 4, 5] };
 
@@ -99,5 +100,36 @@ describe("AvailabilityCalendarSection", () => {
 
         expect(card.get('[data-testid="date-card-header"]').text()).toBe("Specific availability");
         expect(card.get('[data-testid="date-hint"]').text()).toBe("Click a date to change its availability.");
+    });
+
+    it("puts Reset to default in the date card footer only for a changed date", async () => {
+        const footer = (w) => w.get('[data-testid="date-card"]').find('[data-testid="date-card-footer"]');
+        const w = mountSection({
+            overrides: { "2026-10-05": { blocked: true, shifts: {} } },
+            holidays: [{ start_date: "2026-10-07", end_date: "2026-10-07" }],
+        });
+        expect(footer(w).exists()).toBe(false);
+
+        await selectDate(w, "2026-10-06");
+        expect(footer(w).exists()).toBe(false);
+
+        await selectDate(w, "2026-10-05");
+        expect(footer(w).classes()).toEqual(expect.arrayContaining(["flex", "justify-end"]));
+        footer(w).getComponent(DayResetButton).vm.$emit("apply-day", { date: "2026-10-05", blocked: false, shifts: {} });
+        expect(w.emitted("apply-day")).toEqual([[{ date: "2026-10-05", blocked: false, shifts: {} }]]);
+
+        await w.setProps({ disabled: true });
+        expect(footer(w).exists()).toBe(false);
+    });
+
+    it("shows no footer on a holiday, even with overrides", async () => {
+        const w = mountSection({
+            overrides: { "2026-10-07": { blocked: true, shifts: {} } },
+            holidays: [{ start_date: "2026-10-07", end_date: "2026-10-07" }],
+        });
+
+        await selectDate(w, "2026-10-07");
+
+        expect(w.find('[data-testid="date-card-footer"]').exists()).toBe(false);
     });
 });

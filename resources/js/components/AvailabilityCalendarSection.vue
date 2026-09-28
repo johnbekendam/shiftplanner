@@ -6,6 +6,7 @@ import AvailabilityCalendar from '@/components/AvailabilityCalendar.vue'
 import AvailabilityGrid from '@/components/AvailabilityGrid.vue'
 import DateAvailabilityGrid from '@/components/DateAvailabilityGrid.vue'
 import DayBlockToggle from '@/components/DayBlockToggle.vue'
+import DayResetButton from '@/components/DayResetButton.vue'
 import ShiftNote from '@/components/ShiftNote.vue'
 import { dayAvailability, isoWeekday } from '@/utils/availabilityCalendar'
 import { formatDate } from '@/utils/date'
@@ -54,6 +55,8 @@ const dayTitle = computed(() => selectedDay.value
         date: formatDate(selectedDay.value.date),
     })
     : '')
+
+const canReset = computed(() => !props.disabled && !!selectedDay.value?.changed && !selectedDay.value.holiday)
 </script>
 
 <template>
@@ -119,6 +122,13 @@ const dayTitle = computed(() => selectedDay.value
                         {{ __('availability.specific.hint') }}
                     </p>
                 </div>
+
+                <!-- Only a date with its own changes can go back to the default. -->
+                <template v-if="canReset" #footer>
+                    <div data-testid="date-card-footer" class="flex justify-end px-6 py-3">
+                        <DayResetButton :day="selectedDay" @apply-day="emit('apply-day', $event)" />
+                    </div>
+                </template>
             </Card>
         </section>
     </div>
