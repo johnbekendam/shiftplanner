@@ -10,14 +10,20 @@ const en = {
     "roster.column.business_line": "Business line",
     "roster.no_business_line": "—",
     "roster.empty": "No published shifts in this week.",
+    "business_line_filter.label": "Business lines",
+    "business_line_filter.no_line": "No business line",
+    "business_line_filter.select_all": "Select all",
+    "business_line_filter.select_none": "Select none",
+    "business_line_filter.aria_group": "Filter by business line",
 };
 
+const state = vi.hoisted(() => ({ user: { role: "manager" } }));
 const { router } = vi.hoisted(() => ({ router: { get: vi.fn() } }));
 
 vi.mock("@inertiajs/vue3", () => ({
     router,
     Head: { name: "Head", render: () => null },
-    usePage: () => ({ props: { translations: en, locale: "en", auth: { user: { role: "manager" } } } }),
+    usePage: () => ({ props: { translations: en, locale: "en", auth: { user: state.user } } }),
 }));
 
 import Roster from "@/pages/Roster.vue";
@@ -49,9 +55,16 @@ const mountRoster = (props = {}) =>
         global: { stubs: { AppLayout: { template: "<div><slot /></div>" } } },
     });
 
+const businessLines = [
+    { id: 1, abbreviation: "ASM" },
+    { id: 2, abbreviation: "PCK" },
+];
+
 beforeEach(() => {
+    state.user = { role: "manager" };
     router.get.mockReset();
     window.sessionStorage.clear();
+    window.history.replaceState(null, "", "/roster");
 });
 
 describe("Roster", () => {
@@ -120,5 +133,64 @@ describe("Roster", () => {
 
         await w.get("[aria-label='Next week']").trigger("click");
         expect(router.get).toHaveBeenLastCalledWith("/roster", { week: "2026-10-26" }, expect.any(Object));
+    });
+
+    describe("business line filter", () => {
+        const openMenu = (w) => w.get('[data-testid="business-lines-menu-trigger"]').trigger("click");
+
+        it("lists the business lines plus No business line", async () => {
+            const w = mountRoster({ businessLines, selectedBusinessLines: [1, 2, "none"] });
+            await openMenu(w);
+
+            expect(w.get('[data-testid="business-lines-menu"]').findAll("label").map((l) => l.text()))
+                .toEqual(["ASM", "PCK", "No business line"]);
+        });
+
+        it("reloads the same week with the new selection", async () => {
+            const w = mountRoster({ businessLines, selectedBusinessLines: [1, 2, "none"] });
+            await openMenu(w);
+
+            await w.get('[data-testid="business-lines-menu"]').findAll('input[type="checkbox"]')[1].setValue(false);
+
+            expect(router.get).toHaveBeenLastCalledWith(
+                "/roster",
+                { week: "2026-09-21", business_lines: [1, "none"] },
+                expect.objectContaining({ preserveState: true }),
+            );
+        });
+
+        it("keeps the selection when the week changes", async () => {
+            const w = mountRoster({ businessLines, selectedBusinessLines: [2] });
+
+            await w.get("[aria-label='Next week']").trigger("click");
+
+            expect(router.get).toHaveBeenLastCalledWith(
+                "/roster",
+                { week: "2026-09-28", business_lines: [2] },
+                expect.any(Object),
+            );
+        });
+
+        it("defaults to the signed-in user's business line once per tab", () => {
+            state.user = { role: "manager", business_line_id: 2 };
+
+            mountRoster({ businessLines, selectedBusinessLines: [1, 2, "none"] });
+
+            expect(router.get).toHaveBeenCalledWith(
+                "/roster",
+                { week: "2026-09-21", business_lines: [2] },
+                expect.objectContaining({ replace: true }),
+            );
+            expect(window.sessionStorage.getItem("roster.businessLineDefaultApplied")).toBe("1");
+        });
+
+        it("does not apply the default again in the same tab", () => {
+            state.user = { role: "manager", business_line_id: 2 };
+            window.sessionStorage.setItem("roster.businessLineDefaultApplied", "1");
+
+            mountRoster({ businessLines, selectedBusinessLines: [1, 2, "none"] });
+
+            expect(router.get).not.toHaveBeenCalled();
+        });
     });
 });

@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch, onBeforeUnmount, onMounted } from 'vue'
+import { ref, computed, watch, onBeforeUnmount } from 'vue'
 import { Head, Link, router } from '@inertiajs/vue3'
 import AppLayout from '@/layouts/AppLayout.vue'
 import Card from '@/components/ui/Card.vue'
@@ -8,12 +8,11 @@ import ButtonDanger from '@/components/ui/ButtonDanger.vue'
 import ButtonPrimary from '@/components/ui/ButtonPrimary.vue'
 import ButtonSecondary from '@/components/ui/ButtonSecondary.vue'
 import Icon from '@/components/ui/Icon.vue'
+import BusinessLineFilter from '@/components/BusinessLineFilter.vue'
 import { CheckboxInput, SearchInput } from '@/components/ui/Input'
 import { useI18n } from '@/composables/useI18n'
-import { useAuth } from '@/composables/useAuth'
 
 const __ = useI18n()
-const { user: currentUser } = useAuth()
 
 const props = defineProps({
     employees: { type: Object, required: true },
@@ -46,12 +45,8 @@ const allSelected = computed(() =>
         && selectedIds.value.length === props.employees.data.filter((employee) => !employee.archived).length,
 )
 
-const businessLineOptions = computed(() => [
-    ...props.businessLines.map((line) => ({ value: line.id, label: line.abbreviation })),
-    { value: 'none', label: __('employees.business_lines.no_line') },
-])
 const allBusinessLinesSelected = computed(() =>
-    businessLineOptions.value.every((option) => props.selectedBusinessLines.includes(option.value)),
+    [...props.businessLines.map((line) => line.id), 'none'].every((value) => props.selectedBusinessLines.includes(value)),
 )
 
 const query = computed(() => {
@@ -119,36 +114,6 @@ function reload(overrides) {
     })
 }
 
-const businessLineDefaultSessionKey = 'employees.businessLineDefaultApplied'
-
-function businessLineDefaultApplied() {
-    return window.sessionStorage.getItem(businessLineDefaultSessionKey) === '1'
-}
-
-function markBusinessLineDefaultApplied() {
-    window.sessionStorage.setItem(businessLineDefaultSessionKey, '1')
-}
-
-function hasExplicitBusinessLineQuery() {
-    const params = new URLSearchParams(window.location.search)
-    return [...params.keys()].some((key) => key === 'business_lines' || key.startsWith('business_lines['))
-}
-
-onMounted(() => {
-    const businessLineId = currentUser.value?.business_line_id
-    if (!businessLineId || businessLineDefaultApplied()) return
-
-    if (hasExplicitBusinessLineQuery()) {
-        markBusinessLineDefaultApplied()
-        return
-    }
-
-    if (!props.businessLines.some((line) => line.id === businessLineId)) return
-
-    markBusinessLineDefaultApplied()
-    reload({ business_lines: [businessLineId] })
-})
-
 function sortBy(key) {
     const direction = props.sort === key && props.direction === 'asc' ? 'desc' : 'asc'
     reload({ sort: key === 'name' ? undefined : key, direction: direction === 'asc' ? undefined : direction })
@@ -156,47 +121,6 @@ function sortBy(key) {
 
 function changeStatus(status) {
     reload({ status: status === 'active' ? undefined : status })
-}
-
-const businessLinesMenuOpen = ref(false)
-const businessLinesMenuTriggerEl = ref(null)
-const businessLinesMenuRef = ref(null)
-
-function toggleBusinessLinesMenu(event) {
-    businessLinesMenuOpen.value = !businessLinesMenuOpen.value
-    businessLinesMenuTriggerEl.value = event.currentTarget
-}
-
-function closeBusinessLinesMenu() {
-    businessLinesMenuOpen.value = false
-}
-
-function onClickOutsideBusinessLinesMenu(e) {
-    if (!businessLinesMenuOpen.value) return
-    if (businessLinesMenuTriggerEl.value?.contains(e.target)) return
-    if (businessLinesMenuRef.value?.contains(e.target)) return
-    closeBusinessLinesMenu()
-}
-
-document.addEventListener('mousedown', onClickOutsideBusinessLinesMenu)
-onBeforeUnmount(() => document.removeEventListener('mousedown', onClickOutsideBusinessLinesMenu))
-
-function toggleBusinessLine(value, checked) {
-    const next = new Set(props.selectedBusinessLines)
-    if (checked) next.add(value)
-    else next.delete(value)
-
-    const allValues = businessLineOptions.value.map((option) => option.value)
-    const isAllSelected = allValues.every((v) => next.has(v))
-    reload({ business_lines: isAllSelected ? undefined : allValues.filter((v) => next.has(v)) })
-}
-
-function selectAllBusinessLines() {
-    reload({ business_lines: businessLineOptions.value.map((option) => option.value) })
-}
-
-function selectNoBusinessLines() {
-    reload({ business_lines: ['__empty__'] })
 }
 
 let searchTimer = null
@@ -277,54 +201,13 @@ function bulkDelete() {
                             :placeholder="__('employees.search_placeholder')"
                         />
 
-                        <div class="relative">
-                            <ButtonSecondary
-                                type="button"
-                                data-testid="business-lines-menu-trigger"
-                                :aria-expanded="businessLinesMenuOpen"
-                                @click="toggleBusinessLinesMenu"
-                            >
-                                {{ __('employees.business_lines.label') }}
-                            </ButtonSecondary>
-
-                            <div
-                                v-if="businessLinesMenuOpen"
-                                ref="businessLinesMenuRef"
-                                data-testid="business-lines-menu"
-                                role="group"
-                                :aria-label="__('employees.business_lines.aria_group')"
-                                class="absolute z-50 mt-1 w-max min-w-48 rounded-md border border-(--color-dropdown-panel-border) bg-(--color-dropdown-panel-bg) p-2 shadow-lg"
-                            >
-                                <div class="flex flex-col gap-1">
-                                    <CheckboxInput
-                                        v-for="option in businessLineOptions"
-                                        :key="option.value"
-                                        :model-value="selectedBusinessLines.includes(option.value)"
-                                        class="py-1"
-                                        @update:model-value="(checked) => toggleBusinessLine(option.value, checked)"
-                                    >
-                                        {{ option.label }}
-                                    </CheckboxInput>
-                                </div>
-                                <div role="separator" class="my-2 border-t border-(--color-dropdown-panel-border)"></div>
-                                <div class="flex items-center gap-1">
-                                    <ButtonSecondary
-                                        type="button"
-                                        class="w-full min-w-0 px-2 py-1 text-sm"
-                                        @click="selectAllBusinessLines"
-                                    >
-                                        {{ __('employees.business_lines.select_all') }}
-                                    </ButtonSecondary>
-                                    <ButtonSecondary
-                                        type="button"
-                                        class="w-full min-w-0 px-2 py-1 text-sm"
-                                        @click="selectNoBusinessLines"
-                                    >
-                                        {{ __('employees.business_lines.select_none') }}
-                                    </ButtonSecondary>
-                                </div>
-                            </div>
-                        </div>
+                        <BusinessLineFilter
+                            :business-lines="businessLines"
+                            :selected="selectedBusinessLines"
+                            default-session-key="employees.businessLineDefaultApplied"
+                            @change="(value) => reload({ business_lines: value })"
+                            @default="(value) => reload({ business_lines: value })"
+                        />
                     </div>
 
                     <div class="ml-auto flex items-center justify-end gap-3">

@@ -1,6 +1,6 @@
 # Roster — Plan
 
-Status: in progress — 4/5
+Status: done — 5/5
 
 - [x] 1. Route and controller: `GET /roster` for all logged-in users
   renders `Roster` with the week (`?week=`, current ISO week by
@@ -16,6 +16,6 @@ Status: in progress — 4/5
   dash for an empty day, the highlight for today, the empty state,
   and previous/next week buttons. Add "Roster" to the sidebar after
   "Employees". All text in `en.json`.
-- [ ] 5. Business line filter on the page: extract the Employees filter
+- [x] 5. Business line filter on the page: extract the Employees filter
   menu and its once-per-tab default into a shared component, and use
   it on the Employees page and the Roster page.
