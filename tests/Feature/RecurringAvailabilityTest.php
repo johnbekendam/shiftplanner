@@ -341,7 +341,7 @@ class RecurringAvailabilityTest extends TestCase
             );
     }
 
-    public function test_manager_and_personal_payloads_scope_shifts_to_the_employees_workcenters(): void
+    public function test_manager_and_personal_payloads_add_the_employees_workcenter_shifts_to_the_default_visible_ones(): void
     {
         $user = User::factory()->create();
         $employee = Employee::factory()->create();
@@ -351,28 +351,23 @@ class RecurringAvailabilityTest extends TestCase
 
         $run = Shift::factory()->create(['name' => 'Run', 'start_time' => '06:00', 'end_time' => '14:00', 'visible_by_default' => false]);
         $notRun = Shift::factory()->create(['name' => 'NotRun', 'start_time' => '14:00', 'end_time' => '22:00', 'visible_by_default' => true]);
+        $otherHidden = Shift::factory()->create(['name' => 'OtherHidden', 'start_time' => '22:00', 'end_time' => '06:00', 'visible_by_default' => false]);
         $workcenter->shifts()->attach($run);
-        $otherWorkcenter->shifts()->attach($notRun);
+        $otherWorkcenter->shifts()->attach([$notRun->id, $otherHidden->id]);
         $employee->workcenters()->attach($workcenter);
 
-        $employee->recurringAvailabilities()->create(['weekday' => 1, 'shift_id' => $run->id, 'level' => 'unavailable']);
-        $employee->recurringAvailabilities()->create(['weekday' => 1, 'shift_id' => $notRun->id, 'level' => 'unavailable']);
+        foreach ([$run, $notRun, $otherHidden] as $shift) {
+            $employee->recurringAvailabilities()->create(['weekday' => 1, 'shift_id' => $shift->id, 'level' => 'unavailable']);
+        }
 
-        $this->actingAs($user)->get("/employees/{$employee->id}/edit")
-            ->assertInertia(fn ($page) => $page
-                ->has('shifts', 1)
-                ->where('shifts.0.id', $run->id)
-                ->has('availability', 1)
-                ->where('availability.0.shift_id', $run->id)
-            );
+        $assertPayload = fn ($page) => $page
+            ->has('shifts', 2)
+            ->where('shifts.0.id', $run->id)
+            ->where('shifts.1.id', $notRun->id)
+            ->has('availability', 2);
 
-        $this->get("/personal/{$token}")
-            ->assertInertia(fn ($page) => $page
-                ->has('shifts', 1)
-                ->where('shifts.0.id', $run->id)
-                ->has('availability', 1)
-                ->where('availability.0.shift_id', $run->id)
-            );
+        $this->actingAs($user)->get("/employees/{$employee->id}/edit")->assertInertia($assertPayload);
+        $this->get("/personal/{$token}")->assertInertia($assertPayload);
     }
 
     public function test_manager_and_personal_payloads_hide_ineligible_shifts(): void

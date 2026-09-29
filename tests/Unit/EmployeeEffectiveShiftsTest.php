@@ -21,7 +21,7 @@ class EmployeeEffectiveShiftsTest extends TestCase
         $this->assertSame([$visible->id], $employee->effectiveShifts()->pluck('id')->all());
     }
 
-    public function test_a_row_returns_that_workcenters_shifts_including_a_hidden_one(): void
+    public function test_a_row_adds_that_workcenters_hidden_shifts_to_the_default_visible_ones(): void
     {
         $employee = Employee::factory()->create();
         $workcenter = Workcenter::factory()->create();
@@ -29,11 +29,15 @@ class EmployeeEffectiveShiftsTest extends TestCase
         $run = Shift::factory()->create(['visible_by_default' => false]);
         $notRun = Shift::factory()->create(['visible_by_default' => true]);
         $otherWorkcenterShift = Shift::factory()->create(['visible_by_default' => true]);
+        $otherWorkcenterHidden = Shift::factory()->create(['visible_by_default' => false]);
         $workcenter->shifts()->attach($run);
-        $other->shifts()->attach($otherWorkcenterShift);
+        $other->shifts()->attach([$otherWorkcenterShift->id, $otherWorkcenterHidden->id]);
         $employee->workcenters()->attach($workcenter);
 
-        $this->assertSame([$run->id], $employee->effectiveShifts()->pluck('id')->all());
+        $this->assertSame(
+            [$run->id, $notRun->id, $otherWorkcenterShift->id],
+            $employee->effectiveShifts()->pluck('id')->sort()->values()->all()
+        );
     }
 
     public function test_two_rows_union_their_shifts_without_duplicates(): void
