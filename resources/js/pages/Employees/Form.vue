@@ -110,7 +110,9 @@ watch(tab, () => {
 })
 
 function submit() {
-    if (!isEdit.value) form.post('/employees')
+    // The redirect lands on this same component in edit mode. Remount it so
+    // the edit-only save resources register; keep the input on errors.
+    if (!isEdit.value) form.post('/employees', { preserveState: 'errors' })
 }
 
 if (isEdit.value && !isArchived.value) {
