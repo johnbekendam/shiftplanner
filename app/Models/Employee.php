@@ -128,20 +128,21 @@ class Employee extends Model
 
     /**
      * The ISO weekdays (1-7) each effective shift runs on for this
-     * employee: a day where one of their workcenters has spots for it. An
-     * employee without a workcenter counts every active workcenter.
+     * employee: a day where one of its capacity workcenters has spots for
+     * it. See {@see capacityWorkcenterIds()}.
      *
      * @return array<int, int[]> shift_id => sorted weekdays
      */
     public function shiftWeekdays(): array
     {
-        $shiftIds = $this->effectiveShifts()->pluck('id');
+        $workcenterIds = $this->capacityWorkcenterIds();
+        $shiftIds = collect(array_keys($workcenterIds));
 
         $weekdays = WorkcenterShiftCapacity::query()
             ->whereIn('shift_id', $shiftIds)
-            ->whereIn('workcenter_id', $this->capacityWorkcenterIds())
             ->where('spots', '>', 0)
-            ->get(['shift_id', 'weekday'])
+            ->get(['workcenter_id', 'shift_id', 'weekday'])
+            ->filter(fn ($c) => $workcenterIds[$c->shift_id]->contains($c->workcenter_id))
             ->groupBy('shift_id');
 
         return $shiftIds->mapWithKeys(fn (int $id) => [
@@ -152,29 +153,28 @@ class Employee extends Model
     /**
      * Dates where a workcenter date capacity override changes whether an
      * effective shift runs, compared to its weekdays. On a date, a shift
-     * runs when one of the workcenters has spots for it: its date override
-     * when it has one, else its weekly capacity. Only shifts with such a
-     * date are listed.
+     * runs when one of its capacity workcenters has spots for it: its date
+     * override when it has one, else its weekly capacity. Only shifts with
+     * such a date are listed.
      *
      * @return array<int, array{open: string[], closed: string[]}> shift_id => sorted Y-m-d dates
      */
     public function shiftDateExceptions(): array
     {
-        $shiftIds = $this->effectiveShifts()->pluck('id');
         $workcenterIds = $this->capacityWorkcenterIds();
+        $shiftIds = collect(array_keys($workcenterIds));
         $weekdays = $this->shiftWeekdays();
 
         $overrides = WorkcenterShiftDateOverride::query()
             ->whereIn('shift_id', $shiftIds)
-            ->whereIn('workcenter_id', $workcenterIds)
-            ->get();
+            ->get()
+            ->filter(fn ($o) => $workcenterIds[$o->shift_id]->contains($o->workcenter_id));
         if ($overrides->isEmpty()) {
             return [];
         }
 
         $capacities = WorkcenterShiftCapacity::query()
             ->whereIn('shift_id', $shiftIds)
-            ->whereIn('workcenter_id', $workcenterIds)
             ->get()
             ->mapWithKeys(fn ($c) => ["{$c->workcenter_id}:{$c->shift_id}:{$c->weekday}" => $c->spots]);
 
@@ -184,7 +184,7 @@ class Employee extends Model
             $date = $group->first()->date;
             $byWorkcenter = $group->keyBy('workcenter_id');
 
-            $runs = $workcenterIds->contains(fn ($workcenterId) => ($byWorkcenter->get($workcenterId)?->spots
+            $runs = $workcenterIds[$shiftId]->contains(fn ($workcenterId) => ($byWorkcenter->get($workcenterId)?->spots
                 ?? $capacities->get("{$workcenterId}:{$shiftId}:{$date->isoWeekday()}", 0)) > 0);
             $runsWeekly = in_array($date->isoWeekday(), $weekdays[$shiftId] ?? [], true);
 
@@ -222,14 +222,22 @@ class Employee extends Model
         }));
     }
 
-    /** The workcenters whose capacity decides when a shift runs: the employee's own, else every active one. */
-    private function capacityWorkcenterIds(): \Illuminate\Support\Collection
+    /**
+     * Per effective shift, the workcenters whose capacity decides when it
+     * runs: the employee's own when one of them runs the shift, else every
+     * active one.
+     *
+     * @return array<int, \Illuminate\Support\Collection<int, int>> shift_id => workcenter ids
+     */
+    private function capacityWorkcenterIds(): array
     {
-        $workcenterIds = $this->workcenters()->pluck('workcenters.id');
+        $ownIds = $this->workcenters()->pluck('workcenters.id');
+        $ownShiftIds = Shift::whereHas('workcenters', fn ($q) => $q->whereIn('workcenters.id', $ownIds))->pluck('id');
+        $activeIds = Workcenter::query()->whereNull('archived_at')->pluck('id');
 
-        return $workcenterIds->isNotEmpty()
-            ? $workcenterIds
-            : Workcenter::query()->whereNull('archived_at')->pluck('id');
+        return $this->effectiveShifts()->pluck('id')->mapWithKeys(fn (int $id) => [
+            $id => $ownShiftIds->contains($id) ? $ownIds : $activeIds,
+        ])->all();
     }
 
     /** The availability pages' shift list: each shift's payload plus the weekdays and single dates it runs on. */
