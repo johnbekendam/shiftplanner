@@ -7,6 +7,7 @@ const en = {
     "scheduling.title": "Planning",
     "scheduling.filter_workcenters": "Workcenters",
     "scheduling.filter_shifts": "Shifts",
+    "scheduling.filter_all": "All",
     "scheduling.no_schedule": "There's no schedule yet. Add one on the Schedule page.",
     "scheduling.legend_staffed": "Fully staffed",
     "scheduling.legend_open_spots": "Open spots",
@@ -88,6 +89,9 @@ import ConfirmDialog from "@/components/ui/ConfirmDialog.vue";
 import ButtonPrimary from "@/components/ui/ButtonPrimary.vue";
 import ButtonSecondary from "@/components/ui/ButtonSecondary.vue";
 
+// Workcenter and shift checkboxes, without the "All" checkbox in each card header.
+const ITEM_CHECKBOXES = 'input[type="checkbox"]:not([data-testid^="filter-all"])';
+
 const stubs = { AppLayout: { template: "<div><slot /></div>" } };
 
 const baseProps = {
@@ -161,7 +165,7 @@ beforeEach(() => {
 describe("Scheduling", () => {
     it("renders a checklist per workcenter and per shift, all checked by default", () => {
         const w = mountPage();
-        const checkboxes = w.findAll('input[type="checkbox"]');
+        const checkboxes = w.findAll(ITEM_CHECKBOXES);
 
         expect(checkboxes).toHaveLength(4); // 2 workcenters + 2 shifts
         checkboxes.forEach((c) => expect(c.element.checked).toBe(true));
@@ -200,7 +204,7 @@ describe("Scheduling", () => {
 
     it("unchecking a workcenter recolors days that only had coverage from it, with no navigation", async () => {
         const w = mountPage();
-        const line2Checkbox = w.findAll('input[type="checkbox"]').at(1); // Line 2
+        const line2Checkbox = w.findAll(ITEM_CHECKBOXES).at(1); // Line 2
 
         await line2Checkbox.setValue(false);
 
@@ -211,7 +215,7 @@ describe("Scheduling", () => {
     it("saves a workcenter change to the server", async () => {
         const w = mountPage({ hiddenShiftIds: [10] });
 
-        await w.findAll('input[type="checkbox"]').at(1).setValue(false);
+        await w.findAll(ITEM_CHECKBOXES).at(1).setValue(false);
 
         expect(axiosPut).toHaveBeenCalledWith("/planning/filter", {
             hidden_workcenter_ids: [2],
@@ -221,7 +225,7 @@ describe("Scheduling", () => {
 
     it("saves a shift change to the server", async () => {
         const w = mountPage({ hiddenWorkcenterIds: [1] });
-        const lateCheckbox = w.findAll('input[type="checkbox"]').at(3);
+        const lateCheckbox = w.findAll(ITEM_CHECKBOXES).at(3);
 
         await lateCheckbox.setValue(false);
 
@@ -234,14 +238,14 @@ describe("Scheduling", () => {
 
     it("starts from the hidden workcenters and shifts in the props", () => {
         const checkboxes = mountPage({ hiddenWorkcenterIds: [1], hiddenShiftIds: [10] })
-            .findAll('input[type="checkbox"]');
+            .findAll(ITEM_CHECKBOXES);
 
         expect(checkboxes.map((c) => c.element.checked)).toEqual([false, true, true, false]);
     });
 
     it("shows workcenters and shifts that are not in the hidden lists", () => {
         const checkboxes = mountPage({ hiddenWorkcenterIds: [99], hiddenShiftIds: [98] })
-            .findAll('input[type="checkbox"]');
+            .findAll(ITEM_CHECKBOXES);
 
         checkboxes.forEach((c) => expect(c.element.checked).toBe(true));
     });
@@ -249,7 +253,7 @@ describe("Scheduling", () => {
     it("drops hidden ids of removed items when it saves", async () => {
         const w = mountPage({ hiddenWorkcenterIds: [99], hiddenShiftIds: [98] });
 
-        await w.findAll('input[type="checkbox"]').at(0).setValue(false);
+        await w.findAll(ITEM_CHECKBOXES).at(0).setValue(false);
 
         expect(axiosPut).toHaveBeenCalledWith("/planning/filter", {
             hidden_workcenter_ids: [1],
@@ -261,6 +265,45 @@ describe("Scheduling", () => {
         mountPage({ hiddenWorkcenterIds: [1] });
 
         expect(axiosPut).not.toHaveBeenCalled();
+    });
+
+    it("shows a checked All checkbox in each card header when everything shows", () => {
+        const w = mountPage();
+
+        expect(w.get('[data-testid="filter-all-workcenters"]').element.checked).toBe(true);
+        expect(w.get('[data-testid="filter-all-shifts"]').element.checked).toBe(true);
+        expect(w.text()).toContain("All");
+    });
+
+    it("unchecks the All checkbox when one item is hidden", () => {
+        const w = mountPage({ hiddenShiftIds: [10] });
+
+        expect(w.get('[data-testid="filter-all-workcenters"]').element.checked).toBe(true);
+        expect(w.get('[data-testid="filter-all-shifts"]').element.checked).toBe(false);
+    });
+
+    it("hides all workcenters when All is cleared, and saves", async () => {
+        const w = mountPage({ hiddenShiftIds: [10] });
+
+        await w.get('[data-testid="filter-all-workcenters"]').setValue(false);
+
+        expect(w.findAll(ITEM_CHECKBOXES).map((c) => c.element.checked)).toEqual([false, false, true, false]);
+        expect(axiosPut).toHaveBeenCalledWith("/planning/filter", {
+            hidden_workcenter_ids: [1, 2],
+            hidden_shift_ids: [10],
+        });
+    });
+
+    it("shows all shifts when All is clicked with a partial selection, and saves", async () => {
+        const w = mountPage({ hiddenWorkcenterIds: [2], hiddenShiftIds: [10] });
+
+        await w.get('[data-testid="filter-all-shifts"]').setValue(true);
+
+        expect(w.findAll(ITEM_CHECKBOXES).map((c) => c.element.checked)).toEqual([true, false, true, true]);
+        expect(axiosPut).toHaveBeenCalledWith("/planning/filter", {
+            hidden_workcenter_ids: [2],
+            hidden_shift_ids: [],
+        });
     });
 
     it("navigates to the next month via the calendar, carrying year/month/date", async () => {
@@ -341,7 +384,7 @@ describe("Scheduling", () => {
 
     it("unchecking the only relevant workcenter removes its schedule card", async () => {
         const w = mountPage();
-        const line1Checkbox = w.findAll('input[type="checkbox"]').at(0);
+        const line1Checkbox = w.findAll(ITEM_CHECKBOXES).at(0);
 
         await line1Checkbox.setValue(false);
 

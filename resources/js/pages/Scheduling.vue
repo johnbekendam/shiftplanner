@@ -208,6 +208,17 @@ function toggleShift(id, checked) {
     saveFilter()
 }
 
+// The header "All" checkbox: checked shows every item, unchecked hides every item.
+function setAllWorkcenters(checked) {
+    hiddenWorkcenterIds.value = checked ? [] : props.workcenters.map((workcenter) => workcenter.id)
+    saveFilter()
+}
+
+function setAllShifts(checked) {
+    hiddenShiftIds.value = checked ? [] : props.shifts.map((shift) => shift.id)
+    saveFilter()
+}
+
 const daysInMonth = computed(() => new Date(props.year, props.month, 0).getDate())
 
 const dayStates = computed(() => {
@@ -401,7 +412,16 @@ const visibleWorkcenters = computed(() =>
                 <div class="flex w-full flex-col gap-4 sm:flex-row lg:w-auto">
                     <Card class="w-full sm:w-auto">
                         <template #header>
-                            <div class="px-6 py-3 text-base font-semibold">{{ __('scheduling.filter_workcenters') }}</div>
+                            <div class="flex items-center justify-between gap-4 px-6 py-3">
+                                <div class="text-base font-semibold">{{ __('scheduling.filter_workcenters') }}</div>
+                                <CheckboxInput
+                                    data-testid="filter-all-workcenters"
+                                    :model-value="checkedWorkcenterIds.length === workcenters.length"
+                                    @update:model-value="setAllWorkcenters"
+                                >
+                                    {{ __('scheduling.filter_all') }}
+                                </CheckboxInput>
+                            </div>
                         </template>
 
                         <div class="flex flex-col gap-1.5 p-6">
@@ -418,7 +438,16 @@ const visibleWorkcenters = computed(() =>
 
                     <Card class="w-full sm:w-auto">
                         <template #header>
-                            <div class="px-6 py-3 text-base font-semibold">{{ __('scheduling.filter_shifts') }}</div>
+                            <div class="flex items-center justify-between gap-4 px-6 py-3">
+                                <div class="text-base font-semibold">{{ __('scheduling.filter_shifts') }}</div>
+                                <CheckboxInput
+                                    data-testid="filter-all-shifts"
+                                    :model-value="checkedShiftIds.length === shifts.length"
+                                    @update:model-value="setAllShifts"
+                                >
+                                    {{ __('scheduling.filter_all') }}
+                                </CheckboxInput>
+                            </div>
                         </template>
 
                         <div class="flex flex-col gap-1.5 p-6">

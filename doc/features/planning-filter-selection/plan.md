@@ -1,6 +1,6 @@
 # Planning Filter Selection — Plan
 
-Status: in progress — 2/3
+Status: done — 3/3
 
 ## Steps
 
@@ -14,7 +14,7 @@ Status: in progress — 2/3
   from these props and sends each checkbox change to `/planning/filter`.
   Remove the `sessionStorage` code. Test the prop in a feature test and the
   page in `tests/js/Scheduling.test.js`.
-- [ ] 3. **"All" checkbox in each card header.** Add `scheduling.filter_all`
+- [x] 3. **"All" checkbox in each card header.** Add `scheduling.filter_all`
   to `en.json`. The checkbox is checked when all items show. A click
   hides all items or shows all items, and saves the result. Test in
   `tests/js/Scheduling.test.js`.
