@@ -382,7 +382,21 @@ describe("Employees/Form", () => {
 
         const form = w.findComponent(EmployeeFields).props("form");
         await w.get('[data-testid="panel-details"] form').trigger("submit");
-        expect(form.post).toHaveBeenCalledWith("/employees");
+        expect(form.post).toHaveBeenCalledWith("/employees", expect.anything());
+    });
+
+    // Create and edit share this component. A preserved-state redirect to the
+    // edit page keeps the create-mode instance, so no save resource registers
+    // and Save/Cancel never appear. Remount on success; keep input on errors.
+    it("on create, remounts on success but preserves state on validation errors", async () => {
+        const w = mount(Form, {
+            props: { employee: null, holidays: [] },
+            global: { stubs },
+        });
+
+        const form = w.findComponent(EmployeeFields).props("form");
+        await w.get('[data-testid="panel-details"] form').trigger("submit");
+        expect(form.post).toHaveBeenCalledWith("/employees", expect.objectContaining({ preserveState: "errors" }));
     });
 
     it("shows the questions in their own section on the Competences tab, below the competences", () => {

@@ -104,5 +104,8 @@ function remove(holiday) {
                 </tr>
             </tbody>
         </table>
+        <p data-testid="holiday-hint" class="mt-2 text-xs text-(--color-text-secondary)">
+            {{ __('availability.holidays.hint') }}
+        </p>
     </form>
 </template>

@@ -93,4 +93,43 @@ class EmployeeShiftWeekdaysTest extends TestCase
         $this->assertTrue($runs('2026-10-12'));
         $this->assertFalse($runs('2026-10-11'));
     }
+
+    public function test_a_member_gets_any_active_workcenters_weekdays_for_a_default_visible_shift_their_workcenters_do_not_run(): void
+    {
+        $employee = Employee::factory()->create();
+        $own = Workcenter::factory()->create();
+        $other = Workcenter::factory()->create();
+        $archived = Workcenter::factory()->create(['archived_at' => now()]);
+        $ownShift = Shift::factory()->create(['visible_by_default' => false]);
+        $defaultShift = Shift::factory()->create(['visible_by_default' => true]);
+        $employee->workcenters()->attach($own);
+        $this->capacity($own, $ownShift, 1);
+        $this->capacity($other, $ownShift, 2);
+        $this->capacity($other, $defaultShift, 3);
+        $this->capacity($archived, $defaultShift, 5);
+
+        $this->assertEquals([$ownShift->id => [1], $defaultShift->id => [3]], $employee->shiftWeekdays());
+    }
+
+    public function test_a_member_gets_any_active_workcenters_date_overrides_for_a_default_visible_shift_their_workcenters_do_not_run(): void
+    {
+        $employee = Employee::factory()->create();
+        $own = Workcenter::factory()->create();
+        $other = Workcenter::factory()->create();
+        $ownShift = Shift::factory()->create(['visible_by_default' => false]);
+        $defaultShift = Shift::factory()->create(['visible_by_default' => true]);
+        $employee->workcenters()->attach($own);
+        $this->capacity($own, $ownShift, 1);
+        $this->capacity($other, $defaultShift, 1);
+        // Saturday 2026-10-10 opens and Monday 2026-10-05 closes the default shift at the other workcenter.
+        $this->dateOverride($other, $defaultShift, '2026-10-10', 2);
+        $this->dateOverride($other, $defaultShift, '2026-10-05', 0);
+        // The other workcenter's override does not count for a shift the employee's workcenter runs.
+        $this->dateOverride($other, $ownShift, '2026-10-10', 2);
+
+        $this->assertSame(
+            [$defaultShift->id => ['open' => ['2026-10-10'], 'closed' => ['2026-10-05']]],
+            $employee->shiftDateExceptions()
+        );
+    }
 }

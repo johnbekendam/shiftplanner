@@ -25,6 +25,7 @@ class User extends Authenticatable
         'role',
         'employee_id',
         'business_line_id',
+        'planning_filter',
     ];
 
     protected $hidden = [
@@ -37,6 +38,7 @@ class User extends Authenticatable
         return [
             'is_active' => 'boolean',
             'password' => 'hashed',
+            'planning_filter' => 'array',
         ];
     }
 
