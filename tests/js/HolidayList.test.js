@@ -8,6 +8,7 @@ const en = {
     "availability.holidays.empty": "No holidays.",
     "availability.holidays.add": "Add",
     "availability.holidays.delete": "Remove",
+    "availability.holidays.hint": "The end date is part of the holiday.",
 };
 
 vi.mock("@inertiajs/vue3", () => ({
@@ -91,6 +92,13 @@ describe("HolidayList", () => {
         const emitted = w.emitted("update:holidays");
         expect(emitted).toHaveLength(1);
         expect(emitted[0][0]).toEqual([holidays[1]]);
+    });
+
+    it("shows the inclusive end date hint when editable and when disabled", () => {
+        for (const disabled of [false, true]) {
+            const hint = mountList({ disabled }).get('[data-testid="holiday-hint"]');
+            expect(hint.text()).toBe("The end date is part of the holiday.");
+        }
     });
 
     it("hides the add row and the delete buttons when disabled", () => {
