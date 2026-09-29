@@ -76,7 +76,8 @@ vi.mock("@inertiajs/vue3", () => ({
 }));
 
 const axiosGet = vi.hoisted(() => vi.fn());
-vi.mock("axios", () => ({ default: { get: axiosGet } }));
+const axiosPut = vi.hoisted(() => vi.fn(() => Promise.resolve()));
+vi.mock("axios", () => ({ default: { get: axiosGet, put: axiosPut } }));
 
 import Scheduling from "@/pages/Scheduling.vue";
 import ShiftWeekTable from "@/components/scheduling/ShiftWeekTable.vue";
@@ -154,6 +155,7 @@ beforeEach(() => {
     pageState.url = "/planning";
     pageState.user = { id: 7, role: "admin" };
     window.sessionStorage.clear();
+    axiosPut.mockClear();
 });
 
 describe("Scheduling", () => {
@@ -204,166 +206,61 @@ describe("Scheduling", () => {
 
         expect(dayButton(w, 12).classes().join(" ")).toContain("bg-(--color-badge-muted-bg)");
         expect(routerGetCalls).toHaveLength(0);
-        expect(JSON.parse(window.sessionStorage.getItem("planning.selectedWorkcenters.7"))).toEqual({
-            available: [1, 2],
-            selected: [1],
+    });
+
+    it("saves a workcenter change to the server", async () => {
+        const w = mountPage({ hiddenShiftIds: [10] });
+
+        await w.findAll('input[type="checkbox"]').at(1).setValue(false);
+
+        expect(axiosPut).toHaveBeenCalledWith("/planning/filter", {
+            hidden_workcenter_ids: [2],
+            hidden_shift_ids: [10],
         });
     });
 
-    it("restores selected workcenters from the user session", () => {
-        window.sessionStorage.setItem("planning.selectedWorkcenters.7", JSON.stringify({
-            available: [1, 2],
-            selected: [2],
-        }));
-
-        const w = mountPage();
-        const checkboxes = w.findAll('input[type="checkbox"]');
-
-        expect(checkboxes.at(0).element.checked).toBe(false);
-        expect(checkboxes.at(1).element.checked).toBe(true);
-    });
-
-    it("restores an empty workcenter selection", () => {
-        window.sessionStorage.setItem("planning.selectedWorkcenters.7", JSON.stringify({
-            available: [1, 2],
-            selected: [],
-        }));
-
-        const w = mountPage();
-        const checkboxes = w.findAll('input[type="checkbox"]');
-
-        expect(checkboxes.at(0).element.checked).toBe(false);
-        expect(checkboxes.at(1).element.checked).toBe(false);
-    });
-
-    it("selects new workcenters and removes stale workcenters from the session", () => {
-        window.sessionStorage.setItem("planning.selectedWorkcenters.7", JSON.stringify({
-            available: [1, 99],
-            selected: [99],
-        }));
-
-        const w = mountPage();
-        const checkboxes = w.findAll('input[type="checkbox"]');
-
-        expect(checkboxes.at(0).element.checked).toBe(false);
-        expect(checkboxes.at(1).element.checked).toBe(true);
-        expect(JSON.parse(window.sessionStorage.getItem("planning.selectedWorkcenters.7"))).toEqual({
-            available: [1, 2],
-            selected: [2],
-        });
-    });
-
-    it("selects all workcenters when the stored selection is invalid", () => {
-        window.sessionStorage.setItem("planning.selectedWorkcenters.7", "invalid");
-
-        const w = mountPage();
-        const checkboxes = w.findAll('input[type="checkbox"]');
-
-        expect(checkboxes.at(0).element.checked).toBe(true);
-        expect(checkboxes.at(1).element.checked).toBe(true);
-        expect(JSON.parse(window.sessionStorage.getItem("planning.selectedWorkcenters.7"))).toEqual({
-            available: [1, 2],
-            selected: [1, 2],
-        });
-    });
-
-    it("does not restore another user's workcenter selection", () => {
-        window.sessionStorage.setItem("planning.selectedWorkcenters.8", JSON.stringify({
-            available: [1, 2],
-            selected: [],
-        }));
-
-        const w = mountPage();
-        const checkboxes = w.findAll('input[type="checkbox"]');
-
-        expect(checkboxes.at(0).element.checked).toBe(true);
-        expect(checkboxes.at(1).element.checked).toBe(true);
-        expect(JSON.parse(window.sessionStorage.getItem("planning.selectedWorkcenters.7"))).toEqual({
-            available: [1, 2],
-            selected: [1, 2],
-        });
-    });
-
-    it("stores shift selection changes in the user session", async () => {
-        const w = mountPage();
+    it("saves a shift change to the server", async () => {
+        const w = mountPage({ hiddenWorkcenterIds: [1] });
         const lateCheckbox = w.findAll('input[type="checkbox"]').at(3);
 
         await lateCheckbox.setValue(false);
 
         expect(dayButton(w, 12).classes().join(" ")).toContain("bg-(--color-badge-muted-bg)");
-        expect(JSON.parse(window.sessionStorage.getItem("planning.selectedShifts.7"))).toEqual({
-            available: [9, 10],
-            selected: [9],
+        expect(axiosPut).toHaveBeenCalledWith("/planning/filter", {
+            hidden_workcenter_ids: [1],
+            hidden_shift_ids: [10],
         });
     });
 
-    it("restores selected shifts from the user session", () => {
-        window.sessionStorage.setItem("planning.selectedShifts.7", JSON.stringify({
-            available: [9, 10],
-            selected: [10],
-        }));
+    it("starts from the hidden workcenters and shifts in the props", () => {
+        const checkboxes = mountPage({ hiddenWorkcenterIds: [1], hiddenShiftIds: [10] })
+            .findAll('input[type="checkbox"]');
 
-        const checkboxes = mountPage().findAll('input[type="checkbox"]');
-
-        expect(checkboxes.at(2).element.checked).toBe(false);
-        expect(checkboxes.at(3).element.checked).toBe(true);
+        expect(checkboxes.map((c) => c.element.checked)).toEqual([false, true, true, false]);
     });
 
-    it("restores an empty shift selection", () => {
-        window.sessionStorage.setItem("planning.selectedShifts.7", JSON.stringify({
-            available: [9, 10],
-            selected: [],
-        }));
+    it("shows workcenters and shifts that are not in the hidden lists", () => {
+        const checkboxes = mountPage({ hiddenWorkcenterIds: [99], hiddenShiftIds: [98] })
+            .findAll('input[type="checkbox"]');
 
-        const checkboxes = mountPage().findAll('input[type="checkbox"]');
-
-        expect(checkboxes.at(2).element.checked).toBe(false);
-        expect(checkboxes.at(3).element.checked).toBe(false);
+        checkboxes.forEach((c) => expect(c.element.checked).toBe(true));
     });
 
-    it("selects new shifts and removes stale shifts from the session", () => {
-        window.sessionStorage.setItem("planning.selectedShifts.7", JSON.stringify({
-            available: [9, 99],
-            selected: [99],
-        }));
+    it("drops hidden ids of removed items when it saves", async () => {
+        const w = mountPage({ hiddenWorkcenterIds: [99], hiddenShiftIds: [98] });
 
-        const checkboxes = mountPage().findAll('input[type="checkbox"]');
+        await w.findAll('input[type="checkbox"]').at(0).setValue(false);
 
-        expect(checkboxes.at(2).element.checked).toBe(false);
-        expect(checkboxes.at(3).element.checked).toBe(true);
-        expect(JSON.parse(window.sessionStorage.getItem("planning.selectedShifts.7"))).toEqual({
-            available: [9, 10],
-            selected: [10],
+        expect(axiosPut).toHaveBeenCalledWith("/planning/filter", {
+            hidden_workcenter_ids: [1],
+            hidden_shift_ids: [],
         });
     });
 
-    it("selects all shifts when the stored selection is invalid", () => {
-        window.sessionStorage.setItem("planning.selectedShifts.7", "invalid");
+    it("does not save on initial mount", () => {
+        mountPage({ hiddenWorkcenterIds: [1] });
 
-        const checkboxes = mountPage().findAll('input[type="checkbox"]');
-
-        expect(checkboxes.at(2).element.checked).toBe(true);
-        expect(checkboxes.at(3).element.checked).toBe(true);
-        expect(JSON.parse(window.sessionStorage.getItem("planning.selectedShifts.7"))).toEqual({
-            available: [9, 10],
-            selected: [9, 10],
-        });
-    });
-
-    it("does not restore another user's shift selection", () => {
-        window.sessionStorage.setItem("planning.selectedShifts.8", JSON.stringify({
-            available: [9, 10],
-            selected: [],
-        }));
-
-        const checkboxes = mountPage().findAll('input[type="checkbox"]');
-
-        expect(checkboxes.at(2).element.checked).toBe(true);
-        expect(checkboxes.at(3).element.checked).toBe(true);
-        expect(JSON.parse(window.sessionStorage.getItem("planning.selectedShifts.7"))).toEqual({
-            available: [9, 10],
-            selected: [9, 10],
-        });
+        expect(axiosPut).not.toHaveBeenCalled();
     });
 
     it("navigates to the next month via the calendar, carrying year/month/date", async () => {

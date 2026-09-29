@@ -26,6 +26,8 @@ const props = defineProps({
     date: { type: String, required: true }, // Y-m-d, the currently selected day
     weekStart: { type: String, required: true }, // Y-m-d, the Monday of the selected day's week
     weekCells: { type: Array, default: () => [] }, // { workcenter_id, shift_id, date, spots, overridden, assignments }
+    hiddenWorkcenterIds: { type: Array, default: () => [] },
+    hiddenShiftIds: { type: Array, default: () => [] },
     publishedWorkcenterWeeks: { type: Array, default: () => [] }, // { workcenter_id, week_start, planner_open }, within the visible month
     // Y-m-d, the Monday of the 2-week cycle containing weekStart, or null when no
     // planning period start is configured yet (there's no anchor to compute cycles from).
@@ -169,70 +171,41 @@ watch(
 
 onBeforeUnmount(stopGenerationPoll)
 
-function selectedItemsSessionKey(name) {
-    const userId = page.props.auth?.user?.id
-    return userId ? `planning.${name}.${userId}` : null
+const hiddenWorkcenterIds = ref([...props.hiddenWorkcenterIds])
+const hiddenShiftIds = ref([...props.hiddenShiftIds])
+
+const checkedWorkcenterIds = computed(() =>
+    props.workcenters.map((workcenter) => workcenter.id).filter((id) => !hiddenWorkcenterIds.value.includes(id)),
+)
+const checkedShiftIds = computed(() =>
+    props.shifts.map((shift) => shift.id).filter((id) => !hiddenShiftIds.value.includes(id)),
+)
+
+// Saves the hidden ids of items that still exist, in the background (no Inertia visit).
+function saveFilter() {
+    const workcenterIds = props.workcenters.map((workcenter) => workcenter.id)
+    const shiftIds = props.shifts.map((shift) => shift.id)
+    hiddenWorkcenterIds.value = hiddenWorkcenterIds.value.filter((id) => workcenterIds.includes(id))
+    hiddenShiftIds.value = hiddenShiftIds.value.filter((id) => shiftIds.includes(id))
+
+    axios.put('/planning/filter', {
+        hidden_workcenter_ids: hiddenWorkcenterIds.value,
+        hidden_shift_ids: hiddenShiftIds.value,
+    })
 }
-
-function storeSelectedItems(name, availableIds, selectedIds) {
-    const key = selectedItemsSessionKey(name)
-    if (!key || typeof window === 'undefined') return
-
-    window.sessionStorage.setItem(key, JSON.stringify({
-        available: availableIds,
-        selected: selectedIds,
-    }))
-}
-
-function initialSelectedItemIds(name, availableIds) {
-    const key = selectedItemsSessionKey(name)
-    if (!key || typeof window === 'undefined') return availableIds
-
-    let stored
-    try {
-        stored = JSON.parse(window.sessionStorage.getItem(key))
-    } catch {
-        stored = null
-    }
-
-    const valid = stored !== null
-        && Array.isArray(stored.available)
-        && Array.isArray(stored.selected)
-        && stored.available.every(Number.isInteger)
-        && stored.selected.every((id) => Number.isInteger(id) && stored.available.includes(id))
-
-    if (!valid) {
-        storeSelectedItems(name, availableIds, availableIds)
-        return availableIds
-    }
-
-    const selectedIds = availableIds.filter((id) =>
-        stored.selected.includes(id) || !stored.available.includes(id),
-    )
-    storeSelectedItems(name, availableIds, selectedIds)
-    return selectedIds
-}
-
-const availableWorkcenterIds = () => props.workcenters.map((workcenter) => workcenter.id)
-const availableShiftIds = () => props.shifts.map((shift) => shift.id)
-
-const checkedWorkcenterIds = ref(initialSelectedItemIds('selectedWorkcenters', availableWorkcenterIds()))
-const checkedShiftIds = ref(initialSelectedItemIds('selectedShifts', availableShiftIds()))
 
 function toggleWorkcenter(id, checked) {
-    const selectedIds = checked
-        ? [...checkedWorkcenterIds.value, id]
-        : checkedWorkcenterIds.value.filter((x) => x !== id)
-    checkedWorkcenterIds.value = selectedIds
-    storeSelectedItems('selectedWorkcenters', availableWorkcenterIds(), selectedIds)
+    hiddenWorkcenterIds.value = checked
+        ? hiddenWorkcenterIds.value.filter((x) => x !== id)
+        : [...hiddenWorkcenterIds.value, id]
+    saveFilter()
 }
 
 function toggleShift(id, checked) {
-    const selectedIds = checked
-        ? [...checkedShiftIds.value, id]
-        : checkedShiftIds.value.filter((x) => x !== id)
-    checkedShiftIds.value = selectedIds
-    storeSelectedItems('selectedShifts', availableShiftIds(), selectedIds)
+    hiddenShiftIds.value = checked
+        ? hiddenShiftIds.value.filter((x) => x !== id)
+        : [...hiddenShiftIds.value, id]
+    saveFilter()
 }
 
 const daysInMonth = computed(() => new Date(props.year, props.month, 0).getDate())

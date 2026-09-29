@@ -1,6 +1,6 @@
 # Planning Filter Selection — Plan
 
-Status: in progress — 1/3
+Status: in progress — 2/3
 
 ## Steps
 
@@ -8,8 +8,8 @@ Status: in progress — 1/3
   `planning_filter` to `users` and cast it to an array. Add
   `PUT /planning/filter`. It validates `hidden_workcenter_ids` and
   `hidden_shift_ids` as integer arrays, saves them for the current user,
-  and returns 204. Test in `tests/Feature/Planning/`.
-- [ ] 2. **Load and save the selection on the page.** `SchedulingController@index`
+  and returns 204. Test in `tests/Feature/PlanningFilterTest.php`.
+- [x] 2. **Load and save the selection on the page.** `SchedulingController@index`
   sends `hiddenWorkcenterIds` and `hiddenShiftIds`. `Scheduling.vue` starts
   from these props and sends each checkbox change to `/planning/filter`.
   Remove the `sessionStorage` code. Test the prop in a feature test and the

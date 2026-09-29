@@ -51,4 +51,25 @@ class PlanningFilterTest extends TestCase
             'hidden_shift_ids' => [],
         ])->assertUnauthorized();
     }
+
+    public function test_the_planning_page_sends_the_hidden_ids(): void
+    {
+        $user = User::factory()->admin()->create(['planning_filter' => [
+            'hidden_workcenter_ids' => [3],
+            'hidden_shift_ids' => [5, 6],
+        ]]);
+
+        $this->actingAs($user)->get('/planning')
+            ->assertInertia(fn ($page) => $page
+                ->where('hiddenWorkcenterIds', [3])
+                ->where('hiddenShiftIds', [5, 6]));
+    }
+
+    public function test_the_planning_page_hides_nothing_without_a_stored_filter(): void
+    {
+        $this->actingAs(User::factory()->admin()->create())->get('/planning')
+            ->assertInertia(fn ($page) => $page
+                ->where('hiddenWorkcenterIds', [])
+                ->where('hiddenShiftIds', []));
+    }
 }

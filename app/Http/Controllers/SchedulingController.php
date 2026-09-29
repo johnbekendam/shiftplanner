@@ -69,6 +69,8 @@ class SchedulingController extends Controller
             'generationStatus' => $this->generationStatus(),
             // Employees with an email address and published shifts they were not told about and no queued email yet: enables Send planning.
             'uninformedCount' => $this->uninformedPlanning->summary(excludeQueued: true, reachableOnly: true)->count(),
+            'hiddenWorkcenterIds' => $request->user()->planning_filter['hidden_workcenter_ids'] ?? [],
+            'hiddenShiftIds' => $request->user()->planning_filter['hidden_shift_ids'] ?? [],
         ]);
     }
 
