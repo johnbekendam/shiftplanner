@@ -18,6 +18,9 @@ const en = {
     "demand.select_shift": "Select a shift",
     "demand.delete": "Delete",
     "demand.list_empty": "No shifts yet.",
+    "demand.calendar.legend.staffed": "Fully staffed",
+    "demand.calendar.legend.open": "Open slots",
+    "demand.calendar.legend.changed": "Changed for this date",
     "app.save": "Save",
     "app.saving": "Saving…",
     "app.saved": "Saved",
@@ -53,6 +56,8 @@ vi.mock("@inertiajs/vue3", () => ({
 
 import Demand from "@/pages/Demand.vue";
 import { SelectInput, NumberInput } from "@/components/ui/Input";
+import DemandCalendar from "@/components/DemandCalendar.vue";
+import Calendar from "@/components/ui/Calendar.vue";
 
 const stubs = { AppLayout: { template: "<div><slot /></div>" } };
 
@@ -182,5 +187,49 @@ describe("Demand", () => {
 
         expect(findSaveButton(w).attributes("disabled")).toBeDefined();
         expect(routerCalls).toEqual([]);
+    });
+
+    it("colors the calendar from the slots and the assigned counts, with a border on an overridden day", async () => {
+        const w = mountPage({
+            defaults: [{ shift_id: 9, spots: [1, 1, 1, 1, 1, 1, 1] }],
+            overrides: [{ shift_id: 9, date: "2026-10-07", spots: 0 }],
+            assigned: [{ shift_id: 9, date: "2026-10-05", count: 1 }],
+        });
+        w.getComponent(Calendar).vm.$emit("change", { year: 2026, month: 10 });
+        await w.vm.$nextTick();
+
+        const props = w.getComponent(Calendar).props();
+        expect(props.dayStates[5]).toBe("success");
+        expect(props.dayStates[6]).toBe("warning");
+        expect(props.dayStates[7]).toBe("muted");
+        expect(props.dayBorders).toEqual({ 7: "solid" });
+        expect(props.legenda).toEqual({ success: "Fully staffed", warning: "Open slots" });
+        expect(props.borderLegenda).toEqual({ solid: "Changed for this date" });
+    });
+
+    it("recolors the calendar from pending default edits", async () => {
+        const w = mountPage({ defaults: [{ shift_id: 9, spots: [0, 0, 0, 0, 0, 0, 0] }] });
+        w.getComponent(Calendar).vm.$emit("change", { year: 2026, month: 10 });
+        await w.vm.$nextTick();
+        expect(w.getComponent(Calendar).props("dayStates")[5]).toBe("muted");
+
+        w.findAllComponents(NumberInput)[0].vm.$emit("update:modelValue", 2);
+        await w.vm.$nextTick();
+
+        expect(w.getComponent(Calendar).props("dayStates")[5]).toBe("warning");
+    });
+
+    it("selects a clicked day and deselects it on a second click", async () => {
+        const w = mountPage();
+        const calendar = w.getComponent(Calendar);
+        calendar.vm.$emit("change", { year: 2026, month: 10 });
+        calendar.vm.$emit("day-click", { year: 2026, month: 10, day: 5 });
+        await w.vm.$nextTick();
+        expect(w.getComponent(DemandCalendar).props("selectedDate")).toBe("2026-10-05");
+        expect(w.getComponent(Calendar).props("ringDay")).toBe(5);
+
+        w.getComponent(Calendar).vm.$emit("day-click", { year: 2026, month: 10, day: 5 });
+        await w.vm.$nextTick();
+        expect(w.getComponent(DemandCalendar).props("selectedDate")).toBe(null);
     });
 });

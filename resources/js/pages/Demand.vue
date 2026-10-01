@@ -7,10 +7,12 @@ import ButtonPrimary from '@/components/ui/ButtonPrimary.vue'
 import ButtonDanger from '@/components/ui/ButtonDanger.vue'
 import TabSaveBar from '@/components/ui/TabSaveBar.vue'
 import LabeledInput from '@/components/LabeledInput.vue'
+import DemandCalendar from '@/components/DemandCalendar.vue'
 import { SelectInput, NumberInput } from '@/components/ui/Input'
 import { useI18n } from '@/composables/useI18n'
 import { useUnsavedChangesGuard } from '@/composables/useUnsavedChangesGuard'
 import { putAsync, postAsync, deleteAsync } from '@/utils/inertiaAsync'
+import { groupDemandOverrides, groupAssigned } from '@/utils/demandCalendar'
 
 const __ = useI18n()
 
@@ -124,6 +126,11 @@ function cancel() {
 }
 
 useUnsavedChangesGuard(() => dirty.value)
+
+// ── Calendar ──────────────────────────────────────────────────────────
+const overrides = computed(() => groupDemandOverrides(props.overrides))
+const assigned = computed(() => groupAssigned(props.assigned))
+const selectedDate = ref(null)
 </script>
 
 <template>
@@ -218,6 +225,16 @@ useUnsavedChangesGuard(() => dirty.value)
                     </table>
                 </div>
             </Card>
+
+            <!-- The calendar keeps its content width; the date card takes the rest. -->
+            <section v-if="workcenterId !== null" data-testid="demand-calendar-section" class="flex flex-col gap-6 sm:flex-row sm:items-start">
+                <DemandCalendar
+                    v-model:selected-date="selectedDate"
+                    :defaults="rows"
+                    :overrides="overrides"
+                    :assigned="assigned"
+                />
+            </section>
 
             <TabSaveBar
                 v-if="workcenterId !== null"
