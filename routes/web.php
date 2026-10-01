@@ -7,6 +7,7 @@ use App\Http\Controllers\BusinessLineController;
 use App\Http\Controllers\CompetenceController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DemandController;
+use App\Http\Controllers\DemandDateController;
 use App\Http\Controllers\EligibleEmployeeController;
 use App\Http\Controllers\EmployeeAuditController;
 use App\Http\Controllers\EmployeeBackupController;
@@ -38,7 +39,6 @@ use App\Http\Controllers\RecurringAvailabilityController;
 use App\Http\Controllers\RosterController;
 use App\Http\Controllers\RosterPublicController;
 use App\Http\Controllers\ReportController;
-use App\Http\Controllers\ScheduleSpotController;
 use App\Http\Controllers\SchedulingController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\ShiftAssignmentController;
@@ -122,15 +122,15 @@ Route::middleware('auth')->group(function () {
         Route::post('/demand', [DemandController::class, 'store'])->name('demand.store');
         Route::put('/demand/{workcenter}/{shift}', [DemandController::class, 'update'])->name('demand.update');
         Route::delete('/demand/{workcenter}/{shift}', [DemandController::class, 'destroy'])->name('demand.destroy');
+        Route::put('/demand/{workcenter}/{shift}/{date}', [DemandDateController::class, 'update'])
+            ->where('date', '\d{4}-\d{2}-\d{2}')->name('demand.dates.update');
+        Route::delete('/demand/{workcenter}/{shift}/{date}', [DemandDateController::class, 'destroy'])
+            ->where('date', '\d{4}-\d{2}-\d{2}')->name('demand.dates.destroy');
 
         Route::get('/planning', [SchedulingController::class, 'index'])->name('planning.index');
         Route::post('/planning/assignments', [ShiftAssignmentController::class, 'store'])->name('planning.assignments.store');
         Route::put('/planning/assignments/{shiftAssignment}', [ShiftAssignmentController::class, 'updateFixed'])->name('planning.assignments.update');
         Route::delete('/planning/assignments/{shiftAssignment}', [ShiftAssignmentController::class, 'destroy'])->name('planning.assignments.destroy');
-        Route::put('/planning/spots/{workcenter}/{shift}/{date}', [ScheduleSpotController::class, 'update'])
-            ->where('date', '\d{4}-\d{2}-\d{2}')->name('planning.spots.update');
-        Route::delete('/planning/spots/{workcenter}/{shift}/{date}', [ScheduleSpotController::class, 'destroy'])
-            ->where('date', '\d{4}-\d{2}-\d{2}')->name('planning.spots.destroy');
         Route::get('/planning/eligible-employees', [EligibleEmployeeController::class, 'index'])->name('planning.eligible-employees');
         Route::get('/planning/verify', [PlanningVerificationController::class, 'index'])->name('planning.verify');
         Route::put('/planning/filter', [PlanningFilterController::class, 'update'])->name('planning.filter.update');

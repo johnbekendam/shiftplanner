@@ -9,7 +9,7 @@ use App\Models\WorkcenterShiftDateOverride;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 
-class ScheduleSpotController extends Controller
+class DemandDateController extends Controller
 {
     public function update(Request $request, Workcenter $workcenter, Shift $shift, string $date)
     {
@@ -22,7 +22,7 @@ class ScheduleSpotController extends Controller
             ->count();
 
         if ($data['spots'] < $assignedCount) {
-            throw ValidationException::withMessages(['spots' => __('scheduling.error.spots_below_assigned')]);
+            throw ValidationException::withMessages(['spots' => __('demand.error.spots_below_assigned')]);
         }
 
         WorkcenterShiftDateOverride::query()->updateOrCreate(
@@ -30,7 +30,7 @@ class ScheduleSpotController extends Controller
             ['spots' => $data['spots']],
         );
 
-        return back()->with('success', __('scheduling.flash.updated'));
+        return back()->with('success', __('demand.flash.saved'));
     }
 
     public function destroy(Workcenter $workcenter, Shift $shift, string $date)
@@ -41,6 +41,6 @@ class ScheduleSpotController extends Controller
             ->whereDate('date', $date)
             ->delete();
 
-        return back()->with('success', __('scheduling.flash.updated'));
+        return back()->with('success', __('demand.flash.saved'));
     }
 }

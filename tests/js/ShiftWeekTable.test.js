@@ -4,7 +4,6 @@ import { mount, flushPromises, DOMWrapper } from "@vue/test-utils";
 const bodyWrapper = () => new DOMWrapper(document.body);
 
 const en = {
-    "scheduling.reset_spots": "Reset to the weekday default",
     "scheduling.freeze": "Freeze",
     "scheduling.unfreeze": "Unfreeze",
     "scheduling.remove": "Remove",
@@ -75,25 +74,15 @@ beforeEach(() => {
 });
 
 describe("ShiftWeekTable", () => {
-    it("renders a date label per day, with a reset icon only on the overridden day, and no spot count", () => {
+    it("renders each date label as plain text, with no spots menu or reset icon", () => {
         const w = mountTable();
 
-        expect(w.get('[data-testid="spots-9-2026-09-14"]').text()).toContain("14");
-        expect(w.findAll('[aria-label="Reset to the weekday default"]')).toHaveLength(1);
+        const label = w.get('[data-testid="day-9-2026-09-14"]');
+        expect(label.text()).toContain("14");
+        expect(label.element.tagName).not.toBe("BUTTON");
+        expect(w.find('[data-testid="spots-9-2026-09-14"]').exists()).toBe(false);
+        expect(w.find('[data-testid="spots-menu"]').exists()).toBe(false);
         expect(w.text()).not.toContain("2/");
-    });
-
-    it("keeps the spots selection menu hidden until the date is clicked, then toggles it on a second click", async () => {
-        const w = mountTable();
-
-        expect(bodyWrapper().find('[data-testid="spots-menu"]').exists()).toBe(false);
-
-        await w.get('[data-testid="spots-9-2026-09-14"]').trigger("click");
-        expect(bodyWrapper().find('[data-testid="spots-menu"]').exists()).toBe(true);
-
-        await w.get('[data-testid="spots-9-2026-09-14"]').trigger("click");
-        expect(bodyWrapper().find('[data-testid="spots-menu"]').exists()).toBe(false);
-        w.unmount();
     });
 
     it("renders filled cells with the employee name, open cells as an add-employee icon, and cells beyond that day's spot count as a dash", () => {
@@ -187,32 +176,6 @@ describe("ShiftWeekTable", () => {
         expect(cell.get('[data-testid="assignment-status-badge"]').text()).toBe("Anna Jansen");
         expect(cell.find("svg").exists()).toBe(false);
         expect(w.get('[data-testid="cell-9-2026-09-14-0"]').find("svg").exists()).toBe(false);
-    });
-
-    it("picking a value from the menu fires a PUT and closes the menu; picking the current value fires nothing", async () => {
-        const w = mountTable();
-        await w.get('[data-testid="spots-9-2026-09-14"]').trigger("click"); // Mon: 2 spots
-
-        const menu = bodyWrapper().get('[data-testid="spots-menu"]');
-        const options = menu.findAll("button");
-        await options[3].trigger("click"); // "3"
-
-        expect(routerCalls).toContainEqual(["put", "/planning/spots/1/9/2026-09-14", { spots: 3 }]);
-        expect(bodyWrapper().find('[data-testid="spots-menu"]').exists()).toBe(false);
-
-        routerCalls.length = 0;
-        await w.get('[data-testid="spots-9-2026-09-14"]').trigger("click");
-        await bodyWrapper().get('[data-testid="spots-menu"]').findAll("button")[2].trigger("click"); // "2", unchanged
-
-        expect(routerCalls).toEqual([]);
-        w.unmount();
-    });
-
-    it("clicking the reset icon fires a DELETE for that day", async () => {
-        const w = mountTable();
-        await w.get('[aria-label="Reset to the weekday default"]').trigger("click");
-
-        expect(routerCalls).toContainEqual(["delete", "/planning/spots/1/9/2026-09-17"]);
     });
 
     it("clicking a filled cell opens a Freeze/Remove menu, not inline icons", async () => {
