@@ -21,6 +21,14 @@ const en = {
     "demand.calendar.legend.staffed": "Fully staffed",
     "demand.calendar.legend.open": "Open slots",
     "demand.calendar.legend.changed": "Changed for this date",
+    "demand.specific.heading": "Specific demand",
+    "demand.specific.hint": "Click a date to change its slots.",
+    "demand.day.title": ":weekday :date",
+    "demand.day.assigned": "Assigned",
+    "demand.day.slots": "Slots",
+    "demand.day.reset": "Reset to default",
+    "availability.weekday_long.1": "Monday",
+    "availability.weekday_long.3": "Wednesday",
     "app.save": "Save",
     "app.saving": "Saving…",
     "app.saved": "Saved",
@@ -231,5 +239,112 @@ describe("Demand", () => {
         w.getComponent(Calendar).vm.$emit("day-click", { year: 2026, month: 10, day: 5 });
         await w.vm.$nextTick();
         expect(w.getComponent(DemandCalendar).props("selectedDate")).toBe(null);
+    });
+
+    describe("date card", () => {
+        const WEEK = { shift_id: 9, spots: [1, 1, 1, 1, 1, 1, 1] };
+
+        async function selectDate(w, day) {
+            w.getComponent(Calendar).vm.$emit("change", { year: 2026, month: 10 });
+            w.getComponent(Calendar).vm.$emit("day-click", { year: 2026, month: 10, day });
+            await w.vm.$nextTick();
+        }
+
+        const dateInput = (w, shiftId) => w.get(`[data-testid="demand-date-row-${shiftId}"]`).findComponent(NumberInput);
+
+        it("shows the hint while no date is selected", () => {
+            const w = mountPage({ defaults: [WEEK] });
+            expect(w.get('[data-testid="demand-date-card"]').text()).toContain("Specific demand");
+            expect(w.get('[data-testid="demand-date-card"]').text()).toContain("Click a date to change its slots.");
+        });
+
+        it("shows a row per shift with the assigned count and the slots, at least the assigned count", async () => {
+            const w = mountPage({
+                defaults: [WEEK],
+                assigned: [{ shift_id: 9, date: "2026-10-05", count: 1 }],
+            });
+            await selectDate(w, 5);
+
+            const card = w.get('[data-testid="demand-date-card"]');
+            expect(card.text()).toContain("Monday 05-10-2026");
+            const row = w.get('[data-testid="demand-date-row-9"]');
+            expect(row.text()).toContain("Early");
+            expect(row.get('[data-testid="demand-date-assigned-9"]').text()).toBe("1");
+            expect(dateInput(w, 9).props("modelValue")).toBe(1);
+            expect(dateInput(w, 9).props("min")).toBe(1);
+        });
+
+        it("keeps a date change pending, marks the day and saves it with a PUT", async () => {
+            const w = mountPage({ defaults: [WEEK] });
+            await selectDate(w, 5);
+
+            dateInput(w, 9).vm.$emit("update:modelValue", 3);
+            await w.vm.$nextTick();
+
+            expect(routerCalls).toEqual([]);
+            expect(w.getComponent(Calendar).props("dayBorders")).toEqual({ 5: "solid" });
+            expect(w.get('[data-testid="demand-date-row-9"]').find('[data-overridden="true"]').exists()).toBe(true);
+
+            await findSaveButton(w).trigger("click");
+            await flushPromises();
+
+            expect(routerCalls).toContainEqual(["put", "/demand/1/9/2026-10-05", { spots: 3 }]);
+        });
+
+        it("removes the override when the value equals the weekday default", async () => {
+            const w = mountPage({ defaults: [WEEK], overrides: [{ shift_id: 9, date: "2026-10-07", spots: 0 }] });
+            await selectDate(w, 7);
+
+            dateInput(w, 9).vm.$emit("update:modelValue", 1);
+            await w.vm.$nextTick();
+            expect(w.getComponent(Calendar).props("dayBorders")).toEqual({});
+
+            await findSaveButton(w).trigger("click");
+            await flushPromises();
+
+            expect(routerCalls).toContainEqual(["delete", "/demand/1/9/2026-10-07"]);
+        });
+
+        it("offers Reset to default only for a date with overrides, and saves it with a DELETE", async () => {
+            const w = mountPage({ defaults: [WEEK], overrides: [{ shift_id: 9, date: "2026-10-07", spots: 0 }] });
+            await selectDate(w, 5);
+            expect(w.find('[data-testid="demand-date-reset"]').exists()).toBe(false);
+
+            await selectDate(w, 7);
+            await w.get('[data-testid="demand-date-reset"]').trigger("click");
+            expect(dateInput(w, 9).props("modelValue")).toBe(1);
+            expect(w.find('[data-testid="demand-date-reset"]').exists()).toBe(false);
+
+            await findSaveButton(w).trigger("click");
+            await flushPromises();
+
+            expect(routerCalls).toContainEqual(["delete", "/demand/1/9/2026-10-07"]);
+        });
+
+        it("Cancel reverts a pending date change", async () => {
+            const w = mountPage({ defaults: [WEEK] });
+            await selectDate(w, 5);
+            dateInput(w, 9).vm.$emit("update:modelValue", 3);
+            await w.vm.$nextTick();
+
+            await findCancelButton(w).trigger("click");
+            await w.vm.$nextTick();
+
+            expect(dateInput(w, 9).props("modelValue")).toBe(1);
+            expect(findSaveButton(w).attributes("disabled")).toBeDefined();
+        });
+
+        it("drops the pending date changes of a removed shift", async () => {
+            const w = mountPage({ defaults: [WEEK] });
+            await selectDate(w, 5);
+            dateInput(w, 9).vm.$emit("update:modelValue", 3);
+            await w.vm.$nextTick();
+            await w.get('[data-testid="demand-default-row"]').get('[aria-label="Delete"]').trigger("click");
+
+            await findSaveButton(w).trigger("click");
+            await flushPromises();
+
+            expect(routerCalls.filter((c) => c[1].startsWith("/demand/1/9/"))).toEqual([]);
+        });
     });
 });

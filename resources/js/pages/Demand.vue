@@ -8,11 +8,12 @@ import ButtonDanger from '@/components/ui/ButtonDanger.vue'
 import TabSaveBar from '@/components/ui/TabSaveBar.vue'
 import LabeledInput from '@/components/LabeledInput.vue'
 import DemandCalendar from '@/components/DemandCalendar.vue'
+import DemandDateCard from '@/components/DemandDateCard.vue'
 import { SelectInput, NumberInput } from '@/components/ui/Input'
 import { useI18n } from '@/composables/useI18n'
 import { useUnsavedChangesGuard } from '@/composables/useUnsavedChangesGuard'
 import { putAsync, postAsync, deleteAsync } from '@/utils/inertiaAsync'
-import { groupDemandOverrides, groupAssigned } from '@/utils/demandCalendar'
+import { groupDemandOverrides, groupAssigned, dayDemand } from '@/utils/demandCalendar'
 
 const __ = useI18n()
 
@@ -78,7 +79,7 @@ function remove(row) {
 
 const sameSpots = (a, b) => JSON.stringify(a.spots) === JSON.stringify(b.spots)
 
-const dirty = computed(() => {
+const defaultsDirty = computed(() => {
     const committedIds = committed.value.map((c) => c.shift_id)
     const currentIds = rows.value.map((r) => r.shift_id)
 
@@ -87,6 +88,49 @@ const dirty = computed(() => {
 
     return rows.value.some((row) => !sameSpots(committed.value.find((c) => c.shift_id === row.shift_id), row))
 })
+
+// ── Date overrides: pending until Save, { [date]: { [shift_id]: spots } } ──
+const seedOverrides = () => groupDemandOverrides(props.overrides)
+const committedOverrides = ref(seedOverrides())
+const currentOverrides = ref(seedOverrides())
+const assigned = computed(() => groupAssigned(props.assigned))
+const selectedDate = ref(null)
+
+// The changed (date, shift) pairs of the shifts the workcenter keeps:
+// a removed shift loses its overrides on the server anyway.
+const dateChanges = computed(() => {
+    const dates = new Set([...Object.keys(committedOverrides.value), ...Object.keys(currentOverrides.value)])
+    const changes = []
+    for (const date of dates) {
+        for (const { shift_id: shiftId } of rows.value) {
+            const before = committedOverrides.value[date]?.[shiftId] ?? null
+            const after = currentOverrides.value[date]?.[shiftId] ?? null
+            if (before !== after) changes.push({ date, shiftId, spots: after })
+        }
+    }
+    return changes
+})
+
+const selectedDay = computed(() => selectedDate.value
+    ? dayDemand(selectedDate.value, { defaults: rows.value, overrides: currentOverrides.value, assigned: assigned.value })
+    : null)
+
+// A value equal to the weekday default is no override.
+function setDateSpots({ shiftId, spots }) {
+    const date = selectedDate.value
+    const day = selectedDay.value.shifts.find((s) => s.shift_id === shiftId)
+    const { [shiftId]: _, ...rest } = currentOverrides.value[date] ?? {}
+    const next = spots === null || spots === day.defaultSpots ? rest : { ...rest, [shiftId]: spots }
+    currentOverrides.value = { ...currentOverrides.value, [date]: next }
+}
+
+function resetDate() {
+    const { [selectedDate.value]: _, ...rest } = currentOverrides.value
+    currentOverrides.value = rest
+}
+
+// ── Save / Cancel ─────────────────────────────────────────────────────
+const dirty = computed(() => defaultsDirty.value || dateChanges.value.length > 0)
 
 async function save() {
     saving.value = true
@@ -107,6 +151,9 @@ async function save() {
             shift_id: r.shift_id,
             spots: r.spots,
         })),
+        ...dateChanges.value.map((c) => (c.spots === null
+            ? deleteAsync(`${url(c.shiftId)}/${c.date}`)
+            : putAsync(`${url(c.shiftId)}/${c.date}`, { spots: c.spots }))),
     ])
 
     saving.value = false
@@ -114,6 +161,8 @@ async function save() {
     if (ok) {
         committed.value = seed()
         rows.value = seed()
+        committedOverrides.value = seedOverrides()
+        currentOverrides.value = seedOverrides()
         justSaved.value = true
         setTimeout(() => { justSaved.value = false }, 2000)
     }
@@ -122,15 +171,11 @@ async function save() {
 
 function cancel() {
     rows.value = committed.value.map((r) => ({ ...r, spots: [...r.spots] }))
+    currentOverrides.value = committedOverrides.value
     draftShiftId.value = null
 }
 
 useUnsavedChangesGuard(() => dirty.value)
-
-// ── Calendar ──────────────────────────────────────────────────────────
-const overrides = computed(() => groupDemandOverrides(props.overrides))
-const assigned = computed(() => groupAssigned(props.assigned))
-const selectedDate = ref(null)
 </script>
 
 <template>
@@ -231,8 +276,14 @@ const selectedDate = ref(null)
                 <DemandCalendar
                     v-model:selected-date="selectedDate"
                     :defaults="rows"
-                    :overrides="overrides"
+                    :overrides="currentOverrides"
                     :assigned="assigned"
+                />
+                <DemandDateCard
+                    :day="selectedDay"
+                    :shift-label="shiftLabel"
+                    @set-spots="setDateSpots"
+                    @reset="resetDate"
                 />
             </section>
 
