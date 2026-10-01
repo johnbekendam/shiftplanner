@@ -5,6 +5,7 @@ namespace App\Models;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Collection;
+use App\Services\WhatsNew;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -38,7 +39,16 @@ class Employee extends Model
         'confirmed',
         'archived_at',
         'available_from',
+        'whats_new_seen_at',
     ];
+
+    /** A new person starts at the newest What's new entry: older changes are not news to them. */
+    protected static function booted(): void
+    {
+        static::creating(function (self $model) {
+            $model->whats_new_seen_at ??= app(WhatsNew::class)->latestDate();
+        });
+    }
 
     protected function casts(): array
     {
@@ -48,6 +58,7 @@ class Employee extends Model
             'confirmed' => 'boolean',
             'archived_at' => 'datetime',
             'available_from' => 'date:Y-m-d',
+            'whats_new_seen_at' => 'date:Y-m-d',
         ];
     }
 

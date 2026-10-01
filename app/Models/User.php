@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\WhatsNew;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -26,6 +27,7 @@ class User extends Authenticatable
         'employee_id',
         'business_line_id',
         'planning_filter',
+        'whats_new_seen_at',
     ];
 
     protected $hidden = [
@@ -33,12 +35,21 @@ class User extends Authenticatable
         'remember_token',
     ];
 
+    /** A new person starts at the newest What's new entry: older changes are not news to them. */
+    protected static function booted(): void
+    {
+        static::creating(function (self $model) {
+            $model->whats_new_seen_at ??= app(WhatsNew::class)->latestDate();
+        });
+    }
+
     protected function casts(): array
     {
         return [
             'is_active' => 'boolean',
             'password' => 'hashed',
             'planning_filter' => 'array',
+            'whats_new_seen_at' => 'date:Y-m-d',
         ];
     }
 
