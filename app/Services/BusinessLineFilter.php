@@ -8,7 +8,7 @@ use Illuminate\Support\Collection;
 
 /**
  * The `business_lines[]` query filter shared by the Employees page and the
- * Roster page. Values are business line ids and `none` (no business line).
+ * Schedule page. Values are business line ids and `none` (no business line).
  * No query means every business line; a query with no valid value (the
  * front end sends `__empty__`) means none at all.
  */

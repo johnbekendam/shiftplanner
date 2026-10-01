@@ -25,16 +25,16 @@ class SettingsController extends Controller
             'scheduleNote' => PlanningSettings::current()->shift_schedule_note ?? '',
             'questions' => $this->questions(),
             'period' => PlanningSettings::current()->toPayload(),
-            'rosterUrl' => PlanningSettings::current()->rosterUrl(),
+            'scheduleUrl' => PlanningSettings::current()->scheduleUrl(),
         ]);
     }
 
-    /** New secret for the public roster link (features/roster-public-link/). */
-    public function regenerateRosterToken()
+    /** New secret for the public schedule link (features/roster-public-link/). */
+    public function regenerateScheduleToken()
     {
         PlanningSettings::current()->regenerateRosterToken();
 
-        return back()->with('success', __('settings.roster_link.regenerated'));
+        return back()->with('success', __('settings.schedule_link.regenerated'));
     }
 
     private function listWithHolderCount($query): array

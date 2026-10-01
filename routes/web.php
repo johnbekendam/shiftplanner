@@ -6,6 +6,8 @@ use App\Http\Controllers\Auth\LoginLinkController;
 use App\Http\Controllers\BusinessLineController;
 use App\Http\Controllers\CompetenceController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DemandController;
+use App\Http\Controllers\DemandDateController;
 use App\Http\Controllers\EligibleEmployeeController;
 use App\Http\Controllers\EmployeeAuditController;
 use App\Http\Controllers\EmployeeBackupController;
@@ -34,19 +36,18 @@ use App\Http\Controllers\PlanNotificationController;
 use App\Http\Controllers\PublishedWeekController;
 use App\Http\Controllers\QuestionController;
 use App\Http\Controllers\RecurringAvailabilityController;
-use App\Http\Controllers\RosterController;
-use App\Http\Controllers\RosterPublicController;
 use App\Http\Controllers\ReportController;
-use App\Http\Controllers\ScheduleSpotController;
 use App\Http\Controllers\SchedulingController;
+use App\Http\Controllers\ScheduleController;
+use App\Http\Controllers\SchedulePublicController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\ShiftAssignmentController;
 use App\Http\Controllers\ShiftController;
 use App\Http\Controllers\SignupController;
 use App\Http\Controllers\ThemeBuilderController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\WhatsNewController;
 use App\Http\Controllers\WorkcenterController;
-use App\Http\Controllers\WorkcenterShiftAssignmentController;
 use Illuminate\Support\Facades\Route;
 
 Route::redirect('/', '/dashboard');
@@ -67,10 +68,13 @@ Route::post('/signup', [SignupController::class, 'store'])->middleware('throttle
 // Workcenter wall screen — token-only, no auth. See features/workcenter-live-planning/.
 Route::get('/live/{token}', [LivePlanningController::class, 'show'])->name('live.show');
 
-// Roster by secret link — token-only, no auth. See features/roster-public-link/.
-Route::get('/roster/{token}', [RosterPublicController::class, 'show'])->name('roster.public');
+// Schedule by secret link — token-only, no auth. See features/roster-public-link/.
+Route::get('/schedule/{token}', [SchedulePublicController::class, 'show'])->name('schedule.public');
+Route::redirect('/roster/{token}', '/schedule/{token}');
 
 Route::middleware('auth')->group(function () {
+    Route::get('/whats-new', [WhatsNewController::class, 'index'])->name('whats-new.index');
+
     // Admin-only: everything except the employee list/editor.
     Route::middleware('admin')->group(function () {
         // Theme builder now renders inside the app chrome (AppLayout sidebar).
@@ -105,7 +109,7 @@ Route::middleware('auth')->group(function () {
         Route::put('/settings/questions/{question}', [QuestionController::class, 'update'])->name('settings.questions.update');
         Route::delete('/settings/questions/{question}', [QuestionController::class, 'destroy'])->name('settings.questions.destroy');
         Route::put('/settings/period', [PeriodController::class, 'update'])->name('settings.period.update');
-        Route::post('/settings/roster-token', [SettingsController::class, 'regenerateRosterToken'])->name('settings.roster-token');
+        Route::post('/settings/schedule-token', [SettingsController::class, 'regenerateScheduleToken'])->name('settings.schedule-token');
         Route::post('/settings/workcenters', [WorkcenterController::class, 'store'])->name('settings.workcenters.store');
         Route::put('/settings/workcenters/reorder', [WorkcenterController::class, 'reorder'])->name('settings.workcenters.reorder');
         Route::put('/settings/workcenters/{workcenter}', [WorkcenterController::class, 'update'])->name('settings.workcenters.update');
@@ -117,19 +121,19 @@ Route::middleware('auth')->group(function () {
         Route::put('/planning-rules/{planningRule}', [PlanningRuleController::class, 'update'])->name('planning-rules.update');
         Route::delete('/planning-rules/{planningRule}', [PlanningRuleController::class, 'destroy'])->name('planning-rules.destroy');
 
-        Route::get('/schedule', [WorkcenterShiftAssignmentController::class, 'index'])->name('schedule.index');
-        Route::post('/schedule', [WorkcenterShiftAssignmentController::class, 'store'])->name('schedule.store');
-        Route::put('/schedule/{workcenter}/{shift}', [WorkcenterShiftAssignmentController::class, 'update'])->name('schedule.update');
-        Route::delete('/schedule/{workcenter}/{shift}', [WorkcenterShiftAssignmentController::class, 'destroy'])->name('schedule.destroy');
+        Route::get('/demand', [DemandController::class, 'index'])->name('demand.index');
+        Route::post('/demand', [DemandController::class, 'store'])->name('demand.store');
+        Route::put('/demand/{workcenter}/{shift}', [DemandController::class, 'update'])->name('demand.update');
+        Route::delete('/demand/{workcenter}/{shift}', [DemandController::class, 'destroy'])->name('demand.destroy');
+        Route::put('/demand/{workcenter}/{shift}/{date}', [DemandDateController::class, 'update'])
+            ->where('date', '\d{4}-\d{2}-\d{2}')->name('demand.dates.update');
+        Route::delete('/demand/{workcenter}/{shift}/{date}', [DemandDateController::class, 'destroy'])
+            ->where('date', '\d{4}-\d{2}-\d{2}')->name('demand.dates.destroy');
 
         Route::get('/planning', [SchedulingController::class, 'index'])->name('planning.index');
         Route::post('/planning/assignments', [ShiftAssignmentController::class, 'store'])->name('planning.assignments.store');
         Route::put('/planning/assignments/{shiftAssignment}', [ShiftAssignmentController::class, 'updateFixed'])->name('planning.assignments.update');
         Route::delete('/planning/assignments/{shiftAssignment}', [ShiftAssignmentController::class, 'destroy'])->name('planning.assignments.destroy');
-        Route::put('/planning/spots/{workcenter}/{shift}/{date}', [ScheduleSpotController::class, 'update'])
-            ->where('date', '\d{4}-\d{2}-\d{2}')->name('planning.spots.update');
-        Route::delete('/planning/spots/{workcenter}/{shift}/{date}', [ScheduleSpotController::class, 'destroy'])
-            ->where('date', '\d{4}-\d{2}-\d{2}')->name('planning.spots.destroy');
         Route::get('/planning/eligible-employees', [EligibleEmployeeController::class, 'index'])->name('planning.eligible-employees');
         Route::get('/planning/verify', [PlanningVerificationController::class, 'index'])->name('planning.verify');
         Route::put('/planning/filter', [PlanningFilterController::class, 'update'])->name('planning.filter.update');
@@ -164,8 +168,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/users', [UserController::class, 'index'])->name('users.index');
     Route::get('/users/{user}/edit', [UserController::class, 'edit'])->name('users.edit');
 
-    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard.index');
-    Route::get('/roster', [RosterController::class, 'index'])->name('roster.index');
+    Route::get('/dashboard', [DashboardController::class, 'index'])->middleware('whats-new.redirect')->name('dashboard.index');
+    Route::redirect('/roster', '/schedule');
+    Route::get('/schedule', [ScheduleController::class, 'index'])->name('schedule.index');
 
     Route::get('/account', [AccountController::class, 'show'])->name('account.show');
     Route::put('/account/password', [AccountController::class, 'updatePassword'])->name('account.password');

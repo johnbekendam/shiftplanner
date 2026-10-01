@@ -6,12 +6,12 @@ import ScreenLinkRow from '@/components/ScreenLinkRow.vue'
 import { useI18n } from '@/composables/useI18n'
 
 // The Settings Screens tab: every link that opens a page without a login.
-// The roster link first, then one live screen per active workcenter.
+// The schedule link first, then one live screen per active workcenter.
 // See features/settings-screens-tab/.
 const __ = useI18n()
 
 const props = defineProps({
-    rosterUrl: { type: String, required: true },
+    scheduleUrl: { type: String, required: true },
     workcenters: { type: Array, default: () => [] }, // { id, name, archived_at, live_url }, in position order
 })
 
@@ -20,8 +20,8 @@ const activeWorkcenters = computed(() => props.workcenters.filter((w) => !w.arch
 
 const visitOptions = { preserveScroll: true, preserveState: true }
 
-function regenerateRoster() {
-    router.post('/settings/roster-token', {}, visitOptions)
+function regenerateSchedule() {
+    router.post('/settings/schedule-token', {}, visitOptions)
 }
 
 function regenerateLive(id) {
@@ -32,13 +32,13 @@ function regenerateLive(id) {
 <template>
     <div>
         <ScreenLinkRow
-            data-testid="screen-row-roster"
-            :title="__('screens.roster.title')"
-            :help="__('screens.roster.help')"
-            :url="rosterUrl"
-            :regenerate-title="__('screens.roster.regenerate_title')"
-            :regenerate-body="__('screens.roster.regenerate_body')"
-            @regenerate="regenerateRoster"
+            data-testid="screen-row-schedule"
+            :title="__('screens.schedule.title')"
+            :help="__('screens.schedule.help')"
+            :url="scheduleUrl"
+            :regenerate-title="__('screens.schedule.regenerate_title')"
+            :regenerate-body="__('screens.schedule.regenerate_body')"
+            @regenerate="regenerateSchedule"
         />
 
         <CardSeparator />

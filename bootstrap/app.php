@@ -5,6 +5,7 @@ use App\Http\Middleware\EnsureAdmin;
 use App\Http\Middleware\EnsureEmployeeChangesAllowed;
 use App\Http\Middleware\EnsureEmployeeActive;
 use App\Http\Middleware\HandleInertiaRequests;
+use App\Http\Middleware\RedirectToUnseenWhatsNew;
 use Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -26,6 +27,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'admin' => EnsureAdmin::class,
             'employee.changes' => EnsureEmployeeChangesAllowed::class,
             'employee.active' => EnsureEmployeeActive::class,
+            'whats-new.redirect' => RedirectToUnseenWhatsNew::class,
         ]);
 
         // Route-level `auth` middleware is priority-sorted ahead of any

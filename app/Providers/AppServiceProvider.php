@@ -8,6 +8,7 @@ use App\Services\Auth\LocalAuthService;
 use App\Services\Graph\GraphClient;
 use App\Services\Planning\HeuristicPlanGenerator;
 use App\Services\Planning\PlanGeneratorContract;
+use App\Services\WhatsNew;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
@@ -21,6 +22,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+        // One parse of the What's new files per request.
+        $this->app->singleton(WhatsNew::class);
+
         $this->app->bind(AuthServiceContract::class, LocalAuthService::class);
         $this->app->bind(PlanGeneratorContract::class, HeuristicPlanGenerator::class);
 

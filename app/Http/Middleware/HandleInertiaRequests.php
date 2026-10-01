@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Services\WhatsNew;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\App;
 use Inertia\Middleware;
@@ -37,6 +38,14 @@ class HandleInertiaRequests extends Middleware
                 'user' => $request->user()?->only(['id', 'name', 'email', 'role', 'employee_id', 'business_line_id']),
             ],
             'appName' => config('app.name'),
+            // See features/whats-new/.
+            'whatsNew' => fn () => $request->user() ? [
+                'unseen' => app(WhatsNew::class)->unseenCount(
+                    $request->user()->role,
+                    $request->user()->whats_new_seen_at?->toDateString(),
+                ),
+                'hasEntries' => app(WhatsNew::class)->for($request->user()->role) !== [],
+            ] : null,
         ];
     }
 }

@@ -13,7 +13,7 @@ use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
-class RosterTest extends TestCase
+class ScheduleTest extends TestCase
 {
     use RefreshDatabase;
 
@@ -38,29 +38,29 @@ class RosterTest extends TestCase
 
     public function test_guest_is_redirected_to_login(): void
     {
-        $this->get('/roster')->assertRedirect('/login');
+        $this->get('/schedule')->assertRedirect('/login');
     }
 
-    public function test_a_manager_may_view_the_roster(): void
+    public function test_a_manager_may_view_the_schedule(): void
     {
         $this->actingAs(User::factory()->create());
 
-        $this->get('/roster')->assertOk()
-            ->assertInertia(fn ($page) => $page->component('Roster'));
+        $this->get('/schedule')->assertOk()
+            ->assertInertia(fn ($page) => $page->component('Schedule'));
     }
 
-    public function test_an_admin_may_view_the_roster(): void
+    public function test_an_admin_may_view_the_schedule(): void
     {
         $this->actingAs(User::factory()->admin()->create());
 
-        $this->get('/roster')->assertOk();
+        $this->get('/schedule')->assertOk();
     }
 
     public function test_the_current_week_is_the_default(): void
     {
         $this->actingAs(User::factory()->create());
 
-        $this->get('/roster')->assertInertia(fn ($page) => $page
+        $this->get('/schedule')->assertInertia(fn ($page) => $page
             ->where('weekStart', self::THIS_WEEK)
             ->where('weekNumber', 39)
             ->where('today', '2026-09-23')
@@ -75,7 +75,7 @@ class RosterTest extends TestCase
         $this->actingAs(User::factory()->create());
 
         // A Thursday snaps back to its Monday.
-        $this->get('/roster?week=2026-10-08')->assertInertia(fn ($page) => $page
+        $this->get('/schedule?week=2026-10-08')->assertInertia(fn ($page) => $page
             ->where('weekStart', '2026-10-05')
             ->where('weekNumber', 41));
     }
@@ -84,7 +84,7 @@ class RosterTest extends TestCase
     {
         $this->actingAs(User::factory()->create());
 
-        $this->get('/roster?week=nonsense')->assertInertia(fn ($page) => $page
+        $this->get('/schedule?week=nonsense')->assertInertia(fn ($page) => $page
             ->where('weekStart', self::THIS_WEEK));
     }
 
@@ -128,7 +128,7 @@ class RosterTest extends TestCase
     {
         $this->actingAs(User::factory()->create());
 
-        return $this->get('/roster'.$query)->assertOk()->viewData('page')['props']['rows'];
+        return $this->get('/schedule'.$query)->assertOk()->viewData('page')['props']['rows'];
     }
 
     public function test_a_row_lists_the_published_assignments_for_each_day(): void
@@ -263,7 +263,7 @@ class RosterTest extends TestCase
         [$asm, $pck] = $this->threeLines();
         $this->actingAs(User::factory()->create());
 
-        $this->get('/roster')->assertInertia(fn ($page) => $page
+        $this->get('/schedule')->assertInertia(fn ($page) => $page
             ->where('businessLines', [
                 ['id' => $asm->id, 'abbreviation' => 'ASM'],
                 ['id' => $pck->id, 'abbreviation' => 'PCK'],
@@ -294,7 +294,7 @@ class RosterTest extends TestCase
         $this->threeLines();
         $this->actingAs(User::factory()->create());
 
-        $this->get('/roster?business_lines[]=__empty__')->assertInertia(fn ($page) => $page
+        $this->get('/schedule?business_lines[]=__empty__')->assertInertia(fn ($page) => $page
             ->where('selectedBusinessLines', [])
             ->has('rows', 0));
     }

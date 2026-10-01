@@ -10,11 +10,11 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 
 /**
- * The page props of the roster: who works on which day of one ISO week.
+ * The page props of the schedule: who works on which day of one ISO week.
  * Shared by the logged-in page and the public link. See features/roster/
  * and features/roster-public-link/.
  */
-class RosterWeek
+class ScheduleWeek
 {
     public function props(Request $request): array
     {

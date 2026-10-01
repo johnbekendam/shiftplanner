@@ -10,7 +10,7 @@ const __ = useI18n()
 
 // Positions a floating panel below its trigger, flipping above when there
 // isn't room below the viewport's bottom edge, and clamping horizontally
-// within the viewport's right edge — shared by the three popovers below.
+// within the viewport's right edge — shared by the two popovers below.
 const PANEL_GAP = 4
 
 function positionPanel(triggerEl, panelEl) {
@@ -94,56 +94,9 @@ function formatDay(dateStr) {
     return new Date(y, m - 1, d).toLocaleDateString('en-US', { weekday: 'short', day: 'numeric' })
 }
 
-function spotsUrl(date) {
-    return `/planning/spots/${props.workcenterId}/${props.shiftId}/${date}`
-}
-
-// ── Spot count ──────────────────────────────────────────────────────────
-// A floating menu of selectable counts, positioned from the clicked date
-// label's own rect — same approach as the assign popover below.
-const spotsOptions = Array.from({ length: 13 }, (_, i) => i) // 0..12
-const spotsMenuDate = ref(null)
-const spotsMenuTriggerEl = ref(null)
-const spotsMenuRef = ref(null)
-const spotsMenuStyle = ref({})
-
-const spotsMenuCell = computed(() => props.cells.find((c) => c.date === spotsMenuDate.value) ?? null)
-
-function computeSpotsMenuPosition() {
-    spotsMenuStyle.value = positionPanel(spotsMenuTriggerEl.value, spotsMenuRef.value)
-}
-
-async function toggleSpotsMenu(cell, event) {
-    if (spotsMenuDate.value === cell.date) {
-        closeSpotsMenu()
-        return
-    }
-    spotsMenuDate.value = cell.date
-    spotsMenuTriggerEl.value = event.currentTarget
-    spotsMenuStyle.value = positionPanel(spotsMenuTriggerEl.value, null)
-    await nextTick()
-    computeSpotsMenuPosition()
-}
-
-function closeSpotsMenu() {
-    spotsMenuDate.value = null
-    spotsMenuTriggerEl.value = null
-}
-
-async function selectSpots(value) {
-    const cell = spotsMenuCell.value
-    closeSpotsMenu()
-    if (!cell || value === cell.spots) return
-    await putAsync(spotsUrl(cell.date), { spots: value }).catch(() => {})
-}
-
-async function resetSpots(cell) {
-    await deleteAsync(spotsUrl(cell.date)).catch(() => {})
-}
-
 // ── Assignees ───────────────────────────────────────────────────────────
 // A floating menu (Freeze/Unfreeze, Remove), same positioning approach as
-// the spots menu and the assign popover.
+// the assign popover.
 const assignmentMenuAssignment = ref(null)
 const assignmentMenuTriggerEl = ref(null)
 const assignmentMenuRef = ref(null)
@@ -250,9 +203,6 @@ function onClickOutside(e) {
     if (openAssignDate.value) {
         if (!openTriggerEl.value?.contains(e.target) && !panelRef.value?.contains(e.target)) closeAssign()
     }
-    if (spotsMenuDate.value) {
-        if (!spotsMenuTriggerEl.value?.contains(e.target) && !spotsMenuRef.value?.contains(e.target)) closeSpotsMenu()
-    }
     if (assignmentMenuAssignment.value) {
         if (!assignmentMenuTriggerEl.value?.contains(e.target) && !assignmentMenuRef.value?.contains(e.target)) closeAssignmentMenu()
     }
@@ -260,7 +210,6 @@ function onClickOutside(e) {
 
 function onScroll() {
     if (openAssignDate.value) computePanelPosition()
-    if (spotsMenuDate.value) computeSpotsMenuPosition()
     if (assignmentMenuAssignment.value) computeAssignmentMenuPosition()
 }
 
@@ -279,23 +228,7 @@ onBeforeUnmount(() => {
             <tr class="border-b border-(--color-table-header-separator)">
                 <th class="w-8"></th>
                 <th v-for="cell in cells" :key="cell.date" class="px-1 py-1 text-left font-medium">
-                    <div class="flex items-center gap-1">
-                        <button
-                            type="button"
-                            :data-testid="`spots-${shiftId}-${cell.date}`"
-                            @click="(e) => toggleSpotsMenu(cell, e)"
-                        >
-                            {{ formatDay(cell.date) }}
-                        </button>
-                        <button
-                            v-if="cell.overridden"
-                            type="button"
-                            :aria-label="__('scheduling.reset_spots')"
-                            @click="resetSpots(cell)"
-                        >
-                            <Icon name="arrow-uturn-left" class="size-3" />
-                        </button>
-                    </div>
+                    <span :data-testid="`day-${shiftId}-${cell.date}`">{{ formatDay(cell.date) }}</span>
                 </th>
             </tr>
         </thead>
@@ -365,27 +298,6 @@ onBeforeUnmount(() => {
             </tr>
         </tbody>
     </table>
-
-    <Teleport to="body">
-        <div
-            v-if="spotsMenuDate"
-            ref="spotsMenuRef"
-            data-testid="spots-menu"
-            :style="spotsMenuStyle"
-            class="fixed z-50 max-h-48 w-16 overflow-y-auto rounded-md border border-(--color-dropdown-panel-border) bg-(--color-dropdown-panel-bg) p-1 shadow-lg"
-        >
-            <button
-                v-for="n in spotsOptions"
-                :key="n"
-                type="button"
-                class="block w-full rounded px-2 py-1 text-left hover:bg-(--color-dropdown-option-hover-bg)"
-                :class="n === spotsMenuCell?.spots ? 'font-semibold text-(--color-btn-primary-bg)' : ''"
-                @click="selectSpots(n)"
-            >
-                {{ n }}
-            </button>
-        </div>
-    </Teleport>
 
     <Teleport to="body">
         <div

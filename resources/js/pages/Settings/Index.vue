@@ -30,7 +30,7 @@ const props = defineProps({
     scheduleNote: { type: String, default: '' },
     questions: { type: Array, default: () => [] },
     period: { type: Object, default: () => ({}) },
-    rosterUrl: { type: String, default: '' },
+    scheduleUrl: { type: String, default: '' },
 })
 
 const tab = ref('general')
@@ -505,7 +505,7 @@ useUnsavedChangesGuard(() => (
             </div>
 
             <div v-show="tab === 'screens'" data-testid="panel-screens" class="p-6">
-                <ScreensPanel :roster-url="rosterUrl" :workcenters="workcenters" />
+                <ScreensPanel :schedule-url="scheduleUrl" :workcenters="workcenters" />
             </div>
 
             <div v-show="tab === 'questions'" data-testid="panel-questions" class="p-6">

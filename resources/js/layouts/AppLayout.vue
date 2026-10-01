@@ -33,6 +33,10 @@ function handleOutsideClick(event) {
 }
 
 onMounted(() => document.addEventListener('click', handleOutsideClick))
+
+// ── What's new (features/whats-new/): { unseen, hasEntries } ─────────
+const whatsNew = computed(() => page.props.whatsNew ?? { unseen: 0, hasEntries: false })
+
 onUnmounted(() => document.removeEventListener('click', handleOutsideClick))
 
 // A context/domain extension would add its own context-scoped section here,
@@ -53,26 +57,34 @@ function planningHref() {
     return `/planning?year=${year}&month=${month}&date=${selectedWeek}`
 }
 
+function demandHref() {
+    const userId = user.value?.id
+    if (!userId || typeof window === 'undefined') return '/demand'
+
+    const workcenterId = window.sessionStorage.getItem(`demand.workcenter.${userId}`)
+    return /^\d+$/.test(workcenterId ?? '') ? `/demand?workcenter=${workcenterId}` : '/demand'
+}
+
 const navItems = computed(() => {
     page.url
     const items = [
         { label: __('nav.dashboard'), href: '/dashboard', icon: 'chart-bar' },
         { label: __('nav.employees'), href: '/employees', icon: 'users' },
     ]
-    const roster = { label: __('nav.roster'), href: '/roster', icon: 'calendar-days' }
+    const schedule = { label: __('nav.schedule'), href: '/schedule', icon: 'calendar-days' }
 
     if (isAdmin.value) {
         items.push(
-            { label: __('nav.workcenter_shifts'), href: '/schedule', icon: 'table-cells' },
+            { label: __('nav.demand'), href: demandHref(), icon: 'table-cells' },
             { label: __('nav.scheduling'), href: planningHref(), icon: 'calendar-days' },
-            roster,
+            schedule,
             { label: __('nav.mailbox'), href: '/mailbox', icon: 'envelope' },
             { label: __('nav.reports'), href: '/reports', icon: 'clipboard-list' },
             { separator: true },
         )
     } else {
-        // A manager has no Mailbox or Reports; Roster follows Employees.
-        items.push(roster)
+        // A manager has no Mailbox or Reports; Schedule follows Employees.
+        items.push(schedule)
     }
 
     // Read-only for a manager; only an admin can create or edit here.
@@ -195,20 +207,41 @@ function isActive(href) {
 
         <!-- Sidebar nav -->
         <template #sidebar>
-            <nav class="px-3 py-4 flex flex-col gap-1">
-                <template v-for="(item, index) in navItems" :key="item.href ?? `separator-${index}`">
-                    <hr v-if="item.separator" class="my-2 border-(--color-card-border)" />
+            <div class="flex min-h-full flex-col">
+                <nav class="px-3 py-4 flex flex-col gap-1">
+                    <template v-for="(item, index) in navItems" :key="item.href ?? `separator-${index}`">
+                        <hr v-if="item.separator" class="my-2 border-(--color-card-border)" />
+                        <NavLink
+                            v-else
+                            :href="item.href"
+                            :active="isActive(item.href)"
+                            @click="sidebarOpen = false"
+                        >
+                            <Icon :name="item.icon" class="w-5 h-5 flex-shrink-0" />
+                            <span>{{ item.label }}</span>
+                        </NavLink>
+                    </template>
+                </nav>
+                <div v-if="whatsNew.hasEntries" class="mt-auto px-3 pb-4">
                     <NavLink
-                        v-else
-                        :href="item.href"
-                        :active="isActive(item.href)"
+                        href="/whats-new"
+                        :active="isActive('/whats-new')"
+                        data-testid="whats-new-link"
                         @click="sidebarOpen = false"
                     >
-                        <Icon :name="item.icon" class="w-5 h-5 flex-shrink-0" />
-                        <span>{{ item.label }}</span>
+                        <Icon name="sparkles" class="w-5 h-5 flex-shrink-0" />
+                        <span>{{ __('nav.whats_new') }}</span>
+                        <span
+                            v-if="whatsNew.unseen"
+                            data-testid="whats-new-badge"
+                            :aria-label="__('whats_new.unseen', { count: whatsNew.unseen })"
+                            class="ml-auto rounded-full bg-(--color-btn-primary-bg) px-2 text-xs text-(--color-btn-primary-text)"
+                        >
+                            {{ whatsNew.unseen }}
+                        </span>
                     </NavLink>
-                </template>
-            </nav>
+                </div>
+            </div>
         </template>
 
         <!-- Page content. With fitHeight it fills the page area instead of

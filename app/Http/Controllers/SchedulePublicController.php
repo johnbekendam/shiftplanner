@@ -3,21 +3,21 @@
 namespace App\Http\Controllers;
 
 use App\Models\PlanningSettings;
-use App\Services\RosterWeek;
+use App\Services\ScheduleWeek;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
 /**
- * The roster by its secret link, with no login. One token for the whole
+ * The schedule by its secret link, with no login. One token for the whole
  * application. See features/roster-public-link/.
  */
-class RosterPublicController extends Controller
+class SchedulePublicController extends Controller
 {
-    public function show(Request $request, string $token, RosterWeek $roster)
+    public function show(Request $request, string $token, ScheduleWeek $schedule)
     {
         abort_unless(hash_equals(PlanningSettings::current()->rosterToken(), $token), 404);
 
-        return Inertia::render('RosterPublic', $roster->props($request))
+        return Inertia::render('SchedulePublic', $schedule->props($request))
             ->toResponse($request)
             ->withHeaders([
                 'X-Robots-Tag' => 'noindex',

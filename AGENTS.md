@@ -30,6 +30,29 @@ Every feature follows this order:
 
 The `implement-feature` skill runs this flow.
 
+### What's new
+
+A change that users notice gets a What's new entry: one Markdown file
+in `resources/whats-new/`, named `YYYY-MM-DD-<name>.md`. Users see the
+number of new entries as a badge on "What's new" in the sidebar, and read
+all entries on the `/whats-new` page (see `doc/features/whats-new/`). The
+front matter holds:
+
+```markdown
+---
+date: 2026-10-01
+title: Roster is now Schedule
+audience: admin, manager
+---
+```
+
+- `audience` is `admin`, `manager`, or both. An admin also sees the
+  `manager` entries. Employees do not see What's new yet.
+- Write for the user, not the developer: what changed on their screen
+  and what to do now. Keep it short.
+- Add the entry in the last step of the feature. Internal changes
+  (refactors, tests, fixes nobody noticed) get no entry.
+
 ## Verification
 
 Do not execute UI/browser verification of changes yourself (no dev-login

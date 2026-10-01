@@ -6,10 +6,10 @@ const en = {
     "screens.copied": "Link copied",
     "screens.regenerate": "Regenerate link",
     "screens.regenerate_confirm": "Regenerate",
-    "screens.roster.title": "Roster link",
-    "screens.roster.help": "Anyone with this link sees the roster without an account.",
-    "screens.roster.regenerate_title": "Regenerate the roster link?",
-    "screens.roster.regenerate_body": "The old roster link stops working at once.",
+    "screens.schedule.title": "Schedule link",
+    "screens.schedule.help": "Anyone with this link sees the schedule without an account.",
+    "screens.schedule.regenerate_title": "Regenerate the schedule link?",
+    "screens.schedule.regenerate_body": "The old schedule link stops working at once.",
     "screens.live.title": "Live screens",
     "screens.live.help": "One wall screen for each workcenter.",
     "screens.live.empty": "No active workcenters.",
@@ -26,14 +26,14 @@ vi.mock("@inertiajs/vue3", () => ({
 
 import ScreensPanel from "@/components/ScreensPanel.vue";
 
-const rosterUrl = "https://app.test/roster/secret";
+const scheduleUrl = "https://app.test/schedule/secret";
 const workcenters = [
     { id: 1, name: "Assembly", archived_at: null, live_url: "https://app.test/live/aaa" },
     { id: 2, name: "Old line", archived_at: "2026-09-01T00:00:00Z", live_url: "https://app.test/live/old" },
     { id: 3, name: "Packing", archived_at: null, live_url: "https://app.test/live/ccc" },
 ];
 
-const mountPanel = (props = {}) => mount(ScreensPanel, { props: { rosterUrl, workcenters, ...props } });
+const mountPanel = (props = {}) => mount(ScreensPanel, { props: { scheduleUrl, workcenters, ...props } });
 const dialog = (w, title) => w.findAllComponents({ name: "ConfirmDialog" }).find((d) => d.props("title") === title);
 
 beforeEach(() => {
@@ -41,13 +41,13 @@ beforeEach(() => {
 });
 
 describe("ScreensPanel", () => {
-    it("shows the roster link row first, without the URL", () => {
+    it("shows the schedule link row first, without the URL", () => {
         const w = mountPanel();
         const rows = w.findAll("[data-testid^='screen-row-']");
 
-        expect(rows[0].attributes("data-testid")).toBe("screen-row-roster");
-        expect(rows[0].text()).toContain("Roster link");
-        expect(w.text()).not.toContain(rosterUrl);
+        expect(rows[0].attributes("data-testid")).toBe("screen-row-schedule");
+        expect(rows[0].text()).toContain("Schedule link");
+        expect(w.text()).not.toContain(scheduleUrl);
     });
 
     it("lists one live-screen row per active workcenter, in order", () => {
@@ -86,26 +86,26 @@ describe("ScreensPanel", () => {
         expect(w.get("[data-testid='screen-row-workcenter-1'] [data-testid='screen-copy']").attributes("aria-label")).toBe("Copy link");
     });
 
-    it("copies the roster URL", async () => {
+    it("copies the schedule URL", async () => {
         const writeText = vi.fn().mockResolvedValue();
         Object.assign(navigator, { clipboard: { writeText } });
         const w = mountPanel();
 
-        await w.get("[data-testid='screen-row-roster'] [data-testid='screen-copy']").trigger("click");
+        await w.get("[data-testid='screen-row-schedule'] [data-testid='screen-copy']").trigger("click");
         await flushPromises();
 
-        expect(writeText).toHaveBeenCalledWith(rosterUrl);
+        expect(writeText).toHaveBeenCalledWith(scheduleUrl);
     });
 
-    it("regenerates the roster link only after the confirm", async () => {
+    it("regenerates the schedule link only after the confirm", async () => {
         const w = mountPanel();
 
-        await w.get("[data-testid='screen-row-roster'] [data-testid='screen-regenerate']").trigger("click");
+        await w.get("[data-testid='screen-row-schedule'] [data-testid='screen-regenerate']").trigger("click");
         expect(router.post).not.toHaveBeenCalled();
 
-        await dialog(w, "Regenerate the roster link?").vm.$emit("confirm");
+        await dialog(w, "Regenerate the schedule link?").vm.$emit("confirm");
 
-        expect(router.post).toHaveBeenCalledWith("/settings/roster-token", {}, { preserveScroll: true, preserveState: true });
+        expect(router.post).toHaveBeenCalledWith("/settings/schedule-token", {}, { preserveScroll: true, preserveState: true });
     });
 
     it("regenerates a workcenter's live link only after the confirm", async () => {
