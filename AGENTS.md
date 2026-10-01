@@ -33,9 +33,10 @@ The `implement-feature` skill runs this flow.
 ### What's new
 
 A change that users notice gets a What's new entry: one Markdown file
-in `resources/whats-new/`, named `YYYY-MM-DD-<name>.md`. Users see new
-entries once in a dialog, and can open them again from a link (see
-`doc/features/whats-new/`). The front matter holds:
+in `resources/whats-new/`, named `YYYY-MM-DD-<name>.md`. Users see the
+number of new entries as a badge on "What's new" in the sidebar, and read
+all entries on the `/whats-new` page (see `doc/features/whats-new/`). The
+front matter holds:
 
 ```markdown
 ---
@@ -45,8 +46,8 @@ audience: admin, manager
 ---
 ```
 
-- `audience` is one or more of `admin`, `manager` and `employee`. An
-  admin also sees the `manager` entries.
+- `audience` is `admin`, `manager`, or both. An admin also sees the
+  `manager` entries. Employees do not see What's new yet.
 - Write for the user, not the developer: what changed on their screen
   and what to do now. Keep it short.
 - Add the entry in the last step of the feature. Internal changes
