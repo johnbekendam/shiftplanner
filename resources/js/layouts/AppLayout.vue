@@ -1,11 +1,13 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { usePage, router, Link } from '@inertiajs/vue3'
+import axios from 'axios'
 import Layout from '@/layouts/Layout.vue'
 import AppLogo from '@/components/AppLogo.vue'
 import NavLink from '@/components/NavLink.vue'
 import FlashMessage from '@/components/FlashMessage.vue'
 import Icon from '@/components/ui/Icon.vue'
+import WhatsNewDialog from '@/components/WhatsNewDialog.vue'
 import { useI18n } from '@/composables/useI18n'
 import { useBreadcrumb } from '@/composables/useBreadcrumb'
 import { useDarkMode } from '@/composables/useDarkMode'
@@ -33,6 +35,30 @@ function handleOutsideClick(event) {
 }
 
 onMounted(() => document.addEventListener('click', handleOutsideClick))
+
+// ── What's new (features/whats-new/) ─────────────────────────────────
+const whatsNewEntries = computed(() => page.props.whatsNew?.entries ?? [])
+const whatsNewSeenAt = ref(page.props.whatsNew?.seenAt ?? null)
+const unseenEntries = computed(() => whatsNewEntries.value.filter(
+    (entry) => !whatsNewSeenAt.value || entry.date > whatsNewSeenAt.value,
+))
+
+// 'unseen' on its own after an update; 'all' from the sidebar link.
+const whatsNewMode = ref(unseenEntries.value.length ? 'unseen' : null)
+const whatsNewDialogEntries = computed(() => (whatsNewMode.value === 'unseen' ? unseenEntries.value : whatsNewEntries.value))
+
+function openWhatsNew() {
+    sidebarOpen.value = false
+    whatsNewMode.value = 'all'
+}
+
+function closeWhatsNew() {
+    if (unseenEntries.value.length) {
+        whatsNewSeenAt.value = whatsNewEntries.value[0].date
+        axios.post('/whats-new/seen').catch(() => {})
+    }
+    whatsNewMode.value = null
+}
 onUnmounted(() => document.removeEventListener('click', handleOutsideClick))
 
 // A context/domain extension would add its own context-scoped section here,
@@ -203,20 +229,28 @@ function isActive(href) {
 
         <!-- Sidebar nav -->
         <template #sidebar>
-            <nav class="px-3 py-4 flex flex-col gap-1">
-                <template v-for="(item, index) in navItems" :key="item.href ?? `separator-${index}`">
-                    <hr v-if="item.separator" class="my-2 border-(--color-card-border)" />
-                    <NavLink
-                        v-else
-                        :href="item.href"
-                        :active="isActive(item.href)"
-                        @click="sidebarOpen = false"
-                    >
-                        <Icon :name="item.icon" class="w-5 h-5 flex-shrink-0" />
-                        <span>{{ item.label }}</span>
+            <div class="flex min-h-full flex-col">
+                <nav class="px-3 py-4 flex flex-col gap-1">
+                    <template v-for="(item, index) in navItems" :key="item.href ?? `separator-${index}`">
+                        <hr v-if="item.separator" class="my-2 border-(--color-card-border)" />
+                        <NavLink
+                            v-else
+                            :href="item.href"
+                            :active="isActive(item.href)"
+                            @click="sidebarOpen = false"
+                        >
+                            <Icon :name="item.icon" class="w-5 h-5 flex-shrink-0" />
+                            <span>{{ item.label }}</span>
+                        </NavLink>
+                    </template>
+                </nav>
+                <div v-if="whatsNewEntries.length" class="mt-auto px-3 pb-4">
+                    <NavLink data-testid="whats-new-link" @click="openWhatsNew">
+                        <Icon name="sparkles" class="w-5 h-5 flex-shrink-0" />
+                        <span>{{ __('nav.whats_new') }}</span>
                     </NavLink>
-                </template>
-            </nav>
+                </div>
+            </div>
         </template>
 
         <!-- Page content. With fitHeight it fills the page area instead of
@@ -228,5 +262,6 @@ function isActive(href) {
             </div>
         </div>
 
+        <WhatsNewDialog :open="whatsNewMode !== null" :entries="whatsNewDialogEntries" @close="closeWhatsNew" />
     </Layout>
 </template>

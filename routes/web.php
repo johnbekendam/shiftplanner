@@ -46,6 +46,7 @@ use App\Http\Controllers\ShiftController;
 use App\Http\Controllers\SignupController;
 use App\Http\Controllers\ThemeBuilderController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\WhatsNewController;
 use App\Http\Controllers\WorkcenterController;
 use Illuminate\Support\Facades\Route;
 
@@ -72,6 +73,8 @@ Route::get('/schedule/{token}', [SchedulePublicController::class, 'show'])->name
 Route::redirect('/roster/{token}', '/schedule/{token}');
 
 Route::middleware('auth')->group(function () {
+    Route::post('/whats-new/seen', [WhatsNewController::class, 'seen'])->name('whats-new.seen');
+
     // Admin-only: everything except the employee list/editor.
     Route::middleware('admin')->group(function () {
         // Theme builder now renders inside the app chrome (AppLayout sidebar).

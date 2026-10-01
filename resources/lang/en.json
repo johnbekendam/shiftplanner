@@ -20,6 +20,7 @@
     "nav.employee_backup": "Backup",
     "nav.employee_audit": "Audit log",
     "nav.settings": "Settings",
+    "nav.whats_new": "What's new",
     "nav.toggle": "Toggle navigation",
     "nav.switch_to_light": "Switch to light mode",
     "nav.switch_to_dark": "Switch to dark mode",
@@ -815,5 +816,7 @@
     "backup.error.business_line": "Record :record: business line \":abbreviation\" does not exist.",
     "backup.error.competence": "Record :record: competence \":name\" does not exist.",
     "backup.error.shift": "Record :record: shift \":shift\" does not exist.",
-    "backup.error.question": "Record :record: availability question \":text\" does not exist."
+    "backup.error.question": "Record :record: availability question \":text\" does not exist.",
+    "whats_new.title": "What's new",
+    "whats_new.close": "Close"
 }
