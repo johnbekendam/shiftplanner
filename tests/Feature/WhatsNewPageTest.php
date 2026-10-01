@@ -76,4 +76,33 @@ class WhatsNewPageTest extends TestCase
     {
         $this->get('/whats-new')->assertRedirect('/login');
     }
+
+    public function test_the_dashboard_redirects_to_whats_new_with_unseen_entries(): void
+    {
+        $this->actingAs($this->user('2026-09-01'));
+
+        $this->get('/dashboard')->assertRedirect('/whats-new');
+    }
+
+    public function test_the_dashboard_opens_when_every_entry_was_seen(): void
+    {
+        $this->actingAs($this->user('2026-10-01'));
+
+        $this->get('/dashboard')->assertOk();
+    }
+
+    public function test_the_dashboard_opens_after_the_whats_new_visit(): void
+    {
+        $this->actingAs($this->user(null));
+
+        $this->get('/whats-new')->assertOk();
+        $this->get('/dashboard')->assertOk();
+    }
+
+    public function test_another_page_opens_with_unseen_entries(): void
+    {
+        $this->actingAs($this->user(null));
+
+        $this->get('/schedule')->assertOk();
+    }
 }

@@ -43,7 +43,7 @@ class WhatsNewSharingTest extends TestCase
         $this->entry('2026-09-02', 'admin');
         $this->actingAs(tap(User::factory()->create())->update(['whats_new_seen_at' => '2026-08-01']));
 
-        $this->get('/dashboard')->assertInertia(fn ($page) => $page
+        $this->get('/schedule')->assertInertia(fn ($page) => $page
             ->where('whatsNew', ['unseen' => 1, 'hasEntries' => true])
         );
     }
@@ -54,7 +54,7 @@ class WhatsNewSharingTest extends TestCase
         $this->entry('2026-09-02', 'admin');
         $this->actingAs(tap(User::factory()->admin()->create())->update(['whats_new_seen_at' => null]));
 
-        $this->get('/dashboard')->assertInertia(fn ($page) => $page->where('whatsNew.unseen', 2));
+        $this->get('/schedule')->assertInertia(fn ($page) => $page->where('whatsNew.unseen', 2));
     }
 
     public function test_a_user_without_entries_gets_no_entries(): void
@@ -62,7 +62,7 @@ class WhatsNewSharingTest extends TestCase
         $this->entry('2026-09-02', 'admin');
         $this->actingAs(User::factory()->create());
 
-        $this->get('/dashboard')->assertInertia(fn ($page) => $page
+        $this->get('/schedule')->assertInertia(fn ($page) => $page
             ->where('whatsNew', ['unseen' => 0, 'hasEntries' => false])
         );
     }

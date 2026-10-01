@@ -168,7 +168,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/users', [UserController::class, 'index'])->name('users.index');
     Route::get('/users/{user}/edit', [UserController::class, 'edit'])->name('users.edit');
 
-    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard.index');
+    Route::get('/dashboard', [DashboardController::class, 'index'])->middleware('whats-new.redirect')->name('dashboard.index');
     Route::redirect('/roster', '/schedule');
     Route::get('/schedule', [ScheduleController::class, 'index'])->name('schedule.index');
 

@@ -1,6 +1,6 @@
 # What's New — Plan
 
-Status: done — 9/9
+Status: done — 10/10
 
 - [x] 1. Read the entries. A `WhatsNew` service loads `resources/whats-new/*.md`, parses the front matter, renders the body and filters by audience (admin also gets `manager`). Sort newest first.
 - [x] 2. Store the seen state. Add the migration for `users.whats_new_seen_at` and `employees.whats_new_seen_at`. Set the newest entry date when a user or an employee is created.
@@ -14,3 +14,4 @@ Revision: badge and page, users only.
 - [x] 7. Add the What's new page. `GET /whats-new` shows the list of entries and the selected entry (`?entry=<id>`, default the newest), with Previous and Next. Mark the entries that were unseen as "New". The visit stores the newest entry date as seen.
 - [x] 8. Replace the dialog with a badge. Share only the unseen count. The sidebar item links to `/whats-new` and shows the count as a badge. Remove the dialog, `useWhatsNew` and `POST /whats-new/seen`.
 - [x] 9. Update the process rule and the entries for the users-only scope.
+- [x] 10. Redirect the dashboard to `/whats-new` when the user has unseen entries.

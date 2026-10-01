@@ -52,6 +52,15 @@ The item opens `/whats-new`, a page in `AppLayout` with one card:
 The page opens on the newest entry. `?entry=<id>` selects an entry. On
 narrow screens the list stacks above the entry.
 
+### Redirect
+
+The dashboard is the entry point of the app: `/` and the login go there.
+A user with unseen entries who opens the dashboard goes to `/whats-new`
+first. A link to another page opens that page, and the badge shows the
+unseen entries there.
+
+### Seen state on the page
+
 A visit to the page marks all entries as seen. The server stores the
 date of the newest entry before it sends the page, so the badge clears
 at once.
@@ -68,8 +77,11 @@ Roster to Schedule.
   they describe. They need no admin screen and no table.
 - **An audience per entry.** Nobody reads about screens that they do not
   use.
-- **A badge, not a popup.** A badge tells the user about a change and
-  does not interrupt their work.
+- **A badge and a redirect, not a popup.** The redirect on the entry
+  point makes sure that the user sees a change once. The badge shows it
+  everywhere else. Neither covers the work of the user.
+- **A redirect only on the entry point.** A link to a specific page must
+  open that page.
 - **A page with a list.** The history has room to grow. The list and
   Previous/Next make old entries easy to find. A link can point to one
   entry.
