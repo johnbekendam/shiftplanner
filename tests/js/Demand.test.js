@@ -106,6 +106,15 @@ const EARLY = { shift_id: 9, spots: [4, 4, 4, 4, 2, 0, 0] };
 const addRowSelect = (w) => w.get('[data-testid="demand-add-row"]').findComponent(SelectInput);
 
 describe("Demand", () => {
+    it("places the page content in one card with Demand in the header", () => {
+        const card = mountPage({ defaults: [EARLY] }).get('[data-testid="demand-card"]');
+        expect(card.get('[data-testid="demand-card-header"]').text()).toBe("Demand");
+        expect(card.find('[data-testid="demand-workcenter"]').exists()).toBe(true);
+        expect(card.find('[data-testid="demand-default-card"]').exists()).toBe(true);
+        expect(card.find('[data-testid="demand-calendar-section"]').exists()).toBe(true);
+        expect(card.text()).toContain("Save");
+    });
+
     it("selects the current workcenter and reloads the page for another one", async () => {
         const w = mountPage();
         const select = w.get('[data-testid="demand-workcenter"]').findComponent(SelectInput);

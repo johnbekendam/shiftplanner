@@ -16,7 +16,8 @@ have open slots.
 
 The Schedule page becomes the **Demand** page. It uses `AppLayout` and
 the section style of the availability tab. It shows one workcenter at a
-time, in three sections.
+time, in three sections. One card holds the page content, with
+"Demand" in its header.
 
 ### 1. Workcenter selector
 

@@ -241,120 +241,128 @@ useUnsavedChangesGuard(() => dirty.value)
     <AppLayout>
         <Head :title="__('demand.title')" />
 
-        <div class="max-w-5xl space-y-6">
-            <section data-testid="demand-workcenter">
-                <LabeledInput v-if="workcenters.length" :label="__('demand.workcenter')">
-                    <SelectInput
-                        :model-value="workcenterId"
-                        :options="workcenterOptions"
-                        :placeholder="__('demand.select_workcenter')"
-                        class="w-64"
-                        @update:model-value="selectWorkcenter"
-                    />
-                </LabeledInput>
-                <p v-else class="text-sm text-(--color-text-secondary)">{{ __('demand.no_workcenters') }}</p>
-            </section>
-
-            <Card v-if="workcenterId !== null" data-testid="demand-default-card">
-                <template #header>
-                    <div class="flex h-12 items-center px-6 text-md font-semibold">
-                        {{ __('demand.default.heading') }}
-                    </div>
-                </template>
-
-                <div class="px-6 py-4">
-                    <table class="w-full table-fixed text-sm">
-                        <thead>
-                            <tr class="border-b border-(--color-table-header-separator) text-left text-(--color-table-header-text)">
-                                <th class="py-2 pr-3 font-medium">{{ __('demand.column.shift') }}</th>
-                                <th v-for="label in WEEKDAYS" :key="label" class="w-16 py-2 pr-2 font-medium">
-                                    {{ __(label) }}
-                                </th>
-                                <th class="w-14 py-2" />
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr
-                                v-for="row in rows"
-                                :key="row.shift_id"
-                                data-testid="demand-default-row"
-                                class="border-b border-(--color-table-row-separator)"
-                            >
-                                <td class="py-2 pr-3 align-middle">{{ shiftLabel(row.shift_id) }}</td>
-                                <td v-for="(label, weekday) in WEEKDAYS" :key="label" class="py-2 pr-2 align-middle">
-                                    <NumberInput
-                                        v-model="row.spots[weekday]"
-                                        :min="0"
-                                        class="w-full"
-                                        :data-testid="`demand-default-spots-${row.shift_id}-${weekday}`"
-                                    />
-                                </td>
-                                <td class="px-1 py-2 align-middle">
-                                    <ButtonDanger
-                                        type="button"
-                                        icon="bin"
-                                        class="w-full px-0"
-                                        :aria-label="__('demand.delete')"
-                                        @click="remove(row)"
-                                    />
-                                </td>
-                            </tr>
-
-                            <tr v-if="!rows.length">
-                                <td :colspan="9" class="py-6 text-center text-(--color-text-secondary)">
-                                    {{ __('demand.list_empty') }}
-                                </td>
-                            </tr>
-
-                            <tr data-testid="demand-add-row" class="border-t border-(--color-table-row-separator)">
-                                <td class="py-2 pr-3 align-top" :colspan="8">
-                                    <SelectInput
-                                        v-model="draftShiftId"
-                                        :options="shiftOptions"
-                                        :placeholder="__('demand.select_shift')"
-                                        class="w-64"
-                                    />
-                                </td>
-                                <td class="px-1 py-2 text-right align-top">
-                                    <ButtonPrimary
-                                        type="button"
-                                        icon="plus-circle"
-                                        class="px-2.5"
-                                        :aria-label="__('demand.add')"
-                                        @click="add"
-                                    />
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
+        <Card class="max-w-5xl" data-testid="demand-card">
+            <template #header>
+                <div data-testid="demand-card-header" class="flex h-12 items-center px-6 text-md font-semibold">
+                    {{ __('demand.title') }}
                 </div>
-            </Card>
+            </template>
 
-            <!-- The calendar keeps its content width; the date card takes the rest. -->
-            <section v-if="workcenterId !== null" data-testid="demand-calendar-section" class="flex flex-col gap-6 sm:flex-row sm:items-start">
-                <DemandCalendar
-                    v-model:selected-date="selectedDate"
-                    :defaults="rows"
-                    :overrides="currentOverrides"
-                    :assigned="assigned"
-                />
-                <DemandDateCard
-                    :day="selectedDay"
-                    :shift-label="shiftLabel"
-                    @set-spots="setDateSpots"
-                    @reset="resetDate"
-                />
-            </section>
+            <div class="space-y-6 p-6">
+                <section data-testid="demand-workcenter">
+                    <LabeledInput v-if="workcenters.length" :label="__('demand.workcenter')">
+                        <SelectInput
+                            :model-value="workcenterId"
+                            :options="workcenterOptions"
+                            :placeholder="__('demand.select_workcenter')"
+                            class="w-64"
+                            @update:model-value="selectWorkcenter"
+                        />
+                    </LabeledInput>
+                    <p v-else class="text-sm text-(--color-text-secondary)">{{ __('demand.no_workcenters') }}</p>
+                </section>
 
-            <TabSaveBar
-                v-if="workcenterId !== null"
-                :dirty="dirty"
-                :saving="saving"
-                :just-saved="justSaved"
-                @save="save"
-                @cancel="cancel"
-            />
-        </div>
+                <Card v-if="workcenterId !== null" data-testid="demand-default-card">
+                    <template #header>
+                        <div class="flex h-12 items-center px-6 text-md font-semibold">
+                            {{ __('demand.default.heading') }}
+                        </div>
+                    </template>
+
+                    <div class="px-6 py-4">
+                        <table class="w-full table-fixed text-sm">
+                            <thead>
+                                <tr class="border-b border-(--color-table-header-separator) text-left text-(--color-table-header-text)">
+                                    <th class="py-2 pr-3 font-medium">{{ __('demand.column.shift') }}</th>
+                                    <th v-for="label in WEEKDAYS" :key="label" class="w-16 py-2 pr-2 font-medium">
+                                        {{ __(label) }}
+                                    </th>
+                                    <th class="w-14 py-2" />
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr
+                                    v-for="row in rows"
+                                    :key="row.shift_id"
+                                    data-testid="demand-default-row"
+                                    class="border-b border-(--color-table-row-separator)"
+                                >
+                                    <td class="py-2 pr-3 align-middle">{{ shiftLabel(row.shift_id) }}</td>
+                                    <td v-for="(label, weekday) in WEEKDAYS" :key="label" class="py-2 pr-2 align-middle">
+                                        <NumberInput
+                                            v-model="row.spots[weekday]"
+                                            :min="0"
+                                            class="w-full"
+                                            :data-testid="`demand-default-spots-${row.shift_id}-${weekday}`"
+                                        />
+                                    </td>
+                                    <td class="px-1 py-2 align-middle">
+                                        <ButtonDanger
+                                            type="button"
+                                            icon="bin"
+                                            class="w-full px-0"
+                                            :aria-label="__('demand.delete')"
+                                            @click="remove(row)"
+                                        />
+                                    </td>
+                                </tr>
+
+                                <tr v-if="!rows.length">
+                                    <td :colspan="9" class="py-6 text-center text-(--color-text-secondary)">
+                                        {{ __('demand.list_empty') }}
+                                    </td>
+                                </tr>
+
+                                <tr data-testid="demand-add-row" class="border-t border-(--color-table-row-separator)">
+                                    <td class="py-2 pr-3 align-top" :colspan="8">
+                                        <SelectInput
+                                            v-model="draftShiftId"
+                                            :options="shiftOptions"
+                                            :placeholder="__('demand.select_shift')"
+                                            class="w-64"
+                                        />
+                                    </td>
+                                    <td class="px-1 py-2 text-right align-top">
+                                        <ButtonPrimary
+                                            type="button"
+                                            icon="plus-circle"
+                                            class="px-2.5"
+                                            :aria-label="__('demand.add')"
+                                            @click="add"
+                                        />
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </Card>
+
+                <!-- The calendar keeps its content width; the date card takes the rest. -->
+                <section v-if="workcenterId !== null" data-testid="demand-calendar-section" class="flex flex-col gap-6 sm:flex-row sm:items-start">
+                    <DemandCalendar
+                        v-model:selected-date="selectedDate"
+                        :defaults="rows"
+                        :overrides="currentOverrides"
+                        :assigned="assigned"
+                    />
+                    <DemandDateCard
+                        :day="selectedDay"
+                        :shift-label="shiftLabel"
+                        @set-spots="setDateSpots"
+                        @reset="resetDate"
+                    />
+                </section>
+
+                <TabSaveBar
+                    v-if="workcenterId !== null"
+                    :dirty="dirty"
+                    :saving="saving"
+                    :just-saved="justSaved"
+                    @save="save"
+                    @cancel="cancel"
+                />
+            </div>
+        </Card>
 
         <ConfirmDialog
             :open="blockedWorkcenterId !== null"
