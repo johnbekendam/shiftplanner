@@ -74,7 +74,6 @@ Route::redirect('/roster/{token}', '/schedule/{token}');
 
 Route::middleware('auth')->group(function () {
     Route::get('/whats-new', [WhatsNewController::class, 'index'])->name('whats-new.index');
-    Route::post('/whats-new/seen', [WhatsNewController::class, 'seen'])->name('whats-new.seen');
 
     // Admin-only: everything except the employee list/editor.
     Route::middleware('admin')->group(function () {

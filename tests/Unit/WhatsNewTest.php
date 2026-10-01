@@ -87,4 +87,16 @@ class WhatsNewTest extends TestCase
         $this->assertNull($this->whatsNew()->latestDate());
         $this->assertSame([], (new WhatsNew(new MarkdownRenderer, $this->directory.'/missing'))->for('manager'));
     }
+
+    public function test_it_counts_the_entries_of_a_role_after_a_seen_date(): void
+    {
+        $this->entry('a.md', '2026-09-01', 'Old', 'manager');
+        $this->entry('b.md', '2026-10-01', 'New', 'manager');
+        $this->entry('c.md', '2026-10-02', 'Admin', 'admin');
+
+        $this->assertSame(2, $this->whatsNew()->unseenCount('manager', null));
+        $this->assertSame(1, $this->whatsNew()->unseenCount('manager', '2026-09-01'));
+        $this->assertSame(0, $this->whatsNew()->unseenCount('manager', '2026-10-01'));
+        $this->assertSame(1, $this->whatsNew()->unseenCount('admin', '2026-10-01'));
+    }
 }

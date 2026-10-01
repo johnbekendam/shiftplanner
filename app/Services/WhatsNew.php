@@ -41,6 +41,12 @@ class WhatsNew
             ->all();
     }
 
+    /** The number of entries for a role after the seen date; all of them without one. */
+    public function unseenCount(string $role, ?string $seenAt): int
+    {
+        return collect($this->for($role))->filter(fn (array $entry) => $seenAt === null || $entry['date'] > $seenAt)->count();
+    }
+
     /** The date of the newest entry of any audience, or null without entries. */
     public function latestDate(): ?string
     {

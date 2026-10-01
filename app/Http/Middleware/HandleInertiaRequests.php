@@ -40,8 +40,11 @@ class HandleInertiaRequests extends Middleware
             'appName' => config('app.name'),
             // See features/whats-new/.
             'whatsNew' => fn () => $request->user() ? [
-                'entries' => app(WhatsNew::class)->for($request->user()->role),
-                'seenAt' => $request->user()->whats_new_seen_at?->toDateString(),
+                'unseen' => app(WhatsNew::class)->unseenCount(
+                    $request->user()->role,
+                    $request->user()->whats_new_seen_at?->toDateString(),
+                ),
+                'hasEntries' => app(WhatsNew::class)->for($request->user()->role) !== [],
             ] : null,
         ];
     }

@@ -6,12 +6,10 @@ import AppLogo from '@/components/AppLogo.vue'
 import NavLink from '@/components/NavLink.vue'
 import FlashMessage from '@/components/FlashMessage.vue'
 import Icon from '@/components/ui/Icon.vue'
-import WhatsNewDialog from '@/components/WhatsNewDialog.vue'
 import { useI18n } from '@/composables/useI18n'
 import { useBreadcrumb } from '@/composables/useBreadcrumb'
 import { useDarkMode } from '@/composables/useDarkMode'
 import { useAuth } from '@/composables/useAuth'
-import { useWhatsNew } from '@/composables/useWhatsNew'
 
 defineProps({
     // The page content fills the page area instead of growing past it.
@@ -36,13 +34,8 @@ function handleOutsideClick(event) {
 
 onMounted(() => document.addEventListener('click', handleOutsideClick))
 
-// ── What's new (features/whats-new/) ─────────────────────────────────
-const whatsNew = useWhatsNew(page.props.whatsNew, '/whats-new/seen')
-
-function openWhatsNew() {
-    sidebarOpen.value = false
-    whatsNew.open()
-}
+// ── What's new (features/whats-new/): { unseen, hasEntries } ─────────
+const whatsNew = computed(() => page.props.whatsNew ?? { unseen: 0, hasEntries: false })
 
 onUnmounted(() => document.removeEventListener('click', handleOutsideClick))
 
@@ -230,9 +223,22 @@ function isActive(href) {
                     </template>
                 </nav>
                 <div v-if="whatsNew.hasEntries" class="mt-auto px-3 pb-4">
-                    <NavLink data-testid="whats-new-link" @click="openWhatsNew">
+                    <NavLink
+                        href="/whats-new"
+                        :active="isActive('/whats-new')"
+                        data-testid="whats-new-link"
+                        @click="sidebarOpen = false"
+                    >
                         <Icon name="sparkles" class="w-5 h-5 flex-shrink-0" />
                         <span>{{ __('nav.whats_new') }}</span>
+                        <span
+                            v-if="whatsNew.unseen"
+                            data-testid="whats-new-badge"
+                            :aria-label="__('whats_new.unseen', { count: whatsNew.unseen })"
+                            class="ml-auto rounded-full bg-(--color-btn-primary-bg) px-2 text-xs text-(--color-btn-primary-text)"
+                        >
+                            {{ whatsNew.unseen }}
+                        </span>
                     </NavLink>
                 </div>
             </div>
@@ -247,6 +253,5 @@ function isActive(href) {
             </div>
         </div>
 
-        <WhatsNewDialog :open="whatsNew.isOpen.value" :entries="whatsNew.dialogEntries.value" @close="whatsNew.close" />
     </Layout>
 </template>
