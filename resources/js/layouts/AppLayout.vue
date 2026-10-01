@@ -1,7 +1,6 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { usePage, router, Link } from '@inertiajs/vue3'
-import axios from 'axios'
 import Layout from '@/layouts/Layout.vue'
 import AppLogo from '@/components/AppLogo.vue'
 import NavLink from '@/components/NavLink.vue'
@@ -12,6 +11,7 @@ import { useI18n } from '@/composables/useI18n'
 import { useBreadcrumb } from '@/composables/useBreadcrumb'
 import { useDarkMode } from '@/composables/useDarkMode'
 import { useAuth } from '@/composables/useAuth'
+import { useWhatsNew } from '@/composables/useWhatsNew'
 
 defineProps({
     // The page content fills the page area instead of growing past it.
@@ -37,28 +37,13 @@ function handleOutsideClick(event) {
 onMounted(() => document.addEventListener('click', handleOutsideClick))
 
 // ── What's new (features/whats-new/) ─────────────────────────────────
-const whatsNewEntries = computed(() => page.props.whatsNew?.entries ?? [])
-const whatsNewSeenAt = ref(page.props.whatsNew?.seenAt ?? null)
-const unseenEntries = computed(() => whatsNewEntries.value.filter(
-    (entry) => !whatsNewSeenAt.value || entry.date > whatsNewSeenAt.value,
-))
-
-// 'unseen' on its own after an update; 'all' from the sidebar link.
-const whatsNewMode = ref(unseenEntries.value.length ? 'unseen' : null)
-const whatsNewDialogEntries = computed(() => (whatsNewMode.value === 'unseen' ? unseenEntries.value : whatsNewEntries.value))
+const whatsNew = useWhatsNew(page.props.whatsNew, '/whats-new/seen')
 
 function openWhatsNew() {
     sidebarOpen.value = false
-    whatsNewMode.value = 'all'
+    whatsNew.open()
 }
 
-function closeWhatsNew() {
-    if (unseenEntries.value.length) {
-        whatsNewSeenAt.value = whatsNewEntries.value[0].date
-        axios.post('/whats-new/seen').catch(() => {})
-    }
-    whatsNewMode.value = null
-}
 onUnmounted(() => document.removeEventListener('click', handleOutsideClick))
 
 // A context/domain extension would add its own context-scoped section here,
@@ -244,7 +229,7 @@ function isActive(href) {
                         </NavLink>
                     </template>
                 </nav>
-                <div v-if="whatsNewEntries.length" class="mt-auto px-3 pb-4">
+                <div v-if="whatsNew.hasEntries" class="mt-auto px-3 pb-4">
                     <NavLink data-testid="whats-new-link" @click="openWhatsNew">
                         <Icon name="sparkles" class="w-5 h-5 flex-shrink-0" />
                         <span>{{ __('nav.whats_new') }}</span>
@@ -262,6 +247,6 @@ function isActive(href) {
             </div>
         </div>
 
-        <WhatsNewDialog :open="whatsNewMode !== null" :entries="whatsNewDialogEntries" @close="closeWhatsNew" />
+        <WhatsNewDialog :open="whatsNew.isOpen.value" :entries="whatsNew.dialogEntries.value" @close="whatsNew.close" />
     </Layout>
 </template>

@@ -20,12 +20,14 @@ import ButtonPrimary from '@/components/ui/ButtonPrimary.vue'
 import ButtonSecondary from '@/components/ui/ButtonSecondary.vue'
 import ButtonDanger from '@/components/ui/ButtonDanger.vue'
 import WithdrawContactDialog from '@/components/WithdrawContactDialog.vue'
+import WhatsNewDialog from '@/components/WhatsNewDialog.vue'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 import { useI18n } from '@/composables/useI18n'
 import { useSaveRegistry } from '@/composables/useSaveRegistry'
 import { useDateOverrides } from '@/composables/useDateOverrides'
 import { useUnsavedChangesGuard } from '@/composables/useUnsavedChangesGuard'
 import { useGuardedTab } from '@/composables/useGuardedTab'
+import { useWhatsNew } from '@/composables/useWhatsNew'
 import { putAsync, postAsync, deleteAsync } from '@/utils/inertiaAsync'
 import { calculateAvailabilityHours } from '@/utils/availabilityHours'
 
@@ -54,6 +56,8 @@ const props = defineProps({
     // False when a manager has closed employee changes: the page stays
     // visible but every control is read-only.
     editable: { type: Boolean, default: true },
+    // { entries, seenAt } for employees. See features/whats-new/.
+    whatsNew: { type: Object, default: null },
 })
 
 const registry = useSaveRegistry()
@@ -342,6 +346,9 @@ const guard = useGuardedTab(tab, () => registry.anyDirty.value, onCancelClick)
 
 // ── Withdraw: not self-service; the card names who to contact instead ──
 const withdrawDialogOpen = ref(false)
+
+// ── What's new: opens once after an update, again from the link ──────
+const whatsNew = useWhatsNew(props.whatsNew, `/personal/${props.token}/whats-new/seen`)
 </script>
 
 <template>
@@ -369,6 +376,17 @@ const withdrawDialogOpen = ref(false)
             </p>
 
             <p class="text-sm text-(--color-text-secondary)">{{ __('availability.info.cta') }}</p>
+
+            <ButtonSecondary
+                v-if="whatsNew.hasEntries"
+                type="button"
+                icon="sparkles"
+                class="mt-6"
+                data-testid="whats-new-link"
+                @click="whatsNew.open"
+            >
+                {{ __('whats_new.link') }}
+            </ButtonSecondary>
         </div>
 
         <div v-show="tab === 'details'" data-testid="panel-details">
@@ -548,6 +566,8 @@ const withdrawDialogOpen = ref(false)
         >
             {{ __('tabs.unsaved.body') }}
         </ConfirmDialog>
+
+        <WhatsNewDialog :open="whatsNew.isOpen.value" :entries="whatsNew.dialogEntries.value" @close="whatsNew.close" />
 
         <WithdrawContactDialog
             :open="withdrawDialogOpen"

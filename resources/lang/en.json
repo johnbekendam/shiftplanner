@@ -818,5 +818,6 @@
     "backup.error.shift": "Record :record: shift \":shift\" does not exist.",
     "backup.error.question": "Record :record: availability question \":text\" does not exist.",
     "whats_new.title": "What's new",
-    "whats_new.close": "Close"
+    "whats_new.close": "Close",
+    "whats_new.link": "What's new"
 }

@@ -3,6 +3,7 @@ import { mount, flushPromises } from "@vue/test-utils";
 import { reactive } from "vue";
 
 const en = {
+    "whats_new.link": "What's new",
     "employees.field.first_name": "First name",
     "employees.field.last_name": "Last name",
     "employees.field.email": "Email",
@@ -82,6 +83,9 @@ const { routerCalls, failUrlsRef, router, useFormMock } = vi.hoisted(() => {
     const useFormMock = (...args) => useFormMock.impl(...args);
     return { routerCalls, failUrlsRef, router, useFormMock };
 });
+
+const axiosPost = vi.hoisted(() => vi.fn(() => Promise.resolve({})));
+vi.mock("axios", () => ({ default: { post: axiosPost } }));
 
 const { downloadIcs } = vi.hoisted(() => ({ downloadIcs: vi.fn() }));
 vi.mock("@/utils/shiftIcs", async (importOriginal) => ({ ...(await importOriginal()), downloadIcs }));
@@ -163,6 +167,7 @@ import DateAvailabilityGrid from "@/components/DateAvailabilityGrid.vue";
 import Tabs from "@/components/ui/Tabs.vue";
 import ConfirmDialog from "@/components/ui/ConfirmDialog.vue";
 import DayBlockToggle from "@/components/DayBlockToggle.vue";
+import WhatsNewDialog from "@/components/WhatsNewDialog.vue";
 
 const mountShow = (holidays = [], extra = {}) =>
     mount(Show, {
@@ -984,5 +989,46 @@ describe("Personal/Show", () => {
         expect(w.getComponent(Tabs).props("modelValue")).toBe("details");
         expect(form.weekly_hours).toBe(24);
         expect(w.find('[data-testid="card-footer-actions"]').exists()).toBe(false);
+    });
+});
+
+describe("What's new", () => {
+    const ENTRIES = [
+        { id: "b", date: "2026-10-01", title: "New", html: "<p>New.</p>" },
+        { id: "a", date: "2026-09-01", title: "Old", html: "<p>Old.</p>" },
+    ];
+
+    beforeEach(() => axiosPost.mockClear());
+
+    it("opens the dialog with the unseen entries and marks them seen on close", async () => {
+        const w = mountShow([], { whatsNew: { entries: ENTRIES, seenAt: "2026-09-01" } });
+        const dialog = w.getComponent(WhatsNewDialog);
+        expect(dialog.props("open")).toBe(true);
+        expect(dialog.props("entries").map((e) => e.id)).toEqual(["b"]);
+
+        dialog.vm.$emit("close");
+        await w.vm.$nextTick();
+
+        expect(w.getComponent(WhatsNewDialog).props("open")).toBe(false);
+        expect(axiosPost).toHaveBeenCalledWith("/personal/tok-1/whats-new/seen");
+    });
+
+    it("does not open the dialog when every entry was seen", () => {
+        const w = mountShow([], { whatsNew: { entries: ENTRIES, seenAt: "2026-10-01" } });
+        expect(w.getComponent(WhatsNewDialog).props("open")).toBe(false);
+    });
+
+    it("reopens every entry from the What's new link", async () => {
+        const w = mountShow([], { whatsNew: { entries: ENTRIES, seenAt: "2026-10-01" } });
+
+        await w.get('[data-testid="whats-new-link"]').trigger("click");
+
+        expect(w.getComponent(WhatsNewDialog).props("open")).toBe(true);
+        expect(w.getComponent(WhatsNewDialog).props("entries")).toHaveLength(2);
+    });
+
+    it("hides the link without entries", () => {
+        const w = mountShow([], { whatsNew: { entries: [], seenAt: null } });
+        expect(w.find('[data-testid="whats-new-link"]').exists()).toBe(false);
     });
 });
