@@ -20,13 +20,13 @@ const props = defineProps({
 })
 
 const WEEKDAYS = [
-    'workcenter_shifts.weekday.mon',
-    'workcenter_shifts.weekday.tue',
-    'workcenter_shifts.weekday.wed',
-    'workcenter_shifts.weekday.thu',
-    'workcenter_shifts.weekday.fri',
-    'workcenter_shifts.weekday.sat',
-    'workcenter_shifts.weekday.sun',
+    'demand.weekday.mon',
+    'demand.weekday.tue',
+    'demand.weekday.wed',
+    'demand.weekday.thu',
+    'demand.weekday.fri',
+    'demand.weekday.sat',
+    'demand.weekday.sun',
 ]
 
 const workcenterName = (id) => props.workcenters.find((w) => w.id === id)?.name ?? `#${id}`
@@ -96,9 +96,9 @@ async function save() {
     })
 
     const results = await Promise.allSettled([
-        ...toDelete.map((r) => deleteAsync(`/schedule/${r.workcenter_id}/${r.shift_id}`)),
-        ...toEdit.map((r) => putAsync(`/schedule/${r.workcenter_id}/${r.shift_id}`, { spots: r.spots })),
-        ...toAdd.map((r) => postAsync('/schedule', {
+        ...toDelete.map((r) => deleteAsync(`/demand/${r.workcenter_id}/${r.shift_id}`)),
+        ...toEdit.map((r) => putAsync(`/demand/${r.workcenter_id}/${r.shift_id}`, { spots: r.spots })),
+        ...toAdd.map((r) => postAsync('/demand', {
             workcenter_id: r.workcenter_id,
             shift_id: r.shift_id,
             spots: r.spots,
@@ -125,15 +125,15 @@ useUnsavedChangesGuard(() => dirty.value)
 
 <template>
     <AppLayout>
-        <Head :title="__('workcenter_shifts.title')" />
+        <Head :title="__('demand.title')" />
 
         <Card class="max-w-4xl">
             <div class="p-6">
                 <table class="w-full table-fixed text-sm">
                     <thead>
                         <tr class="border-b border-(--color-table-header-separator) text-left text-(--color-table-header-text)">
-                            <th class="py-2 pr-3 font-medium">{{ __('workcenter_shifts.column.workcenter') }}</th>
-                            <th class="py-2 pr-3 font-medium">{{ __('workcenter_shifts.column.shift') }}</th>
+                            <th class="py-2 pr-3 font-medium">{{ __('demand.column.workcenter') }}</th>
+                            <th class="py-2 pr-3 font-medium">{{ __('demand.column.shift') }}</th>
                             <th v-for="label in WEEKDAYS" :key="label" class="w-14 py-2 pr-2 font-medium">
                                 {{ __(label) }}
                             </th>
@@ -162,7 +162,7 @@ useUnsavedChangesGuard(() => dirty.value)
                                     type="button"
                                     icon="bin"
                                     class="w-full px-0"
-                                    :aria-label="__('workcenter_shifts.delete')"
+                                    :aria-label="__('demand.delete')"
                                     @click="remove(row)"
                                 />
                             </td>
@@ -170,7 +170,7 @@ useUnsavedChangesGuard(() => dirty.value)
 
                         <tr v-if="!rows.length">
                             <td :colspan="10" class="py-6 text-center text-(--color-text-secondary)">
-                                {{ __('workcenter_shifts.list_empty') }}
+                                {{ __('demand.list_empty') }}
                             </td>
                         </tr>
 
@@ -179,7 +179,7 @@ useUnsavedChangesGuard(() => dirty.value)
                                 <SelectInput
                                     v-model="draft.workcenter_id"
                                     :options="workcenterOptions"
-                                    :placeholder="__('workcenter_shifts.select_workcenter')"
+                                    :placeholder="__('demand.select_workcenter')"
                                     class="w-full"
                                 />
                             </td>
@@ -187,7 +187,7 @@ useUnsavedChangesGuard(() => dirty.value)
                                 <SelectInput
                                     v-model="draft.shift_id"
                                     :options="shiftOptions"
-                                    :placeholder="__('workcenter_shifts.select_shift')"
+                                    :placeholder="__('demand.select_shift')"
                                     class="w-full"
                                 />
                             </td>
@@ -199,7 +199,7 @@ useUnsavedChangesGuard(() => dirty.value)
                                     type="button"
                                     icon="plus-circle"
                                     class="px-2.5"
-                                    :aria-label="__('workcenter_shifts.add')"
+                                    :aria-label="__('demand.add')"
                                     @click="add"
                                 />
                             </td>

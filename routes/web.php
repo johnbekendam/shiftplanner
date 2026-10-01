@@ -6,6 +6,7 @@ use App\Http\Controllers\Auth\LoginLinkController;
 use App\Http\Controllers\BusinessLineController;
 use App\Http\Controllers\CompetenceController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DemandController;
 use App\Http\Controllers\EligibleEmployeeController;
 use App\Http\Controllers\EmployeeAuditController;
 use App\Http\Controllers\EmployeeBackupController;
@@ -46,7 +47,6 @@ use App\Http\Controllers\SignupController;
 use App\Http\Controllers\ThemeBuilderController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\WorkcenterController;
-use App\Http\Controllers\WorkcenterShiftAssignmentController;
 use Illuminate\Support\Facades\Route;
 
 Route::redirect('/', '/dashboard');
@@ -117,10 +117,11 @@ Route::middleware('auth')->group(function () {
         Route::put('/planning-rules/{planningRule}', [PlanningRuleController::class, 'update'])->name('planning-rules.update');
         Route::delete('/planning-rules/{planningRule}', [PlanningRuleController::class, 'destroy'])->name('planning-rules.destroy');
 
-        Route::get('/schedule', [WorkcenterShiftAssignmentController::class, 'index'])->name('schedule.index');
-        Route::post('/schedule', [WorkcenterShiftAssignmentController::class, 'store'])->name('schedule.store');
-        Route::put('/schedule/{workcenter}/{shift}', [WorkcenterShiftAssignmentController::class, 'update'])->name('schedule.update');
-        Route::delete('/schedule/{workcenter}/{shift}', [WorkcenterShiftAssignmentController::class, 'destroy'])->name('schedule.destroy');
+        Route::redirect('/schedule', '/demand');
+        Route::get('/demand', [DemandController::class, 'index'])->name('demand.index');
+        Route::post('/demand', [DemandController::class, 'store'])->name('demand.store');
+        Route::put('/demand/{workcenter}/{shift}', [DemandController::class, 'update'])->name('demand.update');
+        Route::delete('/demand/{workcenter}/{shift}', [DemandController::class, 'destroy'])->name('demand.destroy');
 
         Route::get('/planning', [SchedulingController::class, 'index'])->name('planning.index');
         Route::post('/planning/assignments', [ShiftAssignmentController::class, 'store'])->name('planning.assignments.store');

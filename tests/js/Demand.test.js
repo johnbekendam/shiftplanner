@@ -2,21 +2,21 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { mount, flushPromises } from "@vue/test-utils";
 
 const en = {
-    "workcenter_shifts.title": "Schedule",
-    "workcenter_shifts.column.workcenter": "Workcenter",
-    "workcenter_shifts.column.shift": "Shift",
-    "workcenter_shifts.weekday.mon": "Mon",
-    "workcenter_shifts.weekday.tue": "Tue",
-    "workcenter_shifts.weekday.wed": "Wed",
-    "workcenter_shifts.weekday.thu": "Thu",
-    "workcenter_shifts.weekday.fri": "Fri",
-    "workcenter_shifts.weekday.sat": "Sat",
-    "workcenter_shifts.weekday.sun": "Sun",
-    "workcenter_shifts.add": "Add assignment",
-    "workcenter_shifts.select_workcenter": "Select a workcenter",
-    "workcenter_shifts.select_shift": "Select a shift",
-    "workcenter_shifts.delete": "Delete",
-    "workcenter_shifts.list_empty": "No assignments yet.",
+    "demand.title": "Demand",
+    "demand.column.workcenter": "Workcenter",
+    "demand.column.shift": "Shift",
+    "demand.weekday.mon": "Mon",
+    "demand.weekday.tue": "Tue",
+    "demand.weekday.wed": "Wed",
+    "demand.weekday.thu": "Thu",
+    "demand.weekday.fri": "Fri",
+    "demand.weekday.sat": "Sat",
+    "demand.weekday.sun": "Sun",
+    "demand.add": "Add assignment",
+    "demand.select_workcenter": "Select a workcenter",
+    "demand.select_shift": "Select a shift",
+    "demand.delete": "Delete",
+    "demand.list_empty": "No assignments yet.",
     "app.save": "Save",
     "app.saving": "Saving…",
     "app.saved": "Saved",
@@ -44,13 +44,13 @@ vi.mock("@inertiajs/vue3", () => ({
     usePage: () => ({ props: { translations: en } }),
 }));
 
-import WorkcenterShifts from "@/pages/WorkcenterShifts.vue";
+import Demand from "@/pages/Demand.vue";
 import { SelectInput, NumberInput } from "@/components/ui/Input";
 
 const stubs = { AppLayout: { template: "<div><slot /></div>" } };
 
 const mountPage = (props = {}) =>
-    mount(WorkcenterShifts, {
+    mount(Demand, {
         props: {
             workcenters: [{ id: 1, name: "Line 1" }],
             shifts: [{ id: 9, name: "Early", start_time: "06:00", end_time: "14:00" }],
@@ -68,7 +68,7 @@ beforeEach(() => {
 const findSaveButton = (w) => w.findAll("button").find((b) => ["Save", "Saving…", "Saved"].includes(b.text()));
 const findCancelButton = (w) => w.findAll("button").find((b) => b.text() === "Cancel");
 
-describe("WorkcenterShifts", () => {
+describe("Demand", () => {
     it("renders a row per assignment with the workcenter and shift name", () => {
         const w = mountPage({
             assignments: [{ workcenter_id: 1, shift_id: 9, spots: [4, 4, 4, 4, 2, 0, 0] }],
@@ -114,7 +114,7 @@ describe("WorkcenterShifts", () => {
 
         expect(routerCalls).toContainEqual([
             "put",
-            "/schedule/1/9",
+            "/demand/1/9",
             { spots: [5, 4, 4, 4, 2, 0, 0] },
         ]);
     });
@@ -147,7 +147,7 @@ describe("WorkcenterShifts", () => {
 
         expect(routerCalls).toContainEqual([
             "post",
-            "/schedule",
+            "/demand",
             { workcenter_id: 1, shift_id: 9, spots: [0, 0, 0, 0, 0, 0, 0] },
         ]);
     });
@@ -164,7 +164,7 @@ describe("WorkcenterShifts", () => {
         await findSaveButton(w).trigger("click");
         await flushPromises();
 
-        expect(routerCalls.some((c) => c[0] === "delete" && c[1] === "/schedule/1/9")).toBe(true);
+        expect(routerCalls.some((c) => c[0] === "delete" && c[1] === "/demand/1/9")).toBe(true);
     });
 
     it("Cancel reverts to the last-saved state without saving", async () => {

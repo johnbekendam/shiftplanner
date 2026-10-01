@@ -8,7 +8,7 @@ const en = {
     "nav.my_details": "My details",
     "nav.account": "Account",
     "nav.mailbox": "Mailbox",
-    "nav.workcenter_shifts": "Schedule",
+    "nav.demand": "Demand",
     "nav.scheduling": "Planning",
     "nav.planning_rules": "Planning rules",
     "nav.employee_backup": "Backup",
@@ -49,7 +49,7 @@ describe("AppLayout navigation", () => {
         expect(hrefs).toEqual(["/dashboard", "/employees", "/roster", "/users"]);
     });
 
-    it("shows Backup, Mailbox, Reports, Schedule, Planning, Users, Settings and Planning rules to an admin, but not Theme Builder", () => {
+    it("shows Backup, Mailbox, Reports, Demand, Planning, Users, Settings and Planning rules to an admin, but not Theme Builder", () => {
         state.user = { role: "admin" };
         const w = mount(AppLayout, { global: { stubs } });
         const hrefs = navHrefs(w);
@@ -57,7 +57,7 @@ describe("AppLayout navigation", () => {
         expect(hrefs).toEqual([
             "/dashboard",
             "/employees",
-            "/schedule",
+            "/demand",
             "/planning",
             "/roster",
             "/mailbox",

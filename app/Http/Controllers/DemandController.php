@@ -11,11 +11,11 @@ use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 
-class WorkcenterShiftAssignmentController extends Controller
+class DemandController extends Controller
 {
     public function index()
     {
-        return Inertia::render('WorkcenterShifts', [
+        return Inertia::render('Demand', [
             'workcenters' => Workcenter::query()
                 ->whereNull('archived_at')
                 ->get()
@@ -43,13 +43,13 @@ class WorkcenterShiftAssignmentController extends Controller
         ]);
 
         if ($this->isAssigned($data['workcenter_id'], $data['shift_id'])) {
-            throw ValidationException::withMessages(['shift_id' => __('workcenter_shifts.error.duplicate_pair')]);
+            throw ValidationException::withMessages(['shift_id' => __('demand.error.duplicate_pair')]);
         }
 
         Workcenter::findOrFail($data['workcenter_id'])->shifts()->attach($data['shift_id']);
         $this->writeCapacity($data['workcenter_id'], $data['shift_id'], $data['spots']);
 
-        return back()->with('success', __('workcenter_shifts.flash.saved'));
+        return back()->with('success', __('demand.flash.saved'));
     }
 
     public function update(Request $request, int $workcenterId, int $shiftId)
@@ -65,7 +65,7 @@ class WorkcenterShiftAssignmentController extends Controller
 
         $this->writeCapacity($workcenterId, $shiftId, $data['spots']);
 
-        return back()->with('success', __('workcenter_shifts.flash.saved'));
+        return back()->with('success', __('demand.flash.saved'));
     }
 
     public function destroy(int $workcenterId, int $shiftId)
@@ -84,7 +84,7 @@ class WorkcenterShiftAssignmentController extends Controller
             ->where('shift_id', $shiftId)
             ->delete();
 
-        return back()->with('success', __('workcenter_shifts.flash.saved'));
+        return back()->with('success', __('demand.flash.saved'));
     }
 
     /** One entry per existing assignment, spots for weekdays 1 (Monday) through 7 (Sunday), 0 where no row exists yet. */
@@ -137,7 +137,7 @@ class WorkcenterShiftAssignmentController extends Controller
                 ->exists();
 
             if ($archived) {
-                $fail(__('workcenter_shifts.error.workcenter_archived'));
+                $fail(__('demand.error.workcenter_archived'));
             }
         };
     }
