@@ -561,6 +561,7 @@
     "demand.workcenter": "Workcenter",
     "demand.no_workcenters": "There are no active workcenters. Add one in Settings.",
     "demand.default.heading": "Default demand",
+    "demand.unsaved.body": "This workcenter has changes that are not saved. Stay to save or cancel them, or discard them and continue.",
     "demand.specific.heading": "Specific demand",
     "demand.specific.hint": "Click a date to change its slots.",
     "demand.day.title": ":weekday :date",

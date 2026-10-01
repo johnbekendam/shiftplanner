@@ -29,11 +29,17 @@ const en = {
     "demand.day.reset": "Reset to default",
     "availability.weekday_long.1": "Monday",
     "availability.weekday_long.3": "Wednesday",
+    "demand.unsaved.body": "This workcenter has changes that are not saved.",
+    "tabs.unsaved.title": "Unsaved changes",
+    "tabs.unsaved.discard": "Discard changes",
+    "tabs.unsaved.stay": "Stay",
     "app.save": "Save",
     "app.saving": "Saving…",
     "app.saved": "Saved",
     "app.cancel": "Cancel",
 };
+
+const pageState = vi.hoisted(() => ({ url: "/demand" }));
 
 const { routerCalls, failUrlsRef, router } = vi.hoisted(() => {
     const routerCalls = [];
@@ -59,13 +65,14 @@ const { routerCalls, failUrlsRef, router } = vi.hoisted(() => {
 vi.mock("@inertiajs/vue3", () => ({
     router,
     Head: { name: "Head", render: () => null },
-    usePage: () => ({ props: { translations: en } }),
+    usePage: () => ({ props: { translations: en, auth: { user: { id: 7 } } }, url: pageState.url }),
 }));
 
 import Demand from "@/pages/Demand.vue";
 import { SelectInput, NumberInput } from "@/components/ui/Input";
 import DemandCalendar from "@/components/DemandCalendar.vue";
 import Calendar from "@/components/ui/Calendar.vue";
+import ConfirmDialog from "@/components/ui/ConfirmDialog.vue";
 
 const stubs = { AppLayout: { template: "<div><slot /></div>" } };
 
@@ -89,6 +96,8 @@ const mountPage = (props = {}) =>
 beforeEach(() => {
     routerCalls.length = 0;
     failUrlsRef.current = [];
+    pageState.url = "/demand";
+    window.sessionStorage.clear();
 });
 
 const findSaveButton = (w) => w.findAll("button").find((b) => ["Save", "Saving…", "Saved"].includes(b.text()));
@@ -253,6 +262,7 @@ describe("Demand", () => {
         const dateInput = (w, shiftId) => w.get(`[data-testid="demand-date-row-${shiftId}"]`).findComponent(NumberInput);
 
         it("shows the hint while no date is selected", () => {
+            window.sessionStorage.setItem("demand.date.7", "");
             const w = mountPage({ defaults: [WEEK] });
             expect(w.get('[data-testid="demand-date-card"]').text()).toContain("Specific demand");
             expect(w.get('[data-testid="demand-date-card"]').text()).toContain("Click a date to change its slots.");
@@ -345,6 +355,93 @@ describe("Demand", () => {
             await flushPromises();
 
             expect(routerCalls.filter((c) => c[1].startsWith("/demand/1/9/"))).toEqual([]);
+        });
+    });
+
+    describe("selection", () => {
+        const workcenterSelect = (w) => w.get('[data-testid="demand-workcenter"]').findComponent(SelectInput);
+
+        it("stores the shown workcenter for the user", () => {
+            mountPage({ workcenterId: 2 });
+            expect(window.sessionStorage.getItem("demand.workcenter.7")).toBe("2");
+        });
+
+        it("restores the stored workcenter on a visit without a workcenter in the URL", () => {
+            window.sessionStorage.setItem("demand.workcenter.7", "2");
+            mountPage();
+            expect(routerCalls).toContainEqual(["get", "/demand", { workcenter: 2 }, { replace: true }]);
+        });
+
+        it("lets an explicit workcenter in the URL win", () => {
+            window.sessionStorage.setItem("demand.workcenter.7", "2");
+            pageState.url = "/demand?workcenter=1";
+            mountPage();
+            expect(routerCalls).toEqual([]);
+            expect(window.sessionStorage.getItem("demand.workcenter.7")).toBe("1");
+        });
+
+        it("ignores a stored workcenter that is no longer active", () => {
+            window.sessionStorage.setItem("demand.workcenter.7", "99");
+            mountPage();
+            expect(routerCalls).toEqual([]);
+        });
+
+        it("selects today without a stored day", () => {
+            const w = mountPage();
+            const today = new Date();
+            const iso = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+            expect(w.getComponent(DemandCalendar).props("selectedDate")).toBe(iso);
+        });
+
+        it("restores the stored day and opens its month", () => {
+            window.sessionStorage.setItem("demand.date.7", "2026-12-24");
+            const w = mountPage();
+            expect(w.getComponent(DemandCalendar).props("selectedDate")).toBe("2026-12-24");
+            expect(w.getComponent(Calendar).props("month")).toBe(12);
+        });
+
+        it("restores a deselected day as no selection, and an invalid one as today", () => {
+            window.sessionStorage.setItem("demand.date.7", "");
+            expect(mountPage().getComponent(DemandCalendar).props("selectedDate")).toBe(null);
+
+            window.sessionStorage.setItem("demand.date.7", "2026-02-31");
+            expect(mountPage().getComponent(DemandCalendar).props("selectedDate")).not.toBe("2026-02-31");
+        });
+
+        it("stores a newly selected or deselected day", async () => {
+            const w = mountPage();
+            w.getComponent(Calendar).vm.$emit("change", { year: 2026, month: 10 });
+            w.getComponent(Calendar).vm.$emit("day-click", { year: 2026, month: 10, day: 5 });
+            await w.vm.$nextTick();
+            expect(window.sessionStorage.getItem("demand.date.7")).toBe("2026-10-05");
+
+            w.getComponent(Calendar).vm.$emit("day-click", { year: 2026, month: 10, day: 5 });
+            await w.vm.$nextTick();
+            expect(window.sessionStorage.getItem("demand.date.7")).toBe("");
+        });
+
+        it("asks to stay or discard before switching workcenter with unsaved edits", async () => {
+            const w = mountPage({ defaults: [EARLY] });
+            w.findAllComponents(NumberInput)[0].vm.$emit("update:modelValue", 5);
+            await w.vm.$nextTick();
+
+            workcenterSelect(w).vm.$emit("update:modelValue", 2);
+            await w.vm.$nextTick();
+            const dialog = w.getComponent(ConfirmDialog);
+            expect(dialog.props("open")).toBe(true);
+            expect(routerCalls).toEqual([]);
+
+            dialog.vm.$emit("cancel");
+            await w.vm.$nextTick();
+            expect(w.getComponent(ConfirmDialog).props("open")).toBe(false);
+            expect(routerCalls).toEqual([]);
+
+            workcenterSelect(w).vm.$emit("update:modelValue", 2);
+            await w.vm.$nextTick();
+            w.getComponent(ConfirmDialog).vm.$emit("confirm");
+            await w.vm.$nextTick();
+            expect(routerCalls).toContainEqual(["get", "/demand", { workcenter: 2 }]);
+            expect(findSaveButton(w).attributes("disabled")).toBeDefined();
         });
     });
 });

@@ -81,6 +81,24 @@ describe("AppLayout navigation", () => {
         expect(navHrefs(w)).toContain("/planning?year=2026&month=10&date=2026-10-12");
     });
 
+    it("links Demand directly to the user's stored workcenter", () => {
+        state.user = { id: 7, role: "admin" };
+        window.sessionStorage.setItem("demand.workcenter.7", "3");
+
+        const w = mount(AppLayout, { global: { stubs } });
+
+        expect(navHrefs(w)).toContain("/demand?workcenter=3");
+    });
+
+    it("links Demand without a workcenter when the stored value is invalid", () => {
+        state.user = { id: 7, role: "admin" };
+        window.sessionStorage.setItem("demand.workcenter.7", "abc");
+
+        const w = mount(AppLayout, { global: { stubs } });
+
+        expect(navHrefs(w)).toContain("/demand");
+    });
+
     it("hides Backup from a manager", () => {
         state.user = { role: "manager" };
         const w = mount(AppLayout, { global: { stubs } });

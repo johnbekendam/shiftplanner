@@ -1,11 +1,12 @@
 <script setup>
-import { ref, computed } from 'vue'
-import { Head, router } from '@inertiajs/vue3'
+import { ref, computed, watch, onMounted } from 'vue'
+import { Head, router, usePage } from '@inertiajs/vue3'
 import AppLayout from '@/layouts/AppLayout.vue'
 import Card from '@/components/ui/Card.vue'
 import ButtonPrimary from '@/components/ui/ButtonPrimary.vue'
 import ButtonDanger from '@/components/ui/ButtonDanger.vue'
 import TabSaveBar from '@/components/ui/TabSaveBar.vue'
+import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 import LabeledInput from '@/components/LabeledInput.vue'
 import DemandCalendar from '@/components/DemandCalendar.vue'
 import DemandDateCard from '@/components/DemandDateCard.vue'
@@ -14,8 +15,10 @@ import { useI18n } from '@/composables/useI18n'
 import { useUnsavedChangesGuard } from '@/composables/useUnsavedChangesGuard'
 import { putAsync, postAsync, deleteAsync } from '@/utils/inertiaAsync'
 import { groupDemandOverrides, groupAssigned, dayDemand } from '@/utils/demandCalendar'
+import { isValidIsoDate, todayIso } from '@/utils/date'
 
 const __ = useI18n()
+const page = usePage()
 
 const props = defineProps({
     workcenters: { type: Array, default: () => [] }, // { id, name }, active only
@@ -44,8 +47,63 @@ const shiftLabel = (id) => {
 
 const workcenterOptions = computed(() => props.workcenters.map((w) => ({ value: w.id, label: w.name })))
 
+// ── Selection: kept per user for this browser tab ─────────────────────
+const userId = page.props.auth?.user?.id
+const workcenterKey = userId ? `demand.workcenter.${userId}` : null
+const dateKey = userId ? `demand.date.${userId}` : null
+
+function readStored(key) {
+    try {
+        return key ? window.sessionStorage.getItem(key) : null
+    } catch {
+        return null
+    }
+}
+
+function writeStored(key, value) {
+    try {
+        if (key) window.sessionStorage.setItem(key, value)
+    } catch {
+        // Storage can be unavailable; the selection then simply is not kept.
+    }
+}
+
+// An empty stored day means "nothing selected"; a missing or invalid one falls back to today.
+function initialDate() {
+    const stored = readStored(dateKey)
+    if (stored === '') return null
+    return isValidIsoDate(stored) ? stored : todayIso()
+}
+
+onMounted(() => {
+    const hasExplicitWorkcenter = new URL(page.url, window.location.origin).searchParams.has('workcenter')
+    const stored = Number(readStored(workcenterKey))
+    const restorable = !hasExplicitWorkcenter && stored !== props.workcenterId
+        && props.workcenters.some((w) => w.id === stored)
+
+    if (restorable) {
+        router.get('/demand', { workcenter: stored }, { replace: true })
+    } else if (props.workcenterId !== null) {
+        writeStored(workcenterKey, String(props.workcenterId))
+    }
+})
+
+// A switch with unsaved edits waits for Stay or Discard.
+const blockedWorkcenterId = ref(null)
+
 function selectWorkcenter(id) {
     if (id === props.workcenterId) return
+    if (dirty.value) {
+        blockedWorkcenterId.value = id
+        return
+    }
+    router.get('/demand', { workcenter: id })
+}
+
+function discardAndSwitch() {
+    const id = blockedWorkcenterId.value
+    blockedWorkcenterId.value = null
+    cancel()
     router.get('/demand', { workcenter: id })
 }
 
@@ -94,7 +152,8 @@ const seedOverrides = () => groupDemandOverrides(props.overrides)
 const committedOverrides = ref(seedOverrides())
 const currentOverrides = ref(seedOverrides())
 const assigned = computed(() => groupAssigned(props.assigned))
-const selectedDate = ref(null)
+const selectedDate = ref(initialDate())
+watch(selectedDate, (date) => writeStored(dateKey, date ?? ''))
 
 // The changed (date, shift) pairs of the shifts the workcenter keeps:
 // a removed shift loses its overrides on the server anyway.
@@ -296,5 +355,17 @@ useUnsavedChangesGuard(() => dirty.value)
                 @cancel="cancel"
             />
         </div>
+
+        <ConfirmDialog
+            :open="blockedWorkcenterId !== null"
+            :title="__('tabs.unsaved.title')"
+            :confirm-label="__('tabs.unsaved.discard')"
+            :cancel-label="__('tabs.unsaved.stay')"
+            variant="danger"
+            @confirm="discardAndSwitch"
+            @cancel="blockedWorkcenterId = null"
+        >
+            {{ __('demand.unsaved.body') }}
+        </ConfirmDialog>
     </AppLayout>
 </template>

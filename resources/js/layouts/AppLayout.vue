@@ -53,6 +53,14 @@ function planningHref() {
     return `/planning?year=${year}&month=${month}&date=${selectedWeek}`
 }
 
+function demandHref() {
+    const userId = user.value?.id
+    if (!userId || typeof window === 'undefined') return '/demand'
+
+    const workcenterId = window.sessionStorage.getItem(`demand.workcenter.${userId}`)
+    return /^\d+$/.test(workcenterId ?? '') ? `/demand?workcenter=${workcenterId}` : '/demand'
+}
+
 const navItems = computed(() => {
     page.url
     const items = [
@@ -63,7 +71,7 @@ const navItems = computed(() => {
 
     if (isAdmin.value) {
         items.push(
-            { label: __('nav.demand'), href: '/demand', icon: 'table-cells' },
+            { label: __('nav.demand'), href: demandHref(), icon: 'table-cells' },
             { label: __('nav.scheduling'), href: planningHref(), icon: 'calendar-days' },
             roster,
             { label: __('nav.mailbox'), href: '/mailbox', icon: 'envelope' },
