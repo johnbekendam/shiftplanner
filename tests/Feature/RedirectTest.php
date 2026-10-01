@@ -15,10 +15,10 @@ class RedirectTest extends TestCase
         $this->get('/')->assertRedirect('/dashboard');
     }
 
-    public function test_schedule_redirects_to_demand(): void
+    public function test_roster_redirects_to_schedule(): void
     {
         $this->actingAs(User::factory()->admin()->create());
 
-        $this->get('/schedule')->assertRedirect('/demand');
+        $this->get('/roster')->assertRedirect('/schedule');
     }
 }

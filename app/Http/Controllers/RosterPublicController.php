@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\PlanningSettings;
-use App\Services\RosterWeek;
+use App\Services\ScheduleWeek;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -13,11 +13,11 @@ use Inertia\Inertia;
  */
 class RosterPublicController extends Controller
 {
-    public function show(Request $request, string $token, RosterWeek $roster)
+    public function show(Request $request, string $token, ScheduleWeek $schedule)
     {
         abort_unless(hash_equals(PlanningSettings::current()->rosterToken(), $token), 404);
 
-        return Inertia::render('RosterPublic', $roster->props($request))
+        return Inertia::render('RosterPublic', $schedule->props($request))
             ->toResponse($request)
             ->withHeaders([
                 'X-Robots-Tag' => 'noindex',

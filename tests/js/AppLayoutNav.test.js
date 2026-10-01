@@ -4,7 +4,7 @@ import { mount } from "@vue/test-utils";
 const en = {
     "nav.dashboard": "Dashboard",
     "nav.employees": "Employees",
-    "nav.roster": "Roster",
+    "nav.schedule": "Schedule",
     "nav.my_details": "My details",
     "nav.account": "Account",
     "nav.mailbox": "Mailbox",
@@ -42,11 +42,11 @@ beforeEach(() => {
 });
 
 describe("AppLayout navigation", () => {
-    it("shows Dashboard, Employees, Roster and the read-only Users to a manager", () => {
+    it("shows Dashboard, Employees, Schedule and the read-only Users to a manager", () => {
         state.user = { role: "manager" };
         const hrefs = navHrefs(mount(AppLayout, { global: { stubs } }));
 
-        expect(hrefs).toEqual(["/dashboard", "/employees", "/roster", "/users"]);
+        expect(hrefs).toEqual(["/dashboard", "/employees", "/schedule", "/users"]);
     });
 
     it("shows Backup, Mailbox, Reports, Demand, Planning, Users, Settings and Planning rules to an admin, but not Theme Builder", () => {
@@ -59,7 +59,7 @@ describe("AppLayout navigation", () => {
             "/employees",
             "/demand",
             "/planning",
-            "/roster",
+            "/schedule",
             "/mailbox",
             "/reports",
             "/users",
@@ -113,6 +113,6 @@ describe("AppLayout navigation", () => {
         state.user = { role: "manager", employee_id: 12 };
         const hrefs = navHrefs(mount(AppLayout, { global: { stubs } }));
 
-        expect(hrefs).toEqual(["/dashboard", "/employees", "/roster", "/users", "/employees/12/edit"]);
+        expect(hrefs).toEqual(["/dashboard", "/employees", "/schedule", "/users", "/employees/12/edit"]);
     });
 });
