@@ -36,10 +36,10 @@ use App\Http\Controllers\PlanNotificationController;
 use App\Http\Controllers\PublishedWeekController;
 use App\Http\Controllers\QuestionController;
 use App\Http\Controllers\RecurringAvailabilityController;
-use App\Http\Controllers\RosterPublicController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SchedulingController;
 use App\Http\Controllers\ScheduleController;
+use App\Http\Controllers\SchedulePublicController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\ShiftAssignmentController;
 use App\Http\Controllers\ShiftController;
@@ -67,8 +67,9 @@ Route::post('/signup', [SignupController::class, 'store'])->middleware('throttle
 // Workcenter wall screen — token-only, no auth. See features/workcenter-live-planning/.
 Route::get('/live/{token}', [LivePlanningController::class, 'show'])->name('live.show');
 
-// Roster by secret link — token-only, no auth. See features/roster-public-link/.
-Route::get('/roster/{token}', [RosterPublicController::class, 'show'])->name('roster.public');
+// Schedule by secret link — token-only, no auth. See features/roster-public-link/.
+Route::get('/schedule/{token}', [SchedulePublicController::class, 'show'])->name('schedule.public');
+Route::redirect('/roster/{token}', '/schedule/{token}');
 
 Route::middleware('auth')->group(function () {
     // Admin-only: everything except the employee list/editor.
@@ -105,7 +106,7 @@ Route::middleware('auth')->group(function () {
         Route::put('/settings/questions/{question}', [QuestionController::class, 'update'])->name('settings.questions.update');
         Route::delete('/settings/questions/{question}', [QuestionController::class, 'destroy'])->name('settings.questions.destroy');
         Route::put('/settings/period', [PeriodController::class, 'update'])->name('settings.period.update');
-        Route::post('/settings/roster-token', [SettingsController::class, 'regenerateRosterToken'])->name('settings.roster-token');
+        Route::post('/settings/schedule-token', [SettingsController::class, 'regenerateScheduleToken'])->name('settings.schedule-token');
         Route::post('/settings/workcenters', [WorkcenterController::class, 'store'])->name('settings.workcenters.store');
         Route::put('/settings/workcenters/reorder', [WorkcenterController::class, 'reorder'])->name('settings.workcenters.reorder');
         Route::put('/settings/workcenters/{workcenter}', [WorkcenterController::class, 'update'])->name('settings.workcenters.update');

@@ -4,7 +4,7 @@ import LiveLayout from '@/layouts/LiveLayout.vue'
 import ScheduleView from '@/components/ScheduleView.vue'
 import { useI18n } from '@/composables/useI18n'
 
-// The roster by its secret link, with no login and no app chrome.
+// The schedule by its secret link, with no login and no app chrome.
 // See features/roster-public-link/.
 const __ = useI18n()
 

@@ -154,23 +154,23 @@ describe("Settings/Index", () => {
         expect(text).not.toContain("Product groups");
     });
 
-    it("shows the Screens tab last, with the roster link and the live screens", async () => {
+    it("shows the Screens tab last, with the schedule link and the live screens", async () => {
         const w = mountPage({
-            rosterUrl: "https://app.test/roster/secret",
+            scheduleUrl: "https://app.test/schedule/secret",
             workcenters: [{ id: 3, name: "Line 1", position: 1, archived_at: null, shifts: [], live_url: "https://app.test/live/abc" }],
         });
         const tabs = w.findComponent(Tabs).props("tabs").map((t) => t.label);
 
         expect(tabs[tabs.length - 1]).toContain("Screens");
         const panel = w.get("[data-testid='panel-screens']");
-        expect(panel.find("[data-testid='screen-row-roster']").exists()).toBe(true);
+        expect(panel.find("[data-testid='screen-row-schedule']").exists()).toBe(true);
         expect(panel.find("[data-testid='screen-row-workcenter-3']").exists()).toBe(true);
     });
 
-    it("no longer shows the roster link on the General tab", () => {
-        const w = mountPage({ rosterUrl: "https://app.test/roster/secret" });
+    it("no longer shows the schedule link on the General tab", () => {
+        const w = mountPage({ scheduleUrl: "https://app.test/schedule/secret" });
 
-        expect(w.find("[data-testid='panel-general'] [data-testid='screen-row-roster']").exists()).toBe(false);
+        expect(w.find("[data-testid='panel-general'] [data-testid='screen-row-schedule']").exists()).toBe(false);
     });
 
     it("mounts the period form seeded from the period prop", () => {
@@ -501,7 +501,7 @@ describe("Settings/Index", () => {
 
     it("regenerates a live link from the Screens tab and leaves the Workcenters tab clean", async () => {
         const w = mountPage({
-            rosterUrl: "https://app.test/roster/secret",
+            scheduleUrl: "https://app.test/schedule/secret",
             workcenters: [{ id: 3, name: "Line 1", position: 1, archived_at: null, shifts: [], live_url: "https://app.test/live/abc" }],
         });
 

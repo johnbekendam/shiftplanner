@@ -24,11 +24,11 @@ vi.mock("@inertiajs/vue3", () => ({
     Head: { name: "Head", render: () => null },
     usePage: () => ({
         props: { translations: en, locale: "en", auth: { user: null } },
-        url: "/roster/secret-token?week=2026-09-21",
+        url: "/schedule/secret-token?week=2026-09-21",
     }),
 }));
 
-import RosterPublic from "@/pages/RosterPublic.vue";
+import SchedulePublic from "@/pages/SchedulePublic.vue";
 
 const days = ["2026-09-21", "2026-09-22", "2026-09-23", "2026-09-24", "2026-09-25", "2026-09-26", "2026-09-27"];
 const businessLines = [
@@ -37,7 +37,7 @@ const businessLines = [
 ];
 
 const mountPage = (props = {}) =>
-    mount(RosterPublic, {
+    mount(SchedulePublic, {
         props: {
             weekStart: "2026-09-21",
             weekNumber: 39,
@@ -56,8 +56,8 @@ beforeEach(() => {
     window.sessionStorage.clear();
 });
 
-describe("RosterPublic", () => {
-    it("shows the roster without the app sidebar", () => {
+describe("SchedulePublic", () => {
+    it("shows the schedule without the app sidebar", () => {
         const w = mountPage();
 
         expect(w.find("header h1").text()).toBe("Schedule");
@@ -70,7 +70,7 @@ describe("RosterPublic", () => {
 
         await w.get("[aria-label='Next week']").trigger("click");
 
-        expect(router.get).toHaveBeenLastCalledWith("/roster/secret-token", { week: "2026-09-28" }, expect.any(Object));
+        expect(router.get).toHaveBeenLastCalledWith("/schedule/secret-token", { week: "2026-09-28" }, expect.any(Object));
     });
 
     it("filters by business line on the secret link", async () => {
@@ -80,7 +80,7 @@ describe("RosterPublic", () => {
         await w.get('[data-testid="business-lines-menu"]').findAll('input[type="checkbox"]')[0].setValue(false);
 
         expect(router.get).toHaveBeenLastCalledWith(
-            "/roster/secret-token",
+            "/schedule/secret-token",
             { week: "2026-09-21", business_lines: [2, "none"] },
             expect.any(Object),
         );

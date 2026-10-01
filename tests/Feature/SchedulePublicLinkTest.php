@@ -13,7 +13,7 @@ use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
-class RosterPublicLinkTest extends TestCase
+class SchedulePublicLinkTest extends TestCase
 {
     use RefreshDatabase;
 
@@ -47,27 +47,32 @@ class RosterPublicLinkTest extends TestCase
 
     public function test_the_page_opens_by_token_without_login(): void
     {
-        $this->get("/roster/{$this->token()}")->assertOk()
+        $this->get("/schedule/{$this->token()}")->assertOk()
             ->assertHeader('X-Robots-Tag', 'noindex')
             ->assertInertia(fn ($page) => $page
-                ->component('RosterPublic')
+                ->component('SchedulePublic')
                 ->where('weekStart', '2026-09-21')
                 ->where('today', '2026-09-23')
                 ->has('days', 7)
                 ->has('businessLines')
                 ->has('selectedBusinessLines'));
 
-        $this->assertStringContainsString('no-store', $this->get("/roster/{$this->token()}")->headers->get('Cache-Control'));
+        $this->assertStringContainsString('no-store', $this->get("/schedule/{$this->token()}")->headers->get('Cache-Control'));
     }
 
     public function test_an_unknown_token_is_404(): void
     {
         $this->token();
 
-        $this->get('/roster/'.str_repeat('x', 40))->assertNotFound();
+        $this->get('/schedule/'.str_repeat('x', 40))->assertNotFound();
     }
 
-    public function test_the_page_shows_the_published_roster_of_the_selected_week(): void
+    public function test_an_old_roster_link_redirects_to_the_schedule_link(): void
+    {
+        $this->get("/roster/{$this->token()}")->assertRedirect("/schedule/{$this->token()}");
+    }
+
+    public function test_the_page_shows_the_published_schedule_of_the_selected_week(): void
     {
         $workcenter = Workcenter::factory()->create(['name' => 'Assembly']);
         $shift = Shift::factory()->create(['name' => 'Early', 'start_time' => '06:00', 'end_time' => '14:00']);
@@ -79,7 +84,7 @@ class RosterPublicLinkTest extends TestCase
             'date' => '2026-09-29',
         ]);
 
-        $rows = $this->get("/roster/{$this->token()}?week=2026-09-28")->viewData('page')['props']['rows'];
+        $rows = $this->get("/schedule/{$this->token()}?week=2026-09-28")->viewData('page')['props']['rows'];
 
         $this->assertSame('Anna Smit', $rows[0]['name']);
         $this->assertSame([['shift' => 'Early', 'workcenter' => 'Assembly']], $rows[0]['days'][1]);
@@ -92,13 +97,13 @@ class RosterPublicLinkTest extends TestCase
         $old = $this->token();
         $this->actingAs(User::factory()->admin()->create());
 
-        $this->post('/settings/roster-token')->assertRedirect();
+        $this->post('/settings/schedule-token')->assertRedirect();
 
         $new = PlanningSettings::current()->rosterToken();
         $this->assertNotSame($old, $new);
         auth()->logout();
-        $this->get("/roster/{$old}")->assertNotFound();
-        $this->get("/roster/{$new}")->assertOk();
+        $this->get("/schedule/{$old}")->assertNotFound();
+        $this->get("/schedule/{$new}")->assertOk();
     }
 
     public function test_a_manager_cannot_regenerate_the_token(): void
@@ -106,21 +111,21 @@ class RosterPublicLinkTest extends TestCase
         $old = $this->token();
         $this->actingAs(User::factory()->create());
 
-        $this->post('/settings/roster-token')->assertForbidden();
+        $this->post('/settings/schedule-token')->assertForbidden();
 
         $this->assertSame($old, PlanningSettings::current()->rosterToken());
     }
 
     public function test_a_guest_cannot_regenerate_the_token(): void
     {
-        $this->post('/settings/roster-token')->assertRedirect('/login');
+        $this->post('/settings/schedule-token')->assertRedirect('/login');
     }
 
-    public function test_the_settings_page_carries_the_roster_url(): void
+    public function test_the_settings_page_carries_the_schedule_url(): void
     {
         $this->actingAs(User::factory()->admin()->create());
 
         $this->get('/settings')->assertInertia(fn ($page) => $page
-            ->where('rosterUrl', url("/roster/{$this->token()}")));
+            ->where('scheduleUrl', url("/schedule/{$this->token()}")));
     }
 }

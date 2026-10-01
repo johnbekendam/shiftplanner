@@ -62,9 +62,9 @@ class PlanningSettings extends Model
         $this->update(['roster_token' => Str::random(40)]);
     }
 
-    public function rosterUrl(): string
+    public function scheduleUrl(): string
     {
-        return url("/roster/{$this->rosterToken()}");
+        return url("/schedule/{$this->rosterToken()}");
     }
 
     /**
