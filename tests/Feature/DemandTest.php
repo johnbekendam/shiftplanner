@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Shift;
+use App\Models\ShiftAssignment;
 use App\Models\User;
 use App\Models\Workcenter;
 use App\Models\WorkcenterShiftCapacity;
@@ -56,30 +57,78 @@ class DemandTest extends TestCase
 
     // ── Index payload ───────────────────────────────────────────────────
 
-    public function test_index_lists_active_workcenters_shifts_and_assignments(): void
+    public function test_index_selects_the_first_active_workcenter_without_a_query(): void
     {
         $this->actingAsAdmin();
-        $active = Workcenter::factory()->create(['name' => 'Line 1', 'position' => 1]);
-        $archived = Workcenter::factory()->create(['name' => 'Line 0', 'position' => 0, 'archived_at' => now()]);
-        $shift = Shift::factory()->create(['name' => 'Early']);
-        $active->shifts()->attach($shift);
-        WorkcenterShiftCapacity::query()->create([
-            'workcenter_id' => $active->id, 'shift_id' => $shift->id, 'weekday' => 1, 'spots' => 4,
-        ]);
+        Workcenter::factory()->create(['name' => 'Line 0', 'position' => 0, 'archived_at' => now()]);
+        $first = Workcenter::factory()->create(['name' => 'Line 1', 'position' => 1]);
+        Workcenter::factory()->create(['name' => 'Line 2', 'position' => 2]);
+        Shift::factory()->create(['name' => 'Early']);
 
         $this->get('/demand')->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->component('Demand')
-                ->has('workcenters', 1)
+                ->has('workcenters', 2)
                 ->where('workcenters.0.name', 'Line 1')
+                ->where('workcenterId', $first->id)
                 ->has('shifts', 1)
-                ->has('assignments', 1)
-                ->where('assignments.0.workcenter_id', $active->id)
-                ->where('assignments.0.shift_id', $shift->id)
-                ->where('assignments.0.spots', [4, 0, 0, 0, 0, 0, 0])
             );
+    }
 
-        $this->assertSame('Line 0', $archived->fresh()->name); // archived workcenter still exists, just excluded from the select
+    public function test_index_sends_the_demand_of_the_selected_workcenter_only(): void
+    {
+        $this->actingAsAdmin();
+        $other = Workcenter::factory()->create(['position' => 0]);
+        $selected = Workcenter::factory()->create(['position' => 1]);
+        $shift = Shift::factory()->create();
+        foreach ([$other, $selected] as $workcenter) {
+            $workcenter->shifts()->attach($shift);
+            WorkcenterShiftCapacity::query()->create([
+                'workcenter_id' => $workcenter->id, 'shift_id' => $shift->id, 'weekday' => 1, 'spots' => $workcenter->id,
+            ]);
+            WorkcenterShiftDateOverride::query()->create([
+                'workcenter_id' => $workcenter->id, 'shift_id' => $shift->id, 'date' => '2026-12-24', 'spots' => 5,
+            ]);
+        }
+        ShiftAssignment::factory()->count(2)->create([
+            'workcenter_id' => $selected->id, 'shift_id' => $shift->id, 'date' => '2026-12-24',
+        ]);
+        ShiftAssignment::factory()->create([
+            'workcenter_id' => $other->id, 'shift_id' => $shift->id, 'date' => '2026-12-24',
+        ]);
+
+        $this->get("/demand?workcenter={$selected->id}")->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('workcenterId', $selected->id)
+                ->where('defaults', [['shift_id' => $shift->id, 'spots' => [$selected->id, 0, 0, 0, 0, 0, 0]]])
+                ->where('overrides', [['shift_id' => $shift->id, 'date' => '2026-12-24', 'spots' => 5]])
+                ->where('assigned', [['shift_id' => $shift->id, 'date' => '2026-12-24', 'count' => 2]])
+            );
+    }
+
+    public function test_index_falls_back_to_the_first_active_workcenter_for_an_archived_or_unknown_one(): void
+    {
+        $this->actingAsAdmin();
+        $first = Workcenter::factory()->create(['position' => 1]);
+        $archived = Workcenter::factory()->create(['position' => 2, 'archived_at' => now()]);
+
+        $this->get("/demand?workcenter={$archived->id}")
+            ->assertInertia(fn ($page) => $page->where('workcenterId', $first->id));
+        $this->get('/demand?workcenter=999999')
+            ->assertInertia(fn ($page) => $page->where('workcenterId', $first->id));
+    }
+
+    public function test_index_without_active_workcenters_selects_nothing(): void
+    {
+        $this->actingAsAdmin();
+
+        $this->get('/demand')->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('workcenterId', null)
+                ->where('defaults', [])
+                ->where('overrides', [])
+                ->where('assigned', [])
+            );
     }
 
     // ── Create ─────────────────────────────────────────────────────────

@@ -1,11 +1,12 @@
 <script setup>
-import { reactive, ref, computed } from 'vue'
-import { Head } from '@inertiajs/vue3'
+import { ref, computed } from 'vue'
+import { Head, router } from '@inertiajs/vue3'
 import AppLayout from '@/layouts/AppLayout.vue'
 import Card from '@/components/ui/Card.vue'
 import ButtonPrimary from '@/components/ui/ButtonPrimary.vue'
 import ButtonDanger from '@/components/ui/ButtonDanger.vue'
 import TabSaveBar from '@/components/ui/TabSaveBar.vue'
+import LabeledInput from '@/components/LabeledInput.vue'
 import { SelectInput, NumberInput } from '@/components/ui/Input'
 import { useI18n } from '@/composables/useI18n'
 import { useUnsavedChangesGuard } from '@/composables/useUnsavedChangesGuard'
@@ -15,8 +16,11 @@ const __ = useI18n()
 
 const props = defineProps({
     workcenters: { type: Array, default: () => [] }, // { id, name }, active only
-    shifts: { type: Array, default: () => [] }, // { id, name, start_time, end_time }
-    assignments: { type: Array, default: () => [] }, // { workcenter_id, shift_id, spots: number[7] }
+    workcenterId: { type: Number, default: null }, // the shown workcenter, null without active workcenters
+    shifts: { type: Array, default: () => [] }, // { id, name, start_time, end_time }, all shift definitions
+    defaults: { type: Array, default: () => [] }, // { shift_id, spots: number[7] }, the shown workcenter only
+    overrides: { type: Array, default: () => [] }, // { shift_id, date, spots }
+    assigned: { type: Array, default: () => [] }, // { shift_id, date, count }
 })
 
 const WEEKDAYS = [
@@ -29,21 +33,22 @@ const WEEKDAYS = [
     'demand.weekday.sun',
 ]
 
-const workcenterName = (id) => props.workcenters.find((w) => w.id === id)?.name ?? `#${id}`
-const shiftName = (id) => props.shifts.find((s) => s.id === id)?.name ?? `#${id}`
-
-const workcenterOptions = computed(() => props.workcenters.map((w) => ({ value: w.id, label: w.name })))
-const shiftOptions = computed(() => props.shifts.map((s) => ({
-    value: s.id,
-    label: `${s.name} (${s.start_time}–${s.end_time})`,
-})))
-
-function key(row) {
-    return `${row.workcenter_id}:${row.shift_id}`
+const shiftById = (id) => props.shifts.find((s) => s.id === id)
+const shiftLabel = (id) => {
+    const shift = shiftById(id)
+    return shift ? `${shift.name} (${shift.start_time}–${shift.end_time})` : `#${id}`
 }
 
+const workcenterOptions = computed(() => props.workcenters.map((w) => ({ value: w.id, label: w.name })))
+
+function selectWorkcenter(id) {
+    if (id === props.workcenterId) return
+    router.get('/demand', { workcenter: id })
+}
+
+// ── Default demand: one row per shift, seven weekday slot counts ──────
 function seed() {
-    return props.assignments.map((a) => ({ workcenter_id: a.workcenter_id, shift_id: a.shift_id, spots: [...a.spots] }))
+    return props.defaults.map((d) => ({ shift_id: d.shift_id, spots: [...d.spots] }))
 }
 
 const committed = ref(seed())
@@ -51,55 +56,52 @@ const rows = ref(seed())
 const saving = ref(false)
 const justSaved = ref(false)
 
-const draft = reactive({ workcenter_id: null, shift_id: null, spots: [0, 0, 0, 0, 0, 0, 0] })
+const draftShiftId = ref(null)
+
+// Only shifts the workcenter does not have yet can be added.
+const shiftOptions = computed(() => props.shifts
+    .filter((s) => !rows.value.some((r) => r.shift_id === s.id))
+    .map((s) => ({ value: s.id, label: shiftLabel(s.id) })))
 
 function add() {
-    if (draft.workcenter_id === null || draft.shift_id === null) return
+    if (draftShiftId.value === null) return
 
-    rows.value = [
-        ...rows.value,
-        { workcenter_id: draft.workcenter_id, shift_id: draft.shift_id, spots: [...draft.spots] },
-    ]
-    draft.workcenter_id = null
-    draft.shift_id = null
-    draft.spots = [0, 0, 0, 0, 0, 0, 0]
+    rows.value = [...rows.value, { shift_id: draftShiftId.value, spots: [0, 0, 0, 0, 0, 0, 0] }]
+    draftShiftId.value = null
 }
 
 function remove(row) {
     rows.value = rows.value.filter((r) => r !== row)
 }
 
+const sameSpots = (a, b) => JSON.stringify(a.spots) === JSON.stringify(b.spots)
+
 const dirty = computed(() => {
-    const committedKeys = committed.value.map(key)
-    const currentKeys = rows.value.map(key)
+    const committedIds = committed.value.map((c) => c.shift_id)
+    const currentIds = rows.value.map((r) => r.shift_id)
 
-    if (currentKeys.some((k) => !committedKeys.includes(k))) return true
-    if (committedKeys.some((k) => !currentKeys.includes(k))) return true
+    if (currentIds.some((id) => !committedIds.includes(id))) return true
+    if (committedIds.some((id) => !currentIds.includes(id))) return true
 
-    return rows.value.some((row) => {
-        const orig = committed.value.find((c) => key(c) === key(row))
-        return orig && JSON.stringify(orig.spots) !== JSON.stringify(row.spots)
-    })
+    return rows.value.some((row) => !sameSpots(committed.value.find((c) => c.shift_id === row.shift_id), row))
 })
 
 async function save() {
     saving.value = true
-    const committedKeys = committed.value.map(key)
-    const currentKeys = rows.value.map(key)
+    const committedIds = committed.value.map((c) => c.shift_id)
+    const currentIds = rows.value.map((r) => r.shift_id)
+    const url = (shiftId) => `/demand/${props.workcenterId}/${shiftId}`
 
-    const toDelete = committed.value.filter((c) => !currentKeys.includes(key(c)))
-    const toAdd = rows.value.filter((r) => !committedKeys.includes(key(r)))
-    const toEdit = rows.value.filter((r) => {
-        if (!committedKeys.includes(key(r))) return false
-        const orig = committed.value.find((c) => key(c) === key(r))
-        return orig && JSON.stringify(orig.spots) !== JSON.stringify(r.spots)
-    })
+    const toDelete = committed.value.filter((c) => !currentIds.includes(c.shift_id))
+    const toAdd = rows.value.filter((r) => !committedIds.includes(r.shift_id))
+    const toEdit = rows.value.filter((r) => committedIds.includes(r.shift_id)
+        && !sameSpots(committed.value.find((c) => c.shift_id === r.shift_id), r))
 
     const results = await Promise.allSettled([
-        ...toDelete.map((r) => deleteAsync(`/demand/${r.workcenter_id}/${r.shift_id}`)),
-        ...toEdit.map((r) => putAsync(`/demand/${r.workcenter_id}/${r.shift_id}`, { spots: r.spots })),
+        ...toDelete.map((r) => deleteAsync(url(r.shift_id))),
+        ...toEdit.map((r) => putAsync(url(r.shift_id), { spots: r.spots })),
         ...toAdd.map((r) => postAsync('/demand', {
-            workcenter_id: r.workcenter_id,
+            workcenter_id: props.workcenterId,
             shift_id: r.shift_id,
             spots: r.spots,
         })),
@@ -118,6 +120,7 @@ async function save() {
 
 function cancel() {
     rows.value = committed.value.map((r) => ({ ...r, spots: [...r.spots] }))
+    draftShiftId.value = null
 }
 
 useUnsavedChangesGuard(() => dirty.value)
@@ -127,88 +130,103 @@ useUnsavedChangesGuard(() => dirty.value)
     <AppLayout>
         <Head :title="__('demand.title')" />
 
-        <Card class="max-w-4xl">
-            <div class="p-6">
-                <table class="w-full table-fixed text-sm">
-                    <thead>
-                        <tr class="border-b border-(--color-table-header-separator) text-left text-(--color-table-header-text)">
-                            <th class="py-2 pr-3 font-medium">{{ __('demand.column.workcenter') }}</th>
-                            <th class="py-2 pr-3 font-medium">{{ __('demand.column.shift') }}</th>
-                            <th v-for="label in WEEKDAYS" :key="label" class="w-14 py-2 pr-2 font-medium">
-                                {{ __(label) }}
-                            </th>
-                            <th class="w-14 py-2" />
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr
-                            v-for="row in rows"
-                            :key="key(row)"
-                            data-testid="workcenter-shift-row"
-                            class="border-b border-(--color-table-row-separator)"
-                        >
-                            <td class="py-2 pr-3 align-middle">{{ workcenterName(row.workcenter_id) }}</td>
-                            <td class="py-2 pr-3 align-middle">{{ shiftName(row.shift_id) }}</td>
-                            <td v-for="(label, weekday) in WEEKDAYS" :key="label" class="py-2 pr-2 align-middle">
-                                <NumberInput
-                                    v-model="row.spots[weekday]"
-                                    :min="0"
-                                    class="w-full"
-                                    :data-testid="`workcenter-shift-spots-${row.workcenter_id}-${row.shift_id}-${weekday}`"
-                                />
-                            </td>
-                            <td class="px-1 py-2 align-middle">
-                                <ButtonDanger
-                                    type="button"
-                                    icon="bin"
-                                    class="w-full px-0"
-                                    :aria-label="__('demand.delete')"
-                                    @click="remove(row)"
-                                />
-                            </td>
-                        </tr>
+        <div class="max-w-5xl space-y-6">
+            <section data-testid="demand-workcenter">
+                <LabeledInput v-if="workcenters.length" :label="__('demand.workcenter')">
+                    <SelectInput
+                        :model-value="workcenterId"
+                        :options="workcenterOptions"
+                        :placeholder="__('demand.select_workcenter')"
+                        class="w-64"
+                        @update:model-value="selectWorkcenter"
+                    />
+                </LabeledInput>
+                <p v-else class="text-sm text-(--color-text-secondary)">{{ __('demand.no_workcenters') }}</p>
+            </section>
 
-                        <tr v-if="!rows.length">
-                            <td :colspan="10" class="py-6 text-center text-(--color-text-secondary)">
-                                {{ __('demand.list_empty') }}
-                            </td>
-                        </tr>
+            <Card v-if="workcenterId !== null" data-testid="demand-default-card">
+                <template #header>
+                    <div class="flex h-12 items-center px-6 text-md font-semibold">
+                        {{ __('demand.default.heading') }}
+                    </div>
+                </template>
 
-                        <tr data-testid="workcenter-shift-add-row" class="border-t border-(--color-table-row-separator)">
-                            <td class="py-2 pr-3 align-top">
-                                <SelectInput
-                                    v-model="draft.workcenter_id"
-                                    :options="workcenterOptions"
-                                    :placeholder="__('demand.select_workcenter')"
-                                    class="w-full"
-                                />
-                            </td>
-                            <td class="py-2 pr-3 align-top">
-                                <SelectInput
-                                    v-model="draft.shift_id"
-                                    :options="shiftOptions"
-                                    :placeholder="__('demand.select_shift')"
-                                    class="w-full"
-                                />
-                            </td>
-                            <td v-for="(label, weekday) in WEEKDAYS" :key="label" class="py-2 pr-2 align-top">
-                                <NumberInput v-model="draft.spots[weekday]" :min="0" class="w-full" />
-                            </td>
-                            <td class="px-1 py-2 text-right align-top">
-                                <ButtonPrimary
-                                    type="button"
-                                    icon="plus-circle"
-                                    class="px-2.5"
-                                    :aria-label="__('demand.add')"
-                                    @click="add"
-                                />
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
+                <div class="px-6 py-4">
+                    <table class="w-full table-fixed text-sm">
+                        <thead>
+                            <tr class="border-b border-(--color-table-header-separator) text-left text-(--color-table-header-text)">
+                                <th class="py-2 pr-3 font-medium">{{ __('demand.column.shift') }}</th>
+                                <th v-for="label in WEEKDAYS" :key="label" class="w-16 py-2 pr-2 font-medium">
+                                    {{ __(label) }}
+                                </th>
+                                <th class="w-14 py-2" />
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr
+                                v-for="row in rows"
+                                :key="row.shift_id"
+                                data-testid="demand-default-row"
+                                class="border-b border-(--color-table-row-separator)"
+                            >
+                                <td class="py-2 pr-3 align-middle">{{ shiftLabel(row.shift_id) }}</td>
+                                <td v-for="(label, weekday) in WEEKDAYS" :key="label" class="py-2 pr-2 align-middle">
+                                    <NumberInput
+                                        v-model="row.spots[weekday]"
+                                        :min="0"
+                                        class="w-full"
+                                        :data-testid="`demand-default-spots-${row.shift_id}-${weekday}`"
+                                    />
+                                </td>
+                                <td class="px-1 py-2 align-middle">
+                                    <ButtonDanger
+                                        type="button"
+                                        icon="bin"
+                                        class="w-full px-0"
+                                        :aria-label="__('demand.delete')"
+                                        @click="remove(row)"
+                                    />
+                                </td>
+                            </tr>
 
-                <TabSaveBar :dirty="dirty" :saving="saving" :just-saved="justSaved" @save="save" @cancel="cancel" />
-            </div>
-        </Card>
+                            <tr v-if="!rows.length">
+                                <td :colspan="9" class="py-6 text-center text-(--color-text-secondary)">
+                                    {{ __('demand.list_empty') }}
+                                </td>
+                            </tr>
+
+                            <tr data-testid="demand-add-row" class="border-t border-(--color-table-row-separator)">
+                                <td class="py-2 pr-3 align-top" :colspan="8">
+                                    <SelectInput
+                                        v-model="draftShiftId"
+                                        :options="shiftOptions"
+                                        :placeholder="__('demand.select_shift')"
+                                        class="w-64"
+                                    />
+                                </td>
+                                <td class="px-1 py-2 text-right align-top">
+                                    <ButtonPrimary
+                                        type="button"
+                                        icon="plus-circle"
+                                        class="px-2.5"
+                                        :aria-label="__('demand.add')"
+                                        @click="add"
+                                    />
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </Card>
+
+            <TabSaveBar
+                v-if="workcenterId !== null"
+                :dirty="dirty"
+                :saving="saving"
+                :just-saved="justSaved"
+                @save="save"
+                @cancel="cancel"
+            />
+        </div>
     </AppLayout>
 </template>

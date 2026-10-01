@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Shift;
+use App\Models\ShiftAssignment;
 use App\Models\Workcenter;
 use App\Models\WorkcenterShiftCapacity;
 use App\Models\WorkcenterShiftDateOverride;
@@ -13,14 +14,17 @@ use Inertia\Inertia;
 
 class DemandController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
+        $workcenters = Workcenter::query()->whereNull('archived_at')->get();
+        $workcenter = $workcenters->firstWhere('id', $request->integer('workcenter')) ?? $workcenters->first();
+
         return Inertia::render('Demand', [
-            'workcenters' => Workcenter::query()
-                ->whereNull('archived_at')
-                ->get()
+            'workcenters' => $workcenters
                 ->map(fn (Workcenter $workcenter) => ['id' => $workcenter->id, 'name' => $workcenter->name])
+                ->values()
                 ->all(),
+            'workcenterId' => $workcenter?->id,
             'shifts' => Shift::all()
                 ->map(fn (Shift $shift) => [
                     'id' => $shift->id,
@@ -29,7 +33,9 @@ class DemandController extends Controller
                     'end_time' => $shift->end_time,
                 ])
                 ->all(),
-            'assignments' => $this->assignments(),
+            'defaults' => $workcenter ? $this->defaults($workcenter) : [],
+            'overrides' => $workcenter ? $this->overrides($workcenter) : [],
+            'assigned' => $workcenter ? $this->assigned($workcenter) : [],
         ]);
     }
 
@@ -87,25 +93,54 @@ class DemandController extends Controller
         return back()->with('success', __('demand.flash.saved'));
     }
 
-    /** One entry per existing assignment, spots for weekdays 1 (Monday) through 7 (Sunday), 0 where no row exists yet. */
-    private function assignments(): array
+    /** One entry per shift of the workcenter, spots for weekdays 1 (Monday) through 7 (Sunday), 0 where no row exists yet. */
+    private function defaults(Workcenter $workcenter): array
     {
-        $capacitiesByPair = WorkcenterShiftCapacity::all()->groupBy(fn ($row) => "{$row->workcenter_id}:{$row->shift_id}");
-
-        return Workcenter::query()
-            ->with('shifts')
+        $capacities = WorkcenterShiftCapacity::query()
+            ->where('workcenter_id', $workcenter->id)
             ->get()
-            ->flatMap(fn (Workcenter $workcenter) => $workcenter->shifts->map(fn (Shift $shift) => [
-                'workcenter_id' => $workcenter->id,
-                'shift_id' => $shift->id,
-                'spots' => collect(range(1, 7))->map(function ($weekday) use ($capacitiesByPair, $workcenter, $shift) {
-                    $row = $capacitiesByPair->get("{$workcenter->id}:{$shift->id}", collect())
-                        ->firstWhere('weekday', $weekday);
+            ->groupBy('shift_id');
 
-                    return $row?->spots ?? 0;
-                })->all(),
-            ]))
+        return $workcenter->shifts
+            ->map(fn (Shift $shift) => [
+                'shift_id' => $shift->id,
+                'spots' => collect(range(1, 7))
+                    ->map(fn ($weekday) => $capacities->get($shift->id, collect())->firstWhere('weekday', $weekday)?->spots ?? 0)
+                    ->all(),
+            ])
             ->values()
+            ->all();
+    }
+
+    /** Every date override of the workcenter: [{ shift_id, date, spots }]. */
+    private function overrides(Workcenter $workcenter): array
+    {
+        return WorkcenterShiftDateOverride::query()
+            ->where('workcenter_id', $workcenter->id)
+            ->orderBy('date')
+            ->get()
+            ->map(fn (WorkcenterShiftDateOverride $override) => [
+                'shift_id' => $override->shift_id,
+                'date' => $override->date->toDateString(),
+                'spots' => $override->spots,
+            ])
+            ->all();
+    }
+
+    /** The number of planned assignments per shift and date: [{ shift_id, date, count }]. */
+    private function assigned(Workcenter $workcenter): array
+    {
+        return ShiftAssignment::query()
+            ->where('workcenter_id', $workcenter->id)
+            ->selectRaw('shift_id, date, count(*) as count')
+            ->groupBy('shift_id', 'date')
+            ->orderBy('date')
+            ->get()
+            ->map(fn ($row) => [
+                'shift_id' => $row->shift_id,
+                'date' => $row->date->toDateString(),
+                'count' => (int) $row->count,
+            ])
             ->all();
     }
 
