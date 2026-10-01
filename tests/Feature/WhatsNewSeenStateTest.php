@@ -2,12 +2,12 @@
 
 namespace Tests\Feature;
 
-use App\Models\Employee;
 use App\Models\User;
 use App\Services\MarkdownRenderer;
 use App\Services\WhatsNew;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
 class WhatsNewSeenStateTest extends TestCase
@@ -34,7 +34,7 @@ class WhatsNewSeenStateTest extends TestCase
 
     private function entry(string $date): void
     {
-        File::put("{$this->directory}/{$date}.md", "---\ndate: {$date}\ntitle: Entry\naudience: employee\n---\nBody\n");
+        File::put("{$this->directory}/{$date}.md", "---\ndate: {$date}\ntitle: Entry\naudience: manager\n---\nBody\n");
     }
 
     public function test_a_new_user_starts_at_the_newest_entry(): void
@@ -45,17 +45,14 @@ class WhatsNewSeenStateTest extends TestCase
         $this->assertSame('2026-10-01', User::factory()->create()->fresh()->whats_new_seen_at->toDateString());
     }
 
-    public function test_a_new_employee_starts_at_the_newest_entry(): void
+    public function test_employees_have_no_seen_date(): void
     {
-        $this->entry('2026-10-01');
-
-        $this->assertSame('2026-10-01', Employee::factory()->create()->fresh()->whats_new_seen_at->toDateString());
+        $this->assertFalse(Schema::hasColumn('employees', 'whats_new_seen_at'));
     }
 
-    public function test_a_new_person_without_entries_has_no_seen_date(): void
+    public function test_a_new_user_without_entries_has_no_seen_date(): void
     {
         $this->assertNull(User::factory()->create()->fresh()->whats_new_seen_at);
-        $this->assertNull(Employee::factory()->create()->fresh()->whats_new_seen_at);
     }
 
     public function test_an_explicit_seen_date_is_kept(): void

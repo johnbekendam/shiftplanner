@@ -35,7 +35,7 @@ class User extends Authenticatable
         'remember_token',
     ];
 
-    /** A new person starts at the newest What's new entry: older changes are not news to them. */
+    /** A new user starts at the newest What's new entry: older changes are not news to them. */
     protected static function booted(): void
     {
         static::creating(function (self $model) {

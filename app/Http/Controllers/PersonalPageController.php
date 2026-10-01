@@ -10,7 +10,6 @@ use App\Models\PlanningSettings;
 use App\Services\EmployeeAuditLogger;
 use App\Services\EmployeePersonalLinkService;
 use App\Services\PlannedShifts;
-use App\Services\WhatsNew;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -31,7 +30,6 @@ class PersonalPageController extends Controller
         private EmployeePersonalLinkService $links,
         private PlannedShifts $plannedShifts,
         private EmployeeAuditLogger $audit,
-        private WhatsNew $whatsNew,
     ) {}
 
     public function show(string $token)
@@ -48,10 +46,6 @@ class PersonalPageController extends Controller
 
         return Inertia::render('Personal/Show', [
             'token' => $token,
-            'whatsNew' => [
-                'entries' => $this->whatsNew->for('employee'),
-                'seenAt' => $employee->whats_new_seen_at?->toDateString(),
-            ],
             'editable' => $employee->archived_at === null && PlanningSettings::current()->allow_employee_changes,
             'employee' => [
                 'first_name' => $employee->first_name,

@@ -15,7 +15,6 @@ class WhatsNew
     private const AUDIENCES = [
         'admin' => ['admin', 'manager'],
         'manager' => ['manager'],
-        'employee' => ['employee'],
     ];
 
     private ?array $entries = null;
@@ -25,7 +24,7 @@ class WhatsNew
         $this->directory ??= resource_path('whats-new');
     }
 
-    /** The entries for a role (admin, manager or employee), newest first: [{ id, date, title, html }]. */
+    /** The entries for a role (admin or manager), newest first: [{ id, date, title, html }]. */
     public function for(string $role): array
     {
         $audiences = self::AUDIENCES[$role] ?? [];

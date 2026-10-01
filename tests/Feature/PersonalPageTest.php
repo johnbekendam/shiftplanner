@@ -305,4 +305,12 @@ class PersonalPageTest extends TestCase
         $this->get("/personal/{$token}")->assertOk()
             ->assertInertia(fn ($page) => $page->where('plannedShifts', []));
     }
+
+    public function test_the_personal_page_has_no_whats_new_and_no_seen_route(): void
+    {
+        [, $token] = $this->linkedEmployee();
+
+        $this->get("/personal/{$token}")->assertInertia(fn ($page) => $page->where('whatsNew', null));
+        $this->post("/personal/{$token}/whats-new/seen")->assertNotFound();
+    }
 }

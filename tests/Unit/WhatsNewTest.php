@@ -60,18 +60,23 @@ class WhatsNewTest extends TestCase
     {
         $this->entry('a.md', '2026-10-01', 'Admin only', 'admin');
         $this->entry('b.md', '2026-10-02', 'Managers', 'manager');
-        $this->entry('c.md', '2026-10-03', 'Employees', 'employee');
-        $this->entry('d.md', '2026-10-04', 'Everyone', 'admin, manager, employee');
+        $this->entry('c.md', '2026-10-03', 'Both', 'admin, manager');
 
-        $this->assertSame(['Everyone', 'Managers', 'Admin only'], array_column($this->whatsNew()->for('admin'), 'title'));
-        $this->assertSame(['Everyone', 'Managers'], array_column($this->whatsNew()->for('manager'), 'title'));
-        $this->assertSame(['Everyone', 'Employees'], array_column($this->whatsNew()->for('employee'), 'title'));
+        $this->assertSame(['Both', 'Managers', 'Admin only'], array_column($this->whatsNew()->for('admin'), 'title'));
+        $this->assertSame(['Both', 'Managers'], array_column($this->whatsNew()->for('manager'), 'title'));
+    }
+
+    public function test_employees_get_no_entries(): void
+    {
+        $this->entry('a.md', '2026-10-01', 'Employees', 'employee');
+
+        $this->assertSame([], $this->whatsNew()->for('employee'));
     }
 
     public function test_it_gives_the_date_of_the_newest_entry_of_any_audience(): void
     {
         $this->entry('a.md', '2026-09-01', 'Old', 'manager');
-        $this->entry('b.md', '2026-10-01', 'New', 'employee');
+        $this->entry('b.md', '2026-10-01', 'New', 'admin');
 
         $this->assertSame('2026-10-01', $this->whatsNew()->latestDate());
     }

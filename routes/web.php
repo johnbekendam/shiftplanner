@@ -206,8 +206,6 @@ Route::middleware('auth')->group(function () {
 // Employee personal page — token-only, no auth. Prototype preview links.
 // See doc/features/employee-admin/spec.md and roadmap phase 2.
 Route::get('/personal/{token}', [PersonalPageController::class, 'show'])->name('personal.show');
-// Not a change of the employee's data, so outside the change lock below. See features/whats-new/.
-Route::post('/personal/{token}/whats-new/seen', [WhatsNewController::class, 'seenByEmployee'])->name('personal.whats-new.seen');
 
 // Employee-side writes: blocked when a manager turns off
 // `allow_employee_changes` (features/employee-change-lock/). The show route

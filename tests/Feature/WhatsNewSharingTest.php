@@ -72,7 +72,7 @@ class WhatsNewSharingTest extends TestCase
     public function test_marking_as_seen_stores_the_date_of_the_newest_entry_of_the_user(): void
     {
         $this->entry('2026-09-01', 'manager');
-        $this->entry('2026-09-05', 'employee');
+        $this->entry('2026-09-05', 'admin');
         $user = tap(User::factory()->create())->update(['whats_new_seen_at' => null]);
         $this->actingAs($user);
 

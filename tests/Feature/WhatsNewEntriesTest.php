@@ -15,7 +15,7 @@ class WhatsNewEntriesTest extends TestCase
         $this->assertNotEmpty($files);
 
         $whatsNew = app(WhatsNew::class);
-        $shown = collect(['admin', 'manager', 'employee'])
+        $shown = collect(['admin', 'manager'])
             ->flatMap(fn (string $role) => array_column($whatsNew->for($role), 'id'))
             ->unique()
             ->sort()
@@ -32,7 +32,7 @@ class WhatsNewEntriesTest extends TestCase
             preg_match('/^audience:(.*)$/m', File::get($path), $match);
             $audiences = array_map('trim', explode(',', $match[1] ?? ''));
 
-            $this->assertEmpty(array_diff($audiences, ['admin', 'manager', 'employee']), basename($path));
+            $this->assertEmpty(array_diff($audiences, ['admin', 'manager']), basename($path));
         }
     }
 }
