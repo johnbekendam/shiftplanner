@@ -27,7 +27,7 @@ const lineOptions = [
     { key: 'planned', label: 'dashboard.lines.planned', series: 'planned', stroke: 'var(--color-badge-warning-text)', markerClass: 'bg-[var(--color-badge-warning-text)]', step: true },
 ]
 
-const defaultLines = lineOptions.map((option) => option.key)
+const defaultLines = ['available', 'planned']
 
 // No `lines` parameter gives the default set. An empty value turns every line off.
 const visibleLines = computed(() => {

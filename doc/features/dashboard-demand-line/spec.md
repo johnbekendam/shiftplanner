@@ -23,7 +23,7 @@ The legend has three checkboxes, in this order:
 | Available | availability of the confirmed employees | `--color-badge-success-text` (green) |
 | Planned | planned hours per week, as FTE | `--color-badge-warning-text` (amber) |
 
-- All three lines are on by default.
+- Available and Planned are on by default. Demand is off.
 - The query string holds the set, for example `?lines=demand,planned`.
   The default set gives no query string. An empty `lines` value turns
   all lines off. An unknown value is ignored. This includes the old
@@ -59,6 +59,23 @@ The series has one value per weekday in `days`.
 A business-line block has no `demand` series. Its chart shows Available
 and Planned only.
 
+### Donuts
+
+Each card has two donuts, one below the other, at the right of the chart.
+
+| Donut | Value | Shows when |
+| --- | --- | --- |
+| Available | `available_hours` / `required_hours` | the Available line is on |
+| Planned | `planned_hours` / `available_hours` | the Planned line is on |
+
+- The Available donut is the old coverage donut. Its caption is
+  "Available", not "Confirmed".
+- `planned_hours` is new in the payload, on the overall block and on
+  each business-line block. It is the sum of the `planned` series
+  multiplied by `fte_hours / 5`, the same rule as `available_hours`.
+- The Planned donut shows "—" when `available_hours` is 0.
+- `CoverageDonut` gets a `label` prop for the caption.
+
 ## Key decisions
 
 - **Demand on the Overall card only.** Demand belongs to a workcenter,
@@ -76,14 +93,20 @@ and Planned only.
 - **Demand takes the blue of Total.** The token is free and is distinct
   from green and amber. No new role or component color var is
   necessary.
-- **All three lines on by default.** The three lines together are the
-  full picture that the user asked for.
+- **Demand is off by default.** The user asked for this after a look at
+  the result. Demand is one click away.
+- **A donut follows its line.** A donut with no matching line on the
+  chart has no context.
+- **Planned relative to Available.** The Planned donut shows how much of
+  the capacity is in use.
+- **No What's new entry.** The user decided this.
 
 ## Non-goals
 
 - No relation between workcenters and business lines.
-- No change to the coverage donut. It keeps confirmed hours divided by
-  required hours.
+- No change to the donut math for Available. It keeps confirmed hours
+  divided by required hours.
+- No donut for Demand.
 - No change to the dashed target line.
 - No change to the Planned line.
 - No per-day demand line.

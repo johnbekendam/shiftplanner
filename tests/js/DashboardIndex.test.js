@@ -147,12 +147,11 @@ describe("Dashboard/Index", () => {
         ]);
     });
 
-    it("turns on every line by default", () => {
+    it("turns on available and planned by default", () => {
         const w = mountPage({ period, days, overall, lines: [] });
 
-        expect(checked(w)).toEqual([true, true, true]);
+        expect(checked(w)).toEqual([false, true, true]);
         expect(chartLines(w)).toEqual([
-            { key: "demand", values: [1.5, 1.5], stroke: "var(--color-brand-bg)", step: true },
             { key: "available", values: [1, 1], stroke: "var(--color-badge-success-text)", step: false },
             { key: "planned", values: [0.75, 0.75], stroke: "var(--color-badge-warning-text)", step: true },
         ]);
@@ -164,7 +163,7 @@ describe("Dashboard/Index", () => {
             days,
             overall,
             lines: [{ id: 7, abbreviation: "PMP", description: "Pumps", available: [1, 1], planned: [0.5, 0.5], target: 5, available_hours: 16, required_hours: 40 }],
-        });
+        }, "/dashboard?lines=demand,available,planned");
 
         const charts = w.findAllComponents(FteLineChart);
         expect(charts[0].props("lines").map((line) => line.key)).toEqual(["demand", "available", "planned"]);
@@ -192,16 +191,24 @@ describe("Dashboard/Index", () => {
         expect(chartLines(w)).toEqual([]);
     });
 
-    it("switches a line off by removing it from the query string", async () => {
+    it("switches a line on by adding it to the query string", async () => {
         const w = mountPage({ period, days, overall, lines: [] });
 
-        await toggles(w)[0].setValue(false);
+        await toggles(w)[0].setValue(true);
 
         expect(routerGet).toHaveBeenCalledWith(
             "/dashboard",
-            { lines: "available,planned" },
+            { lines: "demand,available,planned" },
             { preserveScroll: true, preserveState: true },
         );
+    });
+
+    it("switches a line off by removing it from the query string", async () => {
+        const w = mountPage({ period, days, overall, lines: [] });
+
+        await toggles(w)[1].setValue(false);
+
+        expect(routerGet).toHaveBeenCalledWith("/dashboard", { lines: "planned" }, { preserveScroll: true, preserveState: true });
     });
 
     it("sends an empty set when the last line goes off", async () => {
@@ -213,7 +220,7 @@ describe("Dashboard/Index", () => {
     });
 
     it("drops the query string when the toggles match the default", async () => {
-        const w = mountPage({ period, days, overall, lines: [] }, "/dashboard?lines=demand,available");
+        const w = mountPage({ period, days, overall, lines: [] }, "/dashboard?lines=available");
 
         await toggles(w)[2].setValue(true);
 
