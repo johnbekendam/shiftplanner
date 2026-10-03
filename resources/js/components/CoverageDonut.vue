@@ -5,6 +5,8 @@ import { useI18n } from '@/composables/useI18n'
 const __ = useI18n()
 
 const props = defineProps({
+    // Caption heading: what the donut measures.
+    label: { type: String, default: '' },
     // Available person-hours over the period.
     available: { type: Number, default: 0 },
     // Required person-hours over the period. 0 means "no target set".
@@ -31,7 +33,7 @@ const arcColor = computed(() =>
         : 'var(--color-brand-bg)',
 )
 
-const label = computed(() =>
+const percentage = computed(() =>
     hasTarget.value ? `${Math.round((props.available / props.required) * 100)}%` : '—',
 )
 
@@ -81,11 +83,11 @@ const caption = computed(() =>
                 font-size="20"
                 font-weight="600"
                 fill="var(--color-text-primary)"
-            >{{ label }}</text>
+            >{{ percentage }}</text>
         </svg>
 
         <figcaption data-testid="donut-caption" class="flex flex-col items-center text-xs text-(--color-text-secondary)">
-            <span>{{ __('dashboard.confirmed') }}</span>
+            <span>{{ label }}</span>
             <span>{{ caption }}</span>
         </figcaption>
     </figure>

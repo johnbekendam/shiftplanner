@@ -380,4 +380,19 @@ class DashboardTest extends TestCase
         $this->get('/dashboard')->assertOk()
             ->assertInertia(fn ($page) => $page->where('overall.demand', []));
     }
+
+    public function test_each_block_carries_planned_hours(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->setPeriod('2026-01-05', '2026-01-09', fteHours: 40); // one full week
+        $line = BusinessLine::factory()->create();
+        $this->assign(Employee::factory()->create(['business_line_id' => $line->id, 'confirmed' => true]), '2026-01-05'); // 8 h
+        $this->assign(Employee::factory()->create(['business_line_id' => null, 'confirmed' => true]), '2026-01-06', '12:00', '16:00'); // 4 h
+
+        $this->get('/dashboard')->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('overall.planned_hours', 12)
+                ->where('lines.0.planned_hours', 8)
+            );
+    }
 }

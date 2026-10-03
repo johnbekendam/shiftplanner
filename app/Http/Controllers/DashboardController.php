@@ -65,7 +65,8 @@ class DashboardController extends Controller
                 'planned' => $planned['overall'],
                 'demand' => $this->demandFte($days, $settings->fte_hours),
                 'target' => (float) $businessLines->sum('target_fte'),
-                'available_hours' => $this->availableHours($available['overall'], $dailyFteHours),
+                'available_hours' => $this->seriesHours($available['overall'], $dailyFteHours),
+                'planned_hours' => $this->seriesHours($planned['overall'], $dailyFteHours),
                 'required_hours' => (float) $businessLines->sum('target_fte') * $days->count() * $dailyFteHours,
             ],
             'lines' => $businessLines->map(function (BusinessLine $line) use ($days, $dailyFteHours, $available, $planned) {
@@ -76,7 +77,8 @@ class DashboardController extends Controller
                     'available' => $available['lines'][$line->id],
                     'planned' => $planned['lines'][$line->id],
                     'target' => (float) $line->target_fte,
-                    'available_hours' => $this->availableHours($available['lines'][$line->id], $dailyFteHours),
+                    'available_hours' => $this->seriesHours($available['lines'][$line->id], $dailyFteHours),
+                    'planned_hours' => $this->seriesHours($planned['lines'][$line->id], $dailyFteHours),
                     'required_hours' => (float) $line->target_fte * $days->count() * $dailyFteHours,
                 ];
             })->all(),
@@ -86,7 +88,7 @@ class DashboardController extends Controller
     /**
      * @param  list<float>  $series
      */
-    private function availableHours(array $series, float $dailyFteHours): float
+    private function seriesHours(array $series, float $dailyFteHours): float
     {
         return array_sum($series) * $dailyFteHours;
     }

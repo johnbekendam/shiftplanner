@@ -57,6 +57,13 @@ const chartLines = (block) =>
         .filter((option) => isVisible(option.key) && Array.isArray(block[option.series]))
         .map((option) => ({ key: option.key, values: block[option.series], stroke: option.stroke, step: option.step === true }))
 
+// A donut shows only while its line is on.
+const donuts = (block) =>
+    [
+        { key: 'available', label: __('dashboard.lines.available'), available: block.available_hours, required: block.required_hours },
+        { key: 'planned', label: __('dashboard.lines.planned'), available: block.planned_hours, required: block.available_hours },
+    ].filter((donut) => isVisible(donut.key))
+
 const blocks = computed(() => {
     if (!props.overall) return []
     return [
@@ -65,8 +72,7 @@ const blocks = computed(() => {
             title: __('dashboard.overall'),
             lines: chartLines(props.overall),
             target: props.overall.target,
-            requiredHours: props.overall.required_hours,
-            availableHours: props.overall.available_hours,
+            donuts: donuts(props.overall),
             employeesHref: '/employees',
         },
         ...props.lines.map((line) => ({
@@ -74,8 +80,7 @@ const blocks = computed(() => {
             title: `${line.abbreviation} — ${line.description}`,
             lines: chartLines(line),
             target: line.target,
-            requiredHours: line.required_hours,
-            availableHours: line.available_hours,
+            donuts: donuts(line),
             employeesHref: `/employees?business_lines[]=${line.id}`,
         })),
     ]
@@ -130,10 +135,13 @@ const blocks = computed(() => {
                             :show-caption="false"
                         />
                     </div>
-                    <div class="w-28 shrink-0">
+                    <div v-if="block.donuts.length" class="flex w-28 shrink-0 flex-col gap-4">
                         <CoverageDonut
-                            :available="block.availableHours"
-                            :required="block.requiredHours"
+                            v-for="donut in block.donuts"
+                            :key="donut.key"
+                            :label="donut.label"
+                            :available="donut.available"
+                            :required="donut.required"
                         />
                     </div>
                 </div>

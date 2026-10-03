@@ -113,22 +113,32 @@ describe("Dashboard/Index", () => {
         expect(headerLinks[1].attributes("href")).toBe("/employees?business_lines[]=7");
     });
 
-    it("gives each block a coverage donut fed available hours", () => {
+    it("gives each block an available donut and a planned donut", () => {
         const w = mountPage({
-            period: { start: "2026-01-05", end: "2026-01-06", fte_hours: 40 },
-            days: ["2026-01-05", "2026-01-06"],
-            overall: { available: [2, 1], target: 8, available_hours: 18, required_hours: 64 },
+            period,
+            days,
+            overall: { available: [2, 1], planned: [1, 1], target: 8, available_hours: 18, planned_hours: 9, required_hours: 64 },
             lines: [
-                { abbreviation: "PMP", description: "Pumps", available: [1, 1], target: 5, available_hours: 12, required_hours: 40 },
+                { abbreviation: "PMP", description: "Pumps", available: [1, 1], planned: [1, 1], target: 5, available_hours: 12, planned_hours: 3, required_hours: 40 },
             ],
         });
 
         const donuts = w.findAllComponents(CoverageDonut);
-        expect(donuts).toHaveLength(2);
-        expect(donuts[0].props("available")).toBe(18);
-        expect(donuts[0].props("required")).toBe(64);
-        expect(donuts[1].props("available")).toBe(12);
-        expect(donuts[1].props("required")).toBe(40);
+        expect(donuts.map((d) => d.props())).toEqual([
+            { label: "Available", available: 18, required: 64 },
+            { label: "Planned", available: 9, required: 18 },
+            { label: "Available", available: 12, required: 40 },
+            { label: "Planned", available: 3, required: 12 },
+        ]);
+    });
+
+    it("shows a donut only when its line is on", () => {
+        const props = { period, days, overall: { ...overall, planned_hours: 8 }, lines: [] };
+        const labels = (url) => mountPage(props, url).findAllComponents(CoverageDonut).map((d) => d.props("label"));
+
+        expect(labels("/dashboard?lines=available")).toEqual(["Available"]);
+        expect(labels("/dashboard?lines=demand,planned")).toEqual(["Planned"]);
+        expect(labels("/dashboard?lines=demand")).toEqual([]);
     });
 
     it("shows the line toggles with color markers in order", () => {

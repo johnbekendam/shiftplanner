@@ -3,7 +3,6 @@ import { mount } from "@vue/test-utils";
 
 const en = {
     "dashboard.coverage": "Hours covered",
-    "dashboard.confirmed": "Confirmed",
     "dashboard.hours_ratio": ":available / :required h",
 };
 
@@ -23,11 +22,11 @@ const arcFraction = (w) => {
 
 describe("CoverageDonut", () => {
     it("shows the rounded coverage percentage and fills the arc to match", () => {
-        const w = mount(CoverageDonut, { props: { available: 60, required: 100 } });
+        const w = mount(CoverageDonut, { props: { available: 60, required: 100, label: "Available" } });
 
         expect(w.get('[data-testid="donut-label"]').text()).toBe("60%");
         expect(arcFraction(w)).toBeCloseTo(0.6, 5);
-        expect(w.get('[data-testid="donut-caption"]').text()).toContain("Confirmed");
+        expect(w.get('[data-testid="donut-caption"]').text()).toContain("Available");
     });
 
     it("caps the arc at a full ring but still shows the true percentage over 100%", () => {
@@ -38,11 +37,11 @@ describe("CoverageDonut", () => {
     });
 
     it("shows a dash and no arc when nothing is required", () => {
-        const w = mount(CoverageDonut, { props: { available: 0, required: 0 } });
+        const w = mount(CoverageDonut, { props: { available: 0, required: 0, label: "Available" } });
 
         expect(w.get('[data-testid="donut-label"]').text()).toBe("—");
         expect(w.findAll('[data-testid="donut-arc"]')).toHaveLength(0);
-        expect(w.get('[data-testid="donut-caption"]').text()).toContain("Confirmed");
+        expect(w.get('[data-testid="donut-caption"]').text()).toContain("Available");
         expect(w.get('[data-testid="donut-caption"]').text()).toContain("0 / 0 h");
     });
 
