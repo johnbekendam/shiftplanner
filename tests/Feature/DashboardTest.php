@@ -8,6 +8,9 @@ use App\Models\PlanningSettings;
 use App\Models\Shift;
 use App\Models\ShiftAssignment;
 use App\Models\User;
+use App\Models\Workcenter;
+use App\Models\WorkcenterShiftCapacity;
+use App\Models\WorkcenterShiftDateOverride;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -54,11 +57,11 @@ class DashboardTest extends TestCase
         $this->get('/dashboard')->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->where('days', ['2026-01-05'])
-                ->where('overall.available_total', [0.8])
+                ->where('overall.available', [0.8])
             );
     }
 
-    public function test_each_block_carries_confirmed_unconfirmed_and_total_series(): void
+    public function test_the_available_series_counts_confirmed_employees_only(): void
     {
         $this->actingAs(User::factory()->create());
         $this->setPeriod('2026-01-05', '2026-01-05', fteHours: 40);
@@ -68,34 +71,31 @@ class DashboardTest extends TestCase
 
         $this->get('/dashboard')->assertOk()
             ->assertInertia(fn ($page) => $page
-                ->where('overall.available_confirmed', [1])
-                ->where('overall.available_unconfirmed', [0.5])
-                ->where('overall.available_total', [1.5])
-                ->where('overall.available_hours_confirmed', 8)
-                ->where('overall.available_hours_unconfirmed', 4)
-                ->where('lines.0.available_confirmed', [1])
-                ->where('lines.0.available_unconfirmed', [0.5])
-                ->where('lines.0.available_total', [1.5])
+                ->where('overall.available', [1])
+                ->where('overall.available_hours', 8)
+                ->where('lines.0.available', [1])
+                ->where('lines.0.available_hours', 8)
             );
     }
 
-    public function test_the_payload_has_no_employee_status_filter(): void
+    public function test_the_payload_has_no_unconfirmed_or_total_series(): void
     {
         $this->actingAs(User::factory()->create());
         $this->setPeriod('2026-01-05', '2026-01-05', fteHours: 40);
         BusinessLine::factory()->create();
-        Employee::factory()->create(['weekly_hours' => 40, 'confirmed' => true]);
-        Employee::factory()->create(['weekly_hours' => 20, 'confirmed' => false]);
 
-        $this->get('/dashboard?employees=confirmed')->assertOk()
+        $this->get('/dashboard')->assertOk()
             ->assertInertia(fn ($page) => $page
-                ->missing('employeeStatusFilter')
-                ->missing('unconfirmedEmployeeCount')
-                ->missing('overall.available')
-                ->missing('overall.available_hours')
-                ->missing('lines.0.available')
-                ->missing('lines.0.available_hours')
-                ->where('overall.available_total', [1.5])
+                ->missing('overall.available_confirmed')
+                ->missing('overall.available_unconfirmed')
+                ->missing('overall.available_total')
+                ->missing('overall.available_hours_confirmed')
+                ->missing('overall.available_hours_unconfirmed')
+                ->missing('lines.0.available_confirmed')
+                ->missing('lines.0.available_unconfirmed')
+                ->missing('lines.0.available_total')
+                ->missing('lines.0.available_hours_confirmed')
+                ->missing('lines.0.available_hours_unconfirmed')
             );
     }
 
@@ -108,7 +108,7 @@ class DashboardTest extends TestCase
         $this->get('/dashboard')->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->where('days', ['2026-01-05', '2026-01-06', '2026-01-07', '2026-01-08', '2026-01-09'])
-                ->where('overall.available_total', [1, 1, 1, 1, 1])
+                ->where('overall.available', [1, 1, 1, 1, 1])
             );
     }
 
@@ -122,8 +122,8 @@ class DashboardTest extends TestCase
         $this->get('/dashboard')->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->where('days', [])
-                ->where('overall.available_total', [])
-                ->where('overall.available_hours_confirmed', 0)
+                ->where('overall.available', [])
+                ->where('overall.available_hours', 0)
                 ->where('overall.required_hours', 0)
             );
     }
@@ -139,9 +139,9 @@ class DashboardTest extends TestCase
         // Target 5 FTE * 1 weekday * 40 / 5 = 40 required hours.
         $this->get('/dashboard')->assertOk()
             ->assertInertia(fn ($page) => $page
-                ->where('overall.available_hours_confirmed', 8)
+                ->where('overall.available_hours', 8)
                 ->where('overall.required_hours', 40)
-                ->where('lines.0.available_hours_confirmed', 8)
+                ->where('lines.0.available_hours', 8)
                 ->where('lines.0.required_hours', 40)
             );
     }
@@ -156,7 +156,7 @@ class DashboardTest extends TestCase
         // 5 weekdays * 8 = 40 available hours; 5 * 5 * 8 = 200 required hours.
         $this->get('/dashboard')->assertOk()
             ->assertInertia(fn ($page) => $page
-                ->where('overall.available_hours_confirmed', 40)
+                ->where('overall.available_hours', 40)
                 ->where('overall.required_hours', 200)
             );
     }
@@ -171,7 +171,7 @@ class DashboardTest extends TestCase
         $this->get('/dashboard')->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->where('lines.0.required_hours', 0)
-                ->where('lines.0.available_hours_confirmed', 8)
+                ->where('lines.0.available_hours', 8)
             );
     }
 
@@ -183,17 +183,17 @@ class DashboardTest extends TestCase
         $employee->holidays()->create(['start_date' => '2026-01-01', 'end_date' => '2026-01-10']);
 
         $this->get('/dashboard')->assertOk()
-            ->assertInertia(fn ($page) => $page->where('overall.available_total', [0]));
+            ->assertInertia(fn ($page) => $page->where('overall.available', [0]));
     }
 
     public function test_zero_weekly_hours_contributes_zero(): void
     {
         $this->actingAs(User::factory()->create());
         $this->setPeriod('2026-01-05', '2026-01-05');
-        Employee::factory()->create(['weekly_hours' => 0]);
+        Employee::factory()->create(['weekly_hours' => 0, 'confirmed' => true]);
 
         $this->get('/dashboard')->assertOk()
-            ->assertInertia(fn ($page) => $page->where('overall.available_total', [0]));
+            ->assertInertia(fn ($page) => $page->where('overall.available', [0]));
     }
 
     public function test_the_overall_series_counts_an_employee_with_no_business_line(): void
@@ -206,10 +206,10 @@ class DashboardTest extends TestCase
 
         $this->get('/dashboard')->assertOk()
             ->assertInertia(fn ($page) => $page
-                ->where('overall.available_total', [2])
+                ->where('overall.available', [2])
                 ->where('overall.target', 5)
                 ->has('lines', 1)
-                ->where('lines.0.available_total', [1])
+                ->where('lines.0.available', [1])
                 ->where('lines.0.target', 5)
             );
     }
@@ -227,10 +227,10 @@ class DashboardTest extends TestCase
                 ->where('overall.target', 11)
                 ->where('lines.0.id', $first->id)
                 ->where('lines.0.abbreviation', 'PMP')
-                ->where('lines.0.available_total', [1])
+                ->where('lines.0.available', [1])
                 ->where('lines.1.id', $second->id)
                 ->where('lines.1.abbreviation', 'VLV')
-                ->where('lines.1.available_total', [0])
+                ->where('lines.1.available', [0])
             );
     }
 
@@ -298,5 +298,101 @@ class DashboardTest extends TestCase
 
         $this->get('/dashboard')->assertOk()
             ->assertInertia(fn ($page) => $page->where('overall.planned', []));
+    }
+
+    /** Attaches a shift to the workcenter with the same slot count on the given weekdays. */
+    private function demand(Workcenter $workcenter, array $weekdays, int $spots, string $start = '08:00', string $end = '16:00'): Shift
+    {
+        $shift = Shift::factory()->create(['start_time' => $start, 'end_time' => $end]);
+        $workcenter->shifts()->attach($shift);
+        foreach ($weekdays as $weekday) {
+            WorkcenterShiftCapacity::query()->create([
+                'workcenter_id' => $workcenter->id,
+                'shift_id' => $shift->id,
+                'weekday' => $weekday,
+                'spots' => $spots,
+            ]);
+        }
+
+        return $shift;
+    }
+
+    public function test_demand_is_a_weekly_fte_step_of_slots_times_shift_hours(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->setPeriod('2026-01-05', '2026-01-16', fteHours: 40); // two full weeks
+        $workcenter = Workcenter::factory()->create();
+        // Monday and Saturday, 2 slots of 8 h: 32 h per week. Weekend demand counts.
+        $shift = $this->demand($workcenter, [1, 6], spots: 2);
+        // Week two: the Monday override drops to 1 slot, so 24 h.
+        WorkcenterShiftDateOverride::query()->create([
+            'workcenter_id' => $workcenter->id,
+            'shift_id' => $shift->id,
+            'date' => '2026-01-12',
+            'spots' => 1,
+        ]);
+
+        $this->get('/dashboard')->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('overall.demand', [0.8, 0.8, 0.8, 0.8, 0.8, 0.6, 0.6, 0.6, 0.6, 0.6])
+            );
+    }
+
+    public function test_demand_sums_every_shift_of_every_active_workcenter(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->setPeriod('2026-01-05', '2026-01-05', fteHours: 40);
+        $this->demand(Workcenter::factory()->create(), [1], spots: 1); // 8 h
+        $this->demand(Workcenter::factory()->create(), [1], spots: 3, start: '12:00', end: '16:00'); // 12 h
+        $this->demand(Workcenter::factory()->create(['archived_at' => now()]), [1], spots: 5);
+
+        $this->get('/dashboard')->assertOk()
+            ->assertInertia(fn ($page) => $page->where('overall.demand', [0.5]));
+    }
+
+    public function test_demand_counts_the_full_week_outside_the_period(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->setPeriod('2026-01-07', '2026-01-09', fteHours: 40); // Wednesday to Friday
+        $this->demand(Workcenter::factory()->create(), [1], spots: 1); // Monday, before the period
+
+        $this->get('/dashboard')->assertOk()
+            ->assertInertia(fn ($page) => $page->where('overall.demand', [0.2, 0.2, 0.2]));
+    }
+
+    public function test_a_business_line_block_has_no_demand_series(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->setPeriod('2026-01-05', '2026-01-05', fteHours: 40);
+        BusinessLine::factory()->create();
+        $this->demand(Workcenter::factory()->create(), [1], spots: 1);
+
+        $this->get('/dashboard')->assertOk()
+            ->assertInertia(fn ($page) => $page->missing('lines.0.demand'));
+    }
+
+    public function test_a_weekend_only_period_has_an_empty_demand_series(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->setPeriod('2026-01-10', '2026-01-11', fteHours: 40);
+        $this->demand(Workcenter::factory()->create(), [6], spots: 1);
+
+        $this->get('/dashboard')->assertOk()
+            ->assertInertia(fn ($page) => $page->where('overall.demand', []));
+    }
+
+    public function test_each_block_carries_planned_hours(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->setPeriod('2026-01-05', '2026-01-09', fteHours: 40); // one full week
+        $line = BusinessLine::factory()->create();
+        $this->assign(Employee::factory()->create(['business_line_id' => $line->id, 'confirmed' => true]), '2026-01-05'); // 8 h
+        $this->assign(Employee::factory()->create(['business_line_id' => null, 'confirmed' => true]), '2026-01-06', '12:00', '16:00'); // 4 h
+
+        $this->get('/dashboard')->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('overall.planned_hours', 12)
+                ->where('lines.0.planned_hours', 8)
+            );
     }
 }

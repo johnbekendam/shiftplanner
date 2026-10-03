@@ -6,6 +6,9 @@ use App\Models\BusinessLine;
 use App\Models\Employee;
 use App\Models\PlanningSettings;
 use App\Models\ShiftAssignment;
+use App\Models\Workcenter;
+use App\Models\WorkcenterShiftCapacity;
+use App\Models\WorkcenterShiftDateOverride;
 use Carbon\CarbonInterface;
 use Carbon\CarbonPeriod;
 use Illuminate\Support\Collection;
@@ -33,24 +36,17 @@ class DashboardController extends Controller
         $businessLines = BusinessLine::all(); // position-ordered by the model scope
         $zeros = array_fill(0, $days->count(), 0.0);
 
-        $series = [
-            'confirmed' => [
-                'overall' => $zeros,
-                'lines' => $businessLines->mapWithKeys(fn (BusinessLine $line) => [$line->id => $zeros])->all(),
-            ],
-            'unconfirmed' => [
-                'overall' => $zeros,
-                'lines' => $businessLines->mapWithKeys(fn (BusinessLine $line) => [$line->id => $zeros])->all(),
-            ],
+        // Available counts the confirmed employees only.
+        $available = [
+            'overall' => $zeros,
+            'lines' => $businessLines->mapWithKeys(fn (BusinessLine $line) => [$line->id => $zeros])->all(),
         ];
 
-        Employee::query()->active()->with('holidays')->get()->each(function (Employee $employee) use ($days, $settings, &$series) {
-            $status = $employee->confirmed ? 'confirmed' : 'unconfirmed';
-
+        Employee::query()->active()->where('confirmed', true)->with('holidays')->get()->each(function (Employee $employee) use ($days, $settings, &$available) {
             foreach ($this->availableFte($employee, $days, $settings->fte_hours) as $i => $value) {
-                $series[$status]['overall'][$i] += $value;
-                if ($employee->business_line_id && isset($series[$status]['lines'][$employee->business_line_id])) {
-                    $series[$status]['lines'][$employee->business_line_id][$i] += $value;
+                $available['overall'][$i] += $value;
+                if ($employee->business_line_id && isset($available['lines'][$employee->business_line_id])) {
+                    $available['lines'][$employee->business_line_id][$i] += $value;
                 }
             }
         });
@@ -65,30 +61,24 @@ class DashboardController extends Controller
             ],
             'days' => $days->map(fn ($day) => $day->toDateString())->all(),
             'overall' => [
-                'available_confirmed' => $series['confirmed']['overall'],
-                'available_unconfirmed' => $series['unconfirmed']['overall'],
-                'available_total' => $this->sumSeries($series['confirmed']['overall'], $series['unconfirmed']['overall']),
+                'available' => $available['overall'],
                 'planned' => $planned['overall'],
+                'demand' => $this->demandFte($days, $settings->fte_hours),
                 'target' => (float) $businessLines->sum('target_fte'),
-                'available_hours_confirmed' => $this->availableHours($series['confirmed']['overall'], $dailyFteHours),
-                'available_hours_unconfirmed' => $this->availableHours($series['unconfirmed']['overall'], $dailyFteHours),
+                'available_hours' => $this->seriesHours($available['overall'], $dailyFteHours),
+                'planned_hours' => $this->seriesHours($planned['overall'], $dailyFteHours),
                 'required_hours' => (float) $businessLines->sum('target_fte') * $days->count() * $dailyFteHours,
             ],
-            'lines' => $businessLines->map(function (BusinessLine $line) use ($days, $dailyFteHours, $series, $planned) {
-                $confirmed = $series['confirmed']['lines'][$line->id];
-                $unconfirmed = $series['unconfirmed']['lines'][$line->id];
-
+            'lines' => $businessLines->map(function (BusinessLine $line) use ($days, $dailyFteHours, $available, $planned) {
                 return [
                     'id' => $line->id,
                     'abbreviation' => $line->abbreviation,
                     'description' => $line->description,
-                    'available_confirmed' => $confirmed,
-                    'available_unconfirmed' => $unconfirmed,
-                    'available_total' => $this->sumSeries($confirmed, $unconfirmed),
+                    'available' => $available['lines'][$line->id],
                     'planned' => $planned['lines'][$line->id],
                     'target' => (float) $line->target_fte,
-                    'available_hours_confirmed' => $this->availableHours($confirmed, $dailyFteHours),
-                    'available_hours_unconfirmed' => $this->availableHours($unconfirmed, $dailyFteHours),
+                    'available_hours' => $this->seriesHours($available['lines'][$line->id], $dailyFteHours),
+                    'planned_hours' => $this->seriesHours($planned['lines'][$line->id], $dailyFteHours),
                     'required_hours' => (float) $line->target_fte * $days->count() * $dailyFteHours,
                 ];
             })->all(),
@@ -96,19 +86,9 @@ class DashboardController extends Controller
     }
 
     /**
-     * @param  list<float>  $confirmed
-     * @param  list<float>  $unconfirmed
-     * @return list<float>
-     */
-    private function sumSeries(array $confirmed, array $unconfirmed): array
-    {
-        return array_map(fn (float $confirmedValue, float $unconfirmedValue) => $confirmedValue + $unconfirmedValue, $confirmed, $unconfirmed);
-    }
-
-    /**
      * @param  list<float>  $series
      */
-    private function availableHours(array $series, float $dailyFteHours): float
+    private function seriesHours(array $series, float $dailyFteHours): float
     {
         return array_sum($series) * $dailyFteHours;
     }
@@ -156,6 +136,56 @@ class DashboardController extends Controller
                 ->mapWithKeys(fn (BusinessLine $line) => [$line->id => $series($weekHours['lines'][$line->id] ?? [])])
                 ->all(),
         ];
+    }
+
+    /**
+     * Demand FTE per day: slots x shift hours of every shift of every active workcenter in
+     * the day's full Monday–Sunday week, over fte_hours. A date override replaces the
+     * weekday default.
+     *
+     * @param  Collection<int, CarbonInterface>  $days
+     * @return list<float>
+     */
+    private function demandFte(Collection $days, int $fteHours): array
+    {
+        if ($days->isEmpty()) {
+            return [];
+        }
+
+        $start = $days->first()->copy()->startOfWeek(CarbonInterface::MONDAY);
+        $end = $days->last()->copy()->endOfWeek(CarbonInterface::SUNDAY)->startOfDay();
+
+        $workcenters = Workcenter::query()->whereNull('archived_at')->with('shifts:id,start_time,end_time')->get();
+
+        $capacities = WorkcenterShiftCapacity::query()
+            ->whereIn('workcenter_id', $workcenters->pluck('id'))
+            ->get()
+            ->keyBy(fn (WorkcenterShiftCapacity $c) => "{$c->workcenter_id}:{$c->shift_id}:{$c->weekday}");
+
+        $overrides = WorkcenterShiftDateOverride::query()
+            ->whereIn('workcenter_id', $workcenters->pluck('id'))
+            ->whereBetween('date', [$start->toDateString(), $end->toDateString()])
+            ->get()
+            ->keyBy(fn (WorkcenterShiftDateOverride $o) => "{$o->workcenter_id}:{$o->shift_id}:{$o->date->toDateString()}");
+
+        $weekHours = [];
+        foreach (CarbonPeriod::create($start, $end) as $date) {
+            $week = $date->copy()->startOfWeek(CarbonInterface::MONDAY)->toDateString();
+
+            foreach ($workcenters as $workcenter) {
+                foreach ($workcenter->shifts as $shift) {
+                    $spots = $overrides->get("{$workcenter->id}:{$shift->id}:{$date->toDateString()}")?->spots
+                        ?? $capacities->get("{$workcenter->id}:{$shift->id}:{$date->isoWeekday()}")?->spots
+                        ?? 0;
+
+                    $weekHours[$week] = ($weekHours[$week] ?? 0.0) + $spots * $shift->durationHours();
+                }
+            }
+        }
+
+        return $days
+            ->map(fn (CarbonInterface $day) => ($weekHours[$day->copy()->startOfWeek(CarbonInterface::MONDAY)->toDateString()] ?? 0.0) / $fteHours)
+            ->all();
     }
 
     /**

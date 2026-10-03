@@ -22,13 +22,12 @@ const page = usePage()
 
 // Toggle and paint order: the last line sits on top.
 const lineOptions = [
-    { key: 'unconfirmed', label: 'dashboard.lines.unconfirmed', series: 'available_unconfirmed', stroke: 'var(--color-text-secondary)', markerClass: 'bg-[var(--color-text-secondary)]' },
-    { key: 'confirmed', label: 'dashboard.lines.confirmed', series: 'available_confirmed', stroke: 'var(--color-badge-success-text)', markerClass: 'bg-[var(--color-badge-success-text)]' },
-    { key: 'total', label: 'dashboard.lines.total', series: 'available_total', stroke: 'var(--color-brand-bg)', markerClass: 'bg-[var(--color-brand-bg)]' },
+    { key: 'demand', label: 'dashboard.lines.demand', series: 'demand', stroke: 'var(--color-brand-bg)', markerClass: 'bg-[var(--color-brand-bg)]', step: true },
+    { key: 'available', label: 'dashboard.lines.available', series: 'available', stroke: 'var(--color-badge-success-text)', markerClass: 'bg-[var(--color-badge-success-text)]' },
     { key: 'planned', label: 'dashboard.lines.planned', series: 'planned', stroke: 'var(--color-badge-warning-text)', markerClass: 'bg-[var(--color-badge-warning-text)]', step: true },
 ]
 
-const defaultLines = ['confirmed', 'planned']
+const defaultLines = ['available', 'planned']
 
 // No `lines` parameter gives the default set. An empty value turns every line off.
 const visibleLines = computed(() => {
@@ -52,10 +51,23 @@ const toggleLine = (key) => {
     )
 }
 
+// A business-line block has no demand series, so that line is left out there.
 const chartLines = (block) =>
     lineOptions
-        .filter((option) => isVisible(option.key))
+        .filter((option) => isVisible(option.key) && Array.isArray(block[option.series]))
         .map((option) => ({ key: option.key, values: block[option.series], stroke: option.stroke, step: option.step === true }))
+
+// A donut shows only while its line is on, in the color of that line.
+const donuts = (block) =>
+    [
+        { key: 'available', available: block.available_hours, required: block.required_hours },
+        { key: 'planned', available: block.planned_hours, required: block.available_hours },
+    ]
+        .filter((donut) => isVisible(donut.key))
+        .map((donut) => {
+            const option = lineOptions.find((line) => line.key === donut.key)
+            return { ...donut, label: __(option.label), color: option.stroke }
+        })
 
 const blocks = computed(() => {
     if (!props.overall) return []
@@ -65,8 +77,7 @@ const blocks = computed(() => {
             title: __('dashboard.overall'),
             lines: chartLines(props.overall),
             target: props.overall.target,
-            requiredHours: props.overall.required_hours,
-            confirmedHours: props.overall.available_hours_confirmed,
+            donuts: donuts(props.overall),
             employeesHref: '/employees',
         },
         ...props.lines.map((line) => ({
@@ -74,8 +85,7 @@ const blocks = computed(() => {
             title: `${line.abbreviation} — ${line.description}`,
             lines: chartLines(line),
             target: line.target,
-            requiredHours: line.required_hours,
-            confirmedHours: line.available_hours_confirmed,
+            donuts: donuts(line),
             employeesHref: `/employees?business_lines[]=${line.id}`,
         })),
     ]
@@ -130,10 +140,14 @@ const blocks = computed(() => {
                             :show-caption="false"
                         />
                     </div>
-                    <div class="w-28 shrink-0">
+                    <div v-if="block.donuts.length" class="flex w-28 shrink-0 flex-col gap-4">
                         <CoverageDonut
-                            :available="block.confirmedHours"
-                            :required="block.requiredHours"
+                            v-for="donut in block.donuts"
+                            :key="donut.key"
+                            :label="donut.label"
+                            :color="donut.color"
+                            :available="donut.available"
+                            :required="donut.required"
                         />
                     </div>
                 </div>
