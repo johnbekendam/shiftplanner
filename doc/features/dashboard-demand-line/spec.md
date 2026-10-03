@@ -102,7 +102,8 @@ Each card has two donuts, one below the other, at the right of the chart.
   chart has no context.
 - **Planned relative to Available.** The Planned donut shows how much of
   the capacity is in use.
-- **No What's new entry.** The user decided this.
+- **One What's new entry for admins and managers.** It covers the
+  lines and the donuts.
 
 ## Non-goals
 
