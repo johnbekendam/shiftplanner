@@ -22,13 +22,11 @@ const page = usePage()
 
 // Toggle and paint order: the last line sits on top.
 const lineOptions = [
-    { key: 'unconfirmed', label: 'dashboard.lines.unconfirmed', series: 'available_unconfirmed', stroke: 'var(--color-text-secondary)', markerClass: 'bg-[var(--color-text-secondary)]' },
-    { key: 'confirmed', label: 'dashboard.lines.confirmed', series: 'available_confirmed', stroke: 'var(--color-badge-success-text)', markerClass: 'bg-[var(--color-badge-success-text)]' },
-    { key: 'total', label: 'dashboard.lines.total', series: 'available_total', stroke: 'var(--color-brand-bg)', markerClass: 'bg-[var(--color-brand-bg)]' },
+    { key: 'available', label: 'dashboard.lines.available', series: 'available', stroke: 'var(--color-badge-success-text)', markerClass: 'bg-[var(--color-badge-success-text)]' },
     { key: 'planned', label: 'dashboard.lines.planned', series: 'planned', stroke: 'var(--color-badge-warning-text)', markerClass: 'bg-[var(--color-badge-warning-text)]', step: true },
 ]
 
-const defaultLines = ['confirmed', 'planned']
+const defaultLines = lineOptions.map((option) => option.key)
 
 // No `lines` parameter gives the default set. An empty value turns every line off.
 const visibleLines = computed(() => {
@@ -66,7 +64,7 @@ const blocks = computed(() => {
             lines: chartLines(props.overall),
             target: props.overall.target,
             requiredHours: props.overall.required_hours,
-            confirmedHours: props.overall.available_hours_confirmed,
+            availableHours: props.overall.available_hours,
             employeesHref: '/employees',
         },
         ...props.lines.map((line) => ({
@@ -75,7 +73,7 @@ const blocks = computed(() => {
             lines: chartLines(line),
             target: line.target,
             requiredHours: line.required_hours,
-            confirmedHours: line.available_hours_confirmed,
+            availableHours: line.available_hours,
             employeesHref: `/employees?business_lines[]=${line.id}`,
         })),
     ]
@@ -132,7 +130,7 @@ const blocks = computed(() => {
                     </div>
                     <div class="w-28 shrink-0">
                         <CoverageDonut
-                            :available="block.confirmedHours"
+                            :available="block.availableHours"
                             :required="block.requiredHours"
                         />
                     </div>

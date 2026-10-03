@@ -36,24 +36,17 @@ class DashboardController extends Controller
         $businessLines = BusinessLine::all(); // position-ordered by the model scope
         $zeros = array_fill(0, $days->count(), 0.0);
 
-        $series = [
-            'confirmed' => [
-                'overall' => $zeros,
-                'lines' => $businessLines->mapWithKeys(fn (BusinessLine $line) => [$line->id => $zeros])->all(),
-            ],
-            'unconfirmed' => [
-                'overall' => $zeros,
-                'lines' => $businessLines->mapWithKeys(fn (BusinessLine $line) => [$line->id => $zeros])->all(),
-            ],
+        // Available counts the confirmed employees only.
+        $available = [
+            'overall' => $zeros,
+            'lines' => $businessLines->mapWithKeys(fn (BusinessLine $line) => [$line->id => $zeros])->all(),
         ];
 
-        Employee::query()->active()->with('holidays')->get()->each(function (Employee $employee) use ($days, $settings, &$series) {
-            $status = $employee->confirmed ? 'confirmed' : 'unconfirmed';
-
+        Employee::query()->active()->where('confirmed', true)->with('holidays')->get()->each(function (Employee $employee) use ($days, $settings, &$available) {
             foreach ($this->availableFte($employee, $days, $settings->fte_hours) as $i => $value) {
-                $series[$status]['overall'][$i] += $value;
-                if ($employee->business_line_id && isset($series[$status]['lines'][$employee->business_line_id])) {
-                    $series[$status]['lines'][$employee->business_line_id][$i] += $value;
+                $available['overall'][$i] += $value;
+                if ($employee->business_line_id && isset($available['lines'][$employee->business_line_id])) {
+                    $available['lines'][$employee->business_line_id][$i] += $value;
                 }
             }
         });
@@ -68,45 +61,26 @@ class DashboardController extends Controller
             ],
             'days' => $days->map(fn ($day) => $day->toDateString())->all(),
             'overall' => [
-                'available_confirmed' => $series['confirmed']['overall'],
-                'available_unconfirmed' => $series['unconfirmed']['overall'],
-                'available_total' => $this->sumSeries($series['confirmed']['overall'], $series['unconfirmed']['overall']),
+                'available' => $available['overall'],
                 'planned' => $planned['overall'],
                 'demand' => $this->demandFte($days, $settings->fte_hours),
                 'target' => (float) $businessLines->sum('target_fte'),
-                'available_hours_confirmed' => $this->availableHours($series['confirmed']['overall'], $dailyFteHours),
-                'available_hours_unconfirmed' => $this->availableHours($series['unconfirmed']['overall'], $dailyFteHours),
+                'available_hours' => $this->availableHours($available['overall'], $dailyFteHours),
                 'required_hours' => (float) $businessLines->sum('target_fte') * $days->count() * $dailyFteHours,
             ],
-            'lines' => $businessLines->map(function (BusinessLine $line) use ($days, $dailyFteHours, $series, $planned) {
-                $confirmed = $series['confirmed']['lines'][$line->id];
-                $unconfirmed = $series['unconfirmed']['lines'][$line->id];
-
+            'lines' => $businessLines->map(function (BusinessLine $line) use ($days, $dailyFteHours, $available, $planned) {
                 return [
                     'id' => $line->id,
                     'abbreviation' => $line->abbreviation,
                     'description' => $line->description,
-                    'available_confirmed' => $confirmed,
-                    'available_unconfirmed' => $unconfirmed,
-                    'available_total' => $this->sumSeries($confirmed, $unconfirmed),
+                    'available' => $available['lines'][$line->id],
                     'planned' => $planned['lines'][$line->id],
                     'target' => (float) $line->target_fte,
-                    'available_hours_confirmed' => $this->availableHours($confirmed, $dailyFteHours),
-                    'available_hours_unconfirmed' => $this->availableHours($unconfirmed, $dailyFteHours),
+                    'available_hours' => $this->availableHours($available['lines'][$line->id], $dailyFteHours),
                     'required_hours' => (float) $line->target_fte * $days->count() * $dailyFteHours,
                 ];
             })->all(),
         ]);
-    }
-
-    /**
-     * @param  list<float>  $confirmed
-     * @param  list<float>  $unconfirmed
-     * @return list<float>
-     */
-    private function sumSeries(array $confirmed, array $unconfirmed): array
-    {
-        return array_map(fn (float $confirmedValue, float $unconfirmedValue) => $confirmedValue + $unconfirmedValue, $confirmed, $unconfirmed);
     }
 
     /**
