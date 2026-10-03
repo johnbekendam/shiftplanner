@@ -8,6 +8,9 @@ use App\Models\PlanningSettings;
 use App\Models\Shift;
 use App\Models\ShiftAssignment;
 use App\Models\User;
+use App\Models\Workcenter;
+use App\Models\WorkcenterShiftCapacity;
+use App\Models\WorkcenterShiftDateOverride;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -298,5 +301,86 @@ class DashboardTest extends TestCase
 
         $this->get('/dashboard')->assertOk()
             ->assertInertia(fn ($page) => $page->where('overall.planned', []));
+    }
+
+    /** Attaches a shift to the workcenter with the same slot count on the given weekdays. */
+    private function demand(Workcenter $workcenter, array $weekdays, int $spots, string $start = '08:00', string $end = '16:00'): Shift
+    {
+        $shift = Shift::factory()->create(['start_time' => $start, 'end_time' => $end]);
+        $workcenter->shifts()->attach($shift);
+        foreach ($weekdays as $weekday) {
+            WorkcenterShiftCapacity::query()->create([
+                'workcenter_id' => $workcenter->id,
+                'shift_id' => $shift->id,
+                'weekday' => $weekday,
+                'spots' => $spots,
+            ]);
+        }
+
+        return $shift;
+    }
+
+    public function test_demand_is_a_weekly_fte_step_of_slots_times_shift_hours(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->setPeriod('2026-01-05', '2026-01-16', fteHours: 40); // two full weeks
+        $workcenter = Workcenter::factory()->create();
+        // Monday and Saturday, 2 slots of 8 h: 32 h per week. Weekend demand counts.
+        $shift = $this->demand($workcenter, [1, 6], spots: 2);
+        // Week two: the Monday override drops to 1 slot, so 24 h.
+        WorkcenterShiftDateOverride::query()->create([
+            'workcenter_id' => $workcenter->id,
+            'shift_id' => $shift->id,
+            'date' => '2026-01-12',
+            'spots' => 1,
+        ]);
+
+        $this->get('/dashboard')->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('overall.demand', [0.8, 0.8, 0.8, 0.8, 0.8, 0.6, 0.6, 0.6, 0.6, 0.6])
+            );
+    }
+
+    public function test_demand_sums_every_shift_of_every_active_workcenter(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->setPeriod('2026-01-05', '2026-01-05', fteHours: 40);
+        $this->demand(Workcenter::factory()->create(), [1], spots: 1); // 8 h
+        $this->demand(Workcenter::factory()->create(), [1], spots: 3, start: '12:00', end: '16:00'); // 12 h
+        $this->demand(Workcenter::factory()->create(['archived_at' => now()]), [1], spots: 5);
+
+        $this->get('/dashboard')->assertOk()
+            ->assertInertia(fn ($page) => $page->where('overall.demand', [0.5]));
+    }
+
+    public function test_demand_counts_the_full_week_outside_the_period(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->setPeriod('2026-01-07', '2026-01-09', fteHours: 40); // Wednesday to Friday
+        $this->demand(Workcenter::factory()->create(), [1], spots: 1); // Monday, before the period
+
+        $this->get('/dashboard')->assertOk()
+            ->assertInertia(fn ($page) => $page->where('overall.demand', [0.2, 0.2, 0.2]));
+    }
+
+    public function test_a_business_line_block_has_no_demand_series(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->setPeriod('2026-01-05', '2026-01-05', fteHours: 40);
+        BusinessLine::factory()->create();
+        $this->demand(Workcenter::factory()->create(), [1], spots: 1);
+
+        $this->get('/dashboard')->assertOk()
+            ->assertInertia(fn ($page) => $page->missing('lines.0.demand'));
+    }
+
+    public function test_a_weekend_only_period_has_an_empty_demand_series(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->setPeriod('2026-01-10', '2026-01-11', fteHours: 40);
+        $this->demand(Workcenter::factory()->create(), [6], spots: 1);
+
+        $this->get('/dashboard')->assertOk()
+            ->assertInertia(fn ($page) => $page->where('overall.demand', []));
     }
 }
