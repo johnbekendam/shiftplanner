@@ -6,6 +6,7 @@ const en = {
     "dashboard.overall": "Overall",
     "dashboard.no_period": "Set a period on the Settings page to see available FTE.",
     "dashboard.lines.label": "Chart lines",
+    "dashboard.lines.demand": "Demand",
     "dashboard.lines.available": "Available",
     "dashboard.lines.planned": "Planned",
     "dashboard.coverage": "Hours covered",
@@ -36,6 +37,7 @@ const mountPage = (props = {}, url = "/dashboard") => {
 const period = { start: "2026-01-05", end: "2026-01-06", fte_hours: 40 };
 const days = ["2026-01-05", "2026-01-06"];
 const overall = {
+    demand: [1.5, 1.5],
     available: [1, 1],
     planned: [0.75, 0.75],
     target: 8,
@@ -133,12 +135,13 @@ describe("Dashboard/Index", () => {
         const w = mountPage({ period, days, overall, lines: [] });
 
         const boxes = toggles(w);
-        expect(boxes.map((b) => b.attributes("type"))).toEqual(["checkbox", "checkbox"]);
-        expect(boxes.map((b) => b.element.closest("label").textContent.trim())).toEqual(["Available", "Planned"]);
+        expect(boxes.map((b) => b.attributes("type"))).toEqual(["checkbox", "checkbox", "checkbox"]);
+        expect(boxes.map((b) => b.element.closest("label").textContent.trim())).toEqual(["Demand", "Available", "Planned"]);
         expect(w.findAll("button")).toHaveLength(0);
 
         const markers = w.findAll('[data-testid="dashboard-line-toggle-marker"]');
         expect(markers.map((m) => m.classes().find((c) => c.startsWith("bg-")))).toEqual([
+            "bg-[var(--color-brand-bg)]",
             "bg-[var(--color-badge-success-text)]",
             "bg-[var(--color-badge-warning-text)]",
         ]);
@@ -147,31 +150,45 @@ describe("Dashboard/Index", () => {
     it("turns on every line by default", () => {
         const w = mountPage({ period, days, overall, lines: [] });
 
-        expect(checked(w)).toEqual([true, true]);
+        expect(checked(w)).toEqual([true, true, true]);
         expect(chartLines(w)).toEqual([
+            { key: "demand", values: [1.5, 1.5], stroke: "var(--color-brand-bg)", step: true },
             { key: "available", values: [1, 1], stroke: "var(--color-badge-success-text)", step: false },
             { key: "planned", values: [0.75, 0.75], stroke: "var(--color-badge-warning-text)", step: true },
         ]);
     });
 
-    it("reads the visible lines from the query string", () => {
-        const w = mountPage({ period, days, overall, lines: [] }, "/dashboard?lines=planned,bogus");
+    it("draws the demand line on the overall card only", () => {
+        const w = mountPage({
+            period,
+            days,
+            overall,
+            lines: [{ id: 7, abbreviation: "PMP", description: "Pumps", available: [1, 1], planned: [0.5, 0.5], target: 5, available_hours: 16, required_hours: 40 }],
+        });
 
-        expect(checked(w)).toEqual([false, true]);
-        expect(chartLines(w).map((line) => line.key)).toEqual(["planned"]);
+        const charts = w.findAllComponents(FteLineChart);
+        expect(charts[0].props("lines").map((line) => line.key)).toEqual(["demand", "available", "planned"]);
+        expect(charts[1].props("lines").map((line) => line.key)).toEqual(["available", "planned"]);
+    });
+
+    it("reads the visible lines from the query string", () => {
+        const w = mountPage({ period, days, overall, lines: [] }, "/dashboard?lines=planned,demand,bogus");
+
+        expect(checked(w)).toEqual([true, false, true]);
+        expect(chartLines(w).map((line) => line.key)).toEqual(["demand", "planned"]);
     });
 
     it("ignores the old line names in the query string", () => {
         const w = mountPage({ period, days, overall, lines: [] }, "/dashboard?lines=confirmed,unconfirmed,total");
 
-        expect(checked(w)).toEqual([false, false]);
+        expect(checked(w)).toEqual([false, false, false]);
         expect(chartLines(w)).toEqual([]);
     });
 
     it("draws no lines when the query string turns them all off", () => {
         const w = mountPage({ period, days, overall, lines: [] }, "/dashboard?lines=");
 
-        expect(checked(w)).toEqual([false, false]);
+        expect(checked(w)).toEqual([false, false, false]);
         expect(chartLines(w)).toEqual([]);
     });
 
@@ -180,21 +197,25 @@ describe("Dashboard/Index", () => {
 
         await toggles(w)[0].setValue(false);
 
-        expect(routerGet).toHaveBeenCalledWith("/dashboard", { lines: "planned" }, { preserveScroll: true, preserveState: true });
+        expect(routerGet).toHaveBeenCalledWith(
+            "/dashboard",
+            { lines: "available,planned" },
+            { preserveScroll: true, preserveState: true },
+        );
     });
 
     it("sends an empty set when the last line goes off", async () => {
         const w = mountPage({ period, days, overall, lines: [] }, "/dashboard?lines=planned");
 
-        await toggles(w)[1].setValue(false);
+        await toggles(w)[2].setValue(false);
 
         expect(routerGet).toHaveBeenCalledWith("/dashboard", { lines: "" }, { preserveScroll: true, preserveState: true });
     });
 
     it("drops the query string when the toggles match the default", async () => {
-        const w = mountPage({ period, days, overall, lines: [] }, "/dashboard?lines=available");
+        const w = mountPage({ period, days, overall, lines: [] }, "/dashboard?lines=demand,available");
 
-        await toggles(w)[1].setValue(true);
+        await toggles(w)[2].setValue(true);
 
         expect(routerGet).toHaveBeenCalledWith("/dashboard", {}, { preserveScroll: true, preserveState: true });
     });

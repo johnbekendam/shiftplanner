@@ -22,6 +22,7 @@ const page = usePage()
 
 // Toggle and paint order: the last line sits on top.
 const lineOptions = [
+    { key: 'demand', label: 'dashboard.lines.demand', series: 'demand', stroke: 'var(--color-brand-bg)', markerClass: 'bg-[var(--color-brand-bg)]', step: true },
     { key: 'available', label: 'dashboard.lines.available', series: 'available', stroke: 'var(--color-badge-success-text)', markerClass: 'bg-[var(--color-badge-success-text)]' },
     { key: 'planned', label: 'dashboard.lines.planned', series: 'planned', stroke: 'var(--color-badge-warning-text)', markerClass: 'bg-[var(--color-badge-warning-text)]', step: true },
 ]
@@ -50,9 +51,10 @@ const toggleLine = (key) => {
     )
 }
 
+// A business-line block has no demand series, so that line is left out there.
 const chartLines = (block) =>
     lineOptions
-        .filter((option) => isVisible(option.key))
+        .filter((option) => isVisible(option.key) && Array.isArray(block[option.series]))
         .map((option) => ({ key: option.key, values: block[option.series], stroke: option.stroke, step: option.step === true }))
 
 const blocks = computed(() => {

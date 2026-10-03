@@ -708,6 +708,7 @@
     "dashboard.overall": "Overall",
     "dashboard.no_period": "Set a period on the Settings page to see available FTE.",
     "dashboard.lines.label": "Chart lines",
+    "dashboard.lines.demand": "Demand",
     "dashboard.lines.available": "Available",
     "dashboard.lines.planned": "Planned",
     "dashboard.coverage": "Hours covered",
