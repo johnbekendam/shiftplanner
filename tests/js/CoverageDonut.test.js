@@ -51,10 +51,16 @@ describe("CoverageDonut", () => {
         expect(w.get('[data-testid="donut-caption"]').text()).toContain("480 / 800 h");
     });
 
-    it("uses the brand token for the arc and the border token for the track", () => {
-        const w = mount(CoverageDonut, { props: { available: 60, required: 100 } });
+    it("draws the arc in the given color and the track in the border token", () => {
+        const w = mount(CoverageDonut, { props: { available: 60, required: 100, color: "var(--color-badge-warning-text)" } });
 
-        expect(w.get('[data-testid="donut-arc"]').attributes("stroke")).toBe("var(--color-brand-bg)");
+        expect(w.get('[data-testid="donut-arc"]').attributes("stroke")).toBe("var(--color-badge-warning-text)");
         expect(w.get('[data-testid="donut-track"]').attributes("stroke")).toBe("var(--color-border)");
+    });
+
+    it("keeps the arc color when the value reaches 100%", () => {
+        const w = mount(CoverageDonut, { props: { available: 150, required: 100, color: "var(--color-badge-warning-text)" } });
+
+        expect(w.get('[data-testid="donut-arc"]').attributes("stroke")).toBe("var(--color-badge-warning-text)");
     });
 });

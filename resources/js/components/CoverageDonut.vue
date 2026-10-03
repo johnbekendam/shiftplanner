@@ -7,6 +7,8 @@ const __ = useI18n()
 const props = defineProps({
     // Caption heading: what the donut measures.
     label: { type: String, default: '' },
+    // Arc color: the color of the matching chart line.
+    color: { type: String, default: 'var(--color-brand-bg)' },
     // Available person-hours over the period.
     available: { type: Number, default: 0 },
     // Required person-hours over the period. 0 means "no target set".
@@ -25,13 +27,6 @@ const fraction = computed(() =>
 )
 
 const dashArray = computed(() => `${fraction.value * CIRCUMFERENCE} ${CIRCUMFERENCE}`)
-
-// Once coverage reaches the target, switch the arc to the success colour.
-const arcColor = computed(() =>
-    hasTarget.value && props.available >= props.required
-        ? 'var(--color-badge-success-text)'
-        : 'var(--color-brand-bg)',
-)
 
 const percentage = computed(() =>
     hasTarget.value ? `${Math.round((props.available / props.required) * 100)}%` : '—',
@@ -67,7 +62,7 @@ const caption = computed(() =>
                 cy="50"
                 :r="R"
                 fill="none"
-                :stroke="arcColor"
+                :stroke="color"
                 stroke-width="10"
                 stroke-linecap="round"
                 :stroke-dasharray="dashArray"

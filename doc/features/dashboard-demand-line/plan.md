@@ -1,6 +1,6 @@
 # Dashboard — Demand Line — Plan
 
-Status: done — 7/7
+Status: done — 8/8
 
 - [x] `DashboardController` sends a weekly `demand` series on the overall
       block: slots x shift hours of the active workcenters, date
@@ -18,3 +18,5 @@ Status: done — 7/7
       A Planned donut below it shows `planned_hours` / `available_hours`,
       only with the Planned line.
 - [x] Remove the What's new entry.
+- [x] Each donut arc has the color of its line. The color does not
+      change at 100%.

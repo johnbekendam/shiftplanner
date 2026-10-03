@@ -125,10 +125,10 @@ describe("Dashboard/Index", () => {
 
         const donuts = w.findAllComponents(CoverageDonut);
         expect(donuts.map((d) => d.props())).toEqual([
-            { label: "Available", available: 18, required: 64 },
-            { label: "Planned", available: 9, required: 18 },
-            { label: "Available", available: 12, required: 40 },
-            { label: "Planned", available: 3, required: 12 },
+            { label: "Available", color: "var(--color-badge-success-text)", available: 18, required: 64 },
+            { label: "Planned", color: "var(--color-badge-warning-text)", available: 9, required: 18 },
+            { label: "Available", color: "var(--color-badge-success-text)", available: 12, required: 40 },
+            { label: "Planned", color: "var(--color-badge-warning-text)", available: 3, required: 12 },
         ]);
     });
 

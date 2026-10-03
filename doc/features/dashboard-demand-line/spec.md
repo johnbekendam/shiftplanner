@@ -74,7 +74,10 @@ Each card has two donuts, one below the other, at the right of the chart.
   each business-line block. It is the sum of the `planned` series
   multiplied by `fte_hours / 5`, the same rule as `available_hours`.
 - The Planned donut shows "—" when `available_hours` is 0.
-- `CoverageDonut` gets a `label` prop for the caption.
+- `CoverageDonut` gets a `label` prop for the caption and a `color` prop
+  for the arc.
+- The arc of a donut has the color of its line: green for Available,
+  amber for Planned. The color does not change at 100%.
 
 ## Key decisions
 

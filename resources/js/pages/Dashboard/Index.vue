@@ -57,12 +57,17 @@ const chartLines = (block) =>
         .filter((option) => isVisible(option.key) && Array.isArray(block[option.series]))
         .map((option) => ({ key: option.key, values: block[option.series], stroke: option.stroke, step: option.step === true }))
 
-// A donut shows only while its line is on.
+// A donut shows only while its line is on, in the color of that line.
 const donuts = (block) =>
     [
-        { key: 'available', label: __('dashboard.lines.available'), available: block.available_hours, required: block.required_hours },
-        { key: 'planned', label: __('dashboard.lines.planned'), available: block.planned_hours, required: block.available_hours },
-    ].filter((donut) => isVisible(donut.key))
+        { key: 'available', available: block.available_hours, required: block.required_hours },
+        { key: 'planned', available: block.planned_hours, required: block.available_hours },
+    ]
+        .filter((donut) => isVisible(donut.key))
+        .map((donut) => {
+            const option = lineOptions.find((line) => line.key === donut.key)
+            return { ...donut, label: __(option.label), color: option.stroke }
+        })
 
 const blocks = computed(() => {
     if (!props.overall) return []
@@ -140,6 +145,7 @@ const blocks = computed(() => {
                             v-for="donut in block.donuts"
                             :key="donut.key"
                             :label="donut.label"
+                            :color="donut.color"
                             :available="donut.available"
                             :required="donut.required"
                         />
